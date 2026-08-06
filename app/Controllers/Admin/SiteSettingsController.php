@@ -115,6 +115,34 @@ class SiteSettingsController extends Controller
         self::redirect('/admin/settings/notifications');
     }
 
+    public function email(): void
+    {
+        $this->view('admin/settings/email', [
+            'pageTitle' => 'Email (SMTP)',
+            'settings' => Settings::all(),
+        ], 'layouts/admin');
+    }
+
+    public function updateEmail(): void
+    {
+        $this->verifyCsrf();
+
+        Settings::set('smtp_enabled', $this->input('smtp_enabled') ? '1' : '0');
+        Settings::set('smtp_host', trim((string) $this->input('smtp_host', '')));
+        Settings::set('smtp_port', (string) (int) $this->input('smtp_port', 587));
+        Settings::set('smtp_encryption', in_array($this->input('smtp_encryption'), ['tls', 'ssl', 'none'], true) ? $this->input('smtp_encryption') : 'tls');
+        Settings::set('smtp_username', trim((string) $this->input('smtp_username', '')));
+        $password = (string) $this->input('smtp_password', '');
+        if ($password !== '') {
+            Settings::set('smtp_password', $password);
+        }
+        Settings::set('smtp_from_email', trim((string) $this->input('smtp_from_email', '')));
+        Settings::set('smtp_from_name', trim((string) $this->input('smtp_from_name', 'BuildXact Saudi')));
+
+        $this->flash('success', 'Email settings updated.');
+        self::redirect('/admin/settings/email');
+    }
+
     public function payments(): void
     {
         $this->view('admin/settings/payments', [

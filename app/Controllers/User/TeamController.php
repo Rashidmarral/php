@@ -5,6 +5,8 @@ namespace App\Controllers\User;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Feature;
+use App\Core\Mailer;
+use App\Models\Company;
 use App\Models\User;
 
 class TeamController extends Controller
@@ -54,7 +56,21 @@ class TeamController extends Controller
             'status' => 'active',
         ]);
 
-        $this->flash('success', "Team member invited. Temporary password: {$tempPassword} (share this securely).");
+        if (Mailer::isConfigured()) {
+            $company = Company::find(Auth::companyId());
+            $result = Mailer::send(
+                $email,
+                $name,
+                "You've been invited to {$company['name']} on BuildXact Saudi",
+                "Hi {$name},\n\nYou've been added to {$company['name']}'s BuildXact Saudi account.\n\nLog in at " . rtrim(\App\Core\Env::get('APP_URL', ''), '/') . "/login\nEmail: {$email}\nTemporary password: {$tempPassword}\n\nPlease change your password after logging in."
+            );
+            $this->flash($result['ok'] ? 'success' : 'error', $result['ok']
+                ? "Team member invited — an email with login details was sent to {$email}."
+                : "Team member invited, but the invite email failed to send ({$result['error']}). Temporary password: {$tempPassword} (share this securely)."
+            );
+        } else {
+            $this->flash('success', "Team member invited. Temporary password: {$tempPassword} (share this securely).");
+        }
         self::redirect('/app/team');
     }
 

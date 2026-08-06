@@ -77,6 +77,7 @@ return [
     'pricing.most_popular' => 'الأكثر اختيارًا',
     'pricing.per_month' => '/ شهريًا',
     'pricing.per_year' => '/ سنويًا',
+    'pricing.if_billed_yearly' => 'عند الدفع سنويًا',
     'pricing.cta' => 'ابدأ تجربة مجانية',
     'pricing.users' => 'مستخدمين',
     'pricing.projects' => 'مشروع نشط',

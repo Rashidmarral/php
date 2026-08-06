@@ -41,6 +41,8 @@ class SettingsController extends Controller
             'additional_number' => trim((string) $this->input('additional_number', '')),
             'default_markup_percent' => (float) $this->input('default_markup_percent', 0),
             'default_retention_percent' => (float) $this->input('default_retention_percent', 0),
+            'contractor_classification' => $this->input('contractor_classification', ''),
+            'contractor_classification_number' => trim((string) $this->input('contractor_classification_number', '')),
             'client_portal_enabled' => $this->input('client_portal_enabled') ? 1 : 0,
         ];
 

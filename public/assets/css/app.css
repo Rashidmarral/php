@@ -110,6 +110,12 @@ p { margin: 0 0 1em; }
 .pricing-card .badge-featured { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #2b2200; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; }
 .price { font-size: 40px; font-weight: 800; color: var(--brand-dark); margin: 14px 0 4px; }
 .price small { font-size: 15px; font-weight: 500; color: var(--muted); }
+.cycle-switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+.cycle-switch input { opacity: 0; width: 0; height: 0; }
+.cycle-slider { position: absolute; cursor: pointer; inset: 0; background: var(--border); border-radius: 26px; transition: .2s; }
+.cycle-slider::before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.cycle-switch input:checked + .cycle-slider { background: var(--brand); }
+.cycle-switch input:checked + .cycle-slider::before { transform: translateX(20px); }
 .plan-features { list-style: none; padding: 0; margin: 20px 0; text-align: left; }
 html[dir="rtl"] .plan-features { text-align: right; }
 .plan-features li { padding: 7px 0; border-top: 1px solid var(--border); font-size: 14px; color: var(--ink); }
@@ -285,7 +291,13 @@ html[dir="rtl"] .total-row { text-align: left; }
   .grid-3, .grid-4, .grid-2 { grid-template-columns: 1fr; }
   .nav-links { display: none; }
   .app-shell { flex-direction: column; }
-  .sidebar { width: 100%; }
+  .sidebar { width: 100%; max-height: 60vh; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-grid { grid-template-columns: repeat(2, 1fr); }
+  .content { padding: 16px; }
+  table.data { display: block; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .form-row { grid-template-columns: 1fr; }
 }
+
+/* Prevents any stray wide element from forcing the whole page to scroll horizontally. */
+html, body { max-width: 100%; overflow-x: hidden; }

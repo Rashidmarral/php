@@ -8,6 +8,7 @@
   <a href="/admin/settings/payments">Payment Methods</a>
   <a href="/admin/settings/legal">Legal & Branding</a>
   <a href="/admin/settings/notifications" class="active">Notifications</a>
+  <a href="/admin/settings/email">Email</a>
 </div>
 
 <div class="card" style="max-width:680px;margin-bottom:20px;">

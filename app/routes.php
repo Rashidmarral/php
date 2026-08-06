@@ -7,6 +7,7 @@ use App\Controllers\Auth\AuthController;
 use App\Controllers\User\DashboardController;
 use App\Controllers\User\ProjectController;
 use App\Controllers\User\ChangeOrderController;
+use App\Controllers\User\ProjectPhotoController;
 use App\Controllers\User\ClientController;
 use App\Controllers\User\EstimateController;
 use App\Controllers\User\InvoiceController;
@@ -22,6 +23,7 @@ use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\AdminUserController;
 use App\Controllers\Admin\AdminProfileController;
 use App\Controllers\Admin\AdminReportController;
+use App\Controllers\Admin\AdminIntegrationController;
 use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
@@ -81,6 +83,8 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->post('/app/projects/{id}/change-orders', [ChangeOrderController::class, 'store']);
     $router->post('/app/change-orders/{id}/status', [ChangeOrderController::class, 'updateStatus']);
     $router->post('/app/change-orders/{id}/delete', [ChangeOrderController::class, 'destroy']);
+    $router->post('/app/projects/{id}/photos', [ProjectPhotoController::class, 'store']);
+    $router->post('/app/project-photos/{id}/delete', [ProjectPhotoController::class, 'destroy']);
 
     $router->get('/app/clients', [ClientController::class, 'index']);
     $router->get('/app/clients/create', [ClientController::class, 'create']);
@@ -222,6 +226,9 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/settings/legal', [SiteSettingsController::class, 'updateLegal']);
     $router->get('/admin/settings/notifications', [SiteSettingsController::class, 'notifications']);
     $router->post('/admin/settings/notifications', [SiteSettingsController::class, 'updateNotifications']);
+    $router->get('/admin/settings/email', [SiteSettingsController::class, 'email']);
+    $router->post('/admin/settings/email', [SiteSettingsController::class, 'updateEmail']);
+    $router->get('/admin/integrations', [AdminIntegrationController::class, 'index']);
 
     $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
 

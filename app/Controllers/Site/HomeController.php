@@ -42,11 +42,11 @@ class HomeController extends Controller
 
     public function privacy(): void
     {
-        $this->view('site/legal', ['pageTitle' => 'Privacy Policy', 'heading' => 'Privacy Policy']);
+        $this->view('site/legal', ['pageTitle' => 'Privacy Policy', 'heading' => 'Privacy Policy', 'type' => 'privacy']);
     }
 
     public function terms(): void
     {
-        $this->view('site/legal', ['pageTitle' => 'Terms of Service', 'heading' => 'Terms of Service']);
+        $this->view('site/legal', ['pageTitle' => 'Terms of Service', 'heading' => 'Terms of Service', 'type' => 'terms']);
     }
 }

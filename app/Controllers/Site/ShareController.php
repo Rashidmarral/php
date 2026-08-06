@@ -84,7 +84,7 @@ class ShareController extends Controller
         $items = EstimateItem::where('estimate_id', $estimate['id'], 'id ASC');
         $client = $estimate['client_id'] ? Client::find((int) $estimate['client_id']) : null;
         $company = Company::find((int) $estimate['company_id']);
-        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant'], true) ? $this->input('template') : 'modern';
+        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $this->input('template') : 'modern';
 
         $this->streamPdf([
             'template' => $template,
@@ -94,7 +94,9 @@ class ShareController extends Controller
             'docNumber' => (string) $estimate['id'],
             'docDate' => $estimate['created_at'],
             'status' => ucfirst($estimate['status']),
-            'issuer' => ['name' => $company['name'] ?? '', 'meta' => array_filter([$company['phone'] ?? null, ($company['vat_number'] ?? null) ? 'VAT: ' . $company['vat_number'] : null])],
+            'issuer' => ['name' => $company['name'] ?? '', 'meta' => array_filter([$company['phone'] ?? null, ($company['vat_number'] ?? null) ? 'VAT: ' . $company['vat_number'] : null, ($company['cr_number'] ?? null) ? 'CR: ' . $company['cr_number'] : null])],
+            'companyNameAr' => $company['name_ar'] ?? '',
+            'companyLogo' => !empty($company['logo_path']) ? ('file://' . BASE_PATH . '/public' . $company['logo_path']) : null,
             'billTo' => $client ? ['name' => $client['name'], 'meta' => array_filter([$client['email'] ?? null, $client['phone'] ?? null, $client['address'] ?? null])] : null,
             'items' => array_map(fn($i) => ['description' => $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_cost'], 'total' => $i['total']], $items),
             'subtotal' => (float) $estimate['total'],
@@ -136,7 +138,7 @@ class ShareController extends Controller
         $items = InvoiceItem::where('invoice_id', $invoice['id'], 'id ASC');
         $client = $invoice['client_id'] ? Client::find((int) $invoice['client_id']) : null;
         $company = Company::find((int) $invoice['company_id']);
-        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant'], true) ? $this->input('template') : 'modern';
+        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $this->input('template') : 'modern';
 
         $this->streamPdf([
             'template' => $template,
@@ -147,7 +149,9 @@ class ShareController extends Controller
             'docDate' => $invoice['created_at'],
             'validUntil' => $invoice['due_date'],
             'status' => ucfirst($invoice['status']),
-            'issuer' => ['name' => $company['name'] ?? '', 'meta' => array_filter([$company['phone'] ?? null, ($company['vat_number'] ?? null) ? 'VAT: ' . $company['vat_number'] : null])],
+            'issuer' => ['name' => $company['name'] ?? '', 'meta' => array_filter([$company['phone'] ?? null, ($company['vat_number'] ?? null) ? 'VAT: ' . $company['vat_number'] : null, ($company['cr_number'] ?? null) ? 'CR: ' . $company['cr_number'] : null])],
+            'companyNameAr' => $company['name_ar'] ?? '',
+            'companyLogo' => !empty($company['logo_path']) ? ('file://' . BASE_PATH . '/public' . $company['logo_path']) : null,
             'billTo' => $client ? ['name' => $client['name'], 'meta' => array_filter([$client['email'] ?? null, $client['phone'] ?? null, $client['address'] ?? null])] : null,
             'items' => array_map(fn($i) => ['description' => $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_price'], 'total' => $i['total']], $items),
             'subtotal' => (float) $invoice['total'] - (float) $invoice['vat_amount'],

@@ -88,6 +88,39 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3>Site photo diary</h3>
+  <p class="help-text" style="margin-top:-6px;">Keep a dated record of site progress — cheap to check, hard to argue with.</p>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/photos" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px;">
+    <?= Csrf::field() ?>
+    <div class="form-group" style="margin:0;"><label>Photo</label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></div>
+    <div class="form-group" style="margin:0;"><label>Date</label><input type="date" name="taken_on" value="<?= date('Y-m-d') ?>"></div>
+    <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label>Caption</label><input type="text" name="caption" placeholder="e.g. Foundation poured, north wing"></div>
+    <button type="submit" class="btn btn-outline">+ Add photo</button>
+  </form>
+
+  <?php if (empty($photos)): ?>
+    <p class="help-text">No site photos yet.</p>
+  <?php else: ?>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;">
+      <?php foreach ($photos as $photo): ?>
+        <div>
+          <a href="<?= View::e($photo['file_path']) ?>" target="_blank">
+            <img src="<?= View::e($photo['file_path']) ?>" alt="Site photo" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+          </a>
+          <p class="help-text" style="margin-top:4px;margin-bottom:0;"><?= View::e($photo['taken_on'] ?: '') ?></p>
+          <?php if ($photo['caption']): ?><p style="font-size:12.5px;margin:2px 0 4px;"><?= View::e($photo['caption']) ?></p><?php endif; ?>
+          <form method="post" action="/app/project-photos/<?= $photo['id'] ?>/delete" onsubmit="return confirm('Remove this photo?');">
+            <?= Csrf::field() ?>
+            <button type="submit" class="btn btn-sm btn-light" style="width:100%;">Remove</button>
+          </form>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3>Schedule</h3>
   <?php if (empty($tasks)): ?><p class="help-text">No scheduled tasks for this project yet. Add some from the <a href="/app/schedule">Schedule</a> page.</p><?php else: ?>
     <table class="data"><thead><tr><th>Task</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>

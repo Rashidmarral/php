@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\ProjectPhoto;
 use App\Models\Task;
 
 class ProjectController extends Controller
@@ -81,6 +82,7 @@ class ProjectController extends Controller
         $tasks = Task::query('SELECT * FROM schedule_tasks WHERE project_id = ? ORDER BY start_date ASC', [$project['id']])->fetchAll();
         $changeOrders = ChangeOrder::where('project_id', $project['id'], 'created_at DESC');
         $approvedTotal = array_sum(array_map(fn($co) => $co['status'] === 'approved' ? (float) $co['amount'] : 0, $changeOrders));
+        $photos = ProjectPhoto::where('project_id', $project['id'], 'taken_on DESC, created_at DESC');
 
         $this->view('user/projects/show', [
             'pageTitle' => $project['name'],
@@ -91,6 +93,7 @@ class ProjectController extends Controller
             'tasks' => $tasks,
             'changeOrders' => $changeOrders,
             'approvedChangeOrdersTotal' => $approvedTotal,
+            'photos' => $photos,
         ], 'layouts/app');
     }
 

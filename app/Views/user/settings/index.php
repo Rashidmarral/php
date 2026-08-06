@@ -47,6 +47,21 @@
     </div>
   </div>
 
+  <h3 style="font-size:14px;margin-top:24px;">Contractor classification</h3>
+  <p class="help-text" style="margin-top:-8px;">Your Muqawil (تصنيف المقاولين) grading, if classified — informational only, shown on your company profile.</p>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Classification grade</label>
+      <select name="contractor_classification" <?= $ro ?>>
+        <option value="">Not classified</option>
+        <?php foreach (['1'=>'Grade 1','2'=>'Grade 2','3'=>'Grade 3','4'=>'Grade 4','5'=>'Grade 5'] as $val => $label): ?>
+          <option value="<?= $val ?>" <?= ($company['contractor_classification'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group"><label>Classification/license number</label><input type="text" name="contractor_classification_number" value="<?= View::e($company['contractor_classification_number'] ?? '') ?>" <?= $ro ?>></div>
+  </div>
+
   <h3 style="font-size:14px;margin-top:24px;">ZATCA-compliant address</h3>
   <p class="help-text" style="margin-top:-8px;">Used on the structured invoice data reported to ZATCA — building number and postal code are 4/5-digit National Address fields (see your building's address plate or the Saudi Post National Address service).</p>
   <div class="form-row">

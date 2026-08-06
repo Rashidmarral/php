@@ -47,6 +47,20 @@
       <div class="form-group"><label>VAT number</label><input type="text" name="vat_number" value="<?= View::e($company['vat_number']) ?>"></div>
     </div>
 
+    <h3 style="font-size:13px;margin-top:16px;">Contractor classification</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Classification grade</label>
+        <select name="contractor_classification">
+          <option value="">Not classified</option>
+          <?php foreach (['1'=>'Grade 1','2'=>'Grade 2','3'=>'Grade 3','4'=>'Grade 4','5'=>'Grade 5'] as $val => $label): ?>
+            <option value="<?= $val ?>" <?= ($company['contractor_classification'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group"><label>Classification/license number</label><input type="text" name="contractor_classification_number" value="<?= View::e($company['contractor_classification_number'] ?? '') ?>"></div>
+    </div>
+
     <h3 style="font-size:13px;margin-top:16px;">ZATCA-compliant address</h3>
     <div class="form-row">
       <div class="form-group"><label>Building number</label><input type="text" name="building_number" maxlength="4" value="<?= View::e($company['building_number'] ?? '') ?>" placeholder="1234"></div>

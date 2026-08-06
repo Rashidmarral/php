@@ -90,6 +90,8 @@ class CompanyController extends Controller
             'district' => trim((string) $this->input('district', '')),
             'postal_code' => trim((string) $this->input('postal_code', '')),
             'additional_number' => trim((string) $this->input('additional_number', '')),
+            'contractor_classification' => $this->input('contractor_classification', ''),
+            'contractor_classification_number' => trim((string) $this->input('contractor_classification_number', '')),
         ];
 
         $docError = $this->handleDocUpload('cr_document', $company['id'], 'cr_document_path', $data);

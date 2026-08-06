@@ -127,6 +127,17 @@ $statements[] = "CREATE TABLE IF NOT EXISTS estimate_items (
     total DECIMAL(12,2) NOT NULL DEFAULT 0
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS project_photos (
+    id {$id},
+    company_id INT NOT NULL,
+    project_id INT NOT NULL,
+    uploaded_by INT,
+    caption VARCHAR(255),
+    file_path VARCHAR(255) NOT NULL,
+    taken_on TEXT,
+    created_at {$ts}
+){$engine}";
+
 $statements[] = "CREATE TABLE IF NOT EXISTS change_orders (
     id {$id},
     company_id INT NOT NULL,
@@ -331,6 +342,8 @@ addColumnIfMissing($pdo, $driver, 'companies', 'logo_path', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'companies', 'address', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'companies', 'default_markup_percent', "DECIMAL(5,2) NOT NULL DEFAULT 0");
 addColumnIfMissing($pdo, $driver, 'companies', 'default_retention_percent', "DECIMAL(5,2) NOT NULL DEFAULT 0");
+addColumnIfMissing($pdo, $driver, 'companies', 'contractor_classification', 'VARCHAR(20)');
+addColumnIfMissing($pdo, $driver, 'companies', 'contractor_classification_number', 'VARCHAR(50)');
 addColumnIfMissing($pdo, $driver, 'companies', 'client_portal_enabled', "INT NOT NULL DEFAULT 1");
 addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_url', 'VARCHAR(500)');
 addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_last_at', 'TEXT');
@@ -423,6 +436,38 @@ foreach ($planRows as $row) {
     $updateFlags->execute([json_encode($flags), $row['id']]);
 }
 echo "Plan feature flags seeded.\n";
+
+// ZATCA Phase 2 (Fatoora reporting) moved from Enterprise-only to also included in Professional.
+$pdo->exec("UPDATE plans SET feature_flags = REPLACE(feature_flags, '\"zatca_phase2\":false', '\"zatca_phase2\":true') WHERE slug = 'professional' AND feature_flags LIKE '%\"zatca_phase2\":false%'");
+
+// ---- Call out ZATCA compliance explicitly in plan feature copy (idempotent: skips a plan that already mentions it) ----
+$zatcaFeatureLine = [
+    'starter' => 'ZATCA Phase 1 QR code invoicing',
+    'professional' => 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing',
+    'enterprise' => 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing, fully managed',
+];
+$selectPlanFeatures = $pdo->prepare('SELECT id, features FROM plans WHERE slug = ?');
+$updatePlanFeatures = $pdo->prepare('UPDATE plans SET features = ? WHERE id = ?');
+foreach ($zatcaFeatureLine as $slug => $line) {
+    $selectPlanFeatures->execute([$slug]);
+    $plan = $selectPlanFeatures->fetch();
+    if (!$plan) {
+        continue;
+    }
+    $features = json_decode((string) $plan['features'], true) ?: [];
+    $alreadyMentioned = false;
+    foreach ($features as $f) {
+        if (stripos((string) $f, 'zatca') !== false) {
+            $alreadyMentioned = true;
+            break;
+        }
+    }
+    if (!$alreadyMentioned) {
+        $features[] = $line;
+        $updatePlanFeatures->execute([json_encode($features), $plan['id']]);
+    }
+}
+echo "Plan ZATCA feature copy updated.\n";
 
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [
@@ -539,6 +584,14 @@ $defaultSettings = [
     'whatsapp_enabled' => '0',
     'whatsapp_phone_number_id' => '',
     'whatsapp_access_token' => '',
+    'smtp_enabled' => '0',
+    'smtp_host' => '',
+    'smtp_port' => '587',
+    'smtp_encryption' => 'tls',
+    'smtp_username' => '',
+    'smtp_password' => '',
+    'smtp_from_email' => '',
+    'smtp_from_name' => 'BuildXact Saudi',
 ];
 $checkSetting = $pdo->prepare('SELECT `key` FROM settings WHERE `key` = ?');
 $insertSetting = $pdo->prepare('INSERT INTO settings (`key`, value) VALUES (?, ?)');

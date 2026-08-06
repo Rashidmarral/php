@@ -123,7 +123,7 @@ class QuickEstimateController extends Controller
         $foundation = $estimate['foundation_id'] ? QuickEstimateFoundation::find((int) $estimate['foundation_id']) : null;
         $addons = json_decode((string) $estimate['addons_json'], true) ?: [];
         $lang = $this->input('lang') === 'ar' ? 'ar' : ($estimate['lang'] === 'ar' ? 'ar' : 'en');
-        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant'], true) ? $this->input('template') : 'modern';
+        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $this->input('template') : 'modern';
         $company = Company::find((int) $estimate['company_id']);
 
         $items = QuickEstimateCalc::pdfItems($estimate, $region, $foundation, $addons, $lang);

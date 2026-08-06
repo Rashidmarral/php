@@ -77,6 +77,7 @@ return [
     'pricing.most_popular' => 'Most popular',
     'pricing.per_month' => '/ month',
     'pricing.per_year' => '/ year',
+    'pricing.if_billed_yearly' => 'if billed yearly',
     'pricing.cta' => 'Start free trial',
     'pricing.users' => 'users',
     'pricing.projects' => 'active projects',
