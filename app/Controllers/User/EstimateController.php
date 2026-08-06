@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
+use App\Models\Material;
 use App\Models\Project;
 
 class EstimateController extends Controller
@@ -27,7 +28,11 @@ class EstimateController extends Controller
         $companyId = Auth::companyId();
         $clients = Client::where('company_id', $companyId, 'name ASC');
         $projects = Project::where('company_id', $companyId, 'name ASC');
-        $this->view('user/estimates/form', ['pageTitle' => 'New Estimate', 'clients' => $clients, 'projects' => $projects], 'layouts/app');
+        $materials = Material::query(
+            'SELECT m.*, s.name AS supplier_name FROM materials m LEFT JOIN suppliers s ON s.id = m.supplier_id WHERE m.company_id = ? ORDER BY m.category ASC, m.name ASC',
+            [$companyId]
+        )->fetchAll();
+        $this->view('user/estimates/form', ['pageTitle' => 'New Estimate', 'clients' => $clients, 'projects' => $projects, 'materials' => $materials], 'layouts/app');
     }
 
     public function store(): void

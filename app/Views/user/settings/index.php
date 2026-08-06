@@ -28,6 +28,25 @@
     <div class="form-group"><label>VAT number</label><input type="text" name="vat_number" value="<?= View::e($company['vat_number']) ?>" <?= $ro ?>></div>
   </div>
 
+  <h3 style="font-size:14px;margin-top:24px;">Legal documents</h3>
+  <p class="help-text" style="margin-top:-8px;">Keep a copy of your registration documents on file — used for your own records and to speed up any manual verification.</p>
+  <div class="form-row">
+    <div class="form-group">
+      <label>CR certificate</label>
+      <?php if (!empty($company['cr_document_path'])): ?>
+        <p class="help-text"><a href="<?= View::e($company['cr_document_path']) ?>" target="_blank" rel="noopener">View uploaded file →</a></p>
+      <?php endif; ?>
+      <?php if (Auth::isCompanyOwner()): ?><input type="file" name="cr_document" accept="application/pdf,image/png,image/jpeg"><?php endif; ?>
+    </div>
+    <div class="form-group">
+      <label>VAT certificate</label>
+      <?php if (!empty($company['vat_document_path'])): ?>
+        <p class="help-text"><a href="<?= View::e($company['vat_document_path']) ?>" target="_blank" rel="noopener">View uploaded file →</a></p>
+      <?php endif; ?>
+      <?php if (Auth::isCompanyOwner()): ?><input type="file" name="vat_document" accept="application/pdf,image/png,image/jpeg"><?php endif; ?>
+    </div>
+  </div>
+
   <h3 style="font-size:14px;margin-top:24px;">ZATCA-compliant address</h3>
   <p class="help-text" style="margin-top:-8px;">Used on the structured invoice data reported to ZATCA — building number and postal code are 4/5-digit National Address fields (see your building's address plate or the Saudi Post National Address service).</p>
   <div class="form-row">

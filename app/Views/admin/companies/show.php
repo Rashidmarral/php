@@ -28,7 +28,7 @@
 
 <details class="card" style="margin-bottom:24px;max-width:720px;">
   <summary style="cursor:pointer;font-weight:700;">📝 Edit company profile (on behalf of this company)</summary>
-  <form method="post" action="/admin/companies/<?= $company['id'] ?>/profile" style="margin-top:16px;">
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/profile" enctype="multipart/form-data" style="margin-top:16px;">
     <?= Csrf::field() ?>
     <div class="form-row">
       <div class="form-group"><label>Company name (English)</label><input type="text" name="name" value="<?= View::e($company['name']) ?>"></div>
@@ -57,6 +57,24 @@
       <div class="form-group"><label>Postal code</label><input type="text" name="postal_code" maxlength="5" value="<?= View::e($company['postal_code'] ?? '') ?>" placeholder="12345"></div>
     </div>
     <div class="form-group" style="max-width:240px;"><label>Additional number</label><input type="text" name="additional_number" maxlength="4" value="<?= View::e($company['additional_number'] ?? '') ?>" placeholder="6789"></div>
+
+    <h3 style="font-size:13px;margin-top:16px;">Legal documents</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>CR certificate</label>
+        <?php if (!empty($company['cr_document_path'])): ?>
+          <p class="help-text"><a href="<?= View::e($company['cr_document_path']) ?>" target="_blank" rel="noopener">View uploaded file →</a></p>
+        <?php endif; ?>
+        <input type="file" name="cr_document" accept="application/pdf,image/png,image/jpeg">
+      </div>
+      <div class="form-group">
+        <label>VAT certificate</label>
+        <?php if (!empty($company['vat_document_path'])): ?>
+          <p class="help-text"><a href="<?= View::e($company['vat_document_path']) ?>" target="_blank" rel="noopener">View uploaded file →</a></p>
+        <?php endif; ?>
+        <input type="file" name="vat_document" accept="application/pdf,image/png,image/jpeg">
+      </div>
+    </div>
 
     <button type="submit" class="btn btn-primary" style="margin-top:8px;">Save company profile</button>
   </form>

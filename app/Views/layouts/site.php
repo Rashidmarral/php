@@ -2,9 +2,15 @@
 
 use App\Core\Lang;
 use App\Core\Auth;
+use App\Core\Settings;
+use App\Core\View;
 
 $otherLang = Lang::locale() === 'ar' ? 'en' : 'ar';
 $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
+$platformLogo = Settings::get('platform_logo_path', '');
+$platformCr = Settings::get('platform_cr_number', '');
+$platformVat = Settings::get('platform_vat_number', '');
+$platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_name_ar', '') ?: Settings::get('platform_legal_name_en', 'BuildXact Saudi')) : Settings::get('platform_legal_name_en', 'BuildXact Saudi');
 ?><!doctype html>
 <html lang="<?= Lang::locale() ?>" dir="<?= Lang::dir() ?>">
 <head>
@@ -17,7 +23,14 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
 <body>
 <header class="site-header">
   <div class="container">
-    <a href="/" class="logo"><span class="mark">BX</span> BuildXact <span style="color:#d4a017">السعودية</span></a>
+    <a href="/" class="logo">
+      <?php if ($platformLogo): ?>
+        <img src="<?= View::e($platformLogo) ?>" alt="Logo" style="height:32px;border-radius:6px;">
+      <?php else: ?>
+        <span class="mark">BX</span>
+      <?php endif; ?>
+      BuildXact <span style="color:#d4a017">السعودية</span>
+    </a>
     <nav class="nav-links">
       <a href="/features"><?= t('nav.features') ?></a>
       <a href="/pricing"><?= t('nav.pricing') ?></a>
@@ -70,7 +83,10 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       </div>
     </div>
     <div class="footer-bottom">
-      <span>&copy; <?= date('Y') ?> BuildXact Saudi. <?= t('footer.rights') ?></span>
+      <span>&copy; <?= date('Y') ?> <?= View::e($platformLegalName) ?>. <?= t('footer.rights') ?><?php if ($platformCr || $platformVat): ?>
+        <?php if ($platformCr): ?> · <?= t('footer.cr') ?>: <bdi><?= View::e($platformCr) ?></bdi><?php endif; ?>
+        <?php if ($platformVat): ?> · <?= t('footer.vat') ?>: <bdi><?= View::e($platformVat) ?></bdi><?php endif; ?>
+      <?php endif; ?></span>
       <span>Riyadh · Jeddah · Dammam</span>
     </div>
   </div>

@@ -129,6 +129,8 @@ return [
     'footer.privacy' => 'سياسة الخصوصية',
     'footer.terms' => 'شروط الخدمة',
     'footer.rights' => 'جميع الحقوق محفوظة.',
+    'footer.cr' => 'س.ت',
+    'footer.vat' => 'ض.ق.م',
 
     // About page
     'about.eyebrow' => 'من نحن',

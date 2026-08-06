@@ -129,6 +129,8 @@ return [
     'footer.privacy' => 'Privacy Policy',
     'footer.terms' => 'Terms of Service',
     'footer.rights' => 'All rights reserved.',
+    'footer.cr' => 'CR',
+    'footer.vat' => 'VAT',
 
     // About page
     'about.eyebrow' => 'About us',

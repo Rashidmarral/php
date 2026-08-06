@@ -22,6 +22,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
     <div class="brand"><span class="mark" style="background:#fff;color:#151f1e">BX</span> Platform Admin</div>
     <nav>
       <a href="/admin" class="<?= $path === '/admin' ? 'active' : '' ?>">📊 <?= t('aside.dashboard') ?></a>
+      <a href="/admin/reports" class="<?= $isActive('/admin/reports') ?>">📈 Reports</a>
       <a href="/admin/companies" class="<?= $isActive('/admin/companies') ?>">🏢 <?= t('aside.companies') ?></a>
       <a href="/admin/plans" class="<?= $isActive('/admin/plans') ?>">📦 <?= t('aside.plans') ?></a>
       <a href="/admin/payments" class="<?= $isActive('/admin/payments') ?>">💵 <?= t('aside.payments') ?></a>

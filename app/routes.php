@@ -20,6 +20,7 @@ use App\Controllers\Admin\PlanController;
 use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\AdminUserController;
 use App\Controllers\Admin\AdminProfileController;
+use App\Controllers\Admin\AdminReportController;
 use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
@@ -163,6 +164,7 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 // ---------- Platform admin panel ----------
 $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->get('/admin', [AdminDashboardController::class, 'index']);
+    $router->get('/admin/reports', [AdminReportController::class, 'index']);
 
     $router->get('/admin/companies', [CompanyController::class, 'index']);
     $router->get('/admin/companies/{id}', [CompanyController::class, 'show']);
@@ -201,6 +203,8 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/settings', [SiteSettingsController::class, 'update']);
     $router->get('/admin/settings/payments', [SiteSettingsController::class, 'payments']);
     $router->post('/admin/settings/payments', [SiteSettingsController::class, 'updatePayments']);
+    $router->get('/admin/settings/legal', [SiteSettingsController::class, 'legal']);
+    $router->post('/admin/settings/legal', [SiteSettingsController::class, 'updateLegal']);
 
     $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
 

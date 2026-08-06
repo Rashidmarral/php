@@ -37,11 +37,16 @@
       </tr>
     </tbody>
   </table>
-  <button type="button" id="add-row" class="btn btn-sm btn-outline">+ Add line item</button>
+  <div style="display:flex;gap:8px;">
+    <button type="button" id="add-row" class="btn btn-sm btn-outline">+ Add line item</button>
+    <button type="button" id="open-library-picker" class="btn btn-sm btn-outline">📚 Pull from library</button>
+  </div>
   <div class="total-row">Total: <span id="grand-total">0.00</span> SAR</div>
 
   <button type="submit" class="btn btn-primary" style="margin-top:16px;">Create estimate</button>
 </form>
+
+<?php require BASE_PATH . '/app/Views/user/partials/library-picker.php'; ?>
 
 <script>
 (function() {
@@ -80,6 +85,18 @@
       recalc();
     }
   });
+
+  document.addEventListener('library-item-picked', (e) => {
+    const rows = body.querySelectorAll('tr');
+    const firstRow = rows[0];
+    const firstEmpty = firstRow && !firstRow.querySelector('[name="item_description[]"]').value;
+    const tr = firstEmpty ? firstRow : rowTemplate();
+    if (!firstEmpty) body.appendChild(tr);
+    tr.querySelector('[name="item_description[]"]').value = e.detail.description;
+    tr.querySelector('.cost').value = e.detail.unitCost;
+    recalc();
+  });
+
   recalc();
 })();
 </script>

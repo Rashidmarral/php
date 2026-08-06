@@ -14,6 +14,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Material;
 use App\Models\Project;
 
 class InvoiceController extends Controller
@@ -36,12 +37,17 @@ class InvoiceController extends Controller
         $clients = Client::where('company_id', $companyId, 'name ASC');
         $projects = Project::where('company_id', $companyId, 'name ASC');
         $nextNumber = 'INV-' . (1000 + Invoice::count('company_id = ?', [$companyId]) + 1);
+        $materials = Material::query(
+            'SELECT m.*, s.name AS supplier_name FROM materials m LEFT JOIN suppliers s ON s.id = m.supplier_id WHERE m.company_id = ? ORDER BY m.category ASC, m.name ASC',
+            [$companyId]
+        )->fetchAll();
         $this->view('user/invoices/form', [
             'pageTitle' => 'New Invoice',
             'clients' => $clients,
             'projects' => $projects,
             'nextNumber' => $nextNumber,
             'vatRate' => (float) Settings::get('vat_rate', 15),
+            'materials' => $materials,
         ], 'layouts/app');
     }
 

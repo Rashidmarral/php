@@ -13,6 +13,8 @@ use App\Models\User;
 
 class CompanyController extends Controller
 {
+    private const ALLOWED_DOC_TYPES = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
+
     public function index(): void
     {
         $companies = Company::query(
@@ -74,7 +76,7 @@ class CompanyController extends Controller
             die('Company not found.');
         }
 
-        Company::update($company['id'], [
+        $data = [
             'name' => trim((string) $this->input('name')),
             'name_ar' => trim((string) $this->input('name_ar', '')),
             'email' => trim((string) $this->input('email')),
@@ -88,10 +90,42 @@ class CompanyController extends Controller
             'district' => trim((string) $this->input('district', '')),
             'postal_code' => trim((string) $this->input('postal_code', '')),
             'additional_number' => trim((string) $this->input('additional_number', '')),
-        ]);
+        ];
+
+        $docError = $this->handleDocUpload('cr_document', $company['id'], 'cr_document_path', $data);
+        $docError = $docError ?: $this->handleDocUpload('vat_document', $company['id'], 'vat_document_path', $data);
+        if ($docError) {
+            $this->flash('error', $docError);
+            self::redirect('/admin/companies/' . $company['id']);
+        }
+
+        Company::update($company['id'], $data);
 
         $this->flash('success', 'Company profile updated.');
         self::redirect('/admin/companies/' . $company['id']);
+    }
+
+    /** @param array $data by reference — sets $column on success */
+    private function handleDocUpload(string $field, int $companyId, string $column, array &$data): ?string
+    {
+        if (empty($_FILES[$field]['tmp_name']) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        $mime = mime_content_type($_FILES[$field]['tmp_name']);
+        if (!isset(self::ALLOWED_DOC_TYPES[$mime])) {
+            return ucfirst(str_replace('_', ' ', $field)) . ' must be a PDF, JPG, or PNG file.';
+        }
+        if ($_FILES[$field]['size'] > 10 * 1024 * 1024) {
+            return ucfirst(str_replace('_', ' ', $field)) . ' must be smaller than 10MB.';
+        }
+        $dir = BASE_PATH . '/public/uploads/company-documents';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        $filename = "company-{$companyId}-{$field}-" . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_DOC_TYPES[$mime];
+        move_uploaded_file($_FILES[$field]['tmp_name'], "{$dir}/{$filename}");
+        $data[$column] = "/uploads/company-documents/{$filename}";
+        return null;
     }
 
     /** Admin override: change a company's plan directly, no payment involved. */

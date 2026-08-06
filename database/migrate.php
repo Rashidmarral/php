@@ -329,6 +329,8 @@ addColumnIfMissing($pdo, $driver, 'companies', 'district', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'companies', 'postal_code', 'VARCHAR(10)');
 addColumnIfMissing($pdo, $driver, 'companies', 'additional_number', 'VARCHAR(10)');
 addColumnIfMissing($pdo, $driver, 'companies', 'country_code', "VARCHAR(2) NOT NULL DEFAULT 'SA'");
+addColumnIfMissing($pdo, $driver, 'companies', 'cr_document_path', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'vat_document_path', 'VARCHAR(255)');
 
 addColumnIfMissing($pdo, $driver, 'clients', 'password_hash', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'clients', 'portal_enabled', 'INT NOT NULL DEFAULT 0');
@@ -483,6 +485,19 @@ $defaultSettings = [
     'moyasar_publishable_key' => '',
     'moyasar_secret_key' => '',
     'moyasar_enabled' => '0',
+    'platform_legal_name_en' => 'BuildXact Saudi',
+    'platform_legal_name_ar' => '',
+    'platform_vat_number' => '',
+    'platform_cr_number' => '',
+    'platform_building_number' => '',
+    'platform_street_name' => '',
+    'platform_district' => '',
+    'platform_city' => 'Riyadh',
+    'platform_postal_code' => '',
+    'platform_additional_number' => '',
+    'platform_logo_path' => '',
+    'platform_cr_document_path' => '',
+    'platform_vat_document_path' => '',
 ];
 $checkSetting = $pdo->prepare('SELECT `key` FROM settings WHERE `key` = ?');
 $insertSetting = $pdo->prepare('INSERT INTO settings (`key`, value) VALUES (?, ?)');

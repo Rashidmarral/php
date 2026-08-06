@@ -9,6 +9,7 @@ use App\Models\Company;
 class SettingsController extends Controller
 {
     private const ALLOWED_LOGO_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    private const ALLOWED_DOC_TYPES = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
 
     public function index(): void
     {
@@ -61,9 +62,39 @@ class SettingsController extends Controller
             $data['logo_path'] = "/uploads/logos/{$filename}";
         }
 
+        $docError = $this->handleDocUpload('cr_document', $companyId, 'cr_document_path', $data);
+        $docError = $docError ?: $this->handleDocUpload('vat_document', $companyId, 'vat_document_path', $data);
+        if ($docError) {
+            $this->flash('error', $docError);
+            self::redirect('/app/settings');
+        }
+
         Company::update($companyId, $data);
 
         $this->flash('success', 'Company settings updated.');
         self::redirect('/app/settings');
+    }
+
+    /** @param array $data by reference — sets $column on success */
+    private function handleDocUpload(string $field, int $companyId, string $column, array &$data): ?string
+    {
+        if (empty($_FILES[$field]['tmp_name']) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        $mime = mime_content_type($_FILES[$field]['tmp_name']);
+        if (!isset(self::ALLOWED_DOC_TYPES[$mime])) {
+            return ucfirst(str_replace('_', ' ', $field)) . ' must be a PDF, JPG, or PNG file.';
+        }
+        if ($_FILES[$field]['size'] > 10 * 1024 * 1024) {
+            return ucfirst(str_replace('_', ' ', $field)) . ' must be smaller than 10MB.';
+        }
+        $dir = BASE_PATH . '/public/uploads/company-documents';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        $filename = "company-{$companyId}-{$field}-" . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_DOC_TYPES[$mime];
+        move_uploaded_file($_FILES[$field]['tmp_name'], "{$dir}/{$filename}");
+        $data[$column] = "/uploads/company-documents/{$filename}";
+        return null;
     }
 }
