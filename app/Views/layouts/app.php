@@ -30,6 +30,7 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
     <nav>
       <a href="/app" class="<?= $isActive('/app') === 'active' && $path === '/app' ? 'active' : '' ?>">📊 <?= t('side.dashboard') ?></a>
       <a href="/app/projects" class="<?= $isActive('/app/projects') ?>">🏗️ <?= t('side.projects') ?></a>
+      <a href="/app/quick-estimate" class="<?= $isActive('/app/quick-estimate') ?>">⚡ <?= t('side.quick_estimate') ?></a>
       <a href="/app/estimates" class="<?= $isActive('/app/estimates') ?>">🧾 <?= t('side.estimates') ?></a>
       <a href="/app/invoices" class="<?= $isActive('/app/invoices') ?>">💳 <?= t('side.invoices') ?></a>
       <a href="/app/clients" class="<?= $isActive('/app/clients') ?>">👥 <?= t('side.clients') ?></a>

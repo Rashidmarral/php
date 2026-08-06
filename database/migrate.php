@@ -350,6 +350,9 @@ addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_status', "VARCHAR(20) NOT N
 addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_submitted_at', 'TEXT');
 addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_response', 'TEXT');
 
+addColumnIfMissing($pdo, $driver, 'quick_estimates', 'company_id', 'INT');
+addColumnIfMissing($pdo, $driver, 'quick_estimates', 'client_id', 'INT');
+
 addColumnIfMissing($pdo, $driver, 'payments', 'proof_file_path', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_by', 'INT');
 addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_at', 'TEXT');

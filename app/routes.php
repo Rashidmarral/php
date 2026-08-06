@@ -22,6 +22,7 @@ use App\Controllers\Admin\AdminUserController;
 use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
+use App\Controllers\User\QuickEstimateController as UserQuickEstimateController;
 use App\Controllers\User\TakeoffController;
 use App\Controllers\User\SupplierController;
 use App\Controllers\User\MaterialController;
@@ -75,6 +76,13 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->post('/app/clients/{id}/delete', [ClientController::class, 'destroy']);
     $router->post('/app/clients/{id}/enable-portal', [ClientController::class, 'enablePortal']);
     $router->post('/app/clients/{id}/disable-portal', [ClientController::class, 'disablePortal']);
+
+    $router->get('/app/quick-estimate', [UserQuickEstimateController::class, 'index']);
+    $router->post('/app/quick-estimate', [UserQuickEstimateController::class, 'store']);
+    $router->get('/app/quick-estimate/{id}', [UserQuickEstimateController::class, 'show']);
+    $router->get('/app/quick-estimate/{id}/pdf', [UserQuickEstimateController::class, 'pdf']);
+    $router->post('/app/quick-estimate/{id}/convert', [UserQuickEstimateController::class, 'convertToEstimate']);
+    $router->post('/app/quick-estimate/{id}/delete', [UserQuickEstimateController::class, 'destroy']);
 
     $router->get('/app/estimates', [EstimateController::class, 'index']);
     $router->get('/app/estimates/create', [EstimateController::class, 'create']);

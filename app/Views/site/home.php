@@ -46,6 +46,30 @@
 <section class="section" style="background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
   <div class="container">
     <div class="section-head">
+      <div class="eyebrow"><?= t('platform.eyebrow') ?></div>
+      <h2><?= t('platform.title') ?></h2>
+      <p style="color:var(--muted)"><?= t('platform.subtitle') ?></p>
+    </div>
+    <div class="grid grid-4">
+      <div class="card feature-card"><div class="icon">⚡</div><h3><?= t('platform.quick_estimate.title') ?></h3><p><?= t('platform.quick_estimate.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">📐</div><h3><?= t('platform.takeoff.title') ?></h3><p><?= t('platform.takeoff.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">🚚</div><h3><?= t('platform.suppliers.title') ?></h3><p><?= t('platform.suppliers.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">📁</div><h3><?= t('platform.documents.title') ?></h3><p><?= t('platform.documents.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">📈</div><h3><?= t('platform.reports.title') ?></h3><p><?= t('platform.reports.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">🌐</div><h3><?= t('platform.portal.title') ?></h3><p><?= t('platform.portal.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">🧾</div><h3><?= t('platform.zatca.title') ?></h3><p><?= t('platform.zatca.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">📄</div><h3><?= t('platform.pdf.title') ?></h3><p><?= t('platform.pdf.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">💳</div><h3><?= t('platform.payments.title') ?></h3><p><?= t('platform.payments.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">🔐</div><h3><?= t('platform.plans.title') ?></h3><p><?= t('platform.plans.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">🔌</div><h3><?= t('platform.integrations.title') ?></h3><p><?= t('platform.integrations.desc') ?></p></div>
+      <div class="card feature-card"><div class="icon">🛡️</div><h3><?= t('platform.admin.title') ?></h3><p><?= t('platform.admin.desc') ?></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
       <div class="eyebrow"><?= t('how.eyebrow') ?></div>
       <h2><?= t('how.title') ?></h2>
     </div>

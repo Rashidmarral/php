@@ -175,6 +175,7 @@ class QuickEstimateAdminController extends Controller
             'SELECT qe.*, r.name_en AS region_name, f.name_en AS foundation_name FROM quick_estimates qe
              LEFT JOIN quick_estimate_regions r ON r.id = qe.region_id
              LEFT JOIN quick_estimate_foundations f ON f.id = qe.foundation_id
+             WHERE qe.company_id IS NULL
              ORDER BY qe.created_at DESC'
         )->fetchAll();
 
