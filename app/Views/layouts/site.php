@@ -21,6 +21,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
     <nav class="nav-links">
       <a href="/features"><?= t('nav.features') ?></a>
       <a href="/pricing"><?= t('nav.pricing') ?></a>
+      <a href="/quick-estimate"><?= t('nav.quick_estimate') ?></a>
       <a href="/about"><?= t('nav.about') ?></a>
       <a href="/contact"><?= t('nav.contact') ?></a>
     </nav>

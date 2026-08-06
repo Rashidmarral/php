@@ -2,6 +2,10 @@
 
 define('BASE_PATH', dirname(__DIR__));
 
+if (is_file(BASE_PATH . '/vendor/autoload.php')) {
+    require BASE_PATH . '/vendor/autoload.php';
+}
+
 spl_autoload_register(function (string $class) {
     $prefix = 'App\\';
     if (!str_starts_with($class, $prefix)) {

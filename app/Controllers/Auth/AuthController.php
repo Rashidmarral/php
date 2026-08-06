@@ -5,6 +5,7 @@ namespace App\Controllers\Auth;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Csrf;
+use App\Core\Settings;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Plan;
@@ -75,7 +76,7 @@ class AuthController extends Controller
             self::redirect('/register?plan=' . urlencode($planSlug));
         }
 
-        $trialDays = (int) \App\Core\Env::get('TRIAL_DAYS', 14);
+        $trialDays = (int) Settings::get('trial_days', \App\Core\Env::get('TRIAL_DAYS', 14));
         $companyId = Company::create([
             'name' => $companyName,
             'email' => $email,

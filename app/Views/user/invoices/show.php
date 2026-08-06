@@ -13,6 +13,22 @@
   </div>
 </div>
 
+<form method="get" action="/app/invoices/<?= $invoice['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;">
+  <div class="form-group" style="margin:0;">
+    <label>PDF template</label>
+    <select name="template">
+      <option value="modern">Modern</option>
+      <option value="classic">Classic</option>
+      <option value="minimal">Minimal</option>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0;">
+    <label>Language</label>
+    <select name="lang"><option value="en">English</option><option value="ar">Arabic</option></select>
+  </div>
+  <button type="submit" class="btn btn-outline">⬇ Download PDF</button>
+</form>
+
 <div class="card" style="max-width:820px;">
   <table class="data">
     <thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead>

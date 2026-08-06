@@ -27,6 +27,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/app/invoices" class="<?= $isActive('/app/invoices') ?>">💳 <?= t('side.invoices') ?></a>
       <a href="/app/clients" class="<?= $isActive('/app/clients') ?>">👥 <?= t('side.clients') ?></a>
       <a href="/app/schedule" class="<?= $isActive('/app/schedule') ?>">📅 <?= t('side.schedule') ?></a>
+      <a href="/app/takeoffs" class="<?= $isActive('/app/takeoffs') ?>">📐 <?= t('side.takeoffs') ?></a>
       <a href="/app/team" class="<?= $isActive('/app/team') ?>">🧑‍💼 <?= t('side.team') ?></a>
       <a href="/app/billing" class="<?= $isActive('/app/billing') ?>">💰 <?= t('side.billing') ?></a>
       <a href="/app/settings" class="<?= $isActive('/app/settings') ?>">⚙️ <?= t('side.settings') ?></a>

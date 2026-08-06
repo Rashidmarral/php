@@ -33,13 +33,21 @@ class View
         return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
     }
 
+    /** Wrapped in <bdi> so mixed LTR numerals/currency don't get visually scrambled inside an RTL layout. */
     public static function money(float $amount, string $currency = 'SAR'): string
     {
-        return number_format($amount, 2) . ' ' . $currency;
+        return '<bdi>' . number_format($amount, 2) . ' ' . self::e($currency) . '</bdi>';
     }
 
     public static function old(string $key, string $default = ''): string
     {
         return self::e($_SESSION['old'][$key] ?? $default);
+    }
+
+    /** Escapes text for a PDF template, reshaping Arabic glyphs when needed. */
+    public static function pdfText(?string $value, string $lang = 'en'): string
+    {
+        $escaped = self::e($value);
+        return $lang === 'ar' ? ArabicText::shape($escaped) : $escaped;
     }
 }

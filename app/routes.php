@@ -18,6 +18,10 @@ use App\Controllers\Admin\CompanyController;
 use App\Controllers\Admin\PlanController;
 use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\AdminUserController;
+use App\Controllers\Admin\SiteSettingsController;
+use App\Controllers\Admin\QuickEstimateAdminController;
+use App\Controllers\Site\QuickEstimateController;
+use App\Controllers\User\TakeoffController;
 
 /** @var Router $router */
 
@@ -30,6 +34,11 @@ $router->get('/contact', [HomeController::class, 'contact']);
 $router->post('/contact', [HomeController::class, 'contactSubmit']);
 $router->get('/privacy', [HomeController::class, 'privacy']);
 $router->get('/terms', [HomeController::class, 'terms']);
+
+$router->get('/quick-estimate', [QuickEstimateController::class, 'index']);
+$router->post('/quick-estimate', [QuickEstimateController::class, 'store']);
+$router->get('/quick-estimate/{id}', [QuickEstimateController::class, 'show']);
+$router->get('/quick-estimate/{id}/pdf', [QuickEstimateController::class, 'pdf']);
 
 // ---------- Auth ----------
 $router->get('/login', [AuthController::class, 'showLogin']);
@@ -85,6 +94,19 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/settings', [SettingsController::class, 'index']);
     $router->post('/app/settings', [SettingsController::class, 'update']);
+
+    $router->get('/app/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
+    $router->get('/app/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
+
+    $router->get('/app/takeoffs', [TakeoffController::class, 'index']);
+    $router->get('/app/takeoffs/create', [TakeoffController::class, 'create']);
+    $router->post('/app/takeoffs', [TakeoffController::class, 'store']);
+    $router->get('/app/takeoffs/{id}', [TakeoffController::class, 'show']);
+    $router->post('/app/takeoffs/{id}/measurements', [TakeoffController::class, 'addMeasurement']);
+    $router->post('/app/takeoffs/{id}/measurements/{measurementId}/delete', [TakeoffController::class, 'deleteMeasurement']);
+    $router->post('/app/takeoffs/{id}/calibrate', [TakeoffController::class, 'calibrate']);
+    $router->post('/app/takeoffs/{id}/convert', [TakeoffController::class, 'convertToEstimate']);
+    $router->post('/app/takeoffs/{id}/delete', [TakeoffController::class, 'destroy']);
 });
 
 // ---------- Platform admin panel ----------
@@ -107,4 +129,27 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->get('/admin/admins', [AdminUserController::class, 'index']);
     $router->post('/admin/admins', [AdminUserController::class, 'store']);
     $router->post('/admin/admins/{id}/delete', [AdminUserController::class, 'destroy']);
+
+    $router->get('/admin/settings', [SiteSettingsController::class, 'index']);
+    $router->post('/admin/settings', [SiteSettingsController::class, 'update']);
+
+    $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
+
+    $router->get('/admin/quick-estimate/regions', [QuickEstimateAdminController::class, 'regions']);
+    $router->post('/admin/quick-estimate/regions', [QuickEstimateAdminController::class, 'storeRegion']);
+    $router->post('/admin/quick-estimate/regions/{id}', [QuickEstimateAdminController::class, 'updateRegion']);
+    $router->post('/admin/quick-estimate/regions/{id}/delete', [QuickEstimateAdminController::class, 'destroyRegion']);
+
+    $router->get('/admin/quick-estimate/foundations', [QuickEstimateAdminController::class, 'foundations']);
+    $router->post('/admin/quick-estimate/foundations', [QuickEstimateAdminController::class, 'storeFoundation']);
+    $router->post('/admin/quick-estimate/foundations/{id}', [QuickEstimateAdminController::class, 'updateFoundation']);
+    $router->post('/admin/quick-estimate/foundations/{id}/delete', [QuickEstimateAdminController::class, 'destroyFoundation']);
+
+    $router->get('/admin/quick-estimate/addons', [QuickEstimateAdminController::class, 'addons']);
+    $router->post('/admin/quick-estimate/addons', [QuickEstimateAdminController::class, 'storeAddon']);
+    $router->post('/admin/quick-estimate/addons/{id}', [QuickEstimateAdminController::class, 'updateAddon']);
+    $router->post('/admin/quick-estimate/addons/{id}/delete', [QuickEstimateAdminController::class, 'destroyAddon']);
+
+    $router->get('/admin/quick-estimate/leads', [QuickEstimateAdminController::class, 'leads']);
+    $router->post('/admin/quick-estimate/leads/{id}/status', [QuickEstimateAdminController::class, 'updateLeadStatus']);
 });

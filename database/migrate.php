@@ -160,6 +160,88 @@ $statements[] = "CREATE TABLE IF NOT EXISTS schedule_tasks (
     created_at {$ts}
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS settings (
+    `key` VARCHAR(100) PRIMARY KEY,
+    value TEXT
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS quick_estimate_regions (
+    id {$id},
+    name_en VARCHAR(100) NOT NULL,
+    name_ar VARCHAR(100) NOT NULL,
+    price_per_sqm DECIMAL(10,2) NOT NULL DEFAULT 0,
+    multiplier DECIMAL(5,2) NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active INT NOT NULL DEFAULT 1
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS quick_estimate_foundations (
+    id {$id},
+    name_en VARCHAR(100) NOT NULL,
+    name_ar VARCHAR(100) NOT NULL,
+    description_en VARCHAR(255),
+    description_ar VARCHAR(255),
+    price_per_sqm DECIMAL(10,2) NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active INT NOT NULL DEFAULT 1
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS quick_estimate_addons (
+    id {$id},
+    name_en VARCHAR(100) NOT NULL,
+    name_ar VARCHAR(100) NOT NULL,
+    description_en VARCHAR(255),
+    description_ar VARCHAR(255),
+    unit_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+    unit_type VARCHAR(20) NOT NULL DEFAULT 'sqm',
+    is_pro INT NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
+    is_active INT NOT NULL DEFAULT 1
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS quick_estimates (
+    id {$id},
+    project_name VARCHAR(150),
+    region_id INT,
+    foundation_id INT,
+    total_area DECIMAL(10,2) NOT NULL DEFAULT 0,
+    discount_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
+    addons_json TEXT,
+    subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+    vat_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    total DECIMAL(12,2) NOT NULL DEFAULT 0,
+    lang VARCHAR(2) NOT NULL DEFAULT 'en',
+    contact_name VARCHAR(150),
+    contact_email VARCHAR(150),
+    contact_phone VARCHAR(30),
+    status VARCHAR(20) NOT NULL DEFAULT 'new',
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS takeoffs (
+    id {$id},
+    company_id INT NOT NULL,
+    project_id INT,
+    name VARCHAR(150) NOT NULL,
+    plan_image_path VARCHAR(255),
+    scale_px_per_unit DECIMAL(12,6) NOT NULL DEFAULT 1,
+    scale_unit VARCHAR(10) NOT NULL DEFAULT 'm',
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS takeoff_measurements (
+    id {$id},
+    takeoff_id INT NOT NULL,
+    type VARCHAR(10) NOT NULL,
+    label VARCHAR(150) NOT NULL,
+    points_json TEXT,
+    value DECIMAL(12,3) NOT NULL DEFAULT 0,
+    unit VARCHAR(10) NOT NULL DEFAULT 'm',
+    unit_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total_cost DECIMAL(12,2) NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
 foreach ($statements as $sql) {
     $pdo->exec($sql);
 }
@@ -247,6 +329,78 @@ if (!$checkUser->fetch()) {
     echo "Super admin seeded: admin@buildxact-saudi.local / Admin@12345\n";
 } else {
     echo "Super admin already exists.\n";
+}
+
+// ---- Seed default platform settings (idempotent) ----
+$defaultSettings = [
+    'trial_days' => '14',
+    'vat_rate' => '15',
+    'currency' => 'SAR',
+    'site_name' => 'BuildXact Saudi',
+    'support_email' => 'support@buildxact-saudi.local',
+    'support_phone' => '+966 11 234 5678',
+];
+$checkSetting = $pdo->prepare('SELECT `key` FROM settings WHERE `key` = ?');
+$insertSetting = $pdo->prepare('INSERT INTO settings (`key`, value) VALUES (?, ?)');
+foreach ($defaultSettings as $key => $value) {
+    $checkSetting->execute([$key]);
+    if (!$checkSetting->fetch()) {
+        $insertSetting->execute([$key, $value]);
+    }
+}
+echo "Default settings seeded.\n";
+
+// ---- Seed Quick Estimate calculator data (idempotent) ----
+if ((int) $pdo->query('SELECT COUNT(*) AS c FROM quick_estimate_regions')->fetch()['c'] === 0) {
+    $regions = [
+        ['Riyadh (Central Region)', 'الرياض (المنطقة الوسطى)', 100, 1.00, 1],
+        ['Jeddah (Western Region)', 'جدة (المنطقة الغربية)', 112, 1.12, 2],
+        ['Dammam (Eastern Region)', 'الدمام (المنطقة الشرقية)', 92, 0.92, 3],
+        ['Makkah (Holy City)', 'مكة المكرمة (المدينة المقدسة)', 108, 1.08, 4],
+        ['Madinah (Holy City)', 'المدينة المنورة (المدينة المقدسة)', 105, 1.05, 5],
+    ];
+    $ins = $pdo->prepare('INSERT INTO quick_estimate_regions (name_en, name_ar, price_per_sqm, multiplier, sort_order, is_active) VALUES (?, ?, ?, ?, ?, 1)');
+    foreach ($regions as $r) {
+        $ins->execute($r);
+    }
+    echo "Quick estimate regions seeded.\n";
+}
+
+if ((int) $pdo->query('SELECT COUNT(*) AS c FROM quick_estimate_foundations')->fetch()['c'] === 0) {
+    $foundations = [
+        ['Regular Foundation', 'أساسات عادية', 'Standard reinforced concrete', 'خرسانة مسلحة قياسية', 550, 1],
+        ['Raft Foundation', 'أساسات حصيرة', 'Reinforced concrete raft', 'حصيرة خرسانية مسلحة', 700, 2],
+    ];
+    $ins = $pdo->prepare('INSERT INTO quick_estimate_foundations (name_en, name_ar, description_en, description_ar, price_per_sqm, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)');
+    foreach ($foundations as $f) {
+        $ins->execute($f);
+    }
+    echo "Quick estimate foundation types seeded.\n";
+}
+
+if ((int) $pdo->query('SELECT COUNT(*) AS c FROM quick_estimate_addons')->fetch()['c'] === 0) {
+    $addons = [
+        ['Water Tank', 'خزان مياه', 'Water storage tank with fittings', 'خزان مياه مع التوصيلات', 40, 'ton', 0, 1],
+        ['Fencing', 'سياج', 'Perimeter fencing', 'سياج محيطي', 143, 'sqm', 0, 2],
+        ['Guard Room', 'غرفة حارس', 'Security guard room with basic finishing', 'غرفة حارس مع تشطيب أساسي', 30, 'sqm', 0, 3],
+        ['Sewage Tank', 'خزان صرف صحي', 'Sewage tank with connections', 'خزان صرف صحي مع التوصيلات', 35, 'sqm', 0, 4],
+        ['Interior Paint', 'دهان داخلي وخارجي', 'Full interior and exterior painting', 'دهان داخلي وخارجي كامل', 90, 'sqm', 0, 5],
+        ['Landscaping', 'لياسة', 'Interior and exterior finishing', 'تشطيب داخلي وخارجي', 73, 'sqm', 0, 6],
+        ['Plumbing Works', 'أعمال صحية', 'Complete plumbing works', 'أعمال صحية كاملة', 132, 'sqm', 0, 7],
+        ['Electrical Works', 'أعمال كهربائية', 'Complete electrical works', 'تمديدات كهربائية كاملة', 135, 'sqm', 0, 8],
+        ['Aluminum Works', 'أعمال ألمنيوم', 'Windows, doors and railings', 'نوافذ وأبواب ودرابزين', 60, 'sqm', 0, 9],
+        ['Gypsum Ceiling', 'تشطيب الأسقف', 'Suspended gypsum ceiling', 'أسقف جبسية معلقة', 85, 'sqm', 0, 10],
+        ['Roof Insulation', 'عزل السطح', 'Waterproofing and thermal insulation', 'عزل مائي وحراري', 43, 'sqm', 0, 11],
+        ['WPC Cladding', 'أبواب WPC', 'Weather-resistant WPC cladding', 'كسوة WPC مقاومة للعوامل الجوية', 50, 'sqm', 0, 12],
+        ['Site Survey', 'مسح', 'Topographic site survey', 'مسح طبوغرافي للموقع', 90, 'sqm', 1, 13],
+        ['Central AC System', 'تكييف مركزي', 'Central air conditioning ductwork', 'نظام تكييف مركزي بالدكت', 800, 'sqm', 1, 14],
+        ['Swimming Pool', 'مسبح', 'Standard residential swimming pool', 'مسبح سكني قياسي', 380, 'unit', 1, 15],
+    ];
+    $ins = $pdo->prepare('INSERT INTO quick_estimate_addons (name_en, name_ar, description_en, description_ar, unit_price, unit_type, is_pro, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)');
+    foreach ($addons as $a) {
+        $ins->execute($a);
+    }
+    echo "Quick estimate add-ons seeded.\n";
 }
 
 // ---- Optional demo company with sample data ----

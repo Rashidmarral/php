@@ -25,7 +25,9 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/admin/companies" class="<?= $isActive('/admin/companies') ?>">🏢 <?= t('aside.companies') ?></a>
       <a href="/admin/plans" class="<?= $isActive('/admin/plans') ?>">📦 <?= t('aside.plans') ?></a>
       <a href="/admin/payments" class="<?= $isActive('/admin/payments') ?>">💵 <?= t('aside.payments') ?></a>
+      <a href="/admin/quick-estimate" class="<?= $isActive('/admin/quick-estimate') ?>">🧮 <?= t('aside.quick_estimate') ?></a>
       <a href="/admin/admins" class="<?= $isActive('/admin/admins') ?>">🛡️ <?= t('aside.admins') ?></a>
+      <a href="/admin/settings" class="<?= $isActive('/admin/settings') ?>">⚙️ <?= t('aside.settings') ?></a>
     </nav>
     <div class="foot">
       <a href="/" style="color:#a9c4bd">← <?= t('side.back_site') ?></a>

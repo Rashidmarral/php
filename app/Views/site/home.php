@@ -44,6 +44,63 @@
 </section>
 
 <section class="section" style="background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow"><?= t('how.eyebrow') ?></div>
+      <h2><?= t('how.title') ?></h2>
+    </div>
+    <div class="how-steps">
+      <div class="how-step"><div class="num">1</div><h3><?= t('how.step1.title') ?></h3><p><?= t('how.step1.desc') ?></p></div>
+      <div class="how-step"><div class="num">2</div><h3><?= t('how.step2.title') ?></h3><p><?= t('how.step2.desc') ?></p></div>
+      <div class="how-step"><div class="num">3</div><h3><?= t('how.step3.title') ?></h3><p><?= t('how.step3.desc') ?></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow"><?= t('testi.eyebrow') ?></div>
+      <h2><?= t('testi.title') ?></h2>
+    </div>
+    <div class="grid grid-3">
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p class="quote">"<?= t('testi1.quote') ?>"</p>
+        <div class="author"><div class="avatar">AQ</div><div><div class="name"><?= t('testi1.name') ?></div><div class="role"><?= t('testi1.role') ?></div></div></div>
+      </div>
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p class="quote">"<?= t('testi2.quote') ?>"</p>
+        <div class="author"><div class="avatar">FZ</div><div><div class="name"><?= t('testi2.name') ?></div><div class="role"><?= t('testi2.role') ?></div></div></div>
+      </div>
+      <div class="testi-card">
+        <div class="stars">★★★★★</div>
+        <p class="quote">"<?= t('testi3.quote') ?>"</p>
+        <div class="author"><div class="avatar">MD</div><div><div class="name"><?= t('testi3.name') ?></div><div class="role"><?= t('testi3.role') ?></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:#fff;border-top:1px solid var(--border);">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow"><?= t('faq.eyebrow') ?></div>
+      <h2><?= t('faq.title') ?></h2>
+    </div>
+    <div class="faq-list">
+      <?php foreach ([1,2,3,4,5] as $i): ?>
+        <details class="faq-item">
+          <summary><?= t("faq{$i}.q") ?></summary>
+          <div class="answer"><?= t("faq{$i}.a") ?></div>
+        </details>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="border-top:1px solid var(--border);">
   <div class="container" style="text-align:center;">
     <h2><?= t('cta.title') ?></h2>
     <p style="color:var(--muted)"><?= t('cta.subtitle') ?></p>

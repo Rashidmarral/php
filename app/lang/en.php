@@ -9,6 +9,7 @@ return [
     'nav.login' => 'Log in',
     'nav.start_trial' => 'Start Free Trial',
     'nav.dashboard' => 'Go to Dashboard',
+    'nav.quick_estimate' => 'Quick Estimate',
 
     // Hero
     'hero.badge' => 'Built for Saudi Arabia\'s construction industry',
@@ -50,6 +51,43 @@ return [
     'pricing.cta' => 'Start free trial',
     'pricing.users' => 'users',
     'pricing.projects' => 'active projects',
+
+    // How it works
+    'how.eyebrow' => 'How it works',
+    'how.title' => 'From first estimate to final invoice in three steps',
+    'how.step1.title' => 'Estimate & win the job',
+    'how.step1.desc' => 'Build an accurate quote in minutes with the Quick Estimate calculator or full estimating tool, then send it to your client.',
+    'how.step2.title' => 'Manage the build',
+    'how.step2.desc' => 'Turn the accepted estimate into a live project — track budget vs. actual cost, schedule your crew, and keep documents organized.',
+    'how.step3.title' => 'Get paid faster',
+    'how.step3.desc' => 'Generate professional, VAT-ready invoices straight from the project and track every payment until it is settled.',
+
+    // Testimonials
+    'testi.eyebrow' => 'Trusted by contractors across the Kingdom',
+    'testi.title' => 'What Saudi contractors say',
+    'testi1.quote' => 'We replaced four different spreadsheets with BuildXact Saudi. Estimating a villa renovation now takes an hour instead of a full day.',
+    'testi1.name' => 'Ahmed Al Qahtani',
+    'testi1.role' => 'Owner, Al Qahtani Contracting — Riyadh',
+    'testi2.quote' => 'The Quick Estimate tool on the website alone has brought us serious leads. Clients get a real number instantly instead of waiting days for a callback.',
+    'testi2.name' => 'Fahad Al Zahrani',
+    'testi2.role' => 'General Manager, Zahrani Builders — Jeddah',
+    'testi3.quote' => 'Job costing used to be a guessing game. Now I can see budget versus actual on every project from my phone.',
+    'testi3.name' => 'Mohammed Al Dosari',
+    'testi3.role' => 'Project Manager, Dosari Development — Dammam',
+
+    // FAQ
+    'faq.eyebrow' => 'Frequently asked questions',
+    'faq.title' => 'Everything you need to know',
+    'faq1.q' => 'Is BuildXact Saudi priced in Saudi Riyal?',
+    'faq1.a' => 'Yes. Every plan, invoice, and the Quick Estimate calculator are priced and displayed in SAR, with VAT shown separately.',
+    'faq2.q' => 'Does the platform support Arabic?',
+    'faq2.a' => 'The entire platform — marketing site, user dashboard, and admin panel — is fully bilingual with a complete right-to-left Arabic layout.',
+    'faq3.q' => 'Can I try it before paying?',
+    'faq3.a' => 'Every plan includes a free trial with no credit card required. Your account administrator can adjust the trial length at any time.',
+    'faq4.q' => 'Can I export estimates and invoices as PDF?',
+    'faq4.a' => 'Yes, in English or Arabic, with a choice of professional PDF templates.',
+    'faq5.q' => 'What is the Digital Takeoff tool?',
+    'faq5.a' => 'Upload a plan or drawing, calibrate its scale, then click or trace directly on the image to measure lengths, areas, and item counts — and send the results straight into an estimate.',
 
     // CTA / footer
     'cta.title' => 'Ready to run your projects like the pros?',
@@ -95,10 +133,46 @@ return [
     'side.logout' => 'Log out',
     'side.back_site' => 'Back to website',
 
+    'side.takeoffs' => 'Digital Takeoff',
+
     // Sidebar (admin)
     'aside.dashboard' => 'Overview',
     'aside.companies' => 'Companies',
     'aside.plans' => 'Subscription Plans',
     'aside.payments' => 'Payments',
     'aside.admins' => 'Admin Users',
+    'aside.settings' => 'Platform Settings',
+    'aside.quick_estimate' => 'Quick Estimate Data',
+
+    // Quick Estimate calculator
+    'qe.title' => 'Create New Estimate',
+    'qe.subtitle' => 'Fill in the details below to generate a professional construction estimate',
+    'qe.instant' => 'Instant Generation',
+    'qe.pdf_export' => 'PDF Export',
+    'qe.vat_compliant' => 'Saudi VAT Compliant',
+    'qe.summary' => 'Project Estimate Summary',
+    'qe.project_details' => 'Project Details',
+    'qe.project_name_ar' => 'Project Name (Arabic)',
+    'qe.project_name' => 'Project Name',
+    'qe.region' => 'Region / City',
+    'qe.foundation_type' => 'Foundation Type',
+    'qe.foundation' => 'Foundation',
+    'qe.total_area' => 'Total Area',
+    'qe.discount' => 'Discount',
+    'qe.addons' => 'Add-ons',
+    'qe.addons_hint' => 'Select add-ons. The area from above will be applied automatically.',
+    'qe.notes' => 'Notes',
+    'qe.notes_placeholder' => 'Additional notes for the estimate',
+    'qe.validity' => 'Validity (days)',
+    'qe.generate' => 'Generate Estimate',
+    'qe.subtotal' => 'Subtotal',
+    'qe.vat' => 'VAT (:rate%)',
+    'qe.total' => 'Total Project Cost',
+    'qe.per_sqm' => 'Per m² Breakdown',
+    'qe.secure_note' => 'Your estimate is secure and professional',
+    'qe.contact_title' => 'Get your detailed estimate',
+    'qe.contact_sub' => 'Enter your details to receive this estimate and unlock the full platform.',
+    'qe.your_name' => 'Your name',
+    'qe.download_pdf' => 'Download PDF',
+    'qe.start_over' => 'Start a new estimate',
 ];

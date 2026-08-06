@@ -48,4 +48,14 @@ abstract class Controller
             die('Your session has expired. Please go back and try again.');
         }
     }
+
+    /** Renders app/Views/pdf/document.php with $data and streams it as a downloadable PDF. */
+    protected function streamPdf(array $data, string $filename): void
+    {
+        extract($data);
+        ob_start();
+        require BASE_PATH . '/app/Views/pdf/document.php';
+        $html = ob_get_clean();
+        Pdf::stream($html, $filename, $data['lang'] ?? 'en');
+    }
 }
