@@ -2,9 +2,11 @@
 
 namespace App\Controllers\Admin;
 
+use App\Controllers\User\BillingController;
 use App\Core\Controller;
 use App\Models\Company;
 use App\Models\Payment;
+use App\Models\Plan;
 use App\Models\Project;
 use App\Models\Subscription;
 use App\Models\User;
@@ -33,6 +35,7 @@ class CompanyController extends Controller
         )->fetchAll();
         $payments = Payment::where('company_id', $company['id'], 'created_at DESC');
         $projectCount = Project::count('company_id = ?', [$company['id']]);
+        $plans = Plan::all('sort_order ASC');
 
         $this->view('admin/companies/show', [
             'pageTitle' => $company['name'],
@@ -41,6 +44,7 @@ class CompanyController extends Controller
             'subscriptions' => $subscriptions,
             'payments' => $payments,
             'projectCount' => $projectCount,
+            'plans' => $plans,
         ], 'layouts/admin');
     }
 
@@ -57,6 +61,28 @@ class CompanyController extends Controller
             Company::update($company['id'], ['status' => $status]);
             $this->flash('success', 'Company status updated.');
         }
+        self::redirect('/admin/companies/' . $company['id']);
+    }
+
+    /** Admin override: change a company's plan directly, no payment involved. */
+    public function updatePlan(string $id): void
+    {
+        $this->verifyCsrf();
+        $company = Company::find((int) $id);
+        if (!$company) {
+            http_response_code(404);
+            die('Company not found.');
+        }
+        $plan = Plan::find((int) $this->input('plan_id'));
+        if (!$plan) {
+            $this->flash('error', 'Invalid plan.');
+            self::redirect('/admin/companies/' . $company['id']);
+        }
+        $cycle = $this->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
+
+        BillingController::activatePlan($company['id'], $plan, $cycle);
+
+        $this->flash('success', "Plan changed to {$plan['name']} (admin override, no charge recorded).");
         self::redirect('/admin/companies/' . $company['id']);
     }
 }

@@ -160,6 +160,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--b
 .sidebar nav a:hover, .sidebar nav a.active { background: rgba(255,255,255,.1); color: #fff; text-decoration: none; }
 .sidebar nav .nav-section { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #7fa89d; padding: 14px 14px 6px; }
 .sidebar nav .nav-section:first-child { padding-top: 4px; }
+.sidebar nav a.locked { opacity: .55; }
+.sidebar nav a .lock { font-size: 10px; margin-inline-start: 2px; }
 .sidebar .foot { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; color: #a9c4bd; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 0 28px; height: 64px; display: flex; align-items: center; justify-content: space-between; }

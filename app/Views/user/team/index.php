@@ -1,11 +1,17 @@
 <?php use App\Core\View; use App\Core\Csrf; use App\Core\Auth; ?>
 <div class="page-head">
   <h1>Team</h1>
+  <?php if ($userLimit !== null && $userLimit < 999): ?>
+    <span class="badge badge-<?= $withinUserLimit ? 'gray' : 'red' ?>"><?= count($members) ?> / <?= $userLimit ?> members</span>
+  <?php endif; ?>
 </div>
 
 <?php if (Auth::isCompanyOwner()): ?>
 <div class="card" style="margin-bottom:24px;">
   <h3>Invite a team member</h3>
+  <?php if (!$withinUserLimit): ?>
+    <div class="alert alert-error">Your plan's team member limit (<?= $userLimit ?>) has been reached. <a href="/app/billing">Upgrade your plan</a> to invite more.</div>
+  <?php else: ?>
   <form method="post" action="/app/team" class="form-row" style="align-items:end;grid-template-columns:1fr 1fr 1fr auto;">
     <?= Csrf::field() ?>
     <div class="form-group" style="margin:0;"><label>Name</label><input type="text" name="name" required></div>
@@ -19,6 +25,7 @@
     </div>
     <button type="submit" class="btn btn-primary">Invite</button>
   </form>
+  <?php endif; ?>
 </div>
 <?php endif; ?>
 

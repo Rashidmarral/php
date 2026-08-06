@@ -15,6 +15,7 @@ use App\Controllers\User\BillingController;
 use App\Controllers\User\SettingsController;
 use App\Controllers\Admin\AdminDashboardController;
 use App\Controllers\Admin\CompanyController;
+use App\Controllers\Admin\CompanyZatcaController;
 use App\Controllers\Admin\PlanController;
 use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\AdminUserController;
@@ -88,6 +89,8 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->get('/app/invoices/{id}', [InvoiceController::class, 'show']);
     $router->post('/app/invoices/{id}/status', [InvoiceController::class, 'updateStatus']);
     $router->post('/app/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
+    $router->get('/app/invoices/{id}/xml', [InvoiceController::class, 'xml']);
+    $router->post('/app/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
 
     $router->get('/app/schedule', [ScheduleController::class, 'index']);
     $router->post('/app/schedule', [ScheduleController::class, 'store']);
@@ -100,6 +103,9 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/billing', [BillingController::class, 'index']);
     $router->post('/app/billing/upgrade', [BillingController::class, 'upgrade']);
+    $router->get('/app/billing/checkout', [BillingController::class, 'checkout']);
+    $router->post('/app/billing/bank-transfer', [BillingController::class, 'requestBankTransfer']);
+    $router->get('/app/billing/moyasar-callback', [BillingController::class, 'moyasarCallback']);
 
     $router->get('/app/settings', [SettingsController::class, 'index']);
     $router->post('/app/settings', [SettingsController::class, 'update']);
@@ -152,6 +158,13 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->get('/admin/companies', [CompanyController::class, 'index']);
     $router->get('/admin/companies/{id}', [CompanyController::class, 'show']);
     $router->post('/admin/companies/{id}/status', [CompanyController::class, 'updateStatus']);
+    $router->post('/admin/companies/{id}/plan', [CompanyController::class, 'updatePlan']);
+
+    $router->get('/admin/companies/{id}/zatca', [CompanyZatcaController::class, 'show']);
+    $router->post('/admin/companies/{id}/zatca/environment', [CompanyZatcaController::class, 'updateEnvironment']);
+    $router->post('/admin/companies/{id}/zatca/csr', [CompanyZatcaController::class, 'generateCsr']);
+    $router->post('/admin/companies/{id}/zatca/compliance-csid', [CompanyZatcaController::class, 'requestComplianceCsid']);
+    $router->post('/admin/companies/{id}/zatca/production-csid', [CompanyZatcaController::class, 'requestProductionCsid']);
 
     $router->get('/admin/plans', [PlanController::class, 'index']);
     $router->get('/admin/plans/create', [PlanController::class, 'create']);
@@ -161,6 +174,8 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/plans/{id}/delete', [PlanController::class, 'destroy']);
 
     $router->get('/admin/payments', [PaymentController::class, 'index']);
+    $router->post('/admin/payments/{id}/approve', [PaymentController::class, 'approve']);
+    $router->post('/admin/payments/{id}/reject', [PaymentController::class, 'reject']);
 
     $router->get('/admin/admins', [AdminUserController::class, 'index']);
     $router->post('/admin/admins', [AdminUserController::class, 'store']);
@@ -168,6 +183,8 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
 
     $router->get('/admin/settings', [SiteSettingsController::class, 'index']);
     $router->post('/admin/settings', [SiteSettingsController::class, 'update']);
+    $router->get('/admin/settings/payments', [SiteSettingsController::class, 'payments']);
+    $router->post('/admin/settings/payments', [SiteSettingsController::class, 'updatePayments']);
 
     $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
 

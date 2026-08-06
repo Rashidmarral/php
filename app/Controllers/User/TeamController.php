@@ -4,6 +4,7 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\User;
 
 class TeamController extends Controller
@@ -11,7 +12,12 @@ class TeamController extends Controller
     public function index(): void
     {
         $members = User::where('company_id', Auth::companyId(), 'created_at ASC');
-        $this->view('user/team/index', ['pageTitle' => 'Team', 'members' => $members], 'layouts/app');
+        $this->view('user/team/index', [
+            'pageTitle' => 'Team',
+            'members' => $members,
+            'userLimit' => Feature::userLimit(),
+            'withinUserLimit' => Feature::withinUserLimit(),
+        ], 'layouts/app');
     }
 
     public function store(): void
@@ -20,6 +26,10 @@ class TeamController extends Controller
         if (!Auth::isCompanyOwner()) {
             $this->flash('error', 'Only the company owner can invite team members.');
             self::redirect('/app/team');
+        }
+        if (!Feature::withinUserLimit()) {
+            $this->flash('error', 'Your plan\'s team member limit has been reached. Upgrade to invite more.');
+            self::redirect('/app/billing');
         }
 
         $name = trim((string) $this->input('name'));

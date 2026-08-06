@@ -1,4 +1,9 @@
-<?php use App\Core\View; use App\Core\Csrf; $features = $plan ? implode("\n", json_decode($plan['features'], true) ?: []) : ''; ?>
+<?php
+use App\Core\View;
+use App\Core\Csrf;
+$features = $plan ? implode("\n", json_decode($plan['features'], true) ?: []) : '';
+$activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: []) : [];
+?>
 <div class="page-head">
   <h1><?= $plan ? 'Edit Plan' : 'New Plan' ?></h1>
   <a href="/admin/plans" class="btn btn-light">← Back to plans</a>
@@ -22,6 +27,19 @@
   <div class="form-group">
     <label>Features (one per line)</label>
     <textarea name="features" rows="6"><?= View::e($features) ?></textarea>
+    <p class="help-text">Shown as marketing bullet points on the pricing page.</p>
+  </div>
+  <div class="form-group">
+    <label>Module access</label>
+    <p class="help-text" style="margin-top:-2px;">Controls which parts of the user panel companies on this plan can actually use.</p>
+    <div class="grid grid-2" style="gap:8px;">
+      <?php foreach ($allFeatures as $key => $label): ?>
+        <label style="font-weight:400;font-size:14px;">
+          <input type="checkbox" name="feature_<?= $key ?>" value="1" style="width:auto;display:inline-block;" <?= !empty($activeFlags[$key]) ? 'checked' : '' ?>>
+          <?= View::e($label) ?>
+        </label>
+      <?php endforeach; ?>
+    </div>
   </div>
   <div class="form-row">
     <div class="form-group"><label>Sort order</label><input type="number" name="sort_order" value="<?= View::e((string)($plan['sort_order'] ?? 0)) ?>"></div>

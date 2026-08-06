@@ -29,15 +29,12 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:start;">
       <h3>💳 Payment Gateway</h3>
-      <span class="badge badge-<?= $paymentGateway !== 'manual' ? 'green' : 'yellow' ?>"><?= $paymentGateway !== 'manual' ? ucfirst($paymentGateway) : 'Manual (demo mode)' ?></span>
+      <span class="badge badge-<?= $moyasarConfigured ? 'green' : 'yellow' ?>"><?= $moyasarConfigured ? 'Moyasar connected' : 'Bank transfer only' ?></span>
     </div>
     <p class="help-text">
-      Subscription payments are currently simulated. Wire up
-      <a href="https://moyasar.com" target="_blank" rel="noopener">Moyasar</a>,
-      <a href="https://hyperpay.com" target="_blank" rel="noopener">HyperPay</a>,
-      <a href="https://paytabs.com" target="_blank" rel="noopener">PayTabs</a>, or
-      <a href="https://tap.company" target="_blank" rel="noopener">Tap</a> for real mada/Visa/Mastercard
-      charges — ask your platform administrator.
+      Subscriptions can be paid by bank transfer (reviewed and approved by your platform
+      administrator) at any time from <a href="/app/billing">Billing</a>.
+      <?= $moyasarConfigured ? 'Card / mada / Apple Pay / STC Pay checkout via Moyasar is also enabled.' : 'Online card checkout isn\'t enabled yet — ask your platform administrator to connect Moyasar.' ?>
     </p>
   </div>
 
@@ -52,8 +49,15 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:start;">
       <h3>🧾 ZATCA E-Invoicing</h3>
-      <span class="badge badge-yellow">Not configured</span>
+      <span class="badge badge-<?= ($company['zatca_status'] ?? 'not_started') === 'active' ? 'green' : 'yellow' ?>">
+        <?= ($company['zatca_status'] ?? 'not_started') === 'active' ? 'Phase 2 live' : 'Phase 1 only' ?>
+      </span>
     </div>
-    <p class="help-text">Invoices currently use sequential numbering with VAT captured per invoice. Full ZATCA Phase 2 compliance (QR codes, XML/UBL, cryptographic stamps) requires additional setup.</p>
+    <p class="help-text">
+      Every invoice already carries a compliant ZATCA Phase 1 QR code automatically.
+      <?= ($company['zatca_status'] ?? 'not_started') === 'active'
+        ? 'Phase 2 (Fatoora reporting) is active — invoices can be submitted directly to ZATCA from the invoice page.'
+        : 'Phase 2 (Fatoora reporting) requires onboarding with a one-time code from your ZATCA account — ask your platform administrator to complete it.' ?>
+    </p>
   </div>
 </div>

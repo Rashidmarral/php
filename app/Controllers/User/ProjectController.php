@@ -4,6 +4,7 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Invoice;
@@ -20,11 +21,20 @@ class ProjectController extends Controller
             [$companyId]
         )->fetchAll();
 
-        $this->view('user/projects/index', ['pageTitle' => 'Projects', 'projects' => $projects], 'layouts/app');
+        $this->view('user/projects/index', [
+            'pageTitle' => 'Projects',
+            'projects' => $projects,
+            'projectLimit' => Feature::projectLimit(),
+            'withinProjectLimit' => Feature::withinProjectLimit(),
+        ], 'layouts/app');
     }
 
     public function create(): void
     {
+        if (!Feature::withinProjectLimit()) {
+            $this->flash('error', "Your plan's project limit (" . Feature::projectLimit() . ") has been reached. Upgrade to create more.");
+            self::redirect('/app/billing');
+        }
         $companyId = Auth::companyId();
         $clients = Client::where('company_id', $companyId, 'name ASC');
         $this->view('user/projects/form', ['pageTitle' => 'New Project', 'clients' => $clients, 'project' => null], 'layouts/app');
@@ -34,6 +44,11 @@ class ProjectController extends Controller
     {
         $this->verifyCsrf();
         $companyId = Auth::companyId();
+
+        if (!Feature::withinProjectLimit()) {
+            $this->flash('error', "Your plan's project limit has been reached. Upgrade to create more.");
+            self::redirect('/app/billing');
+        }
 
         $name = trim((string) $this->input('name'));
         if ($name === '') {

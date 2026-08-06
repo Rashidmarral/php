@@ -328,6 +328,51 @@ addColumnIfMissing($pdo, $driver, 'clients', 'portal_enabled', 'INT NOT NULL DEF
 addColumnIfMissing($pdo, $driver, 'invoices', 'vat_rate', 'DECIMAL(5,2)');
 addColumnIfMissing($pdo, $driver, 'invoices', 'vat_amount', "DECIMAL(12,2) NOT NULL DEFAULT 0");
 
+addColumnIfMissing($pdo, $driver, 'plans', 'feature_flags', 'TEXT');
+
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_environment', "VARCHAR(20) NOT NULL DEFAULT 'sandbox'");
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_status', "VARCHAR(20) NOT NULL DEFAULT 'not_started'");
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_csr', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_private_key', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_compliance_csid', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_compliance_secret', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_production_csid', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_production_secret', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_last_icv', 'INT NOT NULL DEFAULT 0');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_last_invoice_hash', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'zatca_last_error', 'TEXT');
+
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_uuid', 'VARCHAR(64)');
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_icv', 'INT');
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_hash', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_previous_hash', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_status', "VARCHAR(20) NOT NULL DEFAULT 'not_submitted'");
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_submitted_at', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_response', 'TEXT');
+
+addColumnIfMissing($pdo, $driver, 'payments', 'proof_file_path', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_by', 'INT');
+addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_at', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'payments', 'plan_id', 'INT');
+addColumnIfMissing($pdo, $driver, 'payments', 'billing_cycle', "VARCHAR(10)");
+
+// ---- Seed default feature flags onto existing plans (idempotent: only fills blanks) ----
+$defaultFlagsByPlan = [
+    'starter' => ['takeoff' => false, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => false, 'client_portal' => false, 'integrations' => false, 'zatca_phase2' => false],
+    'professional' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => false],
+    'enterprise' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true],
+];
+$planRows = $pdo->query('SELECT id, slug, feature_flags FROM plans')->fetchAll();
+$updateFlags = $pdo->prepare('UPDATE plans SET feature_flags = ? WHERE id = ?');
+foreach ($planRows as $row) {
+    if (!empty($row['feature_flags'])) {
+        continue;
+    }
+    $flags = $defaultFlagsByPlan[$row['slug']] ?? $defaultFlagsByPlan['starter'];
+    $updateFlags->execute([json_encode($flags), $row['id']]);
+}
+echo "Plan feature flags seeded.\n";
+
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [
     [
@@ -419,6 +464,14 @@ $defaultSettings = [
     'site_name' => 'BuildXact Saudi',
     'support_email' => 'support@buildxact-saudi.local',
     'support_phone' => '+966 11 234 5678',
+    'bank_name' => '',
+    'bank_account_name' => '',
+    'bank_iban' => '',
+    'bank_account_number' => '',
+    'bank_transfer_enabled' => '1',
+    'moyasar_publishable_key' => '',
+    'moyasar_secret_key' => '',
+    'moyasar_enabled' => '0',
 ];
 $checkSetting = $pdo->prepare('SELECT `key` FROM settings WHERE `key` = ?');
 $insertSetting = $pdo->prepare('INSERT INTO settings (`key`, value) VALUES (?, ?)');

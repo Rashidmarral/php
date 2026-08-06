@@ -29,6 +29,8 @@
             <option value="modern">Modern</option>
             <option value="classic">Classic</option>
             <option value="minimal">Minimal</option>
+      <option value="bold">Bold</option>
+      <option value="elegant">Elegant</option>
           </select>
         </div>
         <button type="submit" class="btn btn-primary">⬇ <?= t('qe.download_pdf') ?></button>

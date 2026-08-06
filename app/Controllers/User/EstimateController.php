@@ -120,7 +120,7 @@ class EstimateController extends Controller
         $items = EstimateItem::where('estimate_id', $estimate['id'], 'id ASC');
         $client = $estimate['client_id'] ? Client::find((int) $estimate['client_id']) : null;
         $company = Company::find((int) $estimate['company_id']);
-        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal'], true) ? $this->input('template') : 'modern';
+        $template = in_array($this->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant'], true) ? $this->input('template') : 'modern';
         $lang = $this->input('lang') === 'ar' ? 'ar' : Lang::locale();
 
         $this->streamPdf([

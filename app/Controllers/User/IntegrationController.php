@@ -4,18 +4,24 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
-use App\Core\Env;
+use App\Core\Feature;
+use App\Core\Moyasar;
 use App\Models\Company;
 
 class IntegrationController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('integrations');
+    }
+
     public function index(): void
     {
         $company = Company::find(Auth::companyId());
         $this->view('user/integrations/index', [
             'pageTitle' => 'Integrations',
             'company' => $company,
-            'paymentGateway' => Env::get('PAYMENT_GATEWAY', 'manual'),
+            'moyasarConfigured' => Moyasar::isConfigured(),
         ], 'layouts/app');
     }
 

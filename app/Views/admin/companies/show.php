@@ -15,11 +15,37 @@
   </form>
 </div>
 
+<div style="margin-bottom:24px;">
+  <a href="/admin/companies/<?= $company['id'] ?>/zatca" class="btn btn-secondary">ZATCA e-invoicing compliance →</a>
+</div>
+
 <div class="kpi-grid">
   <div class="kpi"><div class="label">Status</div><div class="value" style="font-size:16px;"><span class="badge badge-<?= $company['status']==='active'?'green':($company['status']==='suspended'?'red':'yellow') ?>"><?= View::e($company['status']) ?></span></div></div>
   <div class="kpi"><div class="label">Team members</div><div class="value"><?= count($users) ?></div></div>
   <div class="kpi"><div class="label">Projects</div><div class="value"><?= $projectCount ?></div></div>
   <div class="kpi"><div class="label">Trial ends</div><div class="value" style="font-size:16px;"><?= View::e($company['trial_ends_at'] ?: '—') ?></div></div>
+</div>
+
+<div class="card" style="margin-bottom:24px;max-width:520px;">
+  <h3>Change plan (admin override)</h3>
+  <p class="help-text">Directly assign a plan to this company — no payment record is created, effective immediately.</p>
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/plan" style="display:flex;gap:8px;align-items:end;">
+    <?= Csrf::field() ?>
+    <div class="form-group" style="margin:0;flex:1;">
+      <select name="plan_id">
+        <?php foreach ($plans as $p): ?>
+          <option value="<?= $p['id'] ?>" <?= ($company['plan_id'] ?? null) == $p['id'] ? 'selected' : '' ?>><?= View::e($p['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <select name="billing_cycle">
+        <option value="monthly">Monthly</option>
+        <option value="yearly">Yearly</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Apply</button>
+  </form>
 </div>
 
 <div class="grid grid-2">
@@ -56,7 +82,7 @@
       <thead><tr><th>Date</th><th>Reference</th><th>Amount</th><th>Status</th></tr></thead>
       <tbody>
       <?php foreach ($payments as $p): ?>
-        <tr><td><?= View::e($p['created_at']) ?></td><td><?= View::e($p['reference']) ?></td><td><?= View::money((float)$p['amount']) ?></td><td><span class="badge badge-green"><?= View::e($p['status']) ?></span></td></tr>
+        <tr><td><?= View::e($p['created_at']) ?></td><td><?= View::e($p['reference']) ?></td><td><?= View::money((float)$p['amount']) ?></td><td><span class="badge badge-<?= $p['status']==='paid'?'green':($p['status']==='pending'?'yellow':'red') ?>"><?= View::e($p['status']) ?></span></td></tr>
       <?php endforeach; ?>
       </tbody>
     </table>

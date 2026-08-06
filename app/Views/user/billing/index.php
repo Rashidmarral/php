@@ -3,6 +3,12 @@
   <h1>Billing & Subscription</h1>
 </div>
 
+<?php if ($pendingPayment): ?>
+  <div class="alert" style="background:#fdf3e0;color:#b8860b;border:1px solid #f0dca4;">
+    ⏳ A bank transfer payment (<?= View::e($pendingPayment['reference']) ?>, <?= View::money((float)$pendingPayment['amount']) ?>) is awaiting admin approval.
+  </div>
+<?php endif; ?>
+
 <div class="card" style="margin-bottom:24px;">
   <h3>Current plan</h3>
   <?php if ($currentPlan): ?>
@@ -25,18 +31,15 @@
         <h3><?= View::e($plan['name']) ?></h3>
         <div class="price"><?= number_format((float)$plan['price_monthly'],0) ?> <small>SAR/mo</small></div>
         <ul class="plan-features"><?php foreach ($features as $f): ?><li><?= View::e($f) ?></li><?php endforeach; ?></ul>
-        <form method="post" action="/app/billing/upgrade">
-          <?= Csrf::field() ?>
-          <input type="hidden" name="plan" value="<?= View::e($plan['slug']) ?>">
-          <input type="hidden" name="cycle" value="monthly">
-          <button type="submit" class="btn <?= $currentPlan && $currentPlan['id']==$plan['id'] ? 'btn-light' : 'btn-primary' ?> btn-block" <?= $currentPlan && $currentPlan['id']==$plan['id'] ? 'disabled' : '' ?>>
-            <?= $currentPlan && $currentPlan['id']==$plan['id'] ? 'Current plan' : 'Switch to this plan' ?>
-          </button>
-        </form>
+        <?php if ($currentPlan && $currentPlan['id']==$plan['id']): ?>
+          <button class="btn btn-light btn-block" disabled>Current plan</button>
+        <?php else: ?>
+          <a href="/app/billing/checkout?plan=<?= urlencode($plan['slug']) ?>&cycle=monthly" class="btn btn-primary btn-block">Choose this plan</a>
+        <?php endif; ?>
       </div>
     <?php endforeach; ?>
   </div>
-  <p class="help-text" style="margin-top:16px;">Payments are processed via mada, Visa/Mastercard, or Apple Pay through our Saudi payment gateway partner. This demo simulates a successful charge.</p>
+  <p class="help-text" style="margin-top:16px;">Pay by bank transfer (held for admin approval) or card via Moyasar, if enabled by your platform administrator.</p>
 </div>
 
 <div class="card">
@@ -53,7 +56,7 @@
           <td><?= View::e($p['reference']) ?></td>
           <td><?= View::e(strtoupper($p['method'])) ?></td>
           <td><?= View::money((float)$p['amount']) ?></td>
-          <td><span class="badge badge-green"><?= View::e($p['status']) ?></span></td>
+          <td><span class="badge badge-<?= $p['status']==='paid'?'green':($p['status']==='pending'?'yellow':'red') ?>"><?= View::e($p['status']) ?></span></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

@@ -4,6 +4,7 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Client;
 
 class ClientController extends Controller
@@ -70,6 +71,7 @@ class ClientController extends Controller
     public function enablePortal(string $id): void
     {
         $this->verifyCsrf();
+        Feature::requireOrRedirect('client_portal');
         $client = $this->findOwned((int) $id);
 
         if (empty($client['email'])) {

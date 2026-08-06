@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Core\Csrf; ?>
+<?php use App\Core\View; use App\Core\Csrf; use App\Core\Feature; ?>
 <div class="page-head">
   <div>
     <h1><?= View::e($invoice['invoice_number']) ?></h1>
@@ -20,6 +20,8 @@
       <option value="modern">Modern</option>
       <option value="classic">Classic</option>
       <option value="minimal">Minimal</option>
+      <option value="bold">Bold</option>
+      <option value="elegant">Elegant</option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">
@@ -47,6 +49,50 @@
   <div class="total-row" style="margin-top:6px;">Total: <?= View::money((float)$invoice['total']) ?></div>
   <?php if ($invoice['due_date']): ?><p class="help-text">Due: <?= View::e($invoice['due_date']) ?></p><?php endif; ?>
 </div>
+
+<?php if ($zatcaQr): ?>
+  <div class="card" style="max-width:820px;margin-top:20px;display:flex;gap:16px;align-items:center;">
+    <img src="<?= $zatcaQr ?>" width="110" height="110" alt="ZATCA QR Code">
+    <div>
+      <h3 style="margin-bottom:4px;">ZATCA QR Code</h3>
+      <p class="help-text">Phase 1 compliant — encodes seller name, VAT number, timestamp, invoice total, and VAT amount. Included automatically on the PDF.</p>
+    </div>
+  </div>
+<?php else: ?>
+  <div class="alert alert-error" style="max-width:820px;margin-top:20px;">
+    No VAT number set on your company profile — the ZATCA QR code can't be generated. Add one in <a href="/app/settings">Settings</a>.
+  </div>
+<?php endif; ?>
+
+<?php if (!empty($invoice['zatca_uuid'])):
+  $zatcaStatusLabels = [
+    'not_submitted' => ['Not yet submitted to ZATCA', 'gray'],
+    'reported' => ['Reported to ZATCA', 'green'],
+    'failed' => ['ZATCA submission failed', 'red'],
+  ];
+  $zStatus = $invoice['zatca_status'] ?: 'not_submitted';
+  [$zLabel, $zColor] = $zatcaStatusLabels[$zStatus] ?? [$zStatus, 'gray'];
+  $companyLive = ($company['zatca_status'] ?? '') === 'active';
+?>
+  <div class="card" style="max-width:820px;margin-top:20px;">
+    <h3>ZATCA Phase 2 (Fatoora integration)</h3>
+    <p class="help-text" style="margin-bottom:10px;">
+      Status: <span class="badge badge-<?= $zColor ?>"><?= View::e($zLabel) ?></span>
+      · ICV #<?= (int) $invoice['zatca_icv'] ?>
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <a href="/app/invoices/<?= $invoice['id'] ?>/xml" class="btn btn-outline">⬇ Download UBL XML</a>
+      <?php if (Feature::allows('zatca_phase2') && $companyLive && $zStatus !== 'reported'): ?>
+        <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/submit-zatca" onsubmit="return confirm('Submit this invoice to ZATCA now? This cannot be undone.');">
+          <?= Csrf::field() ?>
+          <button type="submit" class="btn btn-primary">Submit to ZATCA</button>
+        </form>
+      <?php elseif (!$companyLive): ?>
+        <span class="help-text">ZATCA Phase 2 isn't activated for your company yet — ask your platform administrator.</span>
+      <?php endif; ?>
+    </div>
+  </div>
+<?php endif; ?>
 
 <div class="card" style="max-width:820px;margin-top:20px;">
   <h3>Update status</h3>

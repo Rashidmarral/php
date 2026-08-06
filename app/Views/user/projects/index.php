@@ -1,7 +1,7 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Projects</h1>
-  <a href="/app/projects/create" class="btn btn-primary">+ New Project</a>
+  <h1>Projects <?php if ($projectLimit !== null && $projectLimit < 999): ?><span class="badge badge-<?= $withinProjectLimit ? 'gray' : 'red' ?>"><?= count($projects) ?> / <?= $projectLimit ?></span><?php endif; ?></h1>
+  <a href="/app/projects/create" class="btn btn-primary <?= $withinProjectLimit ? '' : 'disabled' ?>" <?= $withinProjectLimit ? '' : 'onclick="return false;" style="opacity:.5;cursor:not-allowed;"' ?>>+ New Project</a>
 </div>
 
 <?php if (empty($projects)): ?>

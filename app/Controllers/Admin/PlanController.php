@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Plan;
 
 class PlanController extends Controller
@@ -15,7 +16,7 @@ class PlanController extends Controller
 
     public function create(): void
     {
-        $this->view('admin/plans/form', ['pageTitle' => 'New Plan', 'plan' => null], 'layouts/admin');
+        $this->view('admin/plans/form', ['pageTitle' => 'New Plan', 'plan' => null, 'allFeatures' => Feature::ALL], 'layouts/admin');
     }
 
     public function store(): void
@@ -33,7 +34,7 @@ class PlanController extends Controller
             http_response_code(404);
             die('Plan not found.');
         }
-        $this->view('admin/plans/form', ['pageTitle' => 'Edit Plan', 'plan' => $plan], 'layouts/admin');
+        $this->view('admin/plans/form', ['pageTitle' => 'Edit Plan', 'plan' => $plan, 'allFeatures' => Feature::ALL], 'layouts/admin');
     }
 
     public function update(string $id): void
@@ -61,6 +62,11 @@ class PlanController extends Controller
     {
         $featuresLines = array_filter(array_map('trim', explode("\n", (string) $this->input('features', ''))));
 
+        $flags = [];
+        foreach (array_keys(Feature::ALL) as $key) {
+            $flags[$key] = $this->input("feature_{$key}") ? true : false;
+        }
+
         $data = [
             'slug' => strtolower(trim((string) $this->input('slug'))),
             'name' => trim((string) $this->input('name')),
@@ -70,6 +76,7 @@ class PlanController extends Controller
             'max_users' => (int) $this->input('max_users', 5),
             'max_projects' => (int) $this->input('max_projects', 10),
             'features' => json_encode(array_values($featuresLines)),
+            'feature_flags' => json_encode($flags),
             'is_active' => $this->input('is_active') ? 1 : 0,
             'sort_order' => (int) $this->input('sort_order', 0),
         ];

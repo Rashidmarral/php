@@ -121,12 +121,13 @@ without touching code.
 ## PDF export
 
 Estimates, invoices, and Quick Estimate results can all be downloaded as PDF (`App\Core\Pdf`,
-built on `dompdf`), in the current viewing language and a choice of three visual templates
-(Modern / Classic / Minimal) — see `app/Views/pdf/document.php`, the single shared template all
-three document types render through. Arabic PDFs are pre-shaped with `khaled.alshamaa/ar-php`
+built on `dompdf`), A4 sized, in the current viewing language and a choice of five visual
+templates (Modern / Classic / Minimal / Bold / Elegant) — see `app/Views/pdf/document.php`, the
+single shared template all three document types render through, selected per-download from a
+dropdown on each estimate/invoice page. Arabic PDFs are pre-shaped with `khaled.alshamaa/ar-php`
 (`App\Core\ArabicText`) before rendering, since dompdf itself doesn't perform Arabic letter
 joining or bidi reordering — without this step Arabic text would render as disconnected,
-misordered glyphs.
+misordered glyphs. Every invoice PDF also carries its ZATCA Phase 1 QR code (see below).
 
 ## Digital Takeoff ("AI Takeoff")
 
@@ -186,6 +187,70 @@ or is currently stubbed: Google Sheets price sync (configure the link here), and
 Payment Gateway, Email, and ZATCA e-invoicing — all "not configured" placeholders pointing at
 what's needed to turn them on (see "What's intentionally out of scope" below).
 
+## ZATCA e-invoicing compliance
+
+**Phase 1 (QR code) is fully live for every company automatically** — no setup needed. Every
+invoice's PDF/print view embeds a ZATCA-compliant QR code (`App\Core\Zatca\Phase1Qr`) generated
+from the standard 5-field TLV/Base64 payload (seller name, VAT number, timestamp, invoice total,
+VAT amount), rendered with `chillerlan/php-qrcode`. It's derived from real invoice data — nothing
+about it is a placeholder.
+
+**Phase 2 (Fatoora integration reporting) has its full technical pipeline implemented**, and every
+invoice a company creates is automatically prepared for it:
+- `App\Core\Zatca\UblInvoice` builds a UBL 2.1 XML invoice document per ZATCA's field spec
+  (simplified tax invoice, type code 388), downloadable per-invoice at `/app/invoices/{id}/xml`.
+- Every invoice gets a UUID, an incrementing per-company invoice counter (ICV), and a SHA-256 hash
+  of its XML — chained via the PIH (previous invoice hash) element to the invoice before it, per
+  ZATCA's tamper-evident chaining requirement. The very first invoice in a company's chain uses
+  ZATCA's documented fixed genesis PIH value.
+- `App\Core\Zatca\CsrGenerator` generates a real secp256k1 EC key pair + X.509 CSR with the
+  subject fields ZATCA's onboarding expects (including `organizationIdentifier` = VAT number).
+- `App\Core\Zatca\ApiClient` is a real HTTP client for ZATCA's gateway
+  (`gw-fatoora.zatca.gov.sa`) implementing the compliance-CSID, production-CSID, and
+  invoice-reporting endpoints exactly as documented.
+
+**What can't be done from this build, by design:** completing onboarding for a real company
+requires an OTP generated from that company's own ZATCA Fatoora portal account, and reporting
+invoices requires a certificate ZATCA only issues after that OTP exchange succeeds against their
+live government servers. There's no way to fabricate or bypass this — it's ZATCA's security model,
+not a gap in the code. This is why onboarding is an **admin-only** flow
+(`/admin/companies/{id}/zatca`, `App\Controllers\Admin\CompanyZatcaController`): the platform admin
+selects sandbox/production, generates the CSR, then pastes in the OTP the company gives them to
+request the compliance CSID and finally the production CSID. Once a company's `zatca_status`
+reaches `active`, its invoices show a real "Submit to ZATCA" button
+(`InvoiceController::submitZatca()`) that reports the invoice over HTTPS and records ZATCA's actual
+response — gated both by the company's onboarding status and by the `zatca_phase2` plan feature
+flag (see Feature gating below).
+
+## Payments & subscriptions
+
+Two ways for a company to pay for a plan, both wired end-to-end (`app/Controllers/User/BillingController.php`):
+
+- **Bank transfer** — company uploads a transfer reference/proof at `/app/billing`, which creates
+  a `pending` payment; the platform admin reviews and approves/rejects it at `/admin/payments`
+  (`App\Controllers\Admin\PaymentController`). Approval activates the plan immediately.
+- **Moyasar** (`App\Core\Moyasar`) — a hosted-fields checkout supporting mada, Visa, Mastercard,
+  Apple Pay and STC Pay in one integration, which covers the common Saudi payment methods without
+  needing separate integrations per method. The admin enables it and enters API keys at
+  `/admin/settings/payments`. Payment status is always re-verified server-side via
+  `Moyasar::fetchPayment()` after checkout — the client-reported status is never trusted directly.
+
+Both paths funnel through `BillingController::activatePlan()`, also reused by the admin's direct
+plan override on a company's page — so however a plan change happens (bank transfer approval,
+Moyasar payment, or an admin manually reassigning a company's plan), it's the same code path.
+
+## Feature gating by plan
+
+Each plan (`plans.feature_flags`, a JSON map) turns on/off: Digital Takeoff, Suppliers, Materials
+& Pricing Library, Documents, Business Reports, Client Portal, Integrations, and ZATCA Phase 2
+reporting. `App\Core\Feature::allows('key')` checks the current company's plan; each gated
+controller calls `Feature::requireOrRedirect('key')` in its constructor, so a company on a plan
+without (say) Client Portal gets redirected to `/app/billing` with an upgrade prompt rather than
+reaching the feature at all — this is enforced server-side, not just hidden in the UI, though the
+UI also shows lock icons on nav items the current plan doesn't include. The platform admin
+(`Auth::isSuperAdmin()`) bypasses all gates. Admins control which features each plan includes at
+`/admin/plans`, and can override any single company's plan directly regardless of payment status.
+
 ## Data model / multi-tenancy
 
 Every subscriber is a **company**. A company has many **users** (the owner plus invited team
@@ -196,10 +261,9 @@ super_admin`, no `company_id`) sits outside any company and manages the platform
 companies, plans, and payments.
 
 Billing is modeled with **plans** (Starter / Professional / Enterprise, monthly+yearly SAR
-pricing) and **subscriptions** (one company can have a history of subscriptions as it
-upgrades/downgrades); **payments** records each charge. `BillingController::upgrade()` is where
-plan changes happen today, and it simulates a successful charge — see below for wiring up a real
-gateway.
+pricing, each with its own feature flags) and **subscriptions** (one company can have a history of
+subscriptions as it upgrades/downgrades); **payments** records each charge, via bank transfer or
+Moyasar (see Payments & subscriptions above).
 
 ## What's intentionally out of scope for this MVP
 
@@ -210,12 +274,12 @@ run it) with the core contractor workflow (estimate → project → schedule →
 working end to end, so it's a real foundation to extend rather than a mockup. Notable gaps to be
 aware of before going to production:
 
-- **Payment gateway**: `PAYMENT_GATEWAY=manual` is a stub. For Saudi Arabia, wire up
-  [Moyasar](https://moyasar.com), [HyperPay](https://hyperpay.com), [PayTabs](https://paytabs.com),
-  or [Tap](https://tap.company) in `BillingController::upgrade()` (currently it just records a
-  "paid" payment immediately).
-- **ZATCA e-invoicing**: invoice numbering is sequential per company, but full ZATCA Phase 2
-  compliance (QR codes, XML/UBL format, cryptographic stamps) is not implemented.
+- **ZATCA Phase 2 cryptographic stamp**: the UBL XML this build generates is not yet digitally
+  signed with the certificate ZATCA issues during CSID onboarding (the XML digital signature +
+  QR-in-XML step that follows a successful production CSID). Everything up to and including
+  reporting the (unsigned) invoice over ZATCA's real API is implemented; wiring the signature in
+  is the next step once a real company has completed onboarding and a production CSID exists to
+  sign with.
 - **Email**: no transactional email (welcome email, invoice delivery, password reset) is wired
   up yet — plug in a provider (e.g. an SMTP relay) in `AuthController` and `TeamController`.
   Team-member invites currently show the temporary password directly in the UI as a placeholder

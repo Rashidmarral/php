@@ -4,12 +4,18 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Company;
 use App\Models\Material;
 use App\Models\Supplier;
 
 class MaterialController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('materials');
+    }
+
     public function index(): void
     {
         $companyId = Auth::companyId();

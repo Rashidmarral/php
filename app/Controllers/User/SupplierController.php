@@ -4,10 +4,16 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Supplier;
 
 class SupplierController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('suppliers');
+    }
+
     public function index(): void
     {
         $suppliers = Supplier::where('company_id', Auth::companyId(), 'name ASC');

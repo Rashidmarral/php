@@ -4,6 +4,7 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\Project;
@@ -12,6 +13,11 @@ use App\Models\TakeoffMeasurement;
 
 class TakeoffController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('takeoff');
+    }
+
     public function index(): void
     {
         $companyId = Auth::companyId();

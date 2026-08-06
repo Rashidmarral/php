@@ -4,12 +4,18 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Project;
 
 class ReportController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('reports');
+    }
+
     public function overview(): void
     {
         $companyId = Auth::companyId();

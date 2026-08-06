@@ -4,6 +4,7 @@ namespace App\Core;
 
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Plan;
 
 class PortalAuth
 {
@@ -18,6 +19,11 @@ class PortalAuth
         }
         $company = Company::find((int) $client['company_id']);
         if (!$company || empty($company['client_portal_enabled'])) {
+            return false;
+        }
+        $plan = $company['plan_id'] ? Plan::find((int) $company['plan_id']) : null;
+        $flags = $plan ? (json_decode((string) ($plan['feature_flags'] ?? '{}'), true) ?: []) : [];
+        if (empty($flags['client_portal'])) {
             return false;
         }
         self::login($client);

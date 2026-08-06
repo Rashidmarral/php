@@ -20,6 +20,8 @@
       <option value="modern">Modern</option>
       <option value="classic">Classic</option>
       <option value="minimal">Minimal</option>
+      <option value="bold">Bold</option>
+      <option value="elegant">Elegant</option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">

@@ -2,12 +2,19 @@
 
 use App\Core\Lang;
 use App\Core\Auth;
+use App\Core\Feature;
 
 $user = Auth::user();
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $isActive = fn(string $p) => str_starts_with($path, $p) ? 'active' : '';
 $otherLang = Lang::locale() === 'ar' ? 'en' : 'ar';
 $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
+$navLink = function (string $href, string $icon, string $label, ?string $featureKey = null) use ($isActive) {
+    $locked = $featureKey !== null && !Feature::allows($featureKey);
+    $target = $locked ? '/app/billing' : $href;
+    $activeClass = !$locked ? $isActive($href) : '';
+    echo '<a href="' . $target . '" class="' . $activeClass . ($locked ? ' locked' : '') . '">' . $icon . ' ' . $label . ($locked ? ' <span class="lock">🔒</span>' : '') . '</a>';
+};
 ?><!doctype html>
 <html lang="<?= Lang::locale() ?>" dir="<?= Lang::dir() ?>">
 <head>
@@ -27,20 +34,20 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/app/invoices" class="<?= $isActive('/app/invoices') ?>">💳 <?= t('side.invoices') ?></a>
       <a href="/app/clients" class="<?= $isActive('/app/clients') ?>">👥 <?= t('side.clients') ?></a>
       <a href="/app/schedule" class="<?= $isActive('/app/schedule') ?>">📅 <?= t('side.schedule') ?></a>
-      <a href="/app/takeoffs" class="<?= $isActive('/app/takeoffs') ?>">📐 <?= t('side.takeoffs') ?></a>
+      <?php $navLink('/app/takeoffs', '📐', t('side.takeoffs'), 'takeoff'); ?>
 
       <div class="nav-section">Resources</div>
-      <a href="/app/suppliers" class="<?= $isActive('/app/suppliers') ?>">🚚 <?= t('side.suppliers') ?></a>
-      <a href="/app/materials" class="<?= $isActive('/app/materials') ?>">📦 <?= t('side.materials') ?></a>
-      <a href="/app/documents" class="<?= $isActive('/app/documents') ?>">📁 <?= t('side.documents') ?></a>
+      <?php $navLink('/app/suppliers', '🚚', t('side.suppliers'), 'suppliers'); ?>
+      <?php $navLink('/app/materials', '📦', t('side.materials'), 'materials'); ?>
+      <?php $navLink('/app/documents', '📁', t('side.documents'), 'documents'); ?>
 
       <div class="nav-section">Insights</div>
-      <a href="/app/reports" class="<?= $isActive('/app/reports') ?>">📈 <?= t('side.reports') ?></a>
+      <?php $navLink('/app/reports', '📈', t('side.reports'), 'reports'); ?>
 
       <div class="nav-section">Company</div>
       <a href="/app/team" class="<?= $isActive('/app/team') ?>">🧑‍💼 <?= t('side.team') ?></a>
       <a href="/app/billing" class="<?= $isActive('/app/billing') ?>">💰 <?= t('side.billing') ?></a>
-      <a href="/app/integrations" class="<?= $isActive('/app/integrations') ?>">🔌 <?= t('side.integrations') ?></a>
+      <?php $navLink('/app/integrations', '🔌', t('side.integrations'), 'integrations'); ?>
       <a href="/app/settings" class="<?= $isActive('/app/settings') ?>">⚙️ <?= t('side.settings') ?></a>
     </nav>
     <div class="foot">

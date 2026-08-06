@@ -2,7 +2,7 @@
 use App\Core\View;
 
 $rtl = $lang === 'ar';
-$tpl = in_array($template, ['classic', 'minimal'], true) ? $template : 'modern';
+$tpl = in_array($template, ['classic', 'minimal', 'bold', 'elegant'], true) ? $template : 'modern';
 $T = fn($v) => View::pdfText($v, $lang);
 $currency = $currency ?? 'SAR';
 ?><!doctype html>
@@ -34,6 +34,8 @@ table { width: 100%; border-collapse: collapse; }
 .totals-table td { padding: 5px 10px; font-size: 11.5px; }
 .totals-table .num { text-align: <?= $rtl ? 'left' : 'right' ?>; }
 .totals-table .grand { font-size: 15px; font-weight: 700; }
+.zatca-qr { <?= $rtl ? 'float:right;' : 'float:left;' ?> margin-top: 14px; text-align: center; width: 120px; }
+.zatca-qr-label { font-size: 8.5px; color: #777; margin-top: 4px; }
 .notes-box { clear: both; margin-top: 60px; padding-top: 10px; font-size: 10.5px; color: #666; }
 .status-badge { display: inline-block; padding: 3px 12px; border-radius: 3px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; }
 .footer-note { position: fixed; bottom: -10mm; left: 0; right: 0; text-align: center; font-size: 9.5px; color: #999; }
@@ -68,11 +70,37 @@ table { width: 100%; border-collapse: collapse; }
 .tpl-minimal .items-table td { border-bottom: 1px solid #eee; }
 .tpl-minimal .totals-table .grand { border-top: 1px solid #16211f; }
 .tpl-minimal .status-badge { background: #f2f2f2; color: #444; }
+
+/* ---- Bold template ---- */
+.tpl-bold .head-band { background: #a8790a; color: #fff; padding: 26px 24px; margin: -20mm -16mm 22px; }
+.tpl-bold .head-band .doc-title, .tpl-bold .head-band .doc-number, .tpl-bold .head-band .company-name { color: #fff; }
+.tpl-bold .head-band .meta-line { color: #fbe9c6; }
+.tpl-bold .doc-title { font-weight: 800; font-size: 26px; }
+.tpl-bold .party-name { font-size: 15px; }
+.tpl-bold .items-table thead { background: #16211f; }
+.tpl-bold .items-table thead th { color: #fff; }
+.tpl-bold .items-table tr:nth-child(even) td { background: #fbf3e2; }
+.tpl-bold .items-table td { border-bottom: 1px solid #f0e2c4; }
+.tpl-bold .totals-table .grand { color: #a8790a; border-top: 3px solid #a8790a; font-size: 17px; }
+.tpl-bold .status-badge { background: #a8790a; color: #fff; }
+
+/* ---- Elegant template ---- */
+.tpl-elegant body, .tpl-elegant { font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Serif'" ?>, serif; color: #2a2a28; }
+.tpl-elegant .head-table { margin-bottom: 8px; }
+.tpl-elegant .doc-title { font-weight: 400; letter-spacing: .2em; font-size: 15px; color: #8a7550; }
+.tpl-elegant .company-name { font-weight: 700; font-size: 19px; letter-spacing: .03em; }
+.tpl-elegant .doc-number { color: #8a7550; }
+.tpl-elegant .section-title { letter-spacing: .12em; }
+.tpl-elegant .items-table { margin-top: 26px; }
+.tpl-elegant .items-table thead th { border-top: 0.75px solid #8a7550; border-bottom: 0.75px solid #8a7550; font-weight: 400; letter-spacing: .08em; color: #8a7550; }
+.tpl-elegant .items-table td { border-bottom: 0.5px solid #e7e1d3; font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif; }
+.tpl-elegant .totals-table .grand { border-top: 0.75px solid #8a7550; color: #8a7550; }
+.tpl-elegant .status-badge { border: 0.75px solid #8a7550; background: #fff; color: #8a7550; letter-spacing: .08em; }
 </style>
 </head>
 <body class="tpl-<?= $tpl ?>">
 
-<?php if ($tpl === 'modern'): ?>
+<?php if (in_array($tpl, ['modern', 'bold'], true)): ?>
   <div class="head-band">
     <table class="head-table"><tr>
       <td style="width:60%">
@@ -150,6 +178,13 @@ table { width: 100%; border-collapse: collapse; }
   <div class="notes-box">
     <div class="section-title"><?= $T($lang === 'ar' ? 'ملاحظات' : 'Notes') ?></div>
     <div><?= $T($notes) ?></div>
+  </div>
+<?php endif; ?>
+
+<?php if (!empty($qrCode)): ?>
+  <div class="zatca-qr">
+    <img src="<?= $qrCode ?>" width="110" height="110">
+    <div class="zatca-qr-label"><?= $T($lang === 'ar' ? 'رمز الاستجابة السريعة (هيئة الزكاة والضريبة)' : 'ZATCA QR Code') ?></div>
   </div>
 <?php endif; ?>
 

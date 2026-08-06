@@ -4,12 +4,18 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Document;
 use App\Models\Project;
 
 class DocumentController extends Controller
 {
     private const ALLOWED_EXT = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx', 'xls', 'xlsx', 'zip'];
+
+    public function __construct()
+    {
+        Feature::requireOrRedirect('documents');
+    }
 
     public function index(): void
     {

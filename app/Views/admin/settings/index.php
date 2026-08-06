@@ -3,6 +3,11 @@
   <h1>Platform Settings</h1>
 </div>
 
+<div class="tabs">
+  <a href="/admin/settings" class="active">General</a>
+  <a href="/admin/settings/payments">Payment Methods</a>
+</div>
+
 <form method="post" action="/admin/settings" class="card" style="max-width:680px;">
   <?= Csrf::field() ?>
   <div class="form-row">
