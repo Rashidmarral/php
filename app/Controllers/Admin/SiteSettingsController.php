@@ -92,6 +92,29 @@ class SiteSettingsController extends Controller
         return null;
     }
 
+    public function notifications(): void
+    {
+        $this->view('admin/settings/notifications', [
+            'pageTitle' => 'Notifications',
+            'settings' => Settings::all(),
+        ], 'layouts/admin');
+    }
+
+    public function updateNotifications(): void
+    {
+        $this->verifyCsrf();
+
+        Settings::set('whatsapp_enabled', $this->input('whatsapp_enabled') ? '1' : '0');
+        Settings::set('whatsapp_phone_number_id', trim((string) $this->input('whatsapp_phone_number_id', '')));
+        $token = trim((string) $this->input('whatsapp_access_token', ''));
+        if ($token !== '') {
+            Settings::set('whatsapp_access_token', $token);
+        }
+
+        $this->flash('success', 'Notification settings updated.');
+        self::redirect('/admin/settings/notifications');
+    }
+
     public function payments(): void
     {
         $this->view('admin/settings/payments', [

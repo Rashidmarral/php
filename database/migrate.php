@@ -127,6 +127,18 @@ $statements[] = "CREATE TABLE IF NOT EXISTS estimate_items (
     total DECIMAL(12,2) NOT NULL DEFAULT 0
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS change_orders (
+    id {$id},
+    company_id INT NOT NULL,
+    project_id INT NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    description TEXT,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at {$ts},
+    approved_at TEXT
+){$engine}";
+
 $statements[] = "CREATE TABLE IF NOT EXISTS invoices (
     id {$id},
     company_id INT NOT NULL,
@@ -318,6 +330,7 @@ function addColumnIfMissing(PDO $pdo, string $driver, string $table, string $col
 addColumnIfMissing($pdo, $driver, 'companies', 'logo_path', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'companies', 'address', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'companies', 'default_markup_percent', "DECIMAL(5,2) NOT NULL DEFAULT 0");
+addColumnIfMissing($pdo, $driver, 'companies', 'default_retention_percent', "DECIMAL(5,2) NOT NULL DEFAULT 0");
 addColumnIfMissing($pdo, $driver, 'companies', 'client_portal_enabled', "INT NOT NULL DEFAULT 1");
 addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_url', 'VARCHAR(500)');
 addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_last_at', 'TEXT');
@@ -331,6 +344,11 @@ addColumnIfMissing($pdo, $driver, 'companies', 'additional_number', 'VARCHAR(10)
 addColumnIfMissing($pdo, $driver, 'companies', 'country_code', "VARCHAR(2) NOT NULL DEFAULT 'SA'");
 addColumnIfMissing($pdo, $driver, 'companies', 'cr_document_path', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'companies', 'vat_document_path', 'VARCHAR(255)');
+
+addColumnIfMissing($pdo, $driver, 'materials', 'material_cost', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+addColumnIfMissing($pdo, $driver, 'materials', 'labor_cost', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
+// Backfill: existing rows had their full price in unit_cost with no labor split — treat it all as material cost.
+$pdo->exec("UPDATE materials SET material_cost = unit_cost WHERE material_cost = 0 AND labor_cost = 0 AND unit_cost <> 0");
 
 addColumnIfMissing($pdo, $driver, 'clients', 'password_hash', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'clients', 'portal_enabled', 'INT NOT NULL DEFAULT 0');
@@ -362,6 +380,26 @@ addColumnIfMissing($pdo, $driver, 'invoices', 'zatca_response', 'TEXT');
 
 addColumnIfMissing($pdo, $driver, 'quick_estimates', 'company_id', 'INT');
 addColumnIfMissing($pdo, $driver, 'quick_estimates', 'client_id', 'INT');
+
+addColumnIfMissing($pdo, $driver, 'estimates', 'share_token', 'VARCHAR(64)');
+addColumnIfMissing($pdo, $driver, 'estimates', 'signed_at', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'estimates', 'signed_by_name', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'estimates', 'signature_data', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'estimates', 'signed_ip', 'VARCHAR(45)');
+addColumnIfMissing($pdo, $driver, 'invoices', 'share_token', 'VARCHAR(64)');
+addColumnIfMissing($pdo, $driver, 'invoices', 'retention_percent', 'DECIMAL(5,2) NOT NULL DEFAULT 0');
+addColumnIfMissing($pdo, $driver, 'invoices', 'retention_amount', 'DECIMAL(12,2) NOT NULL DEFAULT 0');
+addColumnIfMissing($pdo, $driver, 'invoices', 'retention_released', 'INT NOT NULL DEFAULT 0');
+addColumnIfMissing($pdo, $driver, 'invoices', 'retention_released_at', 'TEXT');
+
+// Backfill share tokens for any rows created before this feature existed.
+foreach (['estimates', 'invoices'] as $table) {
+    $missing = $pdo->query("SELECT id FROM {$table} WHERE share_token IS NULL OR share_token = ''")->fetchAll();
+    $upd = $pdo->prepare("UPDATE {$table} SET share_token = ? WHERE id = ?");
+    foreach ($missing as $row) {
+        $upd->execute([bin2hex(random_bytes(20)), $row['id']]);
+    }
+}
 
 addColumnIfMissing($pdo, $driver, 'payments', 'proof_file_path', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_by', 'INT');
@@ -498,6 +536,9 @@ $defaultSettings = [
     'platform_logo_path' => '',
     'platform_cr_document_path' => '',
     'platform_vat_document_path' => '',
+    'whatsapp_enabled' => '0',
+    'whatsapp_phone_number_id' => '',
+    'whatsapp_access_token' => '',
 ];
 $checkSetting = $pdo->prepare('SELECT `key` FROM settings WHERE `key` = ?');
 $insertSetting = $pdo->prepare('INSERT INTO settings (`key`, value) VALUES (?, ?)');

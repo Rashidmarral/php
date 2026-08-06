@@ -7,6 +7,7 @@
   <a href="/app/reports">Performance</a>
   <a href="/app/reports/profit">Profit Tracker</a>
   <a href="/app/reports/tax" class="active">Tax Summary</a>
+  <a href="/app/reports/retention">Retention Ledger</a>
 </div>
 
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">

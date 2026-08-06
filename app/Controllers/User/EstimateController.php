@@ -4,7 +4,9 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Env;
 use App\Core\Lang;
+use App\Core\WhatsApp;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
@@ -71,6 +73,7 @@ class EstimateController extends Controller
             'title' => $title,
             'status' => 'draft',
             'total' => $total,
+            'share_token' => bin2hex(random_bytes(20)),
         ]);
 
         foreach ($items as $item) {
@@ -88,12 +91,27 @@ class EstimateController extends Controller
         $client = $estimate['client_id'] ? Client::find((int) $estimate['client_id']) : null;
         $project = $estimate['project_id'] ? Project::find((int) $estimate['project_id']) : null;
 
+        if (empty($estimate['share_token'])) {
+            Estimate::update($estimate['id'], ['share_token' => bin2hex(random_bytes(20))]);
+            $estimate['share_token'] = Estimate::find($estimate['id'])['share_token'];
+        }
+        $shareUrl = rtrim(Env::get('APP_URL', ''), '/') . '/e/' . $estimate['share_token'];
+
+        $whatsappLink = null;
+        if ($client && !empty($client['phone'])) {
+            $company = Company::find((int) $estimate['company_id']);
+            $message = "Hi {$client['name']}, here's your estimate \"{$estimate['title']}\" from {$company['name']} — please review and sign: {$shareUrl}";
+            $whatsappLink = WhatsApp::shareLink($client['phone'], $message);
+        }
+
         $this->view('user/estimates/show', [
             'pageTitle' => $estimate['title'],
             'estimate' => $estimate,
             'items' => $items,
             'client' => $client,
             'project' => $project,
+            'whatsappLink' => $whatsappLink,
+            'shareUrl' => $shareUrl,
         ], 'layouts/app');
     }
 

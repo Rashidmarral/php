@@ -18,6 +18,7 @@
             <span>
               <strong style="display:block;font-size:13.5px;"><?= View::e($m['name']) ?></strong>
               <span class="help-text" style="font-size:12px;"><?= View::e($m['category'] ?: '—') ?> · <?= View::e($m['unit']) ?><?= $m['supplier_name'] ? ' · ' . View::e($m['supplier_name']) : '' ?></span>
+              <span class="help-text" style="font-size:11.5px;">M <?= View::money((float)($m['material_cost'] ?? 0)) ?> + L <?= View::money((float)($m['labor_cost'] ?? 0)) ?></span>
             </span>
             <span class="badge badge-blue" style="white-space:nowrap;"><?= View::money((float)$m['unit_cost']) ?>/<?= View::e($m['unit']) ?></span>
           </button>

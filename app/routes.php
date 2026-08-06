@@ -6,6 +6,7 @@ use App\Controllers\Site\HomeController;
 use App\Controllers\Auth\AuthController;
 use App\Controllers\User\DashboardController;
 use App\Controllers\User\ProjectController;
+use App\Controllers\User\ChangeOrderController;
 use App\Controllers\User\ClientController;
 use App\Controllers\User\EstimateController;
 use App\Controllers\User\InvoiceController;
@@ -24,6 +25,7 @@ use App\Controllers\Admin\AdminReportController;
 use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
+use App\Controllers\Site\ShareController;
 use App\Controllers\User\QuickEstimateController as UserQuickEstimateController;
 use App\Controllers\User\TakeoffController;
 use App\Controllers\User\SupplierController;
@@ -51,6 +53,13 @@ $router->post('/quick-estimate', [QuickEstimateController::class, 'store']);
 $router->get('/quick-estimate/{id}', [QuickEstimateController::class, 'show']);
 $router->get('/quick-estimate/{id}/pdf', [QuickEstimateController::class, 'pdf']);
 
+// ---------- Public share links (client-facing, token-based, no login) ----------
+$router->get('/e/{token}', [ShareController::class, 'estimate']);
+$router->post('/e/{token}/sign', [ShareController::class, 'signEstimate']);
+$router->get('/e/{token}/pdf', [ShareController::class, 'estimatePdf']);
+$router->get('/i/{token}', [ShareController::class, 'invoice']);
+$router->get('/i/{token}/pdf', [ShareController::class, 'invoicePdf']);
+
 // ---------- Auth ----------
 $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
@@ -69,6 +78,9 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->get('/app/projects/{id}/edit', [ProjectController::class, 'edit']);
     $router->post('/app/projects/{id}', [ProjectController::class, 'update']);
     $router->post('/app/projects/{id}/delete', [ProjectController::class, 'destroy']);
+    $router->post('/app/projects/{id}/change-orders', [ChangeOrderController::class, 'store']);
+    $router->post('/app/change-orders/{id}/status', [ChangeOrderController::class, 'updateStatus']);
+    $router->post('/app/change-orders/{id}/delete', [ChangeOrderController::class, 'destroy']);
 
     $router->get('/app/clients', [ClientController::class, 'index']);
     $router->get('/app/clients/create', [ClientController::class, 'create']);
@@ -98,9 +110,11 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->post('/app/invoices', [InvoiceController::class, 'store']);
     $router->get('/app/invoices/{id}', [InvoiceController::class, 'show']);
     $router->post('/app/invoices/{id}/status', [InvoiceController::class, 'updateStatus']);
+    $router->post('/app/invoices/{id}/release-retention', [InvoiceController::class, 'releaseRetention']);
     $router->post('/app/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
     $router->get('/app/invoices/{id}/xml', [InvoiceController::class, 'xml']);
     $router->post('/app/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
+    $router->post('/app/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
 
     $router->get('/app/schedule', [ScheduleController::class, 'index']);
     $router->post('/app/schedule', [ScheduleController::class, 'store']);
@@ -143,6 +157,7 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->get('/app/reports', [ReportController::class, 'overview']);
     $router->get('/app/reports/profit', [ReportController::class, 'profit']);
     $router->get('/app/reports/tax', [ReportController::class, 'tax']);
+    $router->get('/app/reports/retention', [ReportController::class, 'retention']);
 
     $router->get('/app/integrations', [IntegrationController::class, 'index']);
     $router->post('/app/integrations/google-sheets', [IntegrationController::class, 'updateGoogleSheets']);
@@ -205,6 +220,8 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/settings/payments', [SiteSettingsController::class, 'updatePayments']);
     $router->get('/admin/settings/legal', [SiteSettingsController::class, 'legal']);
     $router->post('/admin/settings/legal', [SiteSettingsController::class, 'updateLegal']);
+    $router->get('/admin/settings/notifications', [SiteSettingsController::class, 'notifications']);
+    $router->post('/admin/settings/notifications', [SiteSettingsController::class, 'updateNotifications']);
 
     $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
 

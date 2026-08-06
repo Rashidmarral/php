@@ -74,6 +74,13 @@
       <p class="help-text">Lets clients you invite log in to view their own projects, estimates, and invoices.</p>
     </div>
   </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Default retention (%)</label>
+      <input type="number" step="0.01" name="default_retention_percent" value="<?= View::e((string)($company['default_retention_percent'] ?? 0)) ?>" <?= $ro ?>>
+      <p class="help-text">Pre-fills the retention held back on new invoices — common on Saudi contracts (typically 5–10%), released after the defects liability period.</p>
+    </div>
+  </div>
 
   <?php if (Auth::isCompanyOwner()): ?>
     <button type="submit" class="btn btn-primary">Save changes</button>

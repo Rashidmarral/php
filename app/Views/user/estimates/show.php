@@ -29,6 +29,9 @@
     <select name="lang"><option value="en">English</option><option value="ar">Arabic</option></select>
   </div>
   <button type="submit" class="btn btn-outline">⬇ Download PDF</button>
+  <?php if ($whatsappLink): ?>
+    <a href="<?= View::e($whatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 Send via WhatsApp</a>
+  <?php endif; ?>
 </form>
 
 <div class="card" style="max-width:820px;">
@@ -41,6 +44,25 @@
     </tbody>
   </table>
   <div class="total-row" style="margin-top:14px;">Total: <?= View::money((float)$estimate['total']) ?></div>
+</div>
+
+<div class="card" style="max-width:820px;margin-top:20px;">
+  <h3>Client signing link</h3>
+  <?php if ($estimate['status'] === 'accepted' && !empty($estimate['signed_by_name'])): ?>
+    <p class="help-text" style="color:var(--success);">✅ Signed by <strong><?= View::e($estimate['signed_by_name']) ?></strong> on <?= View::e($estimate['signed_at']) ?></p>
+    <?php if (!empty($estimate['signature_data'])): ?>
+      <img src="<?= View::e($estimate['signature_data']) ?>" alt="Signature" style="max-width:240px;border:1px solid var(--border);border-radius:8px;margin-top:6px;background:#fff;">
+    <?php endif; ?>
+  <?php elseif ($estimate['status'] === 'declined'): ?>
+    <p class="help-text" style="color:var(--danger);">❌ Client declined this estimate via the signing link.</p>
+  <?php else: ?>
+    <p class="help-text">Send this link to your client so they can review and e-sign the estimate without needing an account.</p>
+  <?php endif; ?>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+    <input type="text" readonly value="<?= View::e($shareUrl) ?>" style="flex:1;min-width:260px;" onclick="this.select();">
+    <button type="button" class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('<?= View::e($shareUrl) ?>'); this.textContent='Copied!';">Copy link</button>
+    <a href="<?= View::e($shareUrl) ?>" target="_blank" class="btn btn-sm btn-outline">Preview →</a>
+  </div>
 </div>
 
 <div class="card" style="max-width:820px;margin-top:20px;">

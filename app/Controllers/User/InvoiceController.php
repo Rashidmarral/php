@@ -4,9 +4,11 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Env;
 use App\Core\Feature;
 use App\Core\Lang;
 use App\Core\Settings;
+use App\Core\WhatsApp;
 use App\Core\Zatca\ApiClient;
 use App\Core\Zatca\Phase1Qr;
 use App\Core\Zatca\UblInvoice;
@@ -41,6 +43,7 @@ class InvoiceController extends Controller
             'SELECT m.*, s.name AS supplier_name FROM materials m LEFT JOIN suppliers s ON s.id = m.supplier_id WHERE m.company_id = ? ORDER BY m.category ASC, m.name ASC',
             [$companyId]
         )->fetchAll();
+        $company = Company::find($companyId);
         $this->view('user/invoices/form', [
             'pageTitle' => 'New Invoice',
             'clients' => $clients,
@@ -48,6 +51,7 @@ class InvoiceController extends Controller
             'nextNumber' => $nextNumber,
             'vatRate' => (float) Settings::get('vat_rate', 15),
             'materials' => $materials,
+            'defaultRetentionPercent' => (float) ($company['default_retention_percent'] ?? 0),
         ], 'layouts/app');
     }
 
@@ -79,6 +83,9 @@ class InvoiceController extends Controller
         $vatAmount = $subtotal * $vatRate / 100;
         $total = $subtotal + $vatAmount;
 
+        $retentionPercent = min(100, max(0, (float) $this->input('retention_percent', 0)));
+        $retentionAmount = $subtotal * $retentionPercent / 100;
+
         $invoiceId = Invoice::create([
             'company_id' => $companyId,
             'project_id' => $this->input('project_id') ?: null,
@@ -89,6 +96,9 @@ class InvoiceController extends Controller
             'vat_rate' => $vatRate,
             'vat_amount' => $vatAmount,
             'due_date' => $this->input('due_date') ?: null,
+            'retention_percent' => $retentionPercent,
+            'retention_amount' => $retentionAmount,
+            'share_token' => bin2hex(random_bytes(20)),
         ]);
 
         foreach ($items as $item) {
@@ -156,6 +166,18 @@ class InvoiceController extends Controller
         $project = $invoice['project_id'] ? Project::find((int) $invoice['project_id']) : null;
         $company = Company::find((int) $invoice['company_id']);
 
+        if (empty($invoice['share_token'])) {
+            Invoice::update($invoice['id'], ['share_token' => bin2hex(random_bytes(20))]);
+            $invoice['share_token'] = Invoice::find($invoice['id'])['share_token'];
+        }
+        $shareUrl = rtrim(Env::get('APP_URL', ''), '/') . '/i/' . $invoice['share_token'];
+
+        $whatsappLink = null;
+        if ($client && !empty($client['phone'])) {
+            $message = "Hi {$client['name']}, your invoice {$invoice['invoice_number']} from {$company['name']} is ready: {$shareUrl}";
+            $whatsappLink = WhatsApp::shareLink($client['phone'], $message);
+        }
+
         $this->view('user/invoices/show', [
             'pageTitle' => $invoice['invoice_number'],
             'invoice' => $invoice,
@@ -164,7 +186,39 @@ class InvoiceController extends Controller
             'project' => $project,
             'company' => $company,
             'zatcaQr' => $this->zatcaQrDataUri($invoice, $company),
+            'whatsappLink' => $whatsappLink,
+            'whatsappApiConfigured' => WhatsApp::isConfigured(),
+            'shareUrl' => $shareUrl,
         ], 'layouts/app');
+    }
+
+    public function sendWhatsApp(string $id): void
+    {
+        $this->verifyCsrf();
+        $invoice = $this->findOwned((int) $id);
+        $client = $invoice['client_id'] ? Client::find((int) $invoice['client_id']) : null;
+        $company = Company::find((int) $invoice['company_id']);
+
+        if (!$client || empty($client['phone'])) {
+            $this->flash('error', 'This invoice has no client phone number on file.');
+            self::redirect('/app/invoices/' . $invoice['id']);
+        }
+        if (empty($invoice['share_token'])) {
+            Invoice::update($invoice['id'], ['share_token' => bin2hex(random_bytes(20))]);
+            $invoice['share_token'] = Invoice::find($invoice['id'])['share_token'];
+        }
+        $shareUrl = rtrim(Env::get('APP_URL', ''), '/') . '/i/' . $invoice['share_token'];
+
+        $message = "Hi {$client['name']}, your invoice {$invoice['invoice_number']} from {$company['name']} for "
+            . number_format((float) $invoice['total'], 2) . " SAR is ready: {$shareUrl}";
+        $result = WhatsApp::sendMessage($client['phone'], $message);
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'WhatsApp notification sent.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        self::redirect('/app/invoices/' . $invoice['id']);
     }
 
     /** Renders the ZATCA Phase 1 QR (SVG data URI) for an invoice, or null if the company has no VAT number set. */
@@ -192,6 +246,17 @@ class InvoiceController extends Controller
         if (in_array($status, ['unpaid', 'paid', 'overdue'], true)) {
             Invoice::update($invoice['id'], ['status' => $status]);
             $this->flash('success', 'Invoice status updated.');
+        }
+        self::redirect('/app/invoices/' . $invoice['id']);
+    }
+
+    public function releaseRetention(string $id): void
+    {
+        $this->verifyCsrf();
+        $invoice = $this->findOwned((int) $id);
+        if ((float) $invoice['retention_amount'] > 0 && !$invoice['retention_released']) {
+            Invoice::update($invoice['id'], ['retention_released' => 1, 'retention_released_at' => date('Y-m-d H:i:s')]);
+            $this->flash('success', 'Retention marked as released.');
         }
         self::redirect('/app/invoices/' . $invoice['id']);
     }

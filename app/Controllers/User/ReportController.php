@@ -119,4 +119,24 @@ class ReportController extends Controller
             'invoiceCount' => count($invoices),
         ], 'layouts/app');
     }
+
+    public function retention(): void
+    {
+        $companyId = Auth::companyId();
+        $rows = Invoice::query(
+            "SELECT i.*, c.name AS client_name FROM invoices i LEFT JOIN clients c ON c.id = i.client_id
+             WHERE i.company_id = ? AND i.retention_amount > 0 ORDER BY i.retention_released ASC, i.created_at DESC",
+            [$companyId]
+        )->fetchAll();
+
+        $outstanding = array_sum(array_map(fn($r) => $r['retention_released'] ? 0 : (float) $r['retention_amount'], $rows));
+        $released = array_sum(array_map(fn($r) => $r['retention_released'] ? (float) $r['retention_amount'] : 0, $rows));
+
+        $this->view('user/reports/retention', [
+            'pageTitle' => 'Retention Ledger',
+            'rows' => $rows,
+            'outstanding' => $outstanding,
+            'released' => $released,
+        ], 'layouts/app');
+    }
 }

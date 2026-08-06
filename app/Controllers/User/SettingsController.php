@@ -40,6 +40,7 @@ class SettingsController extends Controller
             'postal_code' => trim((string) $this->input('postal_code', '')),
             'additional_number' => trim((string) $this->input('additional_number', '')),
             'default_markup_percent' => (float) $this->input('default_markup_percent', 0),
+            'default_retention_percent' => (float) $this->input('default_retention_percent', 0),
             'client_portal_enabled' => $this->input('client_portal_enabled') ? 1 : 0,
         ];
 

@@ -119,7 +119,11 @@ class MaterialController extends Controller
         self::redirect('/app/materials');
     }
 
-    /** Expected header row (any order): sku, name, category, unit, unit_cost */
+    /**
+     * Expected header row (any order): sku, name (or description), category, unit,
+     * material_price, labor_price, supplier. For sheets that don't split cost, a single
+     * unit_cost column is also accepted (treated entirely as material cost, no labor).
+     */
     private function importCsvContent(string $content): array
     {
         $companyId = Auth::companyId();
@@ -130,29 +134,51 @@ class MaterialController extends Controller
 
         $header = array_map(fn($h) => strtolower(trim($h)), str_getcsv(array_shift($lines)));
         $col = array_flip($header);
+        $nameCol = $col['name'] ?? $col['description'] ?? null;
 
         $created = 0;
         $updated = 0;
+        $supplierCache = [];
 
         foreach ($lines as $line) {
             if (trim($line) === '') {
                 continue;
             }
             $row = str_getcsv($line);
-            $name = trim($row[$col['name']] ?? '');
+            $name = $nameCol !== null ? trim($row[$nameCol] ?? '') : '';
             if ($name === '') {
                 continue;
             }
             $sku = trim($row[$col['sku']] ?? '');
             $category = trim($row[$col['category']] ?? '');
             $unit = trim($row[$col['unit']] ?? '') ?: 'unit';
-            $unitCost = (float) ($row[$col['unit_cost']] ?? 0);
+
+            if (isset($col['material_price']) || isset($col['labor_price'])) {
+                $materialCost = (float) ($row[$col['material_price']] ?? 0);
+                $laborCost = (float) ($row[$col['labor_price']] ?? 0);
+            } else {
+                $materialCost = (float) ($row[$col['unit_cost']] ?? 0);
+                $laborCost = 0.0;
+            }
+
+            $supplierId = null;
+            $supplierName = trim($row[$col['supplier']] ?? '');
+            if ($supplierName !== '') {
+                $supplierId = $this->resolveSupplierId($supplierName, $companyId, $supplierCache);
+            }
 
             $existing = $sku !== ''
                 ? Material::query('SELECT * FROM materials WHERE company_id = ? AND sku = ? LIMIT 1', [$companyId, $sku])->fetch()
                 : Material::query('SELECT * FROM materials WHERE company_id = ? AND name = ? LIMIT 1', [$companyId, $name])->fetch();
 
-            $data = ['name' => $name, 'category' => $category, 'unit' => $unit, 'unit_cost' => $unitCost, 'sku' => $sku, 'updated_at' => date('Y-m-d H:i:s')];
+            $data = [
+                'name' => $name, 'category' => $category, 'unit' => $unit,
+                'material_cost' => $materialCost, 'labor_cost' => $laborCost, 'unit_cost' => $materialCost + $laborCost,
+                'sku' => $sku, 'updated_at' => date('Y-m-d H:i:s'),
+            ];
+            if ($supplierId !== null) {
+                $data['supplier_id'] = $supplierId;
+            }
 
             if ($existing) {
                 Material::update($existing['id'], $data);
@@ -166,6 +192,21 @@ class MaterialController extends Controller
         return ['created' => $created, 'updated' => $updated];
     }
 
+    /** Finds a supplier by name (case-insensitive) for this company, creating one if it doesn't exist yet. */
+    private function resolveSupplierId(string $name, int $companyId, array &$cache): int
+    {
+        $key = strtolower($name);
+        if (isset($cache[$key])) {
+            return $cache[$key];
+        }
+        $existing = Supplier::query('SELECT id FROM suppliers WHERE company_id = ? AND LOWER(name) = ?', [$companyId, $key])->fetch();
+        if ($existing) {
+            return $cache[$key] = (int) $existing['id'];
+        }
+        $id = Supplier::create(['company_id' => $companyId, 'name' => $name]);
+        return $cache[$key] = $id;
+    }
+
     private function isAllowedSheetUrl(string $url): bool
     {
         $scheme = parse_url($url, PHP_URL_SCHEME);
@@ -175,6 +216,8 @@ class MaterialController extends Controller
 
     private function fromInput(): array
     {
+        $materialCost = (float) $this->input('material_cost', 0);
+        $laborCost = (float) $this->input('labor_cost', 0);
         return [
             'company_id' => Auth::companyId(),
             'supplier_id' => $this->input('supplier_id') ?: null,
@@ -182,7 +225,9 @@ class MaterialController extends Controller
             'name' => trim((string) $this->input('name')),
             'category' => $this->input('category', ''),
             'unit' => $this->input('unit', 'unit'),
-            'unit_cost' => (float) $this->input('unit_cost', 0),
+            'material_cost' => $materialCost,
+            'labor_cost' => $laborCost,
+            'unit_cost' => $materialCost + $laborCost,
             'notes' => $this->input('notes', ''),
             'updated_at' => date('Y-m-d H:i:s'),
         ];

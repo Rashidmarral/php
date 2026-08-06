@@ -5,6 +5,7 @@ namespace App\Controllers\User;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Feature;
+use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\Invoice;
@@ -78,6 +79,8 @@ class ProjectController extends Controller
         $estimates = Estimate::where('project_id', $project['id']);
         $invoices = Invoice::where('project_id', $project['id']);
         $tasks = Task::query('SELECT * FROM schedule_tasks WHERE project_id = ? ORDER BY start_date ASC', [$project['id']])->fetchAll();
+        $changeOrders = ChangeOrder::where('project_id', $project['id'], 'created_at DESC');
+        $approvedTotal = array_sum(array_map(fn($co) => $co['status'] === 'approved' ? (float) $co['amount'] : 0, $changeOrders));
 
         $this->view('user/projects/show', [
             'pageTitle' => $project['name'],
@@ -86,6 +89,8 @@ class ProjectController extends Controller
             'estimates' => $estimates,
             'invoices' => $invoices,
             'tasks' => $tasks,
+            'changeOrders' => $changeOrders,
+            'approvedChangeOrdersTotal' => $approvedTotal,
         ], 'layouts/app');
     }
 

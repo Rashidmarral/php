@@ -45,15 +45,24 @@
     <button type="button" id="open-library-picker" class="btn btn-sm btn-outline">📚 Pull from library</button>
   </div>
 
-  <div class="form-group" style="margin-top:14px;">
-    <label><input type="checkbox" name="apply_vat" id="apply-vat" value="1" checked style="width:auto;display:inline-block;"> Apply VAT (<?= View::e((string)$vatRate) ?>%)</label>
+  <div class="form-row" style="margin-top:14px;align-items:end;">
+    <div class="form-group" style="margin:0;">
+      <label><input type="checkbox" name="apply_vat" id="apply-vat" value="1" checked style="width:auto;display:inline-block;"> Apply VAT (<?= View::e((string)$vatRate) ?>%)</label>
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label>Retention withheld (%)</label>
+      <input type="number" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= View::e((string)$defaultRetentionPercent) ?>">
+      <p class="help-text">Common on Saudi contracts (5–10%), released after the defects liability period.</p>
+    </div>
   </div>
 
   <div style="text-align:right;font-size:14px;color:var(--muted);">
     Subtotal: <span id="grand-subtotal">0.00</span> SAR<br>
-    VAT: <span id="grand-vat">0.00</span> SAR
+    VAT: <span id="grand-vat">0.00</span> SAR<br>
+    Retention withheld: <span id="grand-retention">0.00</span> SAR
   </div>
   <div class="total-row">Total: <span id="grand-total">0.00</span> SAR</div>
+  <p class="help-text" style="text-align:right;">Net payable now (after retention): <strong><span id="grand-net">0.00</span> SAR</strong></p>
 
   <button type="submit" class="btn btn-primary" style="margin-top:16px;">Create invoice</button>
 </form>
@@ -67,7 +76,10 @@
   const grandTotal = document.getElementById('grand-total');
   const grandSubtotal = document.getElementById('grand-subtotal');
   const grandVat = document.getElementById('grand-vat');
+  const grandRetention = document.getElementById('grand-retention');
+  const grandNet = document.getElementById('grand-net');
   const applyVat = document.getElementById('apply-vat');
+  const retentionPercentInput = document.getElementById('retention-percent');
   const vatRate = <?= json_encode($vatRate) ?>;
 
   function rowTemplate() {
@@ -91,14 +103,20 @@
       subtotal += lineTotal;
     });
     const vat = applyVat.checked ? subtotal * vatRate / 100 : 0;
+    const total = subtotal + vat;
+    const retentionPct = Math.min(100, Math.max(0, parseFloat(retentionPercentInput.value) || 0));
+    const retention = subtotal * retentionPct / 100;
     grandSubtotal.textContent = subtotal.toFixed(2);
     grandVat.textContent = vat.toFixed(2);
-    grandTotal.textContent = (subtotal + vat).toFixed(2);
+    grandRetention.textContent = retention.toFixed(2);
+    grandTotal.textContent = total.toFixed(2);
+    grandNet.textContent = (total - retention).toFixed(2);
   }
 
   addBtn.addEventListener('click', () => { body.appendChild(rowTemplate()); recalc(); });
   body.addEventListener('input', recalc);
   applyVat.addEventListener('change', recalc);
+  retentionPercentInput.addEventListener('input', recalc);
   body.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-row')) {
       if (body.querySelectorAll('tr').length > 1) e.target.closest('tr').remove();

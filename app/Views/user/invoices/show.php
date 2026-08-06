@@ -29,7 +29,14 @@
     <select name="lang"><option value="en">English</option><option value="ar">Arabic</option></select>
   </div>
   <button type="submit" class="btn btn-outline">⬇ Download PDF</button>
+  <?php if ($whatsappLink): ?>
+    <a href="<?= View::e($whatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 Send via WhatsApp</a>
+  <?php endif; ?>
+  <?php if ($whatsappApiConfigured && $client && !empty($client['phone'])): ?>
+    <button type="button" onclick="document.getElementById('whatsapp-auto-form').submit();" class="btn btn-outline">🤖 Auto-notify via WhatsApp</button>
+  <?php endif; ?>
 </form>
+<form id="whatsapp-auto-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-whatsapp" style="display:none;"><?= Csrf::field() ?></form>
 
 <div class="card" style="max-width:820px;">
   <table class="data">
@@ -49,6 +56,25 @@
   <div class="total-row" style="margin-top:6px;">Total: <?= View::money((float)$invoice['total']) ?></div>
   <?php if ($invoice['due_date']): ?><p class="help-text">Due: <?= View::e($invoice['due_date']) ?></p><?php endif; ?>
 </div>
+
+<?php if ((float) $invoice['retention_amount'] > 0): ?>
+  <div class="card" style="max-width:820px;margin-top:20px;">
+    <h3>Retention</h3>
+    <p class="help-text">
+      <?= View::e((string)$invoice['retention_percent']) ?>% withheld from this invoice:
+      <strong><?= View::money((float)$invoice['retention_amount']) ?></strong> ·
+      Net payable: <strong><?= View::money((float)$invoice['total'] - (float)$invoice['retention_amount']) ?></strong>
+    </p>
+    <?php if ($invoice['retention_released']): ?>
+      <p class="help-text" style="color:var(--success);">✅ Released on <?= View::e($invoice['retention_released_at']) ?></p>
+    <?php else: ?>
+      <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/release-retention" onsubmit="return confirm('Mark this retention as released to the client?');">
+        <?= Csrf::field() ?>
+        <button type="submit" class="btn btn-outline">Mark retention released</button>
+      </form>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
 
 <?php if ($zatcaQr): ?>
   <div class="card" style="max-width:820px;margin-top:20px;display:flex;gap:16px;align-items:center;">
@@ -93,6 +119,16 @@
     </div>
   </div>
 <?php endif; ?>
+
+<div class="card" style="max-width:820px;margin-top:20px;">
+  <h3>Client link</h3>
+  <p class="help-text">Send this link to your client so they can view and download the invoice without needing an account.</p>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;">
+    <input type="text" readonly value="<?= View::e($shareUrl) ?>" style="flex:1;min-width:260px;" onclick="this.select();">
+    <button type="button" class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('<?= View::e($shareUrl) ?>'); this.textContent='Copied!';">Copy link</button>
+    <a href="<?= View::e($shareUrl) ?>" target="_blank" class="btn btn-sm btn-outline">Preview →</a>
+  </div>
+</div>
 
 <div class="card" style="max-width:820px;margin-top:20px;">
   <h3>Update status</h3>

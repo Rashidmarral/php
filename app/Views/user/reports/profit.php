@@ -7,6 +7,7 @@
   <a href="/app/reports">Performance</a>
   <a href="/app/reports/profit" class="active">Profit Tracker</a>
   <a href="/app/reports/tax">Tax Summary</a>
+  <a href="/app/reports/retention">Retention Ledger</a>
 </div>
 
 <p class="help-text" style="margin-bottom:16px;">Profit is calculated as payments collected minus project budget — a simplified view based on budget vs. revenue, since detailed expense tracking isn't captured per project yet.</p>

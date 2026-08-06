@@ -7,6 +7,7 @@
   <a href="/admin/settings" class="active">General</a>
   <a href="/admin/settings/payments">Payment Methods</a>
   <a href="/admin/settings/legal">Legal & Branding</a>
+  <a href="/admin/settings/notifications">Notifications</a>
 </div>
 
 <form method="post" action="/admin/settings" class="card" style="max-width:680px;">
