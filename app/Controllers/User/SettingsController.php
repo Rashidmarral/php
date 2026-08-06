@@ -27,11 +27,17 @@ class SettingsController extends Controller
         $companyId = Auth::companyId();
         $data = [
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'phone' => $this->input('phone', ''),
             'city' => $this->input('city', ''),
             'address' => $this->input('address', ''),
             'cr_number' => $this->input('cr_number', ''),
             'vat_number' => $this->input('vat_number', ''),
+            'building_number' => trim((string) $this->input('building_number', '')),
+            'street_name' => trim((string) $this->input('street_name', '')),
+            'district' => trim((string) $this->input('district', '')),
+            'postal_code' => trim((string) $this->input('postal_code', '')),
+            'additional_number' => trim((string) $this->input('additional_number', '')),
             'default_markup_percent' => (float) $this->input('default_markup_percent', 0),
             'client_portal_enabled' => $this->input('client_portal_enabled') ? 1 : 0,
         ];

@@ -322,6 +322,14 @@ addColumnIfMissing($pdo, $driver, 'companies', 'client_portal_enabled', "INT NOT
 addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_url', 'VARCHAR(500)');
 addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_last_at', 'TEXT');
 
+addColumnIfMissing($pdo, $driver, 'companies', 'name_ar', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'building_number', 'VARCHAR(10)');
+addColumnIfMissing($pdo, $driver, 'companies', 'street_name', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'district', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'postal_code', 'VARCHAR(10)');
+addColumnIfMissing($pdo, $driver, 'companies', 'additional_number', 'VARCHAR(10)');
+addColumnIfMissing($pdo, $driver, 'companies', 'country_code', "VARCHAR(2) NOT NULL DEFAULT 'SA'");
+
 addColumnIfMissing($pdo, $driver, 'clients', 'password_hash', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'clients', 'portal_enabled', 'INT NOT NULL DEFAULT 0');
 

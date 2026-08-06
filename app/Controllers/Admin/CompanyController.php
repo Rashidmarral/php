@@ -64,6 +64,36 @@ class CompanyController extends Controller
         self::redirect('/admin/companies/' . $company['id']);
     }
 
+    /** Admin can edit any company's full profile on their behalf (name in both languages, ZATCA address, VAT/CR). */
+    public function updateProfile(string $id): void
+    {
+        $this->verifyCsrf();
+        $company = Company::find((int) $id);
+        if (!$company) {
+            http_response_code(404);
+            die('Company not found.');
+        }
+
+        Company::update($company['id'], [
+            'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
+            'email' => trim((string) $this->input('email')),
+            'phone' => $this->input('phone', ''),
+            'city' => $this->input('city', ''),
+            'address' => $this->input('address', ''),
+            'cr_number' => $this->input('cr_number', ''),
+            'vat_number' => $this->input('vat_number', ''),
+            'building_number' => trim((string) $this->input('building_number', '')),
+            'street_name' => trim((string) $this->input('street_name', '')),
+            'district' => trim((string) $this->input('district', '')),
+            'postal_code' => trim((string) $this->input('postal_code', '')),
+            'additional_number' => trim((string) $this->input('additional_number', '')),
+        ]);
+
+        $this->flash('success', 'Company profile updated.');
+        self::redirect('/admin/companies/' . $company['id']);
+    }
+
     /** Admin override: change a company's plan directly, no payment involved. */
     public function updatePlan(string $id): void
     {

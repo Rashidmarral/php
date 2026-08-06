@@ -26,6 +26,42 @@
   <div class="kpi"><div class="label">Trial ends</div><div class="value" style="font-size:16px;"><?= View::e($company['trial_ends_at'] ?: '—') ?></div></div>
 </div>
 
+<details class="card" style="margin-bottom:24px;max-width:720px;">
+  <summary style="cursor:pointer;font-weight:700;">📝 Edit company profile (on behalf of this company)</summary>
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/profile" style="margin-top:16px;">
+    <?= Csrf::field() ?>
+    <div class="form-row">
+      <div class="form-group"><label>Company name (English)</label><input type="text" name="name" value="<?= View::e($company['name']) ?>"></div>
+      <div class="form-group"><label>Company name (Arabic)</label><input type="text" name="name_ar" dir="rtl" value="<?= View::e($company['name_ar'] ?? '') ?>" placeholder="اسم الشركة"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= View::e($company['email']) ?>"></div>
+      <div class="form-group"><label>Phone</label><input type="tel" name="phone" value="<?= View::e($company['phone']) ?>"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>City</label><input type="text" name="city" value="<?= View::e($company['city']) ?>"></div>
+      <div class="form-group"><label>Address (free text)</label><input type="text" name="address" value="<?= View::e($company['address'] ?? '') ?>"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>CR number</label><input type="text" name="cr_number" value="<?= View::e($company['cr_number']) ?>"></div>
+      <div class="form-group"><label>VAT number</label><input type="text" name="vat_number" value="<?= View::e($company['vat_number']) ?>"></div>
+    </div>
+
+    <h3 style="font-size:13px;margin-top:16px;">ZATCA-compliant address</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Building number</label><input type="text" name="building_number" maxlength="4" value="<?= View::e($company['building_number'] ?? '') ?>" placeholder="1234"></div>
+      <div class="form-group"><label>Street name</label><input type="text" name="street_name" value="<?= View::e($company['street_name'] ?? '') ?>"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>District</label><input type="text" name="district" value="<?= View::e($company['district'] ?? '') ?>"></div>
+      <div class="form-group"><label>Postal code</label><input type="text" name="postal_code" maxlength="5" value="<?= View::e($company['postal_code'] ?? '') ?>" placeholder="12345"></div>
+    </div>
+    <div class="form-group" style="max-width:240px;"><label>Additional number</label><input type="text" name="additional_number" maxlength="4" value="<?= View::e($company['additional_number'] ?? '') ?>" placeholder="6789"></div>
+
+    <button type="submit" class="btn btn-primary" style="margin-top:8px;">Save company profile</button>
+  </form>
+</details>
+
 <div class="card" style="margin-bottom:24px;max-width:520px;">
   <h3>Change plan (admin override)</h3>
   <p class="help-text">Directly assign a plan to this company — no payment record is created, effective immediately.</p>

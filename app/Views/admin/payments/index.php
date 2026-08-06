@@ -21,7 +21,7 @@
         <td><?= View::e($p['reference']) ?></td>
         <td><?= View::e(strtoupper($p['method'])) ?></td>
         <td><?= View::money((float)$p['amount']) ?></td>
-        <td><span class="badge badge-<?= $p['status']==='paid'?'green':($p['status']==='pending'?'yellow':'red') ?>"><?= View::e($p['status']) ?></span></td>
+        <td><span class="badge badge-<?= $p['status']==='paid'?'green':($p['status']==='pending'?'yellow':($p['status']==='refunded'?'blue':'red')) ?>"><?= View::e($p['status']) ?></span></td>
         <td style="display:flex;gap:6px;">
           <?php if ($p['status'] === 'pending'): ?>
             <form method="post" action="/admin/payments/<?= $p['id'] ?>/approve" onsubmit="return confirm('Approve this payment and activate the company plan?');">
@@ -33,6 +33,7 @@
               <button type="submit" class="btn btn-sm btn-light">Reject</button>
             </form>
           <?php endif; ?>
+          <a href="/admin/payments/<?= $p['id'] ?>" class="btn btn-sm btn-outline">Manage</a>
         </td>
       </tr>
     <?php endforeach; ?>

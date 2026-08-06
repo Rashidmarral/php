@@ -19,6 +19,7 @@ use App\Controllers\Admin\CompanyZatcaController;
 use App\Controllers\Admin\PlanController;
 use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\AdminUserController;
+use App\Controllers\Admin\AdminProfileController;
 use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
@@ -167,6 +168,7 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->get('/admin/companies/{id}', [CompanyController::class, 'show']);
     $router->post('/admin/companies/{id}/status', [CompanyController::class, 'updateStatus']);
     $router->post('/admin/companies/{id}/plan', [CompanyController::class, 'updatePlan']);
+    $router->post('/admin/companies/{id}/profile', [CompanyController::class, 'updateProfile']);
 
     $router->get('/admin/companies/{id}/zatca', [CompanyZatcaController::class, 'show']);
     $router->post('/admin/companies/{id}/zatca/environment', [CompanyZatcaController::class, 'updateEnvironment']);
@@ -182,8 +184,14 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/plans/{id}/delete', [PlanController::class, 'destroy']);
 
     $router->get('/admin/payments', [PaymentController::class, 'index']);
+    $router->get('/admin/payments/{id}', [PaymentController::class, 'show']);
+    $router->post('/admin/payments/{id}/update', [PaymentController::class, 'update']);
+    $router->post('/admin/payments/{id}/apply-plan', [PaymentController::class, 'applyPlan']);
     $router->post('/admin/payments/{id}/approve', [PaymentController::class, 'approve']);
     $router->post('/admin/payments/{id}/reject', [PaymentController::class, 'reject']);
+
+    $router->get('/admin/profile', [AdminProfileController::class, 'index']);
+    $router->post('/admin/profile', [AdminProfileController::class, 'update']);
 
     $router->get('/admin/admins', [AdminUserController::class, 'index']);
     $router->post('/admin/admins', [AdminUserController::class, 'store']);

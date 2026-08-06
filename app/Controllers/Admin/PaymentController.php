@@ -26,6 +26,84 @@ class PaymentController extends Controller
         ], 'layouts/admin');
     }
 
+    public function show(string $id): void
+    {
+        $payment = Payment::query(
+            'SELECT pay.*, c.name AS company_name FROM payments pay JOIN companies c ON c.id = pay.company_id WHERE pay.id = ?',
+            [(int) $id]
+        )->fetch();
+        if (!$payment) {
+            http_response_code(404);
+            die('Payment not found.');
+        }
+        $plans = Plan::all('sort_order ASC');
+
+        $this->view('admin/payments/show', [
+            'pageTitle' => 'Transaction #' . $payment['id'],
+            'payment' => $payment,
+            'plans' => $plans,
+        ], 'layouts/admin');
+    }
+
+    /** Corrects a transaction's own details (amount, reference, method, status) without touching the company's plan. */
+    public function update(string $id): void
+    {
+        $this->verifyCsrf();
+        $payment = Payment::find((int) $id);
+        if (!$payment) {
+            http_response_code(404);
+            die('Payment not found.');
+        }
+
+        $status = (string) $this->input('status', $payment['status']);
+        if (!in_array($status, ['paid', 'pending', 'failed', 'refunded'], true)) {
+            $status = $payment['status'];
+        }
+
+        Payment::update($payment['id'], [
+            'amount' => (float) $this->input('amount', $payment['amount']),
+            'currency' => trim((string) $this->input('currency', $payment['currency'])) ?: 'SAR',
+            'method' => trim((string) $this->input('method', $payment['method'])),
+            'reference' => trim((string) $this->input('reference', '')),
+            'status' => $status,
+            'reviewed_by' => Auth::user()['id'],
+            'reviewed_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->flash('success', 'Transaction updated.');
+        self::redirect('/admin/payments/' . $payment['id']);
+    }
+
+    /** Reassigns which plan/cycle this transaction grants, and pushes that plan live on the company now. */
+    public function applyPlan(string $id): void
+    {
+        $this->verifyCsrf();
+        $payment = Payment::find((int) $id);
+        if (!$payment) {
+            http_response_code(404);
+            die('Payment not found.');
+        }
+        $plan = Plan::find((int) $this->input('plan_id'));
+        if (!$plan) {
+            $this->flash('error', 'Invalid plan.');
+            self::redirect('/admin/payments/' . $payment['id']);
+        }
+        $cycle = $this->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
+
+        BillingController::activatePlan((int) $payment['company_id'], $plan, $cycle);
+
+        Payment::update($payment['id'], [
+            'plan_id' => $plan['id'],
+            'billing_cycle' => $cycle,
+            'status' => 'paid',
+            'reviewed_by' => Auth::user()['id'],
+            'reviewed_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        $this->flash('success', "Transaction reassigned to {$plan['name']} ({$cycle}) and applied to the company.");
+        self::redirect('/admin/payments/' . $payment['id']);
+    }
+
     public function approve(string $id): void
     {
         $this->verifyCsrf();

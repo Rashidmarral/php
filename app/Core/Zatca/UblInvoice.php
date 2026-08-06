@@ -58,7 +58,19 @@ class UblInvoice
 
         $supplier = self::cac($xml, 'AccountingSupplierParty');
         $supplierParty = self::cac($supplier, 'Party');
-        self::cbc(self::cac($supplierParty, 'PartyTaxScheme'), 'CompanyID', (string) ($company['vat_number'] ?? ''));
+
+        $supplierPostal = self::cac($supplierParty, 'PostalAddress');
+        self::cbc($supplierPostal, 'StreetName', (string) ($company['street_name'] ?? ''));
+        self::cbc($supplierPostal, 'BuildingNumber', (string) ($company['building_number'] ?? ''));
+        self::cbc($supplierPostal, 'CitySubdivisionName', (string) ($company['district'] ?? ''));
+        self::cbc($supplierPostal, 'CityName', (string) ($company['city'] ?? ''));
+        self::cbc($supplierPostal, 'PostalZone', (string) ($company['postal_code'] ?? ''));
+        self::cbc(self::cac($supplierPostal, 'Country'), 'IdentificationCode', (string) ($company['country_code'] ?? 'SA'));
+
+        $supplierTaxScheme = self::cac($supplierParty, 'PartyTaxScheme');
+        self::cbc($supplierTaxScheme, 'CompanyID', (string) ($company['vat_number'] ?? ''));
+        self::cbc(self::cac($supplierTaxScheme, 'TaxScheme'), 'ID', 'VAT');
+
         self::cbc(self::cac($supplierParty, 'PartyLegalEntity'), 'RegistrationName', (string) ($company['name'] ?? ''));
 
         if ($client) {

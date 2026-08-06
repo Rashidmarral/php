@@ -28,6 +28,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/admin/quick-estimate" class="<?= $isActive('/admin/quick-estimate') ?>">🧮 <?= t('aside.quick_estimate') ?></a>
       <a href="/admin/admins" class="<?= $isActive('/admin/admins') ?>">🛡️ <?= t('aside.admins') ?></a>
       <a href="/admin/settings" class="<?= $isActive('/admin/settings') ?>">⚙️ <?= t('aside.settings') ?></a>
+      <a href="/admin/profile" class="<?= $isActive('/admin/profile') ?>">👤 My Profile</a>
     </nav>
     <div class="foot">
       <a href="/" style="color:#a9c4bd">← <?= t('side.back_site') ?></a>
@@ -35,7 +36,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
   </aside>
   <div class="main">
     <div class="topbar">
-      <div class="who"><?= \App\Core\View::e($user['name'] ?? '') ?> · <span class="badge badge-gray">Super Admin</span></div>
+      <div class="who"><a href="/admin/profile" style="color:inherit;text-decoration:none;"><?= \App\Core\View::e($user['name'] ?? '') ?></a> · <span class="badge badge-gray">Super Admin</span></div>
       <div class="header-actions">
         <a class="lang-switch" href="?lang=<?= $otherLang ?>"><?= $otherLangLabel ?></a>
         <form method="post" action="/logout" style="margin:0">
