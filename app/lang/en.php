@@ -134,6 +134,11 @@ return [
     'side.back_site' => 'Back to website',
 
     'side.takeoffs' => 'Digital Takeoff',
+    'side.suppliers' => 'Suppliers',
+    'side.materials' => 'Materials & Pricing',
+    'side.documents' => 'Documents',
+    'side.reports' => 'Business Reports',
+    'side.integrations' => 'Integrations',
 
     // Sidebar (admin)
     'aside.dashboard' => 'Overview',

@@ -5,16 +5,21 @@ builders, and developers — inspired by [BuildXact](https://www.buildxact.com/)
 scratch in plain PHP for the Saudi market (bilingual Arabic/English, SAR pricing, ZATCA-ready
 invoice numbering).
 
-The platform has three parts, all in this repository:
+The platform has four parts, all in this repository:
 
 1. **Public marketing website** — home (with how-it-works, testimonials, FAQ), features, pricing
    (SAR, monthly/yearly), a public **Quick Estimate** calculator, about, contact. Bilingual
    (English/Arabic) with full right-to-left layout support.
 2. **User panel** (`/app`) — the software each subscribing contractor company uses day to day:
-   dashboard, projects, estimates (with line items), invoices (with line items), a **Digital
-   Takeoff** tool, client CRM, scheduling, team management, billing/subscription, and company
-   settings. Fully multi-tenant: every company only ever sees its own data.
-3. **Admin panel** (`/admin`) — the platform owner's back office: revenue/MRR overview, company
+   dashboard, projects, estimates & invoices (with line items and VAT), a **Digital Takeoff**
+   tool, client CRM, scheduling, team management, **suppliers**, a **materials & pricing
+   library** (with CSV/Google Sheets sync), **documents**, **business reports** (performance,
+   profit tracker, tax summary), **integrations**, billing/subscription, and company settings.
+   Fully multi-tenant: every company only ever sees its own data.
+3. **Client Portal** (`/portal`) — a separate, read-only login for a company's own clients (not
+   staff) to view their projects, estimates, and invoices. Enabled per-client from the Clients
+   page and toggleable platform-wide per company from Settings.
+4. **Admin panel** (`/admin`) — the platform owner's back office: revenue/MRR overview, company
    management (activate/suspend), subscription plan management, Quick Estimate pricing data
    (regions/foundation types/add-ons) and leads, payment ledger, admin user management, and
    platform-wide settings (free trial length, VAT rate, etc).
@@ -133,6 +138,54 @@ to Estimate" turns every saved measurement into a line item on a new draft estim
 This mirrors how BuildXact's own takeoff tool works (measuring directly off an uploaded plan)
 rather than being blueprint-reading computer vision — see the note below.
 
+## Suppliers, materials & pricing library
+
+`/app/suppliers` is a simple CRM for material and subcontractor suppliers. `/app/materials` is a
+reusable pricing catalog (SKU, name, category, unit, unit cost, optional supplier link) that can
+be built up three ways: manually, via **CSV import** (`sku,name,category,unit,unit_cost`
+columns — matches existing rows by SKU or name), or via **Google Sheets sync**
+(`MaterialController::syncFromSheet`) — publish a sheet to the web as CSV (File → Share → Publish
+to web → CSV) and paste the link on the Integrations page. Real OAuth-based Sheets access would
+need a Google Cloud project and credentials this build doesn't have; the published-CSV approach
+needs none and works well for a price list a company edits themselves. As a defensive measure
+against SSRF, sync only accepts `https://docs.google.com` / `https://sheets.googleapis.com` URLs.
+
+## Documents
+
+`/app/documents` is per-company file storage (PDF, images, Office docs, ZIP, up to 15MB),
+optionally linked to a project — contracts, drawings, permits, site photos. Like Takeoff plan
+images, files are served as static assets under `public/uploads/` (see the security note below).
+
+## Business reports
+
+`/app/reports` has three tabs, all computed live from existing data (no separate
+analytics/warehouse):
+- **Performance** — active projects, total budget, revenue collected/outstanding, a 6-month
+  revenue bar chart, and estimate win rate.
+- **Profit Tracker** — per project: budget vs. invoiced vs. paid, and a simplified profit figure
+  (payments collected − budget). This is intentionally simple: there's no per-project expense/cost
+  ledger yet, so "profit" here is revenue against budget, not against tracked actual costs.
+- **Tax Summary** — VAT collected, grouped by month, from invoices created with "Apply VAT"
+  checked.
+
+## Client Portal
+
+A **client** (a contact record on a company's Clients page) is not a `user` and has no access by
+default. A company owner can click "Enable portal" on a client to generate a one-time password
+and turn on `clients.portal_enabled`; the client then logs in separately at `/portal/login`.
+Portal auth (`App\Core\PortalAuth`) is intentionally a parallel, lighter-weight session mechanism
+from staff `Auth` — a client session (`$_SESSION['portal_client_id']`) can never access `/app` or
+`/admin`, and every portal query is scoped to that one client's own `client_id`. The company-wide
+`client_portal_enabled` toggle in Settings acts as a kill switch even if individual clients have
+portal access enabled.
+
+## Integrations
+
+`/app/integrations` is a single status page for everything above that talks to the outside world
+or is currently stubbed: Google Sheets price sync (configure the link here), and status cards for
+Payment Gateway, Email, and ZATCA e-invoicing — all "not configured" placeholders pointing at
+what's needed to turn them on (see "What's intentionally out of scope" below).
+
 ## Data model / multi-tenancy
 
 Every subscriber is a **company**. A company has many **users** (the owner plus invited team
@@ -167,16 +220,22 @@ aware of before going to production:
   up yet — plug in a provider (e.g. an SMTP relay) in `AuthController` and `TeamController`.
   Team-member invites currently show the temporary password directly in the UI as a placeholder
   for "send this by email."
-- **File uploads / documents**: Digital Takeoff supports plan-image uploads; general document
-  attachments on projects/estimates/invoices are not yet implemented.
-- **Password reset flow**: not implemented; an admin can only re-invite via the Team page.
+- **Password reset flow**: not implemented for either staff or portal clients; an owner can only
+  re-invite via the Team page or re-enable a client's portal access to issue a new password.
 - **AI Takeoff**: "Digital Takeoff" is a manual measuring tool (calibrate scale, then click/trace
   on the uploaded plan) — the same interaction model BuildXact's own takeoff feature uses. It
   does not do automatic computer-vision quantity extraction from a blueprint image; wiring that
   up would require a vision-capable AI API and is a natural next step if wanted.
-- **Uploaded files aren't per-tenant access-controlled**: takeoff plan images are served as plain
-  static files under `public/uploads/`. Fine for a demo/foundation; add an authenticated
-  file-serving script (or signed URLs) before treating uploaded plans as sensitive in production.
+- **Uploaded files aren't per-tenant access-controlled**: takeoff plan images, documents, and
+  company logos are served as plain static files under `public/uploads/`. Fine for a
+  demo/foundation; add an authenticated file-serving script (or signed URLs) before treating
+  uploaded files as sensitive in production.
+- **Google Sheets sync** uses a sheet published-to-web as CSV, not the real Google Sheets API —
+  simplest path without OAuth credentials, but it only works with sheets a company is willing to
+  publish (view-only, unlisted-by-URL) rather than keep private with real access-controlled OAuth.
+- **Profit Tracker** is revenue (payments collected) minus project budget, not revenue minus
+  tracked actual costs — there's no per-project expense/cost ledger yet (materials consumed,
+  labor hours, subcontractor invoices). Real job costing would need one.
 
 ## Security notes
 

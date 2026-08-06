@@ -242,11 +242,91 @@ $statements[] = "CREATE TABLE IF NOT EXISTS takeoff_measurements (
     created_at {$ts}
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS suppliers (
+    id {$id},
+    company_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    contact_name VARCHAR(150),
+    email VARCHAR(150),
+    phone VARCHAR(30),
+    address VARCHAR(255),
+    category VARCHAR(100),
+    notes TEXT,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS materials (
+    id {$id},
+    company_id INT NOT NULL,
+    supplier_id INT,
+    sku VARCHAR(60),
+    name VARCHAR(150) NOT NULL,
+    category VARCHAR(100),
+    unit VARCHAR(20) NOT NULL DEFAULT 'unit',
+    unit_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+    notes VARCHAR(255),
+    created_at {$ts},
+    updated_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS documents (
+    id {$id},
+    company_id INT NOT NULL,
+    project_id INT,
+    uploaded_by INT,
+    name VARCHAR(150) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_type VARCHAR(100),
+    file_size INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
 foreach ($statements as $sql) {
     $pdo->exec($sql);
 }
 
 echo "Tables created/verified using driver: {$driver}\n";
+
+// ---- Schema evolution: add columns to tables that may already exist from an earlier install ----
+function columnExists(PDO $pdo, string $driver, string $table, string $column): bool
+{
+    if ($driver === 'sqlite') {
+        $rows = $pdo->query("PRAGMA table_info({$table})")->fetchAll();
+        foreach ($rows as $row) {
+            if (strcasecmp($row['name'], $column) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) AS c FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?'
+    );
+    $stmt->execute([$table, $column]);
+    return (int) $stmt->fetch()['c'] > 0;
+}
+
+function addColumnIfMissing(PDO $pdo, string $driver, string $table, string $column, string $definition): void
+{
+    if (columnExists($pdo, $driver, $table, $column)) {
+        return;
+    }
+    $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+    echo "Added column {$table}.{$column}\n";
+}
+
+addColumnIfMissing($pdo, $driver, 'companies', 'logo_path', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'address', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'default_markup_percent', "DECIMAL(5,2) NOT NULL DEFAULT 0");
+addColumnIfMissing($pdo, $driver, 'companies', 'client_portal_enabled', "INT NOT NULL DEFAULT 1");
+addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_url', 'VARCHAR(500)');
+addColumnIfMissing($pdo, $driver, 'companies', 'price_sync_last_at', 'TEXT');
+
+addColumnIfMissing($pdo, $driver, 'clients', 'password_hash', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'clients', 'portal_enabled', 'INT NOT NULL DEFAULT 0');
+
+addColumnIfMissing($pdo, $driver, 'invoices', 'vat_rate', 'DECIMAL(5,2)');
+addColumnIfMissing($pdo, $driver, 'invoices', 'vat_amount', "DECIMAL(12,2) NOT NULL DEFAULT 0");
 
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [

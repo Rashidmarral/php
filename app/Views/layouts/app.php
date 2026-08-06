@@ -28,8 +28,19 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/app/clients" class="<?= $isActive('/app/clients') ?>">👥 <?= t('side.clients') ?></a>
       <a href="/app/schedule" class="<?= $isActive('/app/schedule') ?>">📅 <?= t('side.schedule') ?></a>
       <a href="/app/takeoffs" class="<?= $isActive('/app/takeoffs') ?>">📐 <?= t('side.takeoffs') ?></a>
+
+      <div class="nav-section">Resources</div>
+      <a href="/app/suppliers" class="<?= $isActive('/app/suppliers') ?>">🚚 <?= t('side.suppliers') ?></a>
+      <a href="/app/materials" class="<?= $isActive('/app/materials') ?>">📦 <?= t('side.materials') ?></a>
+      <a href="/app/documents" class="<?= $isActive('/app/documents') ?>">📁 <?= t('side.documents') ?></a>
+
+      <div class="nav-section">Insights</div>
+      <a href="/app/reports" class="<?= $isActive('/app/reports') ?>">📈 <?= t('side.reports') ?></a>
+
+      <div class="nav-section">Company</div>
       <a href="/app/team" class="<?= $isActive('/app/team') ?>">🧑‍💼 <?= t('side.team') ?></a>
       <a href="/app/billing" class="<?= $isActive('/app/billing') ?>">💰 <?= t('side.billing') ?></a>
+      <a href="/app/integrations" class="<?= $isActive('/app/integrations') ?>">🔌 <?= t('side.integrations') ?></a>
       <a href="/app/settings" class="<?= $isActive('/app/settings') ?>">⚙️ <?= t('side.settings') ?></a>
     </nav>
     <div class="foot">

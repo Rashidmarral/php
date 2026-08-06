@@ -41,6 +41,15 @@
     </tbody>
   </table>
   <button type="button" id="add-row" class="btn btn-sm btn-outline">+ Add line item</button>
+
+  <div class="form-group" style="margin-top:14px;">
+    <label><input type="checkbox" name="apply_vat" id="apply-vat" value="1" checked style="width:auto;display:inline-block;"> Apply VAT (<?= View::e((string)$vatRate) ?>%)</label>
+  </div>
+
+  <div style="text-align:right;font-size:14px;color:var(--muted);">
+    Subtotal: <span id="grand-subtotal">0.00</span> SAR<br>
+    VAT: <span id="grand-vat">0.00</span> SAR
+  </div>
   <div class="total-row">Total: <span id="grand-total">0.00</span> SAR</div>
 
   <button type="submit" class="btn btn-primary" style="margin-top:16px;">Create invoice</button>
@@ -51,6 +60,10 @@
   const body = document.getElementById('items-body');
   const addBtn = document.getElementById('add-row');
   const grandTotal = document.getElementById('grand-total');
+  const grandSubtotal = document.getElementById('grand-subtotal');
+  const grandVat = document.getElementById('grand-vat');
+  const applyVat = document.getElementById('apply-vat');
+  const vatRate = <?= json_encode($vatRate) ?>;
 
   function rowTemplate() {
     const tr = document.createElement('tr');
@@ -64,19 +77,23 @@
   }
 
   function recalc() {
-    let total = 0;
+    let subtotal = 0;
     body.querySelectorAll('tr').forEach(tr => {
       const qty = parseFloat(tr.querySelector('.qty').value) || 0;
       const cost = parseFloat(tr.querySelector('.cost').value) || 0;
       const lineTotal = qty * cost;
       tr.querySelector('.line-total').textContent = lineTotal.toFixed(2);
-      total += lineTotal;
+      subtotal += lineTotal;
     });
-    grandTotal.textContent = total.toFixed(2);
+    const vat = applyVat.checked ? subtotal * vatRate / 100 : 0;
+    grandSubtotal.textContent = subtotal.toFixed(2);
+    grandVat.textContent = vat.toFixed(2);
+    grandTotal.textContent = (subtotal + vat).toFixed(2);
   }
 
   addBtn.addEventListener('click', () => { body.appendChild(rowTemplate()); recalc(); });
   body.addEventListener('input', recalc);
+  applyVat.addEventListener('change', recalc);
   body.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-row')) {
       if (body.querySelectorAll('tr').length > 1) e.target.closest('tr').remove();

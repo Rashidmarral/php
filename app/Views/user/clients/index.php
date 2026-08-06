@@ -13,16 +13,33 @@
   </div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Address</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Portal</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($clients as $c): ?>
       <tr>
         <td><?= View::e($c['name']) ?></td>
         <td><?= View::e($c['email']) ?></td>
         <td><?= View::e($c['phone']) ?></td>
-        <td class="help-text"><?= View::e($c['address']) ?></td>
+        <td>
+          <?php if (!empty($c['portal_enabled'])): ?>
+            <span class="badge badge-green">Enabled</span>
+          <?php else: ?>
+            <span class="badge badge-gray">Disabled</span>
+          <?php endif; ?>
+        </td>
         <td style="display:flex;gap:8px;">
           <a href="/app/clients/<?= $c['id'] ?>/edit" class="btn btn-sm btn-light">Edit</a>
+          <?php if (!empty($c['portal_enabled'])): ?>
+            <form method="post" action="/app/clients/<?= $c['id'] ?>/disable-portal">
+              <?= Csrf::field() ?>
+              <button type="submit" class="btn btn-sm btn-light">Disable portal</button>
+            </form>
+          <?php else: ?>
+            <form method="post" action="/app/clients/<?= $c['id'] ?>/enable-portal">
+              <?= Csrf::field() ?>
+              <button type="submit" class="btn btn-sm btn-outline">Enable portal</button>
+            </form>
+          <?php endif; ?>
           <form method="post" action="/app/clients/<?= $c['id'] ?>/delete" onsubmit="return confirm('Remove this client?');">
             <?= Csrf::field() ?>
             <button type="submit" class="btn btn-sm btn-danger">Delete</button>

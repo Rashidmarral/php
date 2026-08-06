@@ -134,6 +134,11 @@ return [
     'side.back_site' => 'العودة للموقع',
 
     'side.takeoffs' => 'القياس الرقمي',
+    'side.suppliers' => 'الموردون',
+    'side.materials' => 'المواد والتسعير',
+    'side.documents' => 'المستندات',
+    'side.reports' => 'تقارير الأعمال',
+    'side.integrations' => 'التكاملات',
 
     // Sidebar (admin)
     'aside.dashboard' => 'نظرة عامة',

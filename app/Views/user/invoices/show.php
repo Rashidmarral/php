@@ -38,7 +38,13 @@
       <?php endforeach; ?>
     </tbody>
   </table>
-  <div class="total-row" style="margin-top:14px;">Total: <?= View::money((float)$invoice['total']) ?></div>
+  <?php if (!empty($invoice['vat_amount'])): $subtotal = (float)$invoice['total'] - (float)$invoice['vat_amount']; ?>
+    <div style="text-align:right;font-size:14px;color:var(--muted);margin-top:14px;">
+      Subtotal: <?= View::money($subtotal) ?><br>
+      VAT (<?= View::e((string)$invoice['vat_rate']) ?>%): <?= View::money((float)$invoice['vat_amount']) ?>
+    </div>
+  <?php endif; ?>
+  <div class="total-row" style="margin-top:6px;">Total: <?= View::money((float)$invoice['total']) ?></div>
   <?php if ($invoice['due_date']): ?><p class="help-text">Due: <?= View::e($invoice['due_date']) ?></p><?php endif; ?>
 </div>
 

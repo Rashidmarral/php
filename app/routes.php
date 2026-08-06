@@ -22,6 +22,13 @@ use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
 use App\Controllers\User\TakeoffController;
+use App\Controllers\User\SupplierController;
+use App\Controllers\User\MaterialController;
+use App\Controllers\User\DocumentController;
+use App\Controllers\User\ReportController;
+use App\Controllers\User\IntegrationController;
+use App\Controllers\Portal\PortalController;
+use App\Core\PortalAuth;
 
 /** @var Router $router */
 
@@ -65,6 +72,8 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->get('/app/clients/{id}/edit', [ClientController::class, 'edit']);
     $router->post('/app/clients/{id}', [ClientController::class, 'update']);
     $router->post('/app/clients/{id}/delete', [ClientController::class, 'destroy']);
+    $router->post('/app/clients/{id}/enable-portal', [ClientController::class, 'enablePortal']);
+    $router->post('/app/clients/{id}/disable-portal', [ClientController::class, 'disablePortal']);
 
     $router->get('/app/estimates', [EstimateController::class, 'index']);
     $router->get('/app/estimates/create', [EstimateController::class, 'create']);
@@ -94,6 +103,33 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/settings', [SettingsController::class, 'index']);
     $router->post('/app/settings', [SettingsController::class, 'update']);
+
+    $router->get('/app/suppliers', [SupplierController::class, 'index']);
+    $router->get('/app/suppliers/create', [SupplierController::class, 'create']);
+    $router->post('/app/suppliers', [SupplierController::class, 'store']);
+    $router->get('/app/suppliers/{id}/edit', [SupplierController::class, 'edit']);
+    $router->post('/app/suppliers/{id}', [SupplierController::class, 'update']);
+    $router->post('/app/suppliers/{id}/delete', [SupplierController::class, 'destroy']);
+
+    $router->get('/app/materials', [MaterialController::class, 'index']);
+    $router->get('/app/materials/create', [MaterialController::class, 'create']);
+    $router->post('/app/materials', [MaterialController::class, 'store']);
+    $router->post('/app/materials/import', [MaterialController::class, 'importCsv']);
+    $router->post('/app/materials/sync-sheet', [MaterialController::class, 'syncFromSheet']);
+    $router->get('/app/materials/{id}/edit', [MaterialController::class, 'edit']);
+    $router->post('/app/materials/{id}', [MaterialController::class, 'update']);
+    $router->post('/app/materials/{id}/delete', [MaterialController::class, 'destroy']);
+
+    $router->get('/app/documents', [DocumentController::class, 'index']);
+    $router->post('/app/documents', [DocumentController::class, 'store']);
+    $router->post('/app/documents/{id}/delete', [DocumentController::class, 'destroy']);
+
+    $router->get('/app/reports', [ReportController::class, 'overview']);
+    $router->get('/app/reports/profit', [ReportController::class, 'profit']);
+    $router->get('/app/reports/tax', [ReportController::class, 'tax']);
+
+    $router->get('/app/integrations', [IntegrationController::class, 'index']);
+    $router->post('/app/integrations/google-sheets', [IntegrationController::class, 'updateGoogleSheets']);
 
     $router->get('/app/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
     $router->get('/app/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
@@ -152,4 +188,16 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
 
     $router->get('/admin/quick-estimate/leads', [QuickEstimateAdminController::class, 'leads']);
     $router->post('/admin/quick-estimate/leads/{id}/status', [QuickEstimateAdminController::class, 'updateLeadStatus']);
+});
+
+// ---------- Client Portal ----------
+$router->get('/portal/login', [PortalController::class, 'showLogin']);
+$router->post('/portal/login', [PortalController::class, 'login']);
+$router->post('/portal/logout', [PortalController::class, 'logout']);
+
+$router->group([fn() => PortalAuth::requireLogin()], function (Router $router) {
+    $router->get('/portal', [PortalController::class, 'dashboard']);
+    $router->get('/portal/projects/{id}', [PortalController::class, 'project']);
+    $router->get('/portal/estimates/{id}', [PortalController::class, 'estimate']);
+    $router->get('/portal/invoices/{id}', [PortalController::class, 'invoice']);
 });
