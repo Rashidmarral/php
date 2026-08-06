@@ -19,6 +19,7 @@ $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_na
 <title><?= isset($pageTitle) ? \App\Core\View::e($pageTitle) . ' · ' : '' ?>BuildXact Saudi</title>
 <meta name="description" content="Construction management and job costing software for Saudi Arabia's contractors, builders and developers.">
 <link rel="stylesheet" href="/assets/css/app.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 <header class="site-header">
@@ -91,5 +92,6 @@ $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_na
     </div>
   </div>
 </footer>
+<script src="/assets/js/site.js" defer></script>
 </body>
 </html>

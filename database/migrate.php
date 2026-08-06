@@ -420,55 +420,6 @@ addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_at', 'TEXT');
 addColumnIfMissing($pdo, $driver, 'payments', 'plan_id', 'INT');
 addColumnIfMissing($pdo, $driver, 'payments', 'billing_cycle', "VARCHAR(10)");
 
-// ---- Seed default feature flags onto existing plans (idempotent: only fills blanks) ----
-$defaultFlagsByPlan = [
-    'starter' => ['takeoff' => false, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => false, 'client_portal' => false, 'integrations' => false, 'zatca_phase2' => false],
-    'professional' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => false],
-    'enterprise' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true],
-];
-$planRows = $pdo->query('SELECT id, slug, feature_flags FROM plans')->fetchAll();
-$updateFlags = $pdo->prepare('UPDATE plans SET feature_flags = ? WHERE id = ?');
-foreach ($planRows as $row) {
-    if (!empty($row['feature_flags'])) {
-        continue;
-    }
-    $flags = $defaultFlagsByPlan[$row['slug']] ?? $defaultFlagsByPlan['starter'];
-    $updateFlags->execute([json_encode($flags), $row['id']]);
-}
-echo "Plan feature flags seeded.\n";
-
-// ZATCA Phase 2 (Fatoora reporting) moved from Enterprise-only to also included in Professional.
-$pdo->exec("UPDATE plans SET feature_flags = REPLACE(feature_flags, '\"zatca_phase2\":false', '\"zatca_phase2\":true') WHERE slug = 'professional' AND feature_flags LIKE '%\"zatca_phase2\":false%'");
-
-// ---- Call out ZATCA compliance explicitly in plan feature copy (idempotent: skips a plan that already mentions it) ----
-$zatcaFeatureLine = [
-    'starter' => 'ZATCA Phase 1 QR code invoicing',
-    'professional' => 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing',
-    'enterprise' => 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing, fully managed',
-];
-$selectPlanFeatures = $pdo->prepare('SELECT id, features FROM plans WHERE slug = ?');
-$updatePlanFeatures = $pdo->prepare('UPDATE plans SET features = ? WHERE id = ?');
-foreach ($zatcaFeatureLine as $slug => $line) {
-    $selectPlanFeatures->execute([$slug]);
-    $plan = $selectPlanFeatures->fetch();
-    if (!$plan) {
-        continue;
-    }
-    $features = json_decode((string) $plan['features'], true) ?: [];
-    $alreadyMentioned = false;
-    foreach ($features as $f) {
-        if (stripos((string) $f, 'zatca') !== false) {
-            $alreadyMentioned = true;
-            break;
-        }
-    }
-    if (!$alreadyMentioned) {
-        $features[] = $line;
-        $updatePlanFeatures->execute([json_encode($features), $plan['id']]);
-    }
-}
-echo "Plan ZATCA feature copy updated.\n";
-
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [
     [
@@ -540,6 +491,100 @@ foreach ($defaultPlans as $p) {
     ]);
 }
 echo "Default plans seeded.\n";
+
+// ---- Seed default feature flags onto existing plans (idempotent: only fills blanks) ----
+$defaultFlagsByPlan = [
+    'starter' => ['takeoff' => false, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => false, 'client_portal' => false, 'integrations' => false, 'zatca_phase2' => false],
+    'professional' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => false],
+    'enterprise' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true],
+];
+$planRows = $pdo->query('SELECT id, slug, feature_flags FROM plans')->fetchAll();
+$updateFlags = $pdo->prepare('UPDATE plans SET feature_flags = ? WHERE id = ?');
+foreach ($planRows as $row) {
+    if (!empty($row['feature_flags'])) {
+        continue;
+    }
+    $flags = $defaultFlagsByPlan[$row['slug']] ?? $defaultFlagsByPlan['starter'];
+    $updateFlags->execute([json_encode($flags), $row['id']]);
+}
+echo "Plan feature flags seeded.\n";
+
+// ZATCA Phase 2 (Fatoora reporting) moved from Enterprise-only to also included in Professional.
+$pdo->exec("UPDATE plans SET feature_flags = REPLACE(feature_flags, '\"zatca_phase2\":false', '\"zatca_phase2\":true') WHERE slug = 'professional' AND feature_flags LIKE '%\"zatca_phase2\":false%'");
+
+// ---- Call out ZATCA compliance explicitly in plan feature copy (idempotent: skips a plan that already mentions it) ----
+$zatcaFeatureLine = [
+    'starter' => 'ZATCA Phase 1 QR code invoicing',
+    'professional' => 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing',
+    'enterprise' => 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing, fully managed',
+];
+$selectPlanFeatures = $pdo->prepare('SELECT id, features FROM plans WHERE slug = ?');
+$updatePlanFeatures = $pdo->prepare('UPDATE plans SET features = ? WHERE id = ?');
+foreach ($zatcaFeatureLine as $slug => $line) {
+    $selectPlanFeatures->execute([$slug]);
+    $plan = $selectPlanFeatures->fetch();
+    if (!$plan) {
+        continue;
+    }
+    $features = json_decode((string) $plan['features'], true) ?: [];
+    $alreadyMentioned = false;
+    foreach ($features as $f) {
+        if (stripos((string) $f, 'zatca') !== false) {
+            $alreadyMentioned = true;
+            break;
+        }
+    }
+    if (!$alreadyMentioned) {
+        $features[] = $line;
+        $updatePlanFeatures->execute([json_encode($features), $plan['id']]);
+    }
+}
+echo "Plan ZATCA feature copy updated.\n";
+
+// ---- Call out newer platform capabilities in plan feature copy (idempotent: skips a plan that already mentions a given line) ----
+$newFeatureLinesByPlan = [
+    'starter' => [
+        'WhatsApp sharing for estimates & invoices',
+        'Client e-signature on estimates',
+        'Change orders & retention tracking',
+        'Site photo diary per project',
+        'Saudi tax invoice PDF layout',
+    ],
+    'professional' => [
+        'Everything in Starter',
+    ],
+    'enterprise' => [
+        'Everything in Professional',
+    ],
+];
+$selectPlanFeatures2 = $pdo->prepare('SELECT id, features FROM plans WHERE slug = ?');
+$updatePlanFeatures2 = $pdo->prepare('UPDATE plans SET features = ? WHERE id = ?');
+foreach ($newFeatureLinesByPlan as $slug => $lines) {
+    $selectPlanFeatures2->execute([$slug]);
+    $plan = $selectPlanFeatures2->fetch();
+    if (!$plan) {
+        continue;
+    }
+    $features = json_decode((string) $plan['features'], true) ?: [];
+    $changed = false;
+    foreach ($lines as $line) {
+        $alreadyMentioned = false;
+        foreach ($features as $f) {
+            if (stripos((string) $f, $line) !== false) {
+                $alreadyMentioned = true;
+                break;
+            }
+        }
+        if (!$alreadyMentioned) {
+            $features[] = $line;
+            $changed = true;
+        }
+    }
+    if ($changed) {
+        $updatePlanFeatures2->execute([json_encode($features), $plan['id']]);
+    }
+}
+echo "Plan feature copy updated with newer platform capabilities.\n";
 
 // ---- Seed super admin account ----
 $checkUser = $pdo->prepare('SELECT id FROM users WHERE email = ?');

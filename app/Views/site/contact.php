@@ -11,20 +11,20 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container">
-    <div class="grid grid-3" style="max-width:920px;margin:0 auto 40px;">
-      <div class="card feature-card">
+    <div class="grid grid-3 reveal-stagger" style="max-width:920px;margin:0 auto 40px;">
+      <div class="card feature-card reveal">
         <div class="icon">📧</div>
         <h3><?= t('contact.email.label') ?></h3>
         <p><?= t('contact.email.desc') ?></p>
         <p style="margin-top:8px;"><bdi><a href="mailto:hello@buildxact-saudi.com">hello@buildxact-saudi.com</a></bdi></p>
       </div>
-      <div class="card feature-card">
+      <div class="card feature-card reveal">
         <div class="icon">📱</div>
         <h3><?= t('contact.phone.label') ?></h3>
         <p><?= t('contact.phone.desc') ?></p>
         <p style="margin-top:8px;"><bdi>+966 11 000 0000</bdi></p>
       </div>
-      <div class="card feature-card">
+      <div class="card feature-card reveal">
         <div class="icon">📍</div>
         <h3><?= t('contact.office.label') ?></h3>
         <p><?= t('contact.office.desc') ?></p>
@@ -38,7 +38,7 @@
             <div class="alert alert-<?= $type === 'error' ? 'error' : 'success' ?>"><?= View::e($m) ?></div>
           <?php endforeach; endforeach; unset($_SESSION['flash']); endif; ?>
 
-        <form method="post" action="/contact" class="card">
+        <form method="post" action="/contact" class="card reveal-section reveal">
           <h3 style="font-size:14px;margin-bottom:4px;"><?= t('contact.form.title') ?></h3>
           <?= Csrf::field() ?>
           <div class="form-row">
@@ -55,7 +55,7 @@
       </div>
 
       <div>
-        <div class="card">
+        <div class="card reveal-section reveal">
           <div class="eyebrow"><?= t('contact.faq.eyebrow') ?></div>
           <h3 style="margin-top:4px;"><?= t('contact.faq.title') ?></h3>
           <div class="faq-list" style="margin-top:8px;">
@@ -67,6 +67,21 @@
             <?php endforeach; ?>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="reveal-section reveal" style="max-width:920px;margin:32px auto 0;">
+      <div class="section-head" style="text-align:start;margin-bottom:16px;">
+        <div class="eyebrow"><?= t('contact.map.eyebrow') ?></div>
+        <h3 style="margin-top:4px;"><?= t('contact.map.title') ?></h3>
+      </div>
+      <div class="map-embed">
+        <iframe
+          src="https://maps.google.com/maps?q=Riyadh%2C%20Saudi%20Arabia&t=&z=11&ie=UTF8&iwloc=&output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="BuildXact Saudi office location"
+        ></iframe>
       </div>
     </div>
   </div>

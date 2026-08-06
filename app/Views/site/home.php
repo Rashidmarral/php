@@ -32,13 +32,13 @@
       <h2><?= t('features.title') ?></h2>
       <p style="color:var(--muted)"><?= t('features.subtitle') ?></p>
     </div>
-    <div class="grid grid-3">
-      <div class="card feature-card"><div class="icon">🧮</div><h3><?= t('features.estimating.title') ?></h3><p><?= t('features.estimating.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">📈</div><h3><?= t('features.jobcosting.title') ?></h3><p><?= t('features.jobcosting.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">📅</div><h3><?= t('features.scheduling.title') ?></h3><p><?= t('features.scheduling.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">💳</div><h3><?= t('features.invoicing.title') ?></h3><p><?= t('features.invoicing.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">👥</div><h3><?= t('features.clients.title') ?></h3><p><?= t('features.clients.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🤝</div><h3><?= t('features.team.title') ?></h3><p><?= t('features.team.desc') ?></p></div>
+    <div class="grid grid-3 reveal-stagger">
+      <div class="card feature-card reveal"><div class="icon">🧮</div><h3><?= t('features.estimating.title') ?></h3><p><?= t('features.estimating.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📈</div><h3><?= t('features.jobcosting.title') ?></h3><p><?= t('features.jobcosting.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📅</div><h3><?= t('features.scheduling.title') ?></h3><p><?= t('features.scheduling.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">💳</div><h3><?= t('features.invoicing.title') ?></h3><p><?= t('features.invoicing.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">👥</div><h3><?= t('features.clients.title') ?></h3><p><?= t('features.clients.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🤝</div><h3><?= t('features.team.title') ?></h3><p><?= t('features.team.desc') ?></p></div>
     </div>
   </div>
 </section>
@@ -50,19 +50,37 @@
       <h2><?= t('platform.title') ?></h2>
       <p style="color:var(--muted)"><?= t('platform.subtitle') ?></p>
     </div>
-    <div class="grid grid-4">
-      <div class="card feature-card"><div class="icon">⚡</div><h3><?= t('platform.quick_estimate.title') ?></h3><p><?= t('platform.quick_estimate.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">📐</div><h3><?= t('platform.takeoff.title') ?></h3><p><?= t('platform.takeoff.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🚚</div><h3><?= t('platform.suppliers.title') ?></h3><p><?= t('platform.suppliers.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">📁</div><h3><?= t('platform.documents.title') ?></h3><p><?= t('platform.documents.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">📈</div><h3><?= t('platform.reports.title') ?></h3><p><?= t('platform.reports.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🌐</div><h3><?= t('platform.portal.title') ?></h3><p><?= t('platform.portal.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🧾</div><h3><?= t('platform.zatca.title') ?></h3><p><?= t('platform.zatca.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">📄</div><h3><?= t('platform.pdf.title') ?></h3><p><?= t('platform.pdf.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">💳</div><h3><?= t('platform.payments.title') ?></h3><p><?= t('platform.payments.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🔐</div><h3><?= t('platform.plans.title') ?></h3><p><?= t('platform.plans.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🔌</div><h3><?= t('platform.integrations.title') ?></h3><p><?= t('platform.integrations.desc') ?></p></div>
-      <div class="card feature-card"><div class="icon">🛡️</div><h3><?= t('platform.admin.title') ?></h3><p><?= t('platform.admin.desc') ?></p></div>
+    <div class="grid grid-4 reveal-stagger">
+      <div class="card feature-card reveal"><div class="icon">⚡</div><h3><?= t('platform.quick_estimate.title') ?></h3><p><?= t('platform.quick_estimate.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📐</div><h3><?= t('platform.takeoff.title') ?></h3><p><?= t('platform.takeoff.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🚚</div><h3><?= t('platform.suppliers.title') ?></h3><p><?= t('platform.suppliers.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📁</div><h3><?= t('platform.documents.title') ?></h3><p><?= t('platform.documents.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📈</div><h3><?= t('platform.reports.title') ?></h3><p><?= t('platform.reports.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🌐</div><h3><?= t('platform.portal.title') ?></h3><p><?= t('platform.portal.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🧾</div><h3><?= t('platform.zatca.title') ?></h3><p><?= t('platform.zatca.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📄</div><h3><?= t('platform.pdf.title') ?></h3><p><?= t('platform.pdf.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">💳</div><h3><?= t('platform.payments.title') ?></h3><p><?= t('platform.payments.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🔐</div><h3><?= t('platform.plans.title') ?></h3><p><?= t('platform.plans.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🔌</div><h3><?= t('platform.integrations.title') ?></h3><p><?= t('platform.integrations.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🛡️</div><h3><?= t('platform.admin.title') ?></h3><p><?= t('platform.admin.desc') ?></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section reveal-section">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow"><?= t('platform2.eyebrow') ?></div>
+      <h2><?= t('platform2.title') ?></h2>
+      <p style="color:var(--muted)"><?= t('platform2.subtitle') ?></p>
+    </div>
+    <div class="grid grid-3">
+      <div class="card feature-card reveal"><div class="icon">💬</div><h3><?= t('platform2.whatsapp.title') ?></h3><p><?= t('platform2.whatsapp.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">✍️</div><h3><?= t('platform2.esign.title') ?></h3><p><?= t('platform2.esign.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📝</div><h3><?= t('platform2.changeorders.title') ?></h3><p><?= t('platform2.changeorders.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">📸</div><h3><?= t('platform2.photodiary.title') ?></h3><p><?= t('platform2.photodiary.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🏛️</div><h3><?= t('platform2.compliance.title') ?></h3><p><?= t('platform2.compliance.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🧾</div><h3><?= t('platform2.saudi_invoice.title') ?></h3><p><?= t('platform2.saudi_invoice.desc') ?></p></div>
     </div>
   </div>
 </section>
@@ -73,10 +91,10 @@
       <div class="eyebrow"><?= t('how.eyebrow') ?></div>
       <h2><?= t('how.title') ?></h2>
     </div>
-    <div class="how-steps">
-      <div class="how-step"><div class="num">1</div><h3><?= t('how.step1.title') ?></h3><p><?= t('how.step1.desc') ?></p></div>
-      <div class="how-step"><div class="num">2</div><h3><?= t('how.step2.title') ?></h3><p><?= t('how.step2.desc') ?></p></div>
-      <div class="how-step"><div class="num">3</div><h3><?= t('how.step3.title') ?></h3><p><?= t('how.step3.desc') ?></p></div>
+    <div class="how-steps reveal-stagger">
+      <div class="how-step reveal"><div class="num">1</div><h3><?= t('how.step1.title') ?></h3><p><?= t('how.step1.desc') ?></p></div>
+      <div class="how-step reveal"><div class="num">2</div><h3><?= t('how.step2.title') ?></h3><p><?= t('how.step2.desc') ?></p></div>
+      <div class="how-step reveal"><div class="num">3</div><h3><?= t('how.step3.title') ?></h3><p><?= t('how.step3.desc') ?></p></div>
     </div>
   </div>
 </section>
@@ -87,18 +105,18 @@
       <div class="eyebrow"><?= t('testi.eyebrow') ?></div>
       <h2><?= t('testi.title') ?></h2>
     </div>
-    <div class="grid grid-3">
-      <div class="testi-card">
+    <div class="grid grid-3 reveal-stagger">
+      <div class="testi-card reveal">
         <div class="stars">★★★★★</div>
         <p class="quote">"<?= t('testi1.quote') ?>"</p>
         <div class="author"><div class="avatar">AQ</div><div><div class="name"><?= t('testi1.name') ?></div><div class="role"><?= t('testi1.role') ?></div></div></div>
       </div>
-      <div class="testi-card">
+      <div class="testi-card reveal">
         <div class="stars">★★★★★</div>
         <p class="quote">"<?= t('testi2.quote') ?>"</p>
         <div class="author"><div class="avatar">FZ</div><div><div class="name"><?= t('testi2.name') ?></div><div class="role"><?= t('testi2.role') ?></div></div></div>
       </div>
-      <div class="testi-card">
+      <div class="testi-card reveal">
         <div class="stars">★★★★★</div>
         <p class="quote">"<?= t('testi3.quote') ?>"</p>
         <div class="author"><div class="avatar">MD</div><div><div class="name"><?= t('testi3.name') ?></div><div class="role"><?= t('testi3.role') ?></div></div></div>
@@ -113,7 +131,7 @@
       <div class="eyebrow"><?= t('faq.eyebrow') ?></div>
       <h2><?= t('faq.title') ?></h2>
     </div>
-    <div class="faq-list">
+    <div class="faq-list reveal-section reveal">
       <?php foreach ([1,2,3,4,5] as $i): ?>
         <details class="faq-item">
           <summary><?= t("faq{$i}.q") ?></summary>
@@ -125,7 +143,7 @@
 </section>
 
 <section class="section" style="border-top:1px solid var(--border);">
-  <div class="container" style="text-align:center;">
+  <div class="container reveal-section reveal" style="text-align:center;">
     <h2><?= t('cta.title') ?></h2>
     <p style="color:var(--muted)"><?= t('cta.subtitle') ?></p>
     <a href="/register" class="btn btn-primary" style="margin-top:10px;"><?= t('cta.button') ?></a>
