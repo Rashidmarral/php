@@ -24,6 +24,53 @@ The platform has four parts, all in this repository:
    (regions/foundation types/add-ons) and leads, payment ledger, admin user management, and
    platform-wide settings (free trial length, VAT rate, etc).
 
+## Updating to a new code drop
+
+Whenever you get a fresh zip/export of this project (not a `git pull`), do this in order in your
+project folder in VS Code:
+
+1. **Copy the new files into your existing project folder**, overwriting files with the same
+   path (don't delete-and-replace the whole folder). The zip never contains your `.env` file,
+   `vendor/`, `storage/database.sqlite`, or `public/uploads/` — those are yours and are always
+   left untouched by an update.
+
+2. **Install PHP packages** — only strictly required if `composer.json` changed, but it's always
+   safe to run (it's close to instant if nothing changed):
+   ```bash
+   composer install
+   ```
+
+3. **Run the migration script — do this after every update, no exceptions:**
+   ```bash
+   php database/migrate.php
+   ```
+   This is safe to run any number of times. It only ever adds tables/columns that don't exist yet
+   (`CREATE TABLE IF NOT EXISTS` + an `addColumnIfMissing` helper for new columns) — it never
+   drops a table, deletes a column, or touches existing rows. If a code update added a new
+   database column (which most feature updates do), this is the step that creates it; skipping it
+   is the #1 cause of "Column not found" errors after copying in new code.
+   Add `--seed-demo` only the very first time you ever set up the project, if you want the demo
+   company and sample data seeded — never add it again after that, and never use it on a real
+   production database.
+
+4. **Restart your PHP server** (`php -S localhost:8000 -t public public/router.php`, or restart
+   Apache/XAMPP) so any changed code is picked up — PHP has no hot-reload.
+
+**About `APP_KEY`:** it is not currently used anywhere in the app (no encryption, sessions, or
+tokens depend on it) — it's a placeholder in `.env.example` reserved for future use. You do not
+need to set it, rotate it, or touch it between updates; whatever value is already in your `.env`
+is fine to leave as-is.
+
+**You never need to:** re-run `composer install` if `composer.json` didn't change, delete your
+database, recreate your admin/company accounts, or reconfigure ZATCA/Moyasar/site settings after
+an update — all of that lives in your database, which step 3 only ever adds to, never resets.
+
+**If you hit a MySQL/MariaDB error after an update** (e.g. a SQL syntax error mentioning a column
+name): it usually means step 3 was skipped, or the column name collides with a MySQL reserved
+word — MySQL is stricter about this than SQLite, so an error that never showed up in local SQLite
+testing can still surface on a real MySQL server. Confirm you're on the latest migrate.php and
+that it ran successfully with no errors in the terminal.
+
 ## Tech stack
 
 Plain PHP 8.1+ with a small hand-rolled MVC core (router, PDO models, session auth, PHP-template
