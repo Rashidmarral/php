@@ -6,6 +6,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\ComplianceDocument;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Plan;
@@ -24,6 +25,7 @@ class DashboardController extends Controller
             $trialDaysLeft = (int) ceil((strtotime($company['trial_ends_at']) - strtotime(date('Y-m-d'))) / 86400);
         }
         $currentPlan = $company && $company['plan_id'] ? Plan::find((int) $company['plan_id']) : null;
+        $expiringDocs = ComplianceDocument::expiringWithin($companyId, 30);
 
         $activeProjects = Project::count('company_id = ? AND status != ?', [$companyId, 'completed']);
         $totalBudget = Project::sum('budget', 'company_id = ?', [$companyId]);
@@ -52,6 +54,7 @@ class DashboardController extends Controller
             'clientCount' => Client::count('company_id = ?', [$companyId]),
             'trialDaysLeft' => $trialDaysLeft,
             'currentPlan' => $currentPlan,
+            'expiringDocs' => $expiringDocs,
         ], 'layouts/app');
     }
 }

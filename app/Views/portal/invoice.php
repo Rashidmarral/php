@@ -1,4 +1,4 @@
-<?php use App\Core\View; ?>
+<?php use App\Core\View; use App\Core\Moyasar; ?>
 <div class="page-head">
   <h1><?= View::e($invoice['invoice_number']) ?></h1>
   <a href="/portal" class="btn btn-light">← Back</a>
@@ -16,4 +16,7 @@
   </table>
   <div class="total-row" style="margin-top:14px;">Total: <?= View::money((float)$invoice['total']) ?></div>
   <?php if ($invoice['due_date']): ?><p class="help-text">Due: <?= View::e($invoice['due_date']) ?></p><?php endif; ?>
+  <?php if ($invoice['status'] !== 'paid' && !empty($invoice['share_token']) && Moyasar::isConfiguredForCompany($company)): ?>
+    <a href="/i/<?= View::e($invoice['share_token']) ?>/pay" class="btn btn-primary" style="margin-top:16px;">💳 Pay now</a>
+  <?php endif; ?>
 </div>

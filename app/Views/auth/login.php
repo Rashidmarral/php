@@ -21,7 +21,8 @@
       </div>
       <button type="submit" class="btn btn-primary btn-block"><?= t('auth.login_btn') ?></button>
     </form>
-    <p style="margin-top:16px;font-size:14px;"><?= t('auth.no_account') ?> <a href="/register"><?= t('auth.register_link') ?></a></p>
+    <p style="margin-top:14px;font-size:13.5px;"><a href="/forgot-password"><?= t('auth.forgot_password') ?></a></p>
+    <p style="margin-top:2px;font-size:14px;"><?= t('auth.no_account') ?> <a href="/register"><?= t('auth.register_link') ?></a></p>
     <p class="help-text" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;"><?= t('auth.demo_hint') ?></p>
   </div>
 </div>

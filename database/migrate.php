@@ -420,6 +420,41 @@ $statements[] = "CREATE TABLE IF NOT EXISTS estimate_template_items (
     sort_order INT NOT NULL DEFAULT 0
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS invoice_payments (
+    id {$id},
+    invoice_id INT NOT NULL,
+    company_id INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    currency VARCHAR(3) NOT NULL DEFAULT 'SAR',
+    method VARCHAR(30) NOT NULL DEFAULT 'moyasar',
+    reference VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'paid',
+    payer_name VARCHAR(150),
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS password_resets (
+    id {$id},
+    email VARCHAR(150) NOT NULL,
+    token VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS compliance_documents (
+    id {$id},
+    company_id INT NOT NULL,
+    doc_type VARCHAR(30) NOT NULL DEFAULT 'other',
+    name VARCHAR(150) NOT NULL,
+    document_number VARCHAR(100),
+    expiry_date TEXT,
+    file_path VARCHAR(255),
+    notes VARCHAR(255),
+    reminder_sent_at TEXT,
+    created_at {$ts}
+){$engine}";
+
 foreach ($statements as $sql) {
     $pdo->exec($sql);
 }
@@ -546,6 +581,14 @@ addColumnIfMissing($pdo, $driver, 'estimate_items', 'uom', "VARCHAR(20) NOT NULL
 addColumnIfMissing($pdo, $driver, 'estimate_items', 'section_title', 'VARCHAR(150)');
 
 addColumnIfMissing($pdo, $driver, 'estimate_templates', 'is_default_choice', 'INT NOT NULL DEFAULT 0');
+
+addColumnIfMissing($pdo, $driver, 'companies', 'moyasar_publishable_key', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'moyasar_secret_key', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'companies', 'moyasar_enabled', 'INT NOT NULL DEFAULT 0');
+addColumnIfMissing($pdo, $driver, 'companies', 'trial_reminder_sent_at', 'TEXT');
+
+addColumnIfMissing($pdo, $driver, 'subscriptions', 'moyasar_card_token', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'subscriptions', 'retry_count', 'INT NOT NULL DEFAULT 0');
 
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [

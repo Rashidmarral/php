@@ -1,4 +1,4 @@
-<?php use App\Core\View; ?>
+<?php use App\Core\View; use App\Core\Moyasar; ?>
 <section class="section" style="padding-top:48px;">
   <div class="container" style="max-width:760px;">
     <div class="card" style="padding:32px;">
@@ -28,7 +28,12 @@
       <div class="total-row" style="margin-top:6px;">Total: <?= View::money((float)$invoice['total']) ?></div>
       <?php if ($invoice['due_date']): ?><p class="help-text">Due: <?= View::e($invoice['due_date']) ?></p><?php endif; ?>
 
-      <a href="/i/<?= View::e($invoice['share_token']) ?>/pdf" target="_blank" class="btn btn-outline" style="margin-top:16px;">⬇ Download PDF</a>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <a href="/i/<?= View::e($invoice['share_token']) ?>/pdf" target="_blank" class="btn btn-outline">⬇ Download PDF</a>
+        <?php if ($invoice['status'] !== 'paid' && Moyasar::isConfiguredForCompany($company)): ?>
+          <a href="/i/<?= View::e($invoice['share_token']) ?>/pay" class="btn btn-primary">💳 Pay now</a>
+        <?php endif; ?>
+      </div>
     </div>
 
     <?php if ($zatcaQr): ?>

@@ -22,7 +22,28 @@ class IntegrationController extends Controller
             'pageTitle' => 'Integrations',
             'company' => $company,
             'moyasarConfigured' => Moyasar::isConfigured(),
+            'clientMoyasarConfigured' => Moyasar::isConfiguredForCompany($company),
         ], 'layouts/app');
+    }
+
+    public function updateClientPayments(): void
+    {
+        $this->verifyCsrf();
+        Auth::requireAbility('manage_company_settings');
+
+        $companyId = Auth::companyId();
+        $data = [
+            'moyasar_enabled' => $this->input('moyasar_enabled') ? 1 : 0,
+            'moyasar_publishable_key' => trim((string) $this->input('moyasar_publishable_key', '')),
+        ];
+        $secret = trim((string) $this->input('moyasar_secret_key', ''));
+        if ($secret !== '') {
+            $data['moyasar_secret_key'] = $secret;
+        }
+
+        Company::update($companyId, $data);
+        $this->flash('success', 'Client payment settings updated.');
+        self::redirect('/app/integrations');
     }
 
     public function updateGoogleSheets(): void

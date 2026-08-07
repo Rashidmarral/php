@@ -146,6 +146,7 @@ class Auth
             Controller::redirect('/admin');
         }
         self::blockIfTrialExpired();
+        self::blockIfPastDue();
     }
 
     /**
@@ -157,11 +158,7 @@ class Auth
     private static function blockIfTrialExpired(): void
     {
         $companyId = self::companyId();
-        if (!$companyId) {
-            return;
-        }
-        $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
-        if (str_starts_with($path, '/app/billing') || $path === '/logout') {
+        if (!$companyId || self::onExemptPath()) {
             return;
         }
         $company = \App\Models\Company::find($companyId);
@@ -173,5 +170,30 @@ class Auth
         }
         $_SESSION['flash']['error'][] = 'Your trial has ended. Choose a plan to continue using BuildXact Saudi.';
         Controller::redirect('/app/billing');
+    }
+
+    /**
+     * A company whose automatic renewal has failed repeatedly (see cron/daily_tasks.php) is
+     * marked 'past_due' and, like an expired trial, redirected to Billing until they update
+     * their payment method or pay another way.
+     */
+    private static function blockIfPastDue(): void
+    {
+        $companyId = self::companyId();
+        if (!$companyId || self::onExemptPath()) {
+            return;
+        }
+        $company = \App\Models\Company::find($companyId);
+        if (!$company || $company['status'] !== 'past_due') {
+            return;
+        }
+        $_SESSION['flash']['error'][] = 'We couldn\'t renew your subscription. Please update your payment method to continue.';
+        Controller::redirect('/app/billing');
+    }
+
+    private static function onExemptPath(): bool
+    {
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+        return str_starts_with($path, '/app/billing') || $path === '/logout';
     }
 }

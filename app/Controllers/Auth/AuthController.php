@@ -5,9 +5,11 @@ namespace App\Controllers\Auth;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Csrf;
+use App\Core\Mailer;
 use App\Core\Settings;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\PasswordReset;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
@@ -129,5 +131,86 @@ class AuthController extends Controller
         $this->verifyCsrf();
         Auth::logout();
         self::redirect('/');
+    }
+
+    public function showForgotPassword(): void
+    {
+        if (Auth::check()) {
+            self::redirect(Auth::isSuperAdmin() ? '/admin' : '/app');
+        }
+        $this->view('auth/forgot-password', ['pageTitle' => 'Reset your password'], 'layouts/auth');
+    }
+
+    public function sendResetLink(): void
+    {
+        $this->verifyCsrf();
+        $email = strtolower(trim((string) $this->input('email')));
+
+        // Always show the same message whether or not the account exists — confirming/denying
+        // an email's existence here would let anyone enumerate registered accounts.
+        $genericMessage = "If an account exists for {$email}, we've sent a password reset link to it.";
+
+        $user = filter_var($email, FILTER_VALIDATE_EMAIL) ? User::first('email', $email) : null;
+        if ($user && $user['status'] === 'active') {
+            $token = bin2hex(random_bytes(32));
+            PasswordReset::create([
+                'email' => $email,
+                'token' => $token,
+                'expires_at' => date('Y-m-d H:i:s', strtotime('+1 hour')),
+            ]);
+
+            if (Mailer::isConfigured()) {
+                $resetUrl = rtrim(\App\Core\Env::get('APP_URL', ''), '/') . '/reset-password/' . $token;
+                Mailer::send(
+                    $email,
+                    $user['name'],
+                    'Reset your BuildXact Saudi password',
+                    "Hi {$user['name']},\n\nSomeone (hopefully you) requested a password reset for your BuildXact Saudi account.\n\nReset your password: {$resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't change."
+                );
+            }
+        }
+
+        $this->flash('success', $genericMessage);
+        self::redirect('/login');
+    }
+
+    public function showResetPassword(string $token): void
+    {
+        $reset = PasswordReset::findValid($token);
+        if (!$reset) {
+            $this->flash('error', 'This password reset link is invalid or has expired. Please request a new one.');
+            self::redirect('/forgot-password');
+        }
+        $this->view('auth/reset-password', ['pageTitle' => 'Set a new password', 'token' => $token], 'layouts/auth');
+    }
+
+    public function resetPassword(string $token): void
+    {
+        $this->verifyCsrf();
+        $reset = PasswordReset::findValid($token);
+        if (!$reset) {
+            $this->flash('error', 'This password reset link is invalid or has expired. Please request a new one.');
+            self::redirect('/forgot-password');
+        }
+
+        $password = (string) $this->input('password');
+        $confirm = (string) $this->input('password_confirm');
+        if (strlen($password) < 8) {
+            $this->flash('error', 'Password must be at least 8 characters.');
+            self::redirect('/reset-password/' . $token);
+        }
+        if ($password !== $confirm) {
+            $this->flash('error', 'Passwords do not match.');
+            self::redirect('/reset-password/' . $token);
+        }
+
+        $user = User::first('email', $reset['email']);
+        if ($user) {
+            User::update($user['id'], ['password_hash' => password_hash($password, PASSWORD_DEFAULT)]);
+        }
+        PasswordReset::update($reset['id'], ['used_at' => date('Y-m-d H:i:s')]);
+
+        $this->flash('success', 'Your password has been reset — you can now log in.');
+        self::redirect('/login');
     }
 }

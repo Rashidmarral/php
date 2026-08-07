@@ -9,6 +9,7 @@
   <a href="/app/business-setup/client-types" class="<?= $type === 'client-types' ? 'active' : '' ?>">Client Types</a>
   <a href="/app/business-setup/units-of-measure">Units of Measure</a>
   <a href="/app/business-setup/tax-rates">Tax Rates</a>
+  <a href="/app/business-setup/compliance">Compliance Documents</a>
 </div>
 
 <?php if (Auth::can('manage_business_setup')): ?>

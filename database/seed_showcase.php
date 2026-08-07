@@ -323,6 +323,26 @@ foreach ($simpleLookups as $table => $names) {
 }
 echo "Business setup lookup lists ready.\n";
 
+// ---- Compliance documents — a realistic mix of expiry states to show the reminder banner in action ----
+$complianceDefs = [
+    ['cr', 'Commercial Registration', '1010456789', 240],
+    ['vat', 'VAT Certificate', '300456789100003', 240],
+    ['zakat', 'Zakat Certificate', 'ZK-2026-88213', 45],
+    ['gosi', 'GOSI Certificate of Good Standing', 'GOSI-774521', 18],
+    ['chamber', 'Riyadh Chamber of Commerce Membership', 'RCC-55012', 300],
+    ['nitaqat', 'Nitaqat (Saudization) Certificate — Platinum Band', 'NTQ-2026-4471', -5],
+];
+foreach ($complianceDefs as [$type, $name, $number, $daysUntilExpiry]) {
+    $exists = $pdo->prepare('SELECT id FROM compliance_documents WHERE company_id = ? AND name = ?');
+    $exists->execute([$companyId, $name]);
+    if ($exists->fetch()) {
+        continue;
+    }
+    $pdo->prepare('INSERT INTO compliance_documents (company_id, doc_type, name, document_number, expiry_date) VALUES (?,?,?,?,?)')
+        ->execute([$companyId, $type, $name, $number, date('Y-m-d', strtotime("{$daysUntilExpiry} days"))]);
+}
+echo count($complianceDefs) . " compliance documents ready.\n";
+
 $unitDefs = [
     ['sqm', 'Square meter'], ['m3', 'Cubic meter'], ['lm', 'Linear meter'], ['each', 'Each'],
     ['lot', 'Lot / Job'], ['hr', 'Hour'], ['ton', 'Ton'], ['point', 'Point (electrical/plumbing)'], ['kg', 'Kilogram'],

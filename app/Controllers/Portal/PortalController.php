@@ -102,12 +102,14 @@ class PortalController extends Controller
             die('Not found.');
         }
         $items = InvoiceItem::where('invoice_id', $invoice['id'], 'id ASC');
+        $company = Company::find((int) $invoice['company_id']);
 
         $this->view('portal/invoice', [
             'pageTitle' => $invoice['invoice_number'],
             'client' => $client,
             'invoice' => $invoice,
             'items' => $items,
+            'company' => $company,
         ], 'layouts/portal');
     }
 

@@ -28,14 +28,40 @@
 
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:start;">
-      <h3>💳 Payment Gateway</h3>
+      <h3>💳 Subscription Payment Method</h3>
       <span class="badge badge-<?= $moyasarConfigured ? 'green' : 'yellow' ?>"><?= $moyasarConfigured ? 'Moyasar connected' : 'Bank transfer only' ?></span>
     </div>
     <p class="help-text">
-      Subscriptions can be paid by bank transfer (reviewed and approved by your platform
-      administrator) at any time from <a href="/app/billing">Billing</a>.
+      Your own BuildXact Saudi subscription can be paid by bank transfer (reviewed and approved
+      by your platform administrator) at any time from <a href="/app/billing">Billing</a>.
       <?= $moyasarConfigured ? 'Card / mada / Apple Pay / STC Pay checkout via Moyasar is also enabled.' : 'Online card checkout isn\'t enabled yet — ask your platform administrator to connect Moyasar.' ?>
     </p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <h3>🧾 Accept Client Payments</h3>
+      <span class="badge badge-<?= $clientMoyasarConfigured ? 'green' : 'gray' ?>"><?= $clientMoyasarConfigured ? 'Enabled' : 'Not connected' ?></span>
+    </div>
+    <p class="help-text">
+      Connect your <strong>own</strong> Moyasar account so a "Pay now" button appears on every
+      invoice you send — payments go directly into your Moyasar account, not through BuildXact
+      Saudi. Get your keys from your <a href="https://dashboard.moyasar.com" target="_blank" rel="noopener">Moyasar dashboard</a>.
+    </p>
+    <?php if (Auth::can('manage_company_settings')): ?>
+      <form method="post" action="/app/integrations/client-payments">
+        <?= Csrf::field() ?>
+        <div class="form-group">
+          <label><input type="checkbox" name="moyasar_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($company['moyasar_enabled']) ? 'checked' : '' ?>> Enabled</label>
+        </div>
+        <div class="form-group"><label>Publishable key</label><input type="text" name="moyasar_publishable_key" value="<?= View::e($company['moyasar_publishable_key'] ?? '') ?>" placeholder="pk_live_..."></div>
+        <div class="form-group">
+          <label>Secret key</label>
+          <input type="password" name="moyasar_secret_key" placeholder="<?= !empty($company['moyasar_secret_key']) ? '••••••••••••••••  (leave blank to keep current)' : 'sk_live_...' ?>">
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+      </form>
+    <?php endif; ?>
   </div>
 
   <div class="card">

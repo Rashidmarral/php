@@ -230,6 +230,7 @@ return [
     'auth.login_btn' => 'Log in',
     'auth.no_account' => "Don't have an account?",
     'auth.register_link' => 'Start a free trial',
+    'auth.forgot_password' => 'Forgot your password?',
     'auth.register_title' => 'Start your free 14-day trial',
     'auth.register_sub' => 'No credit card required.',
     'auth.company_name' => 'Company name',

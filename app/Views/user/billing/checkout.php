@@ -44,14 +44,15 @@
 <?php if ($moyasarConfigured): ?>
 <div id="tab-card" class="tab-panel" style="display:none;">
   <div class="card" style="max-width:520px;">
-    <p class="help-text" style="margin-bottom:14px;">Your card details are handled directly by Moyasar — they never pass through our servers.</p>
+    <p class="help-text" style="margin-bottom:14px;">Your card details are handled directly by Moyasar — they never pass through our servers. Your card is saved securely so your subscription can renew automatically — no need to re-enter it next period.</p>
     <div class="mysr-form"
       data-amount="<?= (int) round($amount * 100) ?>"
       data-currency="SAR"
       data-description="<?= View::e($plan['name']) ?> plan (<?= View::e($cycle) ?>)"
       data-publishable-api-key="<?= View::e($moyasarPublishableKey) ?>"
       data-callback-url="<?= View::e('/app/billing/moyasar-callback?plan=' . urlencode($plan['slug']) . '&cycle=' . urlencode($cycle)) ?>"
-      data-methods="creditcard,applepay,stcpay">
+      data-methods="creditcard,applepay,stcpay"
+      data-save-card="true">
     </div>
   </div>
 </div>

@@ -59,7 +59,7 @@ class CompanyController extends Controller
             die('Company not found.');
         }
         $status = (string) $this->input('status');
-        if (in_array($status, ['trial', 'active', 'suspended', 'cancelled'], true)) {
+        if (in_array($status, ['trial', 'active', 'past_due', 'suspended', 'cancelled'], true)) {
             Company::update($company['id'], ['status' => $status]);
             $this->flash('success', 'Company status updated.');
         }

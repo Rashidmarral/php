@@ -8,6 +8,15 @@
     <a href="/app/billing" class="btn btn-primary btn-sm">Subscribe now</a>
   </div>
 <?php endif; ?>
+<?php if (!empty($expiringDocs)): ?>
+  <div class="card" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:#fdf3e0;border-color:#e8c76b;">
+    <div>
+      <strong><?= count($expiringDocs) ?> compliance document<?= count($expiringDocs) === 1 ? '' : 's' ?> expiring soon.</strong>
+      <span style="color:var(--muted);"> <?= View::e(implode(', ', array_column(array_slice($expiringDocs, 0, 3), 'name'))) ?><?= count($expiringDocs) > 3 ? '…' : '' ?></span>
+    </div>
+    <a href="/app/business-setup/compliance" class="btn btn-primary btn-sm">Review documents</a>
+  </div>
+<?php endif; ?>
 <div class="page-head">
   <h1>Dashboard</h1>
   <a href="/app/projects/create" class="btn btn-primary">+ New Project</a>

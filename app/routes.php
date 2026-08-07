@@ -16,6 +16,7 @@ use App\Controllers\User\TeamController;
 use App\Controllers\User\BillingController;
 use App\Controllers\User\SettingsController;
 use App\Controllers\User\BusinessSetupController;
+use App\Controllers\User\ComplianceController;
 use App\Controllers\User\LeadController;
 use App\Controllers\Admin\AdminDashboardController;
 use App\Controllers\Admin\CompanyController;
@@ -67,6 +68,8 @@ $router->post('/e/{token}/sign', [ShareController::class, 'signEstimate']);
 $router->get('/e/{token}/pdf', [ShareController::class, 'estimatePdf']);
 $router->get('/i/{token}', [ShareController::class, 'invoice']);
 $router->get('/i/{token}/pdf', [ShareController::class, 'invoicePdf']);
+$router->get('/i/{token}/pay', [ShareController::class, 'payInvoice']);
+$router->get('/i/{token}/pay/callback', [ShareController::class, 'invoicePaymentCallback']);
 
 // ---------- Auth ----------
 $router->get('/login', [AuthController::class, 'showLogin']);
@@ -74,6 +77,10 @@ $router->post('/login', [AuthController::class, 'login']);
 $router->get('/register', [AuthController::class, 'showRegister']);
 $router->post('/register', [AuthController::class, 'register']);
 $router->post('/logout', [AuthController::class, 'logout']);
+$router->get('/forgot-password', [AuthController::class, 'showForgotPassword']);
+$router->post('/forgot-password', [AuthController::class, 'sendResetLink']);
+$router->get('/reset-password/{token}', [AuthController::class, 'showResetPassword']);
+$router->post('/reset-password/{token}', [AuthController::class, 'resetPassword']);
 
 // ---------- User (company) panel ----------
 $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
@@ -169,6 +176,10 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->post('/app/business-setup/tax-rates', [BusinessSetupController::class, 'storeTaxRate']);
     $router->post('/app/business-setup/tax-rates/{id}', [BusinessSetupController::class, 'updateTaxRate']);
     $router->post('/app/business-setup/tax-rates/{id}/delete', [BusinessSetupController::class, 'destroyTaxRate']);
+    $router->get('/app/business-setup/compliance', [ComplianceController::class, 'index']);
+    $router->post('/app/business-setup/compliance', [ComplianceController::class, 'store']);
+    $router->post('/app/business-setup/compliance/{id}', [ComplianceController::class, 'update']);
+    $router->post('/app/business-setup/compliance/{id}/delete', [ComplianceController::class, 'destroy']);
     $router->get('/app/business-setup/{type}', [BusinessSetupController::class, 'simple']);
     $router->post('/app/business-setup/{type}', [BusinessSetupController::class, 'storeSimple']);
     $router->post('/app/business-setup/{type}/load-defaults', [BusinessSetupController::class, 'loadDefaultsSimple']);
@@ -202,6 +213,7 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/integrations', [IntegrationController::class, 'index']);
     $router->post('/app/integrations/google-sheets', [IntegrationController::class, 'updateGoogleSheets']);
+    $router->post('/app/integrations/client-payments', [IntegrationController::class, 'updateClientPayments']);
 
     $router->get('/app/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
     $router->get('/app/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);

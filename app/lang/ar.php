@@ -230,6 +230,7 @@ return [
     'auth.login_btn' => 'تسجيل الدخول',
     'auth.no_account' => 'ليس لديك حساب؟',
     'auth.register_link' => 'ابدأ تجربة مجانية',
+    'auth.forgot_password' => 'نسيت كلمة المرور؟',
     'auth.register_title' => 'ابدأ تجربتك المجانية لمدة ١٤ يوم',
     'auth.register_sub' => 'لا حاجة لبطاقة ائتمانية.',
     'auth.company_name' => 'اسم الشركة',

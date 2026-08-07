@@ -7,7 +7,7 @@
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/status" style="display:flex;gap:8px;">
     <?= Csrf::field() ?>
     <select name="status">
-      <?php foreach (['trial'=>'Trial','active'=>'Active','suspended'=>'Suspended','cancelled'=>'Cancelled'] as $val=>$label): ?>
+      <?php foreach (['trial'=>'Trial','active'=>'Active','past_due'=>'Past due','suspended'=>'Suspended','cancelled'=>'Cancelled'] as $val=>$label): ?>
         <option value="<?= $val ?>" <?= $company['status'] === $val ? 'selected' : '' ?>><?= $label ?></option>
       <?php endforeach; ?>
     </select>

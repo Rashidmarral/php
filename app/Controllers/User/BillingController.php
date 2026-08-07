@@ -115,8 +115,11 @@ class BillingController extends Controller
 
         // Moyasar amounts are in halalas (SAR x 100); re-derive SAR for our records.
         $amount = ((float) ($moyasarPayment['amount'] ?? 0)) / 100;
+        // Present only when the checkout form requested data-save-card="true" — used to charge
+        // this same card automatically at the next renewal (see cron/daily_tasks.php).
+        $cardToken = $moyasarPayment['source']['token'] ?? null;
 
-        $this->activatePlan((int) $companyId, $plan, $cycle);
+        $this->activatePlan((int) $companyId, $plan, $cycle, $cardToken);
 
         Payment::create([
             'company_id' => $companyId,
@@ -169,7 +172,7 @@ class BillingController extends Controller
         self::redirect('/app/billing');
     }
 
-    public static function activatePlan(int $companyId, array $plan, string $cycle): void
+    public static function activatePlan(int $companyId, array $plan, string $cycle, ?string $cardToken = null): void
     {
         Company::update($companyId, ['plan_id' => $plan['id'], 'status' => 'active']);
 
@@ -179,6 +182,7 @@ class BillingController extends Controller
             'billing_cycle' => $cycle,
             'status' => 'active',
             'current_period_end' => date('Y-m-d', strtotime($cycle === 'yearly' ? '+1 year' : '+30 days')),
+            'moyasar_card_token' => $cardToken,
         ]);
     }
 }
