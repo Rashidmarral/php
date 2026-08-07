@@ -1,6 +1,7 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
   <h1>Companies</h1>
+  <a href="/admin/companies/export.csv" class="btn btn-light">⬇ Export CSV</a>
 </div>
 
 <?php if (empty($companies)): ?>

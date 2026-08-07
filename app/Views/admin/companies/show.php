@@ -1,4 +1,4 @@
-<?php use App\Core\View; use App\Core\Csrf; ?>
+<?php use App\Core\View; use App\Core\Csrf; use App\Core\Auth; ?>
 <div class="page-head">
   <div>
     <h1><?= View::e($company['name']) ?></h1>
@@ -15,8 +15,14 @@
   </form>
 </div>
 
-<div style="margin-bottom:24px;">
+<div style="margin-bottom:24px;display:flex;gap:8px;flex-wrap:wrap;">
   <a href="/admin/companies/<?= $company['id'] ?>/zatca" class="btn btn-secondary">ZATCA e-invoicing compliance →</a>
+  <?php if (Auth::isSuperAdmin()): ?>
+    <form method="post" action="/admin/companies/<?= $company['id'] ?>/impersonate" style="display:inline;">
+      <?= Csrf::field() ?>
+      <button type="submit" class="btn btn-light">🕵️ Log in as owner</button>
+    </form>
+  <?php endif; ?>
 </div>
 
 <div class="kpi-grid">
@@ -156,3 +162,21 @@
     </table>
   <?php endif; ?>
 </div>
+
+<?php if (Auth::isSuperAdmin()): ?>
+<details class="card" style="margin-top:24px;max-width:520px;border-color:#e0958c;">
+  <summary style="cursor:pointer;font-weight:700;color:#a6362b;">⚠️ Danger zone</summary>
+  <div style="margin-top:16px;">
+    <h3 style="font-size:14px;">Permanently delete this company</h3>
+    <p class="help-text">Deletes <?= View::e($company['name']) ?> and every project, estimate, invoice, client, and payment it owns. This cannot be undone — use it only for a genuine data-deletion request, not to close an account (use status = Cancelled for that instead).</p>
+    <form method="post" action="/admin/companies/<?= $company['id'] ?>/hard-delete" onsubmit="return confirm('This permanently deletes all of ' + <?= json_encode($company['name']) ?> + '\'s data. This cannot be undone. Continue?');">
+      <?= Csrf::field() ?>
+      <div class="form-group">
+        <label>Type the company name (<strong><?= View::e($company['name']) ?></strong>) to confirm</label>
+        <input type="text" name="confirm_name" required>
+      </div>
+      <button type="submit" class="btn btn-danger">Permanently delete company</button>
+    </form>
+  </div>
+</details>
+<?php endif; ?>

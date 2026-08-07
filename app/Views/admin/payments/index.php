@@ -1,6 +1,7 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
   <h1>Payments</h1>
+  <a href="/admin/payments/export.csv" class="btn btn-light">⬇ Export CSV</a>
 </div>
 
 <div class="kpi-grid" style="grid-template-columns:repeat(2,220px);">

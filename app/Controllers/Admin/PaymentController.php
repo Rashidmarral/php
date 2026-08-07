@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Controllers\User\BillingController;
@@ -124,6 +125,8 @@ class PaymentController extends Controller
             'reviewed_at' => date('Y-m-d H:i:s'),
         ]);
 
+        Audit::log('payment_approve', 'payment', $payment['id'], "{$payment['reference']} — " . number_format((float) $payment['amount'], 2) . ' SAR');
+
         $this->flash('success', 'Payment approved' . ($plan ? " and the company's plan has been activated." : '.'));
         self::redirect('/admin/payments');
     }
@@ -143,7 +146,26 @@ class PaymentController extends Controller
             'reviewed_at' => date('Y-m-d H:i:s'),
         ]);
 
+        Audit::log('payment_reject', 'payment', $payment['id'], "{$payment['reference']} — " . number_format((float) $payment['amount'], 2) . ' SAR');
+
         $this->flash('success', 'Payment rejected.');
         self::redirect('/admin/payments');
+    }
+
+    public function exportCsv(): void
+    {
+        $payments = Payment::query(
+            'SELECT pay.*, c.name AS company_name FROM payments pay JOIN companies c ON c.id = pay.company_id ORDER BY pay.created_at DESC'
+        )->fetchAll();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="payments-' . date('Y-m-d') . '.csv"');
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['ID', 'Company', 'Amount', 'Currency', 'Method', 'Reference', 'Status', 'Created At']);
+        foreach ($payments as $p) {
+            fputcsv($out, [$p['id'], $p['company_name'], $p['amount'], $p['currency'], $p['method'], $p['reference'], $p['status'], $p['created_at']]);
+        }
+        fclose($out);
     }
 }

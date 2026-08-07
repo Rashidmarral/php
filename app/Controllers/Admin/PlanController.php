@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Core\Audit;
 use App\Core\Controller;
 use App\Core\Feature;
 use App\Models\Plan;
@@ -23,6 +24,7 @@ class PlanController extends Controller
     {
         $this->verifyCsrf();
         $this->save(null);
+        Audit::log('plan_create', 'plan', null, trim((string) $this->input('name')));
         $this->flash('success', 'Plan created.');
         self::redirect('/admin/plans');
     }
@@ -46,6 +48,7 @@ class PlanController extends Controller
             die('Plan not found.');
         }
         $this->save($plan['id']);
+        Audit::log('plan_update', 'plan', $plan['id'], $plan['name']);
         $this->flash('success', 'Plan updated.');
         self::redirect('/admin/plans');
     }
@@ -53,7 +56,9 @@ class PlanController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        $plan = Plan::find((int) $id);
         Plan::delete((int) $id);
+        Audit::log('plan_delete', 'plan', (int) $id, $plan['name'] ?? '');
         $this->flash('success', 'Plan deleted.');
         self::redirect('/admin/plans');
     }
@@ -75,6 +80,7 @@ class PlanController extends Controller
             'price_yearly' => (float) $this->input('price_yearly', 0),
             'max_users' => (int) $this->input('max_users', 5),
             'max_projects' => (int) $this->input('max_projects', 10),
+            'consultation_quota_monthly' => (int) $this->input('consultation_quota_monthly', 0),
             'features' => json_encode(array_values($featuresLines)),
             'feature_flags' => json_encode($flags),
             'is_active' => $this->input('is_active') ? 1 : 0,

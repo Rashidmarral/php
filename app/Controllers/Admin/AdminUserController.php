@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Core\Audit;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Models\User;
@@ -10,7 +11,9 @@ class AdminUserController extends Controller
 {
     public function index(): void
     {
-        $admins = User::where('role', 'super_admin', 'created_at ASC');
+        $admins = User::query(
+            "SELECT * FROM users WHERE role IN ('super_admin', 'support_admin') ORDER BY created_at ASC"
+        )->fetchAll();
         $this->view('admin/admins/index', ['pageTitle' => 'Admin Users', 'admins' => $admins], 'layouts/admin');
     }
 
@@ -20,6 +23,7 @@ class AdminUserController extends Controller
         $name = trim((string) $this->input('name'));
         $email = strtolower(trim((string) $this->input('email')));
         $password = (string) $this->input('password');
+        $role = $this->input('role') === 'support_admin' ? 'support_admin' : 'super_admin';
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
             $this->flash('error', 'A valid name, email, and password (min 8 chars) are required.');
@@ -35,9 +39,10 @@ class AdminUserController extends Controller
             'name' => $name,
             'email' => $email,
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-            'role' => 'super_admin',
+            'role' => $role,
             'status' => 'active',
         ]);
+        Audit::log('admin_user_create', 'user', null, "{$name} ({$email}) as {$role}");
 
         $this->flash('success', 'Admin user created.');
         self::redirect('/admin/admins');
@@ -47,7 +52,7 @@ class AdminUserController extends Controller
     {
         $this->verifyCsrf();
         $admin = User::find((int) $id);
-        if (!$admin || $admin['role'] !== 'super_admin') {
+        if (!$admin || !in_array($admin['role'], ['super_admin', 'support_admin'], true)) {
             http_response_code(404);
             die('Admin user not found.');
         }
@@ -55,11 +60,13 @@ class AdminUserController extends Controller
             $this->flash('error', 'You cannot remove your own admin account.');
             self::redirect('/admin/admins');
         }
-        if (User::count("role = 'super_admin'") <= 1) {
-            $this->flash('error', 'At least one admin account must remain.');
+        if (User::count("role = 'super_admin'") <= 1 && $admin['role'] === 'super_admin') {
+            $this->flash('error', 'At least one super admin account must remain.');
             self::redirect('/admin/admins');
         }
         User::delete($admin['id']);
+        Audit::log('admin_user_delete', 'user', (int) $id, "{$admin['name']} ({$admin['email']})");
+
         $this->flash('success', 'Admin user removed.');
         self::redirect('/admin/admins');
     }

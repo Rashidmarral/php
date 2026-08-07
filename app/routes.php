@@ -32,6 +32,11 @@ use App\Controllers\Admin\AdminPageController;
 use App\Controllers\Admin\AdminTranslationController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Admin\EstimateTemplateAdminController;
+use App\Controllers\Admin\UsageController;
+use App\Controllers\Admin\AuditLogController;
+use App\Controllers\Admin\ConsultationAdminController;
+use App\Controllers\User\ConsultationController;
+use App\Controllers\User\ImpersonationController;
 use App\Controllers\Site\QuickEstimateController;
 use App\Controllers\Site\PageController;
 use App\Controllers\Site\ShareController;
@@ -157,6 +162,13 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/settings', [SettingsController::class, 'index']);
     $router->post('/app/settings', [SettingsController::class, 'update']);
+    $router->post('/app/settings/password', [SettingsController::class, 'updatePassword']);
+
+    $router->get('/app/consultations', [ConsultationController::class, 'index']);
+    $router->post('/app/consultations', [ConsultationController::class, 'store']);
+    $router->post('/app/consultations/{id}/cancel', [ConsultationController::class, 'cancel']);
+
+    $router->post('/app/end-impersonation', [ImpersonationController::class, 'stop']);
 
     $router->get('/app/leads', [LeadController::class, 'index']);
     $router->get('/app/leads/create', [LeadController::class, 'create']);
@@ -231,100 +243,121 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 });
 
 // ---------- Platform admin panel ----------
-$router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
+// Both super_admin and read-only support_admin can browse everything registered directly in this
+// outer group. Anything that mutates data is additionally nested inside a requireSuperAdmin() group
+// below, so a support_admin hitting a POST route (even by guessing the URL) gets a clean 403.
+$router->group([fn() => Auth::requireAdminPanelAccess()], function (Router $router) {
     $router->get('/admin', [AdminDashboardController::class, 'index']);
     $router->get('/admin/reports', [AdminReportController::class, 'index']);
+    $router->get('/admin/usage', [UsageController::class, 'index']);
+    $router->get('/admin/audit-log', [AuditLogController::class, 'index']);
 
     $router->get('/admin/companies', [CompanyController::class, 'index']);
+    $router->get('/admin/companies/export.csv', [CompanyController::class, 'exportCsv']);
     $router->get('/admin/companies/{id}', [CompanyController::class, 'show']);
-    $router->post('/admin/companies/{id}/status', [CompanyController::class, 'updateStatus']);
-    $router->post('/admin/companies/{id}/plan', [CompanyController::class, 'updatePlan']);
-    $router->post('/admin/companies/{id}/profile', [CompanyController::class, 'updateProfile']);
-
     $router->get('/admin/companies/{id}/zatca', [CompanyZatcaController::class, 'show']);
-    $router->post('/admin/companies/{id}/zatca/environment', [CompanyZatcaController::class, 'updateEnvironment']);
-    $router->post('/admin/companies/{id}/zatca/csr', [CompanyZatcaController::class, 'generateCsr']);
-    $router->post('/admin/companies/{id}/zatca/compliance-csid', [CompanyZatcaController::class, 'requestComplianceCsid']);
-    $router->post('/admin/companies/{id}/zatca/production-csid', [CompanyZatcaController::class, 'requestProductionCsid']);
 
     $router->get('/admin/plans', [PlanController::class, 'index']);
     $router->get('/admin/plans/create', [PlanController::class, 'create']);
-    $router->post('/admin/plans', [PlanController::class, 'store']);
     $router->get('/admin/plans/{id}/edit', [PlanController::class, 'edit']);
-    $router->post('/admin/plans/{id}', [PlanController::class, 'update']);
-    $router->post('/admin/plans/{id}/delete', [PlanController::class, 'destroy']);
 
     $router->get('/admin/payments', [PaymentController::class, 'index']);
+    $router->get('/admin/payments/export.csv', [PaymentController::class, 'exportCsv']);
     $router->get('/admin/payments/{id}', [PaymentController::class, 'show']);
-    $router->post('/admin/payments/{id}/update', [PaymentController::class, 'update']);
-    $router->post('/admin/payments/{id}/apply-plan', [PaymentController::class, 'applyPlan']);
-    $router->post('/admin/payments/{id}/approve', [PaymentController::class, 'approve']);
-    $router->post('/admin/payments/{id}/reject', [PaymentController::class, 'reject']);
 
     $router->get('/admin/profile', [AdminProfileController::class, 'index']);
     $router->post('/admin/profile', [AdminProfileController::class, 'update']);
 
     $router->get('/admin/admins', [AdminUserController::class, 'index']);
-    $router->post('/admin/admins', [AdminUserController::class, 'store']);
-    $router->post('/admin/admins/{id}/delete', [AdminUserController::class, 'destroy']);
 
     $router->get('/admin/settings', [SiteSettingsController::class, 'index']);
-    $router->post('/admin/settings', [SiteSettingsController::class, 'update']);
     $router->get('/admin/settings/payments', [SiteSettingsController::class, 'payments']);
-    $router->post('/admin/settings/payments', [SiteSettingsController::class, 'updatePayments']);
     $router->get('/admin/settings/legal', [SiteSettingsController::class, 'legal']);
-    $router->post('/admin/settings/legal', [SiteSettingsController::class, 'updateLegal']);
     $router->get('/admin/settings/notifications', [SiteSettingsController::class, 'notifications']);
-    $router->post('/admin/settings/notifications', [SiteSettingsController::class, 'updateNotifications']);
     $router->get('/admin/settings/email', [SiteSettingsController::class, 'email']);
-    $router->post('/admin/settings/email', [SiteSettingsController::class, 'updateEmail']);
     $router->get('/admin/settings/header', [SiteSettingsController::class, 'header']);
-    $router->post('/admin/settings/header', [SiteSettingsController::class, 'updateHeader']);
     $router->get('/admin/settings/ai', [SiteSettingsController::class, 'ai']);
-    $router->post('/admin/settings/ai', [SiteSettingsController::class, 'updateAi']);
     $router->get('/admin/integrations', [AdminIntegrationController::class, 'index']);
 
     $router->get('/admin/pages', [AdminPageController::class, 'index']);
     $router->get('/admin/pages/create', [AdminPageController::class, 'create']);
-    $router->post('/admin/pages', [AdminPageController::class, 'store']);
     $router->get('/admin/pages/{id}/edit', [AdminPageController::class, 'edit']);
-    $router->post('/admin/pages/{id}', [AdminPageController::class, 'update']);
-    $router->post('/admin/pages/{id}/delete', [AdminPageController::class, 'destroy']);
 
     $router->get('/admin/translations', [AdminTranslationController::class, 'index']);
-    $router->post('/admin/translations/update', [AdminTranslationController::class, 'update']);
-    $router->post('/admin/translations/store', [AdminTranslationController::class, 'store']);
-    $router->post('/admin/translations/reset', [AdminTranslationController::class, 'reset']);
 
     $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
-
     $router->get('/admin/quick-estimate/regions', [QuickEstimateAdminController::class, 'regions']);
-    $router->post('/admin/quick-estimate/regions', [QuickEstimateAdminController::class, 'storeRegion']);
-    $router->post('/admin/quick-estimate/regions/{id}', [QuickEstimateAdminController::class, 'updateRegion']);
-    $router->post('/admin/quick-estimate/regions/{id}/delete', [QuickEstimateAdminController::class, 'destroyRegion']);
-
     $router->get('/admin/quick-estimate/foundations', [QuickEstimateAdminController::class, 'foundations']);
-    $router->post('/admin/quick-estimate/foundations', [QuickEstimateAdminController::class, 'storeFoundation']);
-    $router->post('/admin/quick-estimate/foundations/{id}', [QuickEstimateAdminController::class, 'updateFoundation']);
-    $router->post('/admin/quick-estimate/foundations/{id}/delete', [QuickEstimateAdminController::class, 'destroyFoundation']);
-
     $router->get('/admin/quick-estimate/addons', [QuickEstimateAdminController::class, 'addons']);
-    $router->post('/admin/quick-estimate/addons', [QuickEstimateAdminController::class, 'storeAddon']);
-    $router->post('/admin/quick-estimate/addons/{id}', [QuickEstimateAdminController::class, 'updateAddon']);
-    $router->post('/admin/quick-estimate/addons/{id}/delete', [QuickEstimateAdminController::class, 'destroyAddon']);
-
     $router->get('/admin/quick-estimate/leads', [QuickEstimateAdminController::class, 'leads']);
-    $router->post('/admin/quick-estimate/leads/{id}/status', [QuickEstimateAdminController::class, 'updateLeadStatus']);
 
     $router->get('/admin/estimate-templates', [EstimateTemplateAdminController::class, 'index']);
-    $router->post('/admin/estimate-templates', [EstimateTemplateAdminController::class, 'store']);
-    $router->post('/admin/estimate-templates/{id}', [EstimateTemplateAdminController::class, 'update']);
-    $router->post('/admin/estimate-templates/{id}/delete', [EstimateTemplateAdminController::class, 'destroy']);
-    $router->post('/admin/estimate-templates/{id}/default', [EstimateTemplateAdminController::class, 'setDefault']);
     $router->get('/admin/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'items']);
-    $router->post('/admin/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'storeItem']);
-    $router->post('/admin/estimate-templates/{id}/items/{itemId}', [EstimateTemplateAdminController::class, 'updateItem']);
-    $router->post('/admin/estimate-templates/{id}/items/{itemId}/delete', [EstimateTemplateAdminController::class, 'destroyItem']);
+
+    $router->get('/admin/consultations', [ConsultationAdminController::class, 'index']);
+
+    // ---- Everything below mutates platform data: super_admin only ----
+    $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
+        $router->post('/admin/companies/{id}/status', [CompanyController::class, 'updateStatus']);
+        $router->post('/admin/companies/{id}/plan', [CompanyController::class, 'updatePlan']);
+        $router->post('/admin/companies/{id}/profile', [CompanyController::class, 'updateProfile']);
+        $router->post('/admin/companies/{id}/impersonate', [CompanyController::class, 'impersonate']);
+        $router->post('/admin/companies/{id}/hard-delete', [CompanyController::class, 'hardDelete']);
+
+        $router->post('/admin/companies/{id}/zatca/environment', [CompanyZatcaController::class, 'updateEnvironment']);
+        $router->post('/admin/companies/{id}/zatca/csr', [CompanyZatcaController::class, 'generateCsr']);
+        $router->post('/admin/companies/{id}/zatca/compliance-csid', [CompanyZatcaController::class, 'requestComplianceCsid']);
+        $router->post('/admin/companies/{id}/zatca/production-csid', [CompanyZatcaController::class, 'requestProductionCsid']);
+
+        $router->post('/admin/plans', [PlanController::class, 'store']);
+        $router->post('/admin/plans/{id}', [PlanController::class, 'update']);
+        $router->post('/admin/plans/{id}/delete', [PlanController::class, 'destroy']);
+
+        $router->post('/admin/payments/{id}/update', [PaymentController::class, 'update']);
+        $router->post('/admin/payments/{id}/apply-plan', [PaymentController::class, 'applyPlan']);
+        $router->post('/admin/payments/{id}/approve', [PaymentController::class, 'approve']);
+        $router->post('/admin/payments/{id}/reject', [PaymentController::class, 'reject']);
+
+        $router->post('/admin/admins', [AdminUserController::class, 'store']);
+        $router->post('/admin/admins/{id}/delete', [AdminUserController::class, 'destroy']);
+
+        $router->post('/admin/settings', [SiteSettingsController::class, 'update']);
+        $router->post('/admin/settings/payments', [SiteSettingsController::class, 'updatePayments']);
+        $router->post('/admin/settings/legal', [SiteSettingsController::class, 'updateLegal']);
+        $router->post('/admin/settings/notifications', [SiteSettingsController::class, 'updateNotifications']);
+        $router->post('/admin/settings/email', [SiteSettingsController::class, 'updateEmail']);
+        $router->post('/admin/settings/header', [SiteSettingsController::class, 'updateHeader']);
+        $router->post('/admin/settings/ai', [SiteSettingsController::class, 'updateAi']);
+
+        $router->post('/admin/pages', [AdminPageController::class, 'store']);
+        $router->post('/admin/pages/{id}', [AdminPageController::class, 'update']);
+        $router->post('/admin/pages/{id}/delete', [AdminPageController::class, 'destroy']);
+
+        $router->post('/admin/translations/update', [AdminTranslationController::class, 'update']);
+        $router->post('/admin/translations/store', [AdminTranslationController::class, 'store']);
+        $router->post('/admin/translations/reset', [AdminTranslationController::class, 'reset']);
+
+        $router->post('/admin/quick-estimate/regions', [QuickEstimateAdminController::class, 'storeRegion']);
+        $router->post('/admin/quick-estimate/regions/{id}', [QuickEstimateAdminController::class, 'updateRegion']);
+        $router->post('/admin/quick-estimate/regions/{id}/delete', [QuickEstimateAdminController::class, 'destroyRegion']);
+        $router->post('/admin/quick-estimate/foundations', [QuickEstimateAdminController::class, 'storeFoundation']);
+        $router->post('/admin/quick-estimate/foundations/{id}', [QuickEstimateAdminController::class, 'updateFoundation']);
+        $router->post('/admin/quick-estimate/foundations/{id}/delete', [QuickEstimateAdminController::class, 'destroyFoundation']);
+        $router->post('/admin/quick-estimate/addons', [QuickEstimateAdminController::class, 'storeAddon']);
+        $router->post('/admin/quick-estimate/addons/{id}', [QuickEstimateAdminController::class, 'updateAddon']);
+        $router->post('/admin/quick-estimate/addons/{id}/delete', [QuickEstimateAdminController::class, 'destroyAddon']);
+        $router->post('/admin/quick-estimate/leads/{id}/status', [QuickEstimateAdminController::class, 'updateLeadStatus']);
+
+        $router->post('/admin/estimate-templates', [EstimateTemplateAdminController::class, 'store']);
+        $router->post('/admin/estimate-templates/{id}', [EstimateTemplateAdminController::class, 'update']);
+        $router->post('/admin/estimate-templates/{id}/delete', [EstimateTemplateAdminController::class, 'destroy']);
+        $router->post('/admin/estimate-templates/{id}/default', [EstimateTemplateAdminController::class, 'setDefault']);
+        $router->post('/admin/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'storeItem']);
+        $router->post('/admin/estimate-templates/{id}/items/{itemId}', [EstimateTemplateAdminController::class, 'updateItem']);
+        $router->post('/admin/estimate-templates/{id}/items/{itemId}/delete', [EstimateTemplateAdminController::class, 'destroyItem']);
+
+        $router->post('/admin/consultations/{id}/update', [ConsultationAdminController::class, 'update']);
+    });
 });
 
 // ---------- Client Portal ----------

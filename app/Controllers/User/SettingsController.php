@@ -5,6 +5,7 @@ namespace App\Controllers\User;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Models\Company;
+use App\Models\User;
 
 class SettingsController extends Controller
 {
@@ -72,6 +73,33 @@ class SettingsController extends Controller
         Company::update($companyId, $data);
 
         $this->flash('success', 'Company settings updated.');
+        self::redirect('/app/settings');
+    }
+
+    /** Any logged-in company user can change their own password — not gated by manage_company_settings. */
+    public function updatePassword(): void
+    {
+        $this->verifyCsrf();
+        $user = Auth::user();
+        $current = (string) $this->input('current_password');
+        $new = (string) $this->input('new_password');
+        $confirm = (string) $this->input('new_password_confirm');
+
+        if (!password_verify($current, $user['password_hash'])) {
+            $this->flash('error', 'Your current password is incorrect.');
+            self::redirect('/app/settings');
+        }
+        if (strlen($new) < 8) {
+            $this->flash('error', 'New password must be at least 8 characters.');
+            self::redirect('/app/settings');
+        }
+        if ($new !== $confirm) {
+            $this->flash('error', 'New password and confirmation do not match.');
+            self::redirect('/app/settings');
+        }
+
+        User::update($user['id'], ['password_hash' => password_hash($new, PASSWORD_DEFAULT)]);
+        $this->flash('success', 'Password updated.');
         self::redirect('/app/settings');
     }
 

@@ -24,6 +24,11 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
     <div class="form-group"><label>Max users</label><input type="number" name="max_users" value="<?= View::e((string)($plan['max_users'] ?? 5)) ?>"></div>
     <div class="form-group"><label>Max projects</label><input type="number" name="max_projects" value="<?= View::e((string)($plan['max_projects'] ?? 10)) ?>"></div>
   </div>
+  <div class="form-group" style="max-width:260px;">
+    <label>Expert consultations / month</label>
+    <input type="number" min="0" name="consultation_quota_monthly" value="<?= View::e((string)($plan['consultation_quota_monthly'] ?? 0)) ?>">
+    <p class="help-text">How many live consultations with our engineers companies on this plan get each month. 0 disables the feature for this plan.</p>
+  </div>
   <div class="form-group">
     <label>Features (one per line)</label>
     <textarea name="features" rows="6"><?= View::e($features) ?></textarea>

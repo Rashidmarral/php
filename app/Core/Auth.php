@@ -21,6 +21,12 @@ class Auth
         'accountant' => 'Accountant', 'viewer' => 'Viewer',
     ];
 
+    /** Platform admin roles (distinct from the company-panel roles above). */
+    public const ADMIN_ROLES = [
+        'super_admin' => 'Super Admin — full control',
+        'support_admin' => 'Support Admin — read-only, cannot make changes',
+    ];
+
     public static function attempt(string $email, string $password): bool
     {
         $user = User::first('email', strtolower(trim($email)));
@@ -67,6 +73,18 @@ class Auth
     {
         $u = self::user();
         return $u && $u['role'] === 'super_admin';
+    }
+
+    /** Read-only admin: can browse the whole admin panel but every mutating action is blocked. */
+    public static function isSupportAdmin(): bool
+    {
+        $u = self::user();
+        return $u && $u['role'] === 'support_admin';
+    }
+
+    public static function isAdminStaff(): bool
+    {
+        return self::isSuperAdmin() || self::isSupportAdmin();
     }
 
     public static function isCompanyOwner(): bool
@@ -134,6 +152,20 @@ class Auth
     {
         self::requireLogin();
         if (!self::isSuperAdmin()) {
+            if (self::isSupportAdmin()) {
+                http_response_code(403);
+                die('Forbidden: your admin account is read-only. Ask a super admin to make this change.');
+            }
+            http_response_code(403);
+            die('Forbidden: admin access only.');
+        }
+    }
+
+    /** Entry gate for the whole /admin panel — both super_admin and read-only support_admin may browse it. */
+    public static function requireAdminPanelAccess(): void
+    {
+        self::requireLogin();
+        if (!self::isAdminStaff()) {
             http_response_code(403);
             die('Forbidden: admin access only.');
         }
@@ -142,7 +174,7 @@ class Auth
     public static function requireCompanyUser(): void
     {
         self::requireLogin();
-        if (self::isSuperAdmin()) {
+        if (self::isAdminStaff()) {
             Controller::redirect('/admin');
         }
         self::blockIfTrialExpired();
@@ -194,6 +226,6 @@ class Auth
     private static function onExemptPath(): bool
     {
         $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
-        return str_starts_with($path, '/app/billing') || $path === '/logout';
+        return str_starts_with($path, '/app/billing') || $path === '/logout' || $path === '/app/end-impersonation';
     }
 }

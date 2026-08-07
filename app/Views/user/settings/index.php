@@ -103,3 +103,33 @@
     <p class="help-text">Only the company owner can edit these settings.</p>
   <?php endif; ?>
 </form>
+
+<form method="post" action="/app/settings/password" class="card" style="max-width:680px;margin-top:24px;">
+  <?= Csrf::field() ?>
+  <h3 style="font-size:14px;">Change your password</h3>
+  <p class="help-text" style="margin-top:-8px;">This only changes your own login — it doesn't affect anyone else on your team.</p>
+  <div class="form-group">
+    <label>Current password</label>
+    <div class="password-field">
+      <input type="password" name="current_password" required autocomplete="current-password">
+      <?= View::passwordToggle() ?>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>New password</label>
+      <div class="password-field">
+        <input type="password" name="new_password" required minlength="8" autocomplete="new-password">
+        <?= View::passwordToggle() ?>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Confirm new password</label>
+      <div class="password-field">
+        <input type="password" name="new_password_confirm" required minlength="8" autocomplete="new-password">
+        <?= View::passwordToggle() ?>
+      </div>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">Update password</button>
+</form>

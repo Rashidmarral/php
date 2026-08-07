@@ -455,6 +455,33 @@ $statements[] = "CREATE TABLE IF NOT EXISTS compliance_documents (
     created_at {$ts}
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS audit_logs (
+    id {$id},
+    admin_id INT,
+    admin_name VARCHAR(150),
+    action VARCHAR(60) NOT NULL,
+    target_type VARCHAR(40),
+    target_id INT,
+    details VARCHAR(500),
+    ip_address VARCHAR(64),
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS consultations (
+    id {$id},
+    company_id INT NOT NULL,
+    requested_by INT NOT NULL,
+    type VARCHAR(20) NOT NULL DEFAULT 'chat',
+    status VARCHAR(20) NOT NULL DEFAULT 'requested',
+    topic VARCHAR(200),
+    notes VARCHAR(1000),
+    admin_notes VARCHAR(1000),
+    assigned_engineer VARCHAR(150),
+    preferred_date TEXT,
+    scheduled_at TEXT,
+    created_at {$ts}
+){$engine}";
+
 foreach ($statements as $sql) {
     $pdo->exec($sql);
 }
@@ -589,6 +616,15 @@ addColumnIfMissing($pdo, $driver, 'companies', 'trial_reminder_sent_at', 'TEXT')
 
 addColumnIfMissing($pdo, $driver, 'subscriptions', 'moyasar_card_token', 'VARCHAR(255)');
 addColumnIfMissing($pdo, $driver, 'subscriptions', 'retry_count', 'INT NOT NULL DEFAULT 0');
+
+addColumnIfMissing($pdo, $driver, 'plans', 'consultation_quota_monthly', 'INT NOT NULL DEFAULT 0');
+
+// ---- Consultation quota defaults by tier (idempotent: only fills plans still at the 0 default) ----
+$consultationQuotaByPlan = ['starter' => 1, 'professional' => 3, 'enterprise' => 5];
+$updateQuota = $pdo->prepare('UPDATE plans SET consultation_quota_monthly = ? WHERE slug = ? AND consultation_quota_monthly = 0');
+foreach ($consultationQuotaByPlan as $slug => $quota) {
+    $updateQuota->execute([$quota, $slug]);
+}
 
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [

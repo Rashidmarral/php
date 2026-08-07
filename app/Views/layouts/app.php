@@ -45,6 +45,8 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
       <div class="nav-section">Insights</div>
       <?php $navLink('/app/reports', '📈', t('side.reports'), 'reports'); ?>
 
+      <a href="/app/consultations" class="<?= $isActive('/app/consultations') ?>">🎓 Expert Consultation</a>
+
       <div class="nav-section">Company</div>
       <a href="/app/leads" class="<?= $isActive('/app/leads') ?>">🎯 Leads</a>
       <a href="/app/team" class="<?= $isActive('/app/team') ?>">🧑‍💼 <?= t('side.team') ?></a>
@@ -68,6 +70,15 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
         </form>
       </div>
     </div>
+    <?php if (!empty($_SESSION['impersonator_admin_id'])): ?>
+      <div style="background:#3d2b0a;color:#f5d78e;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span>🕵️ You're viewing this account as an admin support session.</span>
+        <form method="post" action="/app/end-impersonation" style="margin:0;">
+          <?= \App\Core\Csrf::field() ?>
+          <button type="submit" class="btn btn-sm" style="background:#f5d78e;color:#3d2b0a;border:none;">← Return to admin</button>
+        </form>
+      </div>
+    <?php endif; ?>
     <div class="content">
       <?php if (!empty($_SESSION['flash'])): ?>
         <?php foreach ($_SESSION['flash'] as $type => $messages): ?>

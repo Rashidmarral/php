@@ -34,6 +34,9 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/admin/settings/header" class="<?= $isActive('/admin/settings/header') ?>">🖼️ Header &amp; Footer</a>
       <a href="/admin/translations" class="<?= $isActive('/admin/translations') ?>">🌐 Translations</a>
       <div class="nav-section">Platform</div>
+      <a href="/admin/usage" class="<?= $isActive('/admin/usage') ?>">📊 Usage</a>
+      <a href="/admin/consultations" class="<?= $isActive('/admin/consultations') ?>">🎓 Consultations</a>
+      <a href="/admin/audit-log" class="<?= $isActive('/admin/audit-log') ?>">🧾 Audit Log</a>
       <a href="/admin/admins" class="<?= $isActive('/admin/admins') ?>">🛡️ <?= t('aside.admins') ?></a>
       <a href="/admin/settings" class="<?= $isActive('/admin/settings') ?>">⚙️ <?= t('aside.settings') ?></a>
       <a href="/admin/profile" class="<?= $isActive('/admin/profile') ?>">👤 My Profile</a>
