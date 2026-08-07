@@ -1,7 +1,7 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
   <h1>Estimates</h1>
-  <a href="/app/estimates/create" class="btn btn-primary">+ New Estimate</a>
+  <a href="/app/estimates/new" class="btn btn-primary">+ New Estimate</a>
 </div>
 
 <?php if (empty($estimates)): ?>
@@ -9,7 +9,7 @@
     <div class="icon">🧾</div>
     <h3>No estimates yet</h3>
     <p>Build a detailed estimate and convert it into a project once accepted.</p>
-    <a href="/app/estimates/create" class="btn btn-primary">+ New Estimate</a>
+    <a href="/app/estimates/new" class="btn btn-primary">+ New Estimate</a>
   </div>
 <?php else: ?>
   <table class="data">

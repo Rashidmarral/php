@@ -46,9 +46,11 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
       <?php $navLink('/app/reports', '📈', t('side.reports'), 'reports'); ?>
 
       <div class="nav-section">Company</div>
+      <a href="/app/leads" class="<?= $isActive('/app/leads') ?>">🎯 Leads</a>
       <a href="/app/team" class="<?= $isActive('/app/team') ?>">🧑‍💼 <?= t('side.team') ?></a>
       <a href="/app/billing" class="<?= $isActive('/app/billing') ?>">💰 <?= t('side.billing') ?></a>
       <?php $navLink('/app/integrations', '🔌', t('side.integrations'), 'integrations'); ?>
+      <a href="/app/business-setup" class="<?= $isActive('/app/business-setup') ?>">🧩 Business Setup</a>
       <a href="/app/settings" class="<?= $isActive('/app/settings') ?>">⚙️ <?= t('side.settings') ?></a>
     </nav>
     <div class="foot">
@@ -57,7 +59,7 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
   </aside>
   <div class="main">
     <div class="topbar">
-      <div class="who"><?= \App\Core\View::e($user['name'] ?? '') ?> · <span class="badge badge-blue"><?= \App\Core\View::e(ucfirst($user['role'] ?? '')) ?></span></div>
+      <div class="who"><?= \App\Core\View::e($user['name'] ?? '') ?> · <span class="badge badge-blue"><?= \App\Core\View::e(Auth::roleShortLabel()) ?></span></div>
       <div class="header-actions">
         <a class="lang-switch" href="?lang=<?= $otherLang ?>"><?= $otherLangLabel ?></a>
         <form method="post" action="/logout" style="margin:0">

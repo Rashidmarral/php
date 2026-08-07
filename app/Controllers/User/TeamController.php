@@ -25,10 +25,7 @@ class TeamController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
-        if (!Auth::isCompanyOwner()) {
-            $this->flash('error', 'Only the company owner can invite team members.');
-            self::redirect('/app/team');
-        }
+        Auth::requireAbility('manage_team');
         if (!Feature::withinUserLimit()) {
             $this->flash('error', 'Your plan\'s team member limit has been reached. Upgrade to invite more.');
             self::redirect('/app/billing');
@@ -36,6 +33,10 @@ class TeamController extends Controller
 
         $name = trim((string) $this->input('name'));
         $email = strtolower(trim((string) $this->input('email')));
+        $role = (string) $this->input('role', 'estimator');
+        if (!array_key_exists($role, Auth::ASSIGNABLE_ROLES)) {
+            $role = 'estimator';
+        }
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $this->flash('error', 'A valid name and email are required.');
@@ -52,7 +53,7 @@ class TeamController extends Controller
             'name' => $name,
             'email' => $email,
             'password_hash' => password_hash($tempPassword, PASSWORD_DEFAULT),
-            'role' => $this->input('role', 'staff'),
+            'role' => $role,
             'status' => 'active',
         ]);
 
@@ -74,20 +75,53 @@ class TeamController extends Controller
         self::redirect('/app/team');
     }
 
+    public function updateRole(string $id): void
+    {
+        $this->verifyCsrf();
+        Auth::requireAbility('manage_team');
+        $member = $this->findOwned((int) $id);
+
+        if ($member['role'] === 'owner') {
+            $this->flash('error', 'The account owner\'s role cannot be changed.');
+            self::redirect('/app/team');
+        }
+
+        $role = (string) $this->input('role', 'estimator');
+        if (!array_key_exists($role, Auth::ASSIGNABLE_ROLES)) {
+            $this->flash('error', 'Invalid role.');
+            self::redirect('/app/team');
+        }
+
+        User::update($member['id'], ['role' => $role]);
+        $this->flash('success', 'Role updated for ' . $member['name'] . '.');
+        self::redirect('/app/team');
+    }
+
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
-        $member = User::find((int) $id);
-        if (!$member || (int) $member['company_id'] !== Auth::companyId()) {
-            http_response_code(404);
-            die('Team member not found.');
-        }
+        Auth::requireAbility('manage_team');
+        $member = $this->findOwned((int) $id);
         if ((int) $member['id'] === (int) Auth::user()['id']) {
             $this->flash('error', 'You cannot remove yourself.');
+            self::redirect('/app/team');
+        }
+        if ($member['role'] === 'owner') {
+            $this->flash('error', 'The account owner cannot be removed.');
             self::redirect('/app/team');
         }
         User::delete($member['id']);
         $this->flash('success', 'Team member removed.');
         self::redirect('/app/team');
+    }
+
+    private function findOwned(int $id): array
+    {
+        $member = User::find($id);
+        if (!$member || (int) $member['company_id'] !== Auth::companyId()) {
+            http_response_code(404);
+            die('Team member not found.');
+        }
+        return $member;
     }
 }

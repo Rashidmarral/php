@@ -28,6 +28,7 @@ class SupplierController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $name = trim((string) $this->input('name'));
         if ($name === '') {
             $this->flash('error', 'Supplier name is required.');
@@ -56,6 +57,7 @@ class SupplierController extends Controller
     public function update(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $supplier = $this->findOwned((int) $id);
         Supplier::update($supplier['id'], [
             'name' => trim((string) $this->input('name')),
@@ -73,6 +75,7 @@ class SupplierController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $supplier = $this->findOwned((int) $id);
         Supplier::delete($supplier['id']);
         $this->flash('success', 'Supplier removed.');

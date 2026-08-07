@@ -6,6 +6,21 @@ use App\Models\User;
 
 class Auth
 {
+    /** Roles assignable to a company team member by the owner/admin. 'owner' is fixed to the account creator. */
+    public const ASSIGNABLE_ROLES = [
+        'admin' => 'Admin — full access except billing',
+        'estimator' => 'Estimator — projects, clients, estimates & schedule',
+        'accountant' => 'Accountant — invoices, payments & reports',
+        'viewer' => 'Viewer — read-only access',
+    ];
+
+    public const ROLE_LABELS = ['owner' => 'Owner'] + self::ASSIGNABLE_ROLES;
+
+    public const ROLE_SHORT_LABELS = [
+        'owner' => 'Owner', 'admin' => 'Admin', 'estimator' => 'Estimator',
+        'accountant' => 'Accountant', 'viewer' => 'Viewer',
+    ];
+
     public static function attempt(string $email, string $password): bool
     {
         $user = User::first('email', strtolower(trim($email)));
@@ -58,6 +73,48 @@ class Auth
     {
         $u = self::user();
         return $u && $u['role'] === 'owner';
+    }
+
+    public static function role(): ?string
+    {
+        return self::user()['role'] ?? null;
+    }
+
+    public static function roleLabel(): string
+    {
+        return self::ROLE_LABELS[self::role()] ?? ucfirst((string) self::role());
+    }
+
+    public static function roleShortLabel(): string
+    {
+        return self::ROLE_SHORT_LABELS[self::role()] ?? ucfirst((string) self::role());
+    }
+
+    /**
+     * Ability checks for company-panel users. 'owner'/'admin' can do everything except
+     * billing is owner-only. 'estimator'/'accountant' get day-to-day write access to
+     * operational data. 'viewer' is read-only everywhere.
+     */
+    public static function can(string $ability): bool
+    {
+        if (self::isSuperAdmin()) {
+            return true;
+        }
+        $role = self::role();
+        return match ($ability) {
+            'manage_billing' => $role === 'owner',
+            'manage_team', 'manage_company_settings', 'manage_business_setup' => in_array($role, ['owner', 'admin'], true),
+            'write' => in_array($role, ['owner', 'admin', 'estimator', 'accountant'], true),
+            default => false,
+        };
+    }
+
+    public static function requireAbility(string $ability): void
+    {
+        if (!self::can($ability)) {
+            $_SESSION['flash']['error'][] = 'Your role (' . self::roleLabel() . ') does not have permission to do that.';
+            Controller::redirect('/app');
+        }
     }
 
     public static function companyId(): ?int

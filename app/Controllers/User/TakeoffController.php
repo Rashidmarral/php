@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Feature;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
+use App\Models\Material;
 use App\Models\Project;
 use App\Models\Takeoff;
 use App\Models\TakeoffMeasurement;
@@ -37,6 +38,7 @@ class TakeoffController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
         $name = trim((string) $this->input('name'));
 
@@ -91,18 +93,24 @@ class TakeoffController extends Controller
         $takeoff = $this->findOwned((int) $id);
         $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff['id'], 'id ASC');
         $totalCost = array_sum(array_map(fn($m) => (float) $m['total_cost'], $measurements));
+        $materials = Material::query(
+            'SELECT m.*, s.name AS supplier_name FROM materials m LEFT JOIN suppliers s ON s.id = m.supplier_id WHERE m.company_id = ? ORDER BY m.category ASC, m.name ASC',
+            [$takeoff['company_id']]
+        )->fetchAll();
 
         $this->view('user/takeoffs/show', [
             'pageTitle' => $takeoff['name'],
             'takeoff' => $takeoff,
             'measurements' => $measurements,
             'totalCost' => $totalCost,
+            'materials' => $materials,
         ], 'layouts/app');
     }
 
     public function calibrate(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $takeoff = $this->findOwned((int) $id);
 
         $pixelDistance = (float) $this->input('pixel_distance', 0);
@@ -121,6 +129,7 @@ class TakeoffController extends Controller
     public function addMeasurement(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $takeoff = $this->findOwned((int) $id);
 
         $type = (string) $this->input('type');
@@ -154,6 +163,7 @@ class TakeoffController extends Controller
     public function deleteMeasurement(string $id, string $measurementId): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $takeoff = $this->findOwned((int) $id);
         $measurement = TakeoffMeasurement::find((int) $measurementId);
         if ($measurement && (int) $measurement['takeoff_id'] === $takeoff['id']) {
@@ -165,6 +175,7 @@ class TakeoffController extends Controller
     public function convertToEstimate(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $takeoff = $this->findOwned((int) $id);
         $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff['id'], 'id ASC');
 
@@ -201,6 +212,7 @@ class TakeoffController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $takeoff = $this->findOwned((int) $id);
         TakeoffMeasurement::query('DELETE FROM takeoff_measurements WHERE takeoff_id = ?', [$takeoff['id']]);
         if ($takeoff['plan_image_path']) {

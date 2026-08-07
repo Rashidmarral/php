@@ -15,6 +15,8 @@ use App\Controllers\User\ScheduleController;
 use App\Controllers\User\TeamController;
 use App\Controllers\User\BillingController;
 use App\Controllers\User\SettingsController;
+use App\Controllers\User\BusinessSetupController;
+use App\Controllers\User\LeadController;
 use App\Controllers\Admin\AdminDashboardController;
 use App\Controllers\Admin\CompanyController;
 use App\Controllers\Admin\CompanyZatcaController;
@@ -107,8 +109,13 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
     $router->post('/app/quick-estimate/{id}/delete', [UserQuickEstimateController::class, 'destroy']);
 
     $router->get('/app/estimates', [EstimateController::class, 'index']);
+    $router->get('/app/estimates/new', [EstimateController::class, 'newChoice']);
     $router->get('/app/estimates/create', [EstimateController::class, 'create']);
     $router->post('/app/estimates', [EstimateController::class, 'store']);
+    $router->get('/app/estimates/templates/{id}', [EstimateController::class, 'templatePreview']);
+    $router->post('/app/estimates/templates/{id}', [EstimateController::class, 'storeFromTemplate']);
+    $router->get('/app/estimates/ai', [EstimateController::class, 'aiGenerator']);
+    $router->post('/app/estimates/ai/generate', [EstimateController::class, 'aiGenerate']);
     $router->get('/app/estimates/{id}', [EstimateController::class, 'show']);
     $router->post('/app/estimates/{id}/status', [EstimateController::class, 'updateStatus']);
     $router->post('/app/estimates/{id}/delete', [EstimateController::class, 'destroy']);
@@ -131,6 +138,7 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/team', [TeamController::class, 'index']);
     $router->post('/app/team', [TeamController::class, 'store']);
+    $router->post('/app/team/{id}/role', [TeamController::class, 'updateRole']);
     $router->post('/app/team/{id}/delete', [TeamController::class, 'destroy']);
 
     $router->get('/app/billing', [BillingController::class, 'index']);
@@ -141,6 +149,31 @@ $router->group([fn() => Auth::requireCompanyUser()], function (Router $router) {
 
     $router->get('/app/settings', [SettingsController::class, 'index']);
     $router->post('/app/settings', [SettingsController::class, 'update']);
+
+    $router->get('/app/leads', [LeadController::class, 'index']);
+    $router->get('/app/leads/create', [LeadController::class, 'create']);
+    $router->post('/app/leads', [LeadController::class, 'store']);
+    $router->get('/app/leads/{id}/edit', [LeadController::class, 'edit']);
+    $router->post('/app/leads/{id}', [LeadController::class, 'update']);
+    $router->post('/app/leads/{id}/status', [LeadController::class, 'updateStatus']);
+    $router->post('/app/leads/{id}/convert', [LeadController::class, 'convertToClient']);
+    $router->post('/app/leads/{id}/delete', [LeadController::class, 'destroy']);
+
+    $router->get('/app/business-setup', [BusinessSetupController::class, 'index']);
+    $router->get('/app/business-setup/units-of-measure', [BusinessSetupController::class, 'units']);
+    $router->post('/app/business-setup/units-of-measure', [BusinessSetupController::class, 'storeUnit']);
+    $router->post('/app/business-setup/units-of-measure/load-defaults', [BusinessSetupController::class, 'loadDefaultUnits']);
+    $router->post('/app/business-setup/units-of-measure/{id}', [BusinessSetupController::class, 'updateUnit']);
+    $router->post('/app/business-setup/units-of-measure/{id}/delete', [BusinessSetupController::class, 'destroyUnit']);
+    $router->get('/app/business-setup/tax-rates', [BusinessSetupController::class, 'taxRates']);
+    $router->post('/app/business-setup/tax-rates', [BusinessSetupController::class, 'storeTaxRate']);
+    $router->post('/app/business-setup/tax-rates/{id}', [BusinessSetupController::class, 'updateTaxRate']);
+    $router->post('/app/business-setup/tax-rates/{id}/delete', [BusinessSetupController::class, 'destroyTaxRate']);
+    $router->get('/app/business-setup/{type}', [BusinessSetupController::class, 'simple']);
+    $router->post('/app/business-setup/{type}', [BusinessSetupController::class, 'storeSimple']);
+    $router->post('/app/business-setup/{type}/load-defaults', [BusinessSetupController::class, 'loadDefaultsSimple']);
+    $router->post('/app/business-setup/{type}/{id}', [BusinessSetupController::class, 'updateSimple']);
+    $router->post('/app/business-setup/{type}/{id}/delete', [BusinessSetupController::class, 'destroySimple']);
 
     $router->get('/app/suppliers', [SupplierController::class, 'index']);
     $router->get('/app/suppliers/create', [SupplierController::class, 'create']);
@@ -234,6 +267,8 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/settings/email', [SiteSettingsController::class, 'updateEmail']);
     $router->get('/admin/settings/header', [SiteSettingsController::class, 'header']);
     $router->post('/admin/settings/header', [SiteSettingsController::class, 'updateHeader']);
+    $router->get('/admin/settings/ai', [SiteSettingsController::class, 'ai']);
+    $router->post('/admin/settings/ai', [SiteSettingsController::class, 'updateAi']);
     $router->get('/admin/integrations', [AdminIntegrationController::class, 'index']);
 
     $router->get('/admin/pages', [AdminPageController::class, 'index']);

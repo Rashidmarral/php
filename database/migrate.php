@@ -332,6 +332,94 @@ $statements[] = "CREATE TABLE IF NOT EXISTS translations (
     UNIQUE(locale, translation_key)
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS leads (
+    id {$id},
+    company_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    company_name VARCHAR(150),
+    email VARCHAR(150),
+    phone VARCHAR(30),
+    source VARCHAR(50) NOT NULL DEFAULT 'other',
+    status VARCHAR(20) NOT NULL DEFAULT 'new',
+    estimated_value DECIMAL(12,2) NOT NULL DEFAULT 0,
+    notes TEXT,
+    assigned_to INT,
+    converted_client_id INT,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS building_types (
+    id {$id},
+    company_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS contact_types (
+    id {$id},
+    company_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS client_types (
+    id {$id},
+    company_id INT NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS units_of_measure (
+    id {$id},
+    company_id INT NOT NULL,
+    code VARCHAR(20) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS tax_rates (
+    id {$id},
+    company_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    rate_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
+    is_default INT NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS estimate_templates (
+    id {$id},
+    name_en VARCHAR(150) NOT NULL,
+    name_ar VARCHAR(150) NOT NULL,
+    description_en VARCHAR(255),
+    description_ar VARCHAR(255),
+    building_type VARCHAR(100),
+    icon VARCHAR(10) NOT NULL DEFAULT '🏗️',
+    is_active INT NOT NULL DEFAULT 1,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS estimate_template_items (
+    id {$id},
+    template_id INT NOT NULL,
+    section_number VARCHAR(10) NOT NULL DEFAULT '1.0',
+    section_title_en VARCHAR(150) NOT NULL,
+    section_title_ar VARCHAR(150) NOT NULL,
+    item_number VARCHAR(10) NOT NULL DEFAULT '1.1',
+    description_en VARCHAR(255) NOT NULL,
+    description_ar VARCHAR(255) NOT NULL,
+    item_type VARCHAR(10) NOT NULL DEFAULT 'material',
+    default_qty DECIMAL(10,2) NOT NULL DEFAULT 0,
+    uom VARCHAR(20) NOT NULL DEFAULT 'each',
+    unit_cost DECIMAL(10,2) NOT NULL DEFAULT 0,
+    sort_order INT NOT NULL DEFAULT 0
+){$engine}";
+
 foreach ($statements as $sql) {
     $pdo->exec($sql);
 }
@@ -447,6 +535,17 @@ addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_by', 'INT');
 addColumnIfMissing($pdo, $driver, 'payments', 'reviewed_at', 'TEXT');
 addColumnIfMissing($pdo, $driver, 'payments', 'plan_id', 'INT');
 addColumnIfMissing($pdo, $driver, 'payments', 'billing_cycle', "VARCHAR(10)");
+
+addColumnIfMissing($pdo, $driver, 'estimates', 'building_type', 'VARCHAR(100)');
+addColumnIfMissing($pdo, $driver, 'estimates', 'job_address', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'estimates', 'template_id', 'INT');
+addColumnIfMissing($pdo, $driver, 'estimates', 'source', "VARCHAR(20) NOT NULL DEFAULT 'blank'");
+
+addColumnIfMissing($pdo, $driver, 'estimate_items', 'item_type', "VARCHAR(10) NOT NULL DEFAULT 'material'");
+addColumnIfMissing($pdo, $driver, 'estimate_items', 'uom', "VARCHAR(20) NOT NULL DEFAULT 'each'");
+addColumnIfMissing($pdo, $driver, 'estimate_items', 'section_title', 'VARCHAR(150)');
+
+addColumnIfMissing($pdo, $driver, 'estimate_templates', 'is_default_choice', 'INT NOT NULL DEFAULT 0');
 
 // ---- Seed default plans (idempotent by slug) ----
 $defaultPlans = [
@@ -727,6 +826,36 @@ if ((int) $pdo->query('SELECT COUNT(*) AS c FROM quick_estimate_addons')->fetch(
         $ins->execute($a);
     }
     echo "Quick estimate add-ons seeded.\n";
+}
+
+if ((int) $pdo->query('SELECT COUNT(*) AS c FROM estimate_templates')->fetch()['c'] === 0) {
+    $templates = require __DIR__ . '/seed_estimate_templates.php';
+    $insTemplate = $pdo->prepare('INSERT INTO estimate_templates (name_en, name_ar, description_en, description_ar, building_type, icon, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?, 1, ?)');
+    $insItem = $pdo->prepare('INSERT INTO estimate_template_items (template_id, section_number, section_title_en, section_title_ar, item_number, description_en, description_ar, item_type, default_qty, uom, unit_cost, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+
+    foreach ($templates as $tIndex => $tpl) {
+        $insTemplate->execute([$tpl['name_en'], $tpl['name_ar'], $tpl['description_en'], $tpl['description_ar'], $tpl['building_type'], $tpl['icon'], $tIndex]);
+        $templateId = (int) $pdo->lastInsertId();
+
+        $itemSort = 0;
+        foreach ($tpl['sections'] as $section) {
+            foreach ($section['items'] as $item) {
+                $insItem->execute([
+                    $templateId, $section['no'], $section['title_en'], $section['title_ar'], $item['no'],
+                    $item['en'], $item['ar'], $item['type'], $item['qty'], $item['uom'], $item['cost'], $itemSort++,
+                ]);
+            }
+        }
+    }
+    echo count($templates) . " estimate templates seeded.\n";
+}
+
+// ---- Ensure exactly one estimate template is marked as the account-wide default ----
+if ((int) $pdo->query('SELECT COUNT(*) AS c FROM estimate_templates WHERE is_default_choice = 1')->fetch()['c'] === 0) {
+    $first = $pdo->query('SELECT id FROM estimate_templates WHERE is_active = 1 ORDER BY sort_order ASC, id ASC LIMIT 1')->fetch();
+    if ($first) {
+        $pdo->prepare('UPDATE estimate_templates SET is_default_choice = 1 WHERE id = ?')->execute([$first['id']]);
+    }
 }
 
 // ---- Optional demo company with sample data ----

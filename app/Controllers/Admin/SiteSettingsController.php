@@ -119,6 +119,29 @@ class SiteSettingsController extends Controller
         self::redirect('/admin/settings/header');
     }
 
+    public function ai(): void
+    {
+        $this->view('admin/settings/ai', [
+            'pageTitle' => 'AI Estimate Generator',
+            'settings' => Settings::all(),
+        ], 'layouts/admin');
+    }
+
+    public function updateAi(): void
+    {
+        $this->verifyCsrf();
+
+        Settings::set('ai_enabled', $this->input('ai_enabled') ? '1' : '0');
+        Settings::set('ai_model', trim((string) $this->input('ai_model', '')));
+        $apiKey = trim((string) $this->input('ai_api_key', ''));
+        if ($apiKey !== '') {
+            Settings::set('ai_api_key', $apiKey);
+        }
+
+        $this->flash('success', 'AI generator settings updated.');
+        self::redirect('/admin/settings/ai');
+    }
+
     public function notifications(): void
     {
         $this->view('admin/settings/notifications', [

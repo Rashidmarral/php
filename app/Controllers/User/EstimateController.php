@@ -2,15 +2,19 @@
 
 namespace App\Controllers\User;
 
+use App\Core\AiEstimateGenerator;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Env;
 use App\Core\Lang;
 use App\Core\WhatsApp;
+use App\Models\BuildingType;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
+use App\Models\EstimateTemplate;
+use App\Models\EstimateTemplateItem;
 use App\Models\Material;
 use App\Models\Project;
 
@@ -23,6 +27,157 @@ class EstimateController extends Controller
             [Auth::companyId()]
         )->fetchAll();
         $this->view('user/estimates/index', ['pageTitle' => 'Estimates', 'estimates' => $estimates], 'layouts/app');
+    }
+
+    /** Landing screen: blank estimate / default template / template gallery / AI generator. */
+    public function newChoice(): void
+    {
+        $templates = EstimateTemplate::active();
+        $defaultTemplate = null;
+        foreach ($templates as $t) {
+            if ($t['is_default_choice']) {
+                $defaultTemplate = $t;
+                break;
+            }
+        }
+        $this->view('user/estimates/new', [
+            'pageTitle' => 'Create an Estimate',
+            'templates' => $templates,
+            'defaultTemplate' => $defaultTemplate,
+        ], 'layouts/app');
+    }
+
+    public function templatePreview(string $id): void
+    {
+        $template = EstimateTemplate::find((int) $id);
+        if (!$template || !$template['is_active']) {
+            http_response_code(404);
+            die('Template not found.');
+        }
+        $items = EstimateTemplateItem::forTemplate($template['id']);
+        $companyId = Auth::companyId();
+
+        $this->view('user/estimates/template-preview', [
+            'pageTitle' => $template['name_en'],
+            'template' => $template,
+            'items' => $items,
+            'subtotal' => array_sum(array_map(fn($i) => (float) $i['default_qty'] * (float) $i['unit_cost'], $items)),
+            'clients' => Client::where('company_id', $companyId, 'name ASC'),
+            'buildingTypes' => BuildingType::where('company_id', $companyId, 'sort_order ASC, id ASC'),
+        ], 'layouts/app');
+    }
+
+    public function storeFromTemplate(string $id): void
+    {
+        $this->verifyCsrf();
+        Auth::requireAbility('write');
+        $template = EstimateTemplate::find((int) $id);
+        if (!$template || !$template['is_active']) {
+            http_response_code(404);
+            die('Template not found.');
+        }
+        $companyId = Auth::companyId();
+        $templateItems = EstimateTemplateItem::forTemplate($template['id']);
+        $includeQuantities = (bool) $this->input('include_quantities');
+
+        $total = 0;
+        $rows = [];
+        foreach ($templateItems as $ti) {
+            $qty = $includeQuantities ? (float) $ti['default_qty'] : 0;
+            $lineTotal = $qty * (float) $ti['unit_cost'];
+            $total += $lineTotal;
+            $rows[] = [
+                'description' => $ti['description_en'],
+                'section_title' => $ti['section_number'] . ' ' . $ti['section_title_en'],
+                'item_type' => $ti['item_type'],
+                'qty' => $qty,
+                'uom' => $ti['uom'],
+                'unit_cost' => $ti['unit_cost'],
+                'total' => $lineTotal,
+            ];
+        }
+
+        $estimateId = Estimate::create([
+            'company_id' => $companyId,
+            'project_id' => null,
+            'client_id' => $this->input('client_id') ?: null,
+            'title' => trim((string) $this->input('title')) ?: $template['name_en'],
+            'status' => 'draft',
+            'total' => $total,
+            'share_token' => bin2hex(random_bytes(20)),
+            'building_type' => trim((string) $this->input('building_type', '')),
+            'job_address' => trim((string) $this->input('job_address', '')),
+            'template_id' => $template['id'],
+            'source' => 'template',
+        ]);
+
+        foreach ($rows as $row) {
+            EstimateItem::create(['estimate_id' => $estimateId, ...$row]);
+        }
+
+        $this->flash('success', 'Estimate created from "' . $template['name_en'] . '".');
+        self::redirect('/app/estimates/' . $estimateId);
+    }
+
+    public function aiGenerator(): void
+    {
+        $this->view('user/estimates/ai', [
+            'pageTitle' => 'AI Estimate Generator',
+            'aiConfigured' => AiEstimateGenerator::isConfigured(),
+        ], 'layouts/app');
+    }
+
+    public function aiGenerate(): void
+    {
+        $this->verifyCsrf();
+        Auth::requireAbility('write');
+
+        $description = trim((string) $this->input('description'));
+        if ($description === '') {
+            $this->flash('error', 'Describe the project first.');
+            self::redirect('/app/estimates/ai');
+        }
+
+        $result = AiEstimateGenerator::generate($description);
+        $companyId = Auth::companyId();
+
+        $total = 0;
+        $rows = [];
+        foreach ($result['items'] as $item) {
+            $lineTotal = $item['qty'] * $item['unit_cost'];
+            $total += $lineTotal;
+            $rows[] = [
+                'description' => $item['description'],
+                'section_title' => $item['section_title'],
+                'item_type' => $item['item_type'],
+                'qty' => $item['qty'],
+                'uom' => $item['uom'],
+                'unit_cost' => $item['unit_cost'],
+                'total' => $lineTotal,
+            ];
+        }
+
+        $estimateId = Estimate::create([
+            'company_id' => $companyId,
+            'project_id' => null,
+            'client_id' => null,
+            'title' => $result['title'],
+            'status' => 'draft',
+            'total' => $total,
+            'share_token' => bin2hex(random_bytes(20)),
+            'source' => 'ai',
+        ]);
+
+        foreach ($rows as $row) {
+            EstimateItem::create(['estimate_id' => $estimateId, ...$row]);
+        }
+
+        if (!empty($result['note'])) {
+            $this->flash('success', $result['note']);
+        } else {
+            $this->flash('success', 'AI-generated estimate created — review and adjust as needed.');
+        }
+        self::redirect('/app/estimates/' . $estimateId);
     }
 
     public function create(): void
@@ -40,6 +195,7 @@ class EstimateController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
         $title = trim((string) $this->input('title'));
 
@@ -118,6 +274,7 @@ class EstimateController extends Controller
     public function updateStatus(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $estimate = $this->findOwned((int) $id);
         $status = (string) $this->input('status', 'draft');
         if (in_array($status, ['draft', 'sent', 'accepted', 'declined'], true)) {
@@ -130,6 +287,7 @@ class EstimateController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $estimate = $this->findOwned((int) $id);
         Estimate::query('DELETE FROM estimate_items WHERE estimate_id = ?', [$estimate['id']]);
         Estimate::delete($estimate['id']);

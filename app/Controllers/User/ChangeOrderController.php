@@ -12,6 +12,7 @@ class ChangeOrderController extends Controller
     public function store(string $projectId): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $project = $this->findOwnedProject((int) $projectId);
 
         $title = trim((string) $this->input('title'));
@@ -37,6 +38,7 @@ class ChangeOrderController extends Controller
     public function updateStatus(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $changeOrder = $this->findOwned((int) $id);
         $status = (string) $this->input('status');
         if (!in_array($status, ['pending', 'approved', 'rejected'], true)) {
@@ -55,6 +57,7 @@ class ChangeOrderController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $changeOrder = $this->findOwned((int) $id);
         ChangeOrder::delete($changeOrder['id']);
         $this->flash('success', 'Change order removed.');

@@ -23,6 +23,7 @@ class ClientController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $name = trim((string) $this->input('name'));
         if ($name === '') {
             $this->flash('error', 'Client name is required.');
@@ -48,6 +49,7 @@ class ClientController extends Controller
     public function update(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $client = $this->findOwned((int) $id);
         Client::update($client['id'], [
             'name' => trim((string) $this->input('name')),
@@ -62,6 +64,7 @@ class ClientController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $client = $this->findOwned((int) $id);
         Client::delete($client['id']);
         $this->flash('success', 'Client removed.');
@@ -71,6 +74,7 @@ class ClientController extends Controller
     public function enablePortal(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         Feature::requireOrRedirect('client_portal');
         $client = $this->findOwned((int) $id);
 
@@ -92,6 +96,7 @@ class ClientController extends Controller
     public function disablePortal(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $client = $this->findOwned((int) $id);
         Client::update($client['id'], ['portal_enabled' => 0]);
         $this->flash('success', 'Portal access disabled.');

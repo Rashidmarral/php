@@ -1,4 +1,13 @@
 <?php use App\Core\View; ?>
+<?php if ($trialDaysLeft !== null): ?>
+  <div class="card" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:<?= $trialDaysLeft <= 3 ? '#fdf3e0' : 'var(--brand-light)' ?>;border-color:<?= $trialDaysLeft <= 3 ? '#e8c76b' : 'var(--brand)' ?>;">
+    <div>
+      <strong><?= $trialDaysLeft > 0 ? "Your trial ends in {$trialDaysLeft} day" . ($trialDaysLeft === 1 ? '' : 's') . '.' : 'Your trial has ended.' ?></strong>
+      <?php if ($currentPlan): ?><span style="color:var(--muted);"> You're currently experiencing the <?= View::e($currentPlan['name']) ?> plan.</span><?php endif; ?>
+    </div>
+    <a href="/app/billing" class="btn btn-primary btn-sm">Subscribe now</a>
+  </div>
+<?php endif; ?>
 <div class="page-head">
   <h1>Dashboard</h1>
   <a href="/app/projects/create" class="btn btn-primary">+ New Project</a>
@@ -56,7 +65,7 @@
 <div class="card" style="margin-top:24px;">
   <h3>Recent Estimates</h3>
   <?php if (empty($recentEstimates)): ?>
-    <p class="help-text">No estimates yet. <a href="/app/estimates/create">Create one</a>.</p>
+    <p class="help-text">No estimates yet. <a href="/app/estimates/new">Create one</a>.</p>
   <?php else: ?>
     <table class="data">
       <thead><tr><th>Title</th><th>Status</th><th>Total</th></tr></thead>

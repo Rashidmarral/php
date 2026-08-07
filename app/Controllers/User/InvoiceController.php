@@ -58,6 +58,7 @@ class InvoiceController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
 
         $descriptions = $_POST['item_description'] ?? [];
@@ -195,6 +196,7 @@ class InvoiceController extends Controller
     public function sendWhatsApp(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $invoice = $this->findOwned((int) $id);
         $client = $invoice['client_id'] ? Client::find((int) $invoice['client_id']) : null;
         $company = Company::find((int) $invoice['company_id']);
@@ -241,6 +243,7 @@ class InvoiceController extends Controller
     public function updateStatus(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $invoice = $this->findOwned((int) $id);
         $status = (string) $this->input('status', 'unpaid');
         if (in_array($status, ['unpaid', 'paid', 'overdue'], true)) {
@@ -253,6 +256,7 @@ class InvoiceController extends Controller
     public function releaseRetention(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $invoice = $this->findOwned((int) $id);
         if ((float) $invoice['retention_amount'] > 0 && !$invoice['retention_released']) {
             Invoice::update($invoice['id'], ['retention_released' => 1, 'retention_released_at' => date('Y-m-d H:i:s')]);
@@ -264,6 +268,7 @@ class InvoiceController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $invoice = $this->findOwned((int) $id);
         Invoice::query('DELETE FROM invoice_items WHERE invoice_id = ?', [$invoice['id']]);
         Invoice::delete($invoice['id']);
@@ -335,6 +340,7 @@ class InvoiceController extends Controller
     public function submitZatca(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         Feature::requireOrRedirect('zatca_phase2');
         $invoice = $this->findOwned((int) $id);
         $company = Company::find((int) $invoice['company_id']);

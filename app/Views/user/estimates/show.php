@@ -2,7 +2,7 @@
 <div class="page-head">
   <div>
     <h1><?= View::e($estimate['title']) ?></h1>
-    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client['name'] ?? '—') ?><?php if ($project): ?> · Project: <a href="/app/projects/<?= $project['id'] ?>"><?= View::e($project['name']) ?></a><?php endif; ?></p>
+    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client['name'] ?? '—') ?><?php if ($project): ?> · Project: <a href="/app/projects/<?= $project['id'] ?>"><?= View::e($project['name']) ?></a><?php endif; ?><?php if (!empty($estimate['building_type'])): ?> · <?= View::e($estimate['building_type']) ?><?php endif; ?><?php if (!empty($estimate['job_address'])): ?> · <?= View::e($estimate['job_address']) ?><?php endif; ?></p>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$estimate['status']] ?? 'gray' ?>" style="font-size:13px;padding:6px 14px;"><?= View::e($estimate['status']) ?></span>
@@ -37,10 +37,20 @@
 
 <div class="card" style="max-width:820px;">
   <table class="data">
-    <thead><tr><th>Description</th><th>Qty</th><th>Unit cost</th><th>Total</th></tr></thead>
+    <thead><tr><th>Description</th><?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><th>Type</th><?php endif; ?><th>Qty</th><?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><th>UOM</th><?php endif; ?><th>Unit cost</th><th>Total</th></tr></thead>
     <tbody>
-      <?php foreach ($items as $it): ?>
-        <tr><td><?= View::e($it['description']) ?></td><td><?= View::e($it['qty']) ?></td><td><?= View::money((float)$it['unit_cost']) ?></td><td><?= View::money((float)$it['total']) ?></td></tr>
+      <?php $lastSection = null; foreach ($items as $it): ?>
+        <?php if (!empty($it['section_title']) && $it['section_title'] !== $lastSection): $lastSection = $it['section_title']; ?>
+          <tr style="background:#fafcfb;"><td colspan="5"><strong><?= View::e($it['section_title']) ?></strong></td></tr>
+        <?php endif; ?>
+        <tr>
+          <td><?= View::e($it['description']) ?></td>
+          <?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><td><span class="badge badge-<?= $it['item_type']==='labor'?'yellow':'gray' ?>"><?= View::e(ucfirst($it['item_type'])) ?></span></td><?php endif; ?>
+          <td><?= View::e($it['qty']) ?></td>
+          <?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><td><?= View::e($it['uom']) ?></td><?php endif; ?>
+          <td><?= View::money((float)$it['unit_cost']) ?></td>
+          <td><?= View::money((float)$it['total']) ?></td>
+        </tr>
       <?php endforeach; ?>
     </tbody>
   </table>

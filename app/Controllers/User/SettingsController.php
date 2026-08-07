@@ -20,10 +20,7 @@ class SettingsController extends Controller
     public function update(): void
     {
         $this->verifyCsrf();
-        if (!Auth::isCompanyOwner()) {
-            $this->flash('error', 'Only the company owner can update company settings.');
-            self::redirect('/app/settings');
-        }
+        Auth::requireAbility('manage_company_settings');
 
         $companyId = Auth::companyId();
         $data = [

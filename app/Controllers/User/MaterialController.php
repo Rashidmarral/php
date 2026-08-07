@@ -41,6 +41,7 @@ class MaterialController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $name = trim((string) $this->input('name'));
         if ($name === '') {
             $this->flash('error', 'Material name is required.');
@@ -61,6 +62,7 @@ class MaterialController extends Controller
     public function update(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $material = $this->findOwned((int) $id);
         Material::update($material['id'], $this->fromInput());
         $this->flash('success', 'Material updated.');
@@ -70,6 +72,7 @@ class MaterialController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $material = $this->findOwned((int) $id);
         Material::delete($material['id']);
         $this->flash('success', 'Material removed.');
@@ -79,6 +82,7 @@ class MaterialController extends Controller
     public function importCsv(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         if (empty($_FILES['csv']['tmp_name']) || $_FILES['csv']['error'] !== UPLOAD_ERR_OK) {
             $this->flash('error', 'Please choose a CSV file to import.');
             self::redirect('/app/materials');
@@ -92,6 +96,7 @@ class MaterialController extends Controller
     public function syncFromSheet(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
         $company = Company::find($companyId);
         $url = trim((string) ($company['price_sync_url'] ?? ''));

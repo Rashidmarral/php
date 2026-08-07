@@ -51,6 +51,7 @@
       <p class="help-text">Value: <strong id="pending-value"></strong></p>
       <div class="form-group"><label>Label</label><input type="text" id="pending-label" placeholder="e.g. North wall"></div>
       <div class="form-group"><label>Cost per unit (SAR)</label><input type="number" step="0.01" id="pending-cost" value="0"></div>
+      <button type="button" class="btn btn-sm btn-outline" id="open-library-picker" style="margin-bottom:10px;">📚 Pick cost from library</button>
       <button type="button" class="btn btn-primary btn-sm" id="btn-save-measurement">Save</button>
     </div>
 
@@ -86,7 +87,17 @@
   </div>
 </div>
 
+<?php require BASE_PATH . '/app/Views/user/partials/library-picker.php'; ?>
+
 <script>
+(function() {
+  document.addEventListener('library-item-picked', (e) => {
+    const labelEl = document.getElementById('pending-label');
+    const costEl = document.getElementById('pending-cost');
+    if (labelEl && !labelEl.value) labelEl.value = e.detail.description;
+    if (costEl) costEl.value = e.detail.unitCost;
+  });
+})();
 (function() {
   const csrfToken = <?= json_encode(\App\Core\Csrf::token()) ?>;
   const takeoffId = <?= (int) $takeoff['id'] ?>;

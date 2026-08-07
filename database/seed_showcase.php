@@ -306,4 +306,126 @@ if ($region && $foundation) {
     echo count($leads) . " Quick Estimate leads ready.\n";
 }
 
+// ---- Business Setup defaults (building/contact/client types, units of measure, tax rates) ----
+$simpleLookups = [
+    'building_types' => ['Single Family Residential', 'Villa', 'Duplex', 'Apartment Building', 'Commercial', 'Industrial', 'Renovation / Remodel'],
+    'contact_types' => ['Client', 'Subcontractor', 'Supplier', 'Consultant', 'Architect', 'Government / Municipality'],
+    'client_types' => ['Individual Homeowner', 'Real Estate Developer', 'Government Entity', 'Commercial Business', 'Property Management Company'],
+];
+foreach ($simpleLookups as $table => $names) {
+    foreach ($names as $i => $name) {
+        $exists = $pdo->prepare("SELECT id FROM {$table} WHERE company_id = ? AND name = ?");
+        $exists->execute([$companyId, $name]);
+        if (!$exists->fetch()) {
+            $pdo->prepare("INSERT INTO {$table} (company_id, name, sort_order) VALUES (?, ?, ?)")->execute([$companyId, $name, $i]);
+        }
+    }
+}
+echo "Business setup lookup lists ready.\n";
+
+$unitDefs = [
+    ['sqm', 'Square meter'], ['m3', 'Cubic meter'], ['lm', 'Linear meter'], ['each', 'Each'],
+    ['lot', 'Lot / Job'], ['hr', 'Hour'], ['ton', 'Ton'], ['point', 'Point (electrical/plumbing)'], ['kg', 'Kilogram'],
+];
+foreach ($unitDefs as $i => [$code, $name]) {
+    $exists = $pdo->prepare('SELECT id FROM units_of_measure WHERE company_id = ? AND code = ?');
+    $exists->execute([$companyId, $code]);
+    if (!$exists->fetch()) {
+        $pdo->prepare('INSERT INTO units_of_measure (company_id, code, name, sort_order) VALUES (?,?,?,?)')->execute([$companyId, $code, $name, $i]);
+    }
+}
+echo "Units of measure ready.\n";
+
+$taxExists = $pdo->prepare('SELECT id FROM tax_rates WHERE company_id = ? AND name = ?');
+$taxExists->execute([$companyId, 'Standard VAT']);
+if (!$taxExists->fetch()) {
+    $pdo->prepare('INSERT INTO tax_rates (company_id, name, rate_percent, is_default, sort_order) VALUES (?,?,?,?,?)')
+        ->execute([$companyId, 'Standard VAT', 15, 1, 0]);
+}
+echo "Tax rates ready.\n";
+
+// ---- Leads (company-level CRM leads, distinct from the platform's public Quick Estimate leads) ----
+$leadDefs = [
+    ['Khalid Al Amri', 'Al Amri Trading Est.', 'khalid.amri@example.com', '+966 55 444 5566', 'referral', 'new', 320000],
+    ['Reem Al Harbi', null, 'reem.harbi@example.com', '+966 54 555 6677', 'website', 'contacted', 85000],
+    ['Bandar Construction Group', 'Bandar Construction Group', 'projects@bandarcg.example.com', '+966 11 666 7788', 'phone', 'qualified', 1450000],
+    ['Lubna Al Zahrani', null, 'lubna.z@example.com', '+966 56 777 8899', 'quick_estimate', 'won', 210000],
+    ['Yousef Al Otaibi', null, 'yousef.otaibi@example.com', '+966 50 888 9900', 'social_media', 'lost', 60000],
+];
+foreach ($leadDefs as [$name, $companyName, $email, $phone, $source, $status, $value]) {
+    $exists = $pdo->prepare('SELECT id FROM leads WHERE company_id = ? AND email = ?');
+    $exists->execute([$companyId, $email]);
+    if ($exists->fetch()) {
+        continue;
+    }
+    $pdo->prepare('INSERT INTO leads (company_id, name, company_name, email, phone, source, status, estimated_value, notes) VALUES (?,?,?,?,?,?,?,?,?)')
+        ->execute([$companyId, $name, $companyName, $email, $phone, $source, $status, $value, '']);
+}
+echo count($leadDefs) . " leads ready.\n";
+
+// ---- Digital Takeoff demo: a generated floor-plan sketch with real measurements ----
+$takeoffExists = $pdo->prepare('SELECT id FROM takeoffs WHERE company_id = ? AND name = ?');
+$takeoffExists->execute([$companyId, 'Al Faisaliah Tower B — Floor Plan Takeoff']);
+if (!$takeoffExists->fetch() && function_exists('imagecreatetruecolor')) {
+    $dir = __DIR__ . "/../public/uploads/takeoffs/{$companyId}";
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
+    }
+    $filename = 'demo-floorplan-' . bin2hex(random_bytes(6)) . '.png';
+    $path = "{$dir}/{$filename}";
+
+    $w = 900; $h = 640;
+    $img = imagecreatetruecolor($w, $h);
+    $white = imagecolorallocate($img, 255, 255, 255);
+    $black = imagecolorallocate($img, 30, 30, 30);
+    $gray = imagecolorallocate($img, 180, 180, 180);
+    imagefill($img, 0, 0, $white);
+
+    // Outer footprint
+    imagerectangle($img, 60, 60, 840, 580, $black);
+    // Internal partitions
+    imageline($img, 420, 60, 420, 340, $black);
+    imageline($img, 60, 340, 840, 340, $black);
+    imageline($img, 630, 340, 630, 580, $black);
+    // Door gaps (drawn as white breaks with small arcs)
+    imagearc($img, 420, 340, 60, 60, 270, 360, $gray);
+    imagearc($img, 630, 460, 60, 60, 90, 180, $gray);
+    // Labels
+    imagestring($img, 5, 150, 180, 'Open Plan Office', $black);
+    imagestring($img, 5, 500, 180, 'Meeting Room', $black);
+    imagestring($img, 5, 150, 440, 'Reception', $black);
+    imagestring($img, 5, 680, 440, 'Server Room', $black);
+    imagestring($img, 3, 60, 590, 'Al Faisaliah Tower B — Level 3 (not to scale, demo only)', $black);
+
+    imagepng($img, $path);
+    imagedestroy($img);
+
+    $materialCost = function (string $name, float $default) use ($pdo, $companyId): float {
+        $stmt = $pdo->prepare('SELECT unit_cost FROM materials WHERE company_id = ? AND name = ? LIMIT 1');
+        $stmt->execute([$companyId, $name]);
+        $value = $stmt->fetchColumn();
+        return $value !== false ? (float) $value : $default;
+    };
+    $tileCost = $materialCost('Porcelain floor tiles', 260);
+    $paintCost = $materialCost('Interior wall painting (2 coats)', 60);
+    $doorCost = $materialCost('Internal solid wood door', 1600);
+
+    $pdo->prepare('INSERT INTO takeoffs (company_id, project_id, name, plan_image_path, scale_px_per_unit, scale_unit) VALUES (?,?,?,?,?,?)')
+        ->execute([$companyId, $projectIds['Al Faisaliah Tower B Fit-out'], 'Al Faisaliah Tower B — Floor Plan Takeoff', "/uploads/takeoffs/{$companyId}/{$filename}", 40, 'm']);
+    $takeoffId = (int) $pdo->lastInsertId();
+
+    $measurements = [
+        ['area', 'Open Plan Office flooring', 'area', 90, 'm²', $tileCost, [[60,60],[420,60],[420,340],[60,340]]],
+        ['area', 'Meeting Room flooring', 'area', 47, 'm²', $tileCost, [[420,60],[840,60],[840,340],[420,340]]],
+        ['length', 'Reception perimeter wall paint run', 'length', 62, 'm', $paintCost, [[60,340],[630,340],[630,580],[60,580]]],
+        ['count', 'Internal doors', 'count', 6, 'ea', $doorCost, [[420,340],[630,460],[300,340],[500,60],[700,340],[800,460]]],
+    ];
+    foreach ($measurements as [$type, $label, , $value, $unit, $cost, $points]) {
+        $pointsJson = json_encode(array_map(fn($p) => ['x' => $p[0], 'y' => $p[1]], $points));
+        $pdo->prepare('INSERT INTO takeoff_measurements (takeoff_id, type, label, points_json, value, unit, unit_cost, total_cost) VALUES (?,?,?,?,?,?,?,?)')
+            ->execute([$takeoffId, $type, $label, $pointsJson, $value, $unit, $cost, $value * $cost]);
+    }
+    echo "Digital Takeoff demo (floor plan + " . count($measurements) . " measurements) ready.\n";
+}
+
 echo "\nShowcase data seeded for {$company['name']}. Log in as owner@buildxact-saudi.local / Demo@12345\n";

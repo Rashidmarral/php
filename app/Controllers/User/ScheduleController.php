@@ -23,6 +23,7 @@ class ScheduleController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
         $title = trim((string) $this->input('title'));
         $projectId = (int) $this->input('project_id');
@@ -54,6 +55,7 @@ class ScheduleController extends Controller
     public function updateStatus(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $task = $this->findOwned((int) $id);
         $status = (string) $this->input('status', 'pending');
         if (in_array($status, ['pending', 'in_progress', 'done'], true)) {
@@ -65,6 +67,7 @@ class ScheduleController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $task = $this->findOwned((int) $id);
         Task::delete($task['id']);
         $this->flash('success', 'Task removed.');

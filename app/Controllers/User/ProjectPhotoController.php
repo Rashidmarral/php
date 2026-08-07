@@ -14,6 +14,7 @@ class ProjectPhotoController extends Controller
     public function store(string $projectId): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $project = $this->findOwnedProject((int) $projectId);
 
         if (empty($_FILES['photo']['tmp_name']) || $_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
@@ -53,6 +54,7 @@ class ProjectPhotoController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $photo = ProjectPhoto::find((int) $id);
         if (!$photo || (int) $photo['company_id'] !== Auth::companyId()) {
             http_response_code(404);

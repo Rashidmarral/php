@@ -45,6 +45,7 @@ class ProjectController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
 
         if (!Feature::withinProjectLimit()) {
@@ -107,6 +108,7 @@ class ProjectController extends Controller
     public function update(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $project = $this->findOwned((int) $id);
 
         Project::update($project['id'], [
@@ -126,6 +128,7 @@ class ProjectController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $project = $this->findOwned((int) $id);
         Project::delete($project['id']);
         $this->flash('success', 'Project deleted.');

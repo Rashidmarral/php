@@ -35,6 +35,7 @@ class DocumentController extends Controller
     public function store(): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $companyId = Auth::companyId();
 
         if (empty($_FILES['file']['tmp_name']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
@@ -85,6 +86,7 @@ class DocumentController extends Controller
     public function destroy(string $id): void
     {
         $this->verifyCsrf();
+        Auth::requireAbility('write');
         $document = Document::find((int) $id);
         if (!$document || (int) $document['company_id'] !== Auth::companyId()) {
             http_response_code(404);
