@@ -20,7 +20,7 @@ class MaterialController extends Controller
     {
         $companyId = Auth::companyId();
         $materials = Material::query(
-            'SELECT m.*, s.name AS supplier_name FROM materials m LEFT JOIN suppliers s ON s.id = m.supplier_id WHERE m.company_id = ? ORDER BY m.category ASC, m.name ASC',
+            'SELECT m.*, s.name AS supplier_name, s.name_ar AS supplier_name_ar FROM materials m LEFT JOIN suppliers s ON s.id = m.supplier_id WHERE m.company_id = ? ORDER BY m.category ASC, m.name ASC',
             [$companyId]
         )->fetchAll();
         $company = Company::find($companyId);

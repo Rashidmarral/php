@@ -16,7 +16,7 @@
     <a href="/app/estimates/templates/<?= $defaultTemplate['id'] ?>" class="card feature-card" style="text-decoration:none;color:inherit;border-color:var(--brand);">
       <div class="icon">⭐</div>
       <h3>Use default template</h3>
-      <p>Currently set to <?= View::e($defaultTemplate['name_en']) ?></p>
+      <p>Currently set to <?= View::e(View::local($defaultTemplate, 'name_en', 'name_ar')) ?></p>
     </a>
   <?php endif; ?>
   <a href="/app/estimates/ai" class="card feature-card" style="text-decoration:none;color:inherit;background:linear-gradient(135deg,var(--brand-light),#fff);">
@@ -37,8 +37,8 @@
   <?php foreach ($templates as $t): ?>
     <a href="/app/estimates/templates/<?= $t['id'] ?>" class="card feature-card" style="text-decoration:none;color:inherit;">
       <div class="icon"><?= View::e($t['icon']) ?></div>
-      <h3><?= View::e($t['name_en']) ?></h3>
-      <p><?= View::e($t['description_en']) ?></p>
+      <h3><?= View::e(View::local($t, 'name_en', 'name_ar')) ?></h3>
+      <p><?= View::e(View::local($t, 'description_en', 'description_ar')) ?></p>
     </a>
   <?php endforeach; ?>
 </div>

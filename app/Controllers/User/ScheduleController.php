@@ -13,7 +13,7 @@ class ScheduleController extends Controller
     {
         $companyId = Auth::companyId();
         $tasks = Task::query(
-            'SELECT t.*, p.name AS project_name FROM schedule_tasks t JOIN projects p ON p.id = t.project_id WHERE t.company_id = ? ORDER BY t.start_date ASC',
+            'SELECT t.*, p.name AS project_name, p.name_ar AS project_name_ar FROM schedule_tasks t JOIN projects p ON p.id = t.project_id WHERE t.company_id = ? ORDER BY t.start_date ASC',
             [$companyId]
         )->fetchAll();
         $projects = Project::where('company_id', $companyId, 'name ASC');

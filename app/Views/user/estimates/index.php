@@ -17,7 +17,7 @@
     <tbody>
     <?php foreach ($estimates as $e): ?>
       <tr>
-        <td><a href="/app/estimates/<?= $e['id'] ?>"><?= View::e($e['title']) ?></a></td>
+        <td><a href="/app/estimates/<?= $e['id'] ?>"><?= View::e(View::local($e, 'title')) ?></a></td>
         <td><?= View::e($e['client_name'] ?? '—') ?></td>
         <td><span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$e['status']] ?? 'gray' ?>"><?= View::e($e['status']) ?></span></td>
         <td><?= View::money((float)$e['total']) ?></td>

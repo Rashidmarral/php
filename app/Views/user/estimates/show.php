@@ -1,8 +1,8 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
   <div>
-    <h1><?= View::e($estimate['title']) ?></h1>
-    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client['name'] ?? '—') ?><?php if ($project): ?> · Project: <a href="/app/projects/<?= $project['id'] ?>"><?= View::e($project['name']) ?></a><?php endif; ?><?php if (!empty($estimate['building_type'])): ?> · <?= View::e($estimate['building_type']) ?><?php endif; ?><?php if (!empty($estimate['job_address'])): ?> · <?= View::e($estimate['job_address']) ?><?php endif; ?></p>
+    <h1><?= View::e(View::local($estimate, 'title')) ?></h1>
+    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client ? View::local($client, 'name') : '—') ?><?php if ($project): ?> · Project: <a href="/app/projects/<?= $project['id'] ?>"><?= View::e(View::local($project, 'name')) ?></a><?php endif; ?><?php if (!empty($estimate['building_type'])): ?> · <?= View::e($estimate['building_type']) ?><?php endif; ?><?php if (!empty($estimate['job_address'])): ?> · <?= View::e($estimate['job_address']) ?><?php endif; ?></p>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$estimate['status']] ?? 'gray' ?>" style="font-size:13px;padding:6px 14px;"><?= View::e($estimate['status']) ?></span>
@@ -41,10 +41,10 @@
     <tbody>
       <?php $lastSection = null; foreach ($items as $it): ?>
         <?php if (!empty($it['section_title']) && $it['section_title'] !== $lastSection): $lastSection = $it['section_title']; ?>
-          <tr style="background:#fafcfb;"><td colspan="5"><strong><?= View::e($it['section_title']) ?></strong></td></tr>
+          <tr style="background:#fafcfb;"><td colspan="5"><strong><?= View::e(View::local($it, 'section_title')) ?></strong></td></tr>
         <?php endif; ?>
         <tr>
-          <td><?= View::e($it['description']) ?></td>
+          <td><?= View::e(View::local($it, 'description')) ?></td>
           <?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><td><span class="badge badge-<?= $it['item_type']==='labor'?'yellow':'gray' ?>"><?= View::e(ucfirst($it['item_type'])) ?></span></td><?php endif; ?>
           <td><?= View::e($it['qty']) ?></td>
           <?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><td><?= View::e($it['uom']) ?></td><?php endif; ?>

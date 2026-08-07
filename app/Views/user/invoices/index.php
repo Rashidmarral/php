@@ -18,7 +18,7 @@
     <?php foreach ($invoices as $i): ?>
       <tr>
         <td><a href="/app/invoices/<?= $i['id'] ?>"><?= View::e($i['invoice_number']) ?></a></td>
-        <td><?= View::e($i['client_name'] ?? '—') ?></td>
+        <td><?= View::e($i['client_name'] ? View::local($i, 'client_name') : '—') ?></td>
         <td><span class="badge badge-<?= ['paid'=>'green','overdue'=>'red'][$i['status']] ?? 'yellow' ?>"><?= View::e($i['status']) ?></span></td>
         <td><?= View::money((float)$i['total']) ?></td>
         <td class="help-text"><?= View::e($i['due_date']) ?></td>

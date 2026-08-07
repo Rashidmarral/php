@@ -17,7 +17,7 @@
     <tbody>
     <?php foreach ($suppliers as $s): ?>
       <tr>
-        <td><?= View::e($s['name']) ?></td>
+        <td><?= View::e(View::local($s, 'name')) ?></td>
         <td><?= View::e($s['contact_name']) ?></td>
         <td><?= View::e($s['email']) ?></td>
         <td><?= View::e($s['phone']) ?></td>

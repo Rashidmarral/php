@@ -43,8 +43,8 @@
     <tbody>
     <?php foreach ($tasks as $t): ?>
       <tr>
-        <td><?= View::e($t['title']) ?></td>
-        <td><a href="/app/projects/<?= $t['project_id'] ?>"><?= View::e($t['project_name']) ?></a></td>
+        <td><?= View::e(View::local($t, 'title')) ?></td>
+        <td><a href="/app/projects/<?= $t['project_id'] ?>"><?= View::e(View::local($t, 'project_name')) ?></a></td>
         <td><?= View::e($t['start_date']) ?></td>
         <td><?= View::e($t['end_date']) ?></td>
         <td>

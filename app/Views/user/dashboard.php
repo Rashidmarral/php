@@ -40,7 +40,7 @@
         <tbody>
         <?php foreach ($recentProjects as $p): ?>
           <tr>
-            <td><a href="/app/projects/<?= $p['id'] ?>"><?= View::e($p['name']) ?></a></td>
+            <td><a href="/app/projects/<?= $p['id'] ?>"><?= View::e(View::local($p, 'name')) ?></a></td>
             <td><span class="badge badge-blue"><?= View::e(str_replace('_',' ',$p['status'])) ?></span></td>
             <td><?= View::money((float)$p['budget']) ?></td>
           </tr>
@@ -60,7 +60,7 @@
         <tbody>
         <?php foreach ($upcomingTasks as $tk): ?>
           <tr>
-            <td><?= View::e($tk['title']) ?></td>
+            <td><?= View::e(View::local($tk, 'title')) ?></td>
             <td><?= View::e($tk['start_date']) ?></td>
             <td><span class="badge badge-<?= $tk['status'] === 'in_progress' ? 'yellow' : 'gray' ?>"><?= View::e(str_replace('_',' ',$tk['status'])) ?></span></td>
           </tr>
@@ -81,7 +81,7 @@
       <tbody>
       <?php foreach ($recentEstimates as $e): ?>
         <tr>
-          <td><a href="/app/estimates/<?= $e['id'] ?>"><?= View::e($e['title']) ?></a></td>
+          <td><a href="/app/estimates/<?= $e['id'] ?>"><?= View::e(View::local($e, 'title')) ?></a></td>
           <td><span class="badge badge-gray"><?= View::e($e['status']) ?></span></td>
           <td><?= View::money((float)$e['total']) ?></td>
         </tr>

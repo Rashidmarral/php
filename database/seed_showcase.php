@@ -53,23 +53,23 @@ if (empty($company['name_ar'])) {
 
 // ---- Suppliers ----
 $suppliers = [
-    ['Zamil AC', 'Faisal Al Zamil', 'sales@zamilac.com', '+966 11 265 0000', 'Dammam, Saudi Arabia', 'HVAC'],
-    ['Hadeed Saudi Iron & Steel', 'Omar Al Hadeed', 'sales@hadeed.com.sa', '+966 13 341 2000', 'Jubail, Saudi Arabia', 'Steel'],
-    ['Saudi Readymix', 'Khalid Al Otaibi', 'orders@saudireadymix.com', '+966 11 456 7890', 'Riyadh, Saudi Arabia', 'Concrete'],
-    ['Jotun Saudi', 'Layla Al Harbi', 'info@jotun.com.sa', '+966 12 636 1000', 'Jeddah, Saudi Arabia', 'Paint'],
-    ['Sika Saudi Arabia', 'Yousef Al Qahtani', 'sales@sa.sika.com', '+966 11 217 9700', 'Riyadh, Saudi Arabia', 'Waterproofing'],
-    ['USG Boral', 'Nasser Al Dosari', 'sales@usgboral.com', '+966 13 340 8000', 'Dammam, Saudi Arabia', 'Drywall'],
-    ['Rak Ceramics KSA', 'Fahad Al Mutairi', 'sales@rakceramics.com', '+966 11 265 5000', 'Riyadh, Saudi Arabia', 'Flooring'],
-    ['Alupco', 'Bandar Al Shammari', 'info@alupco.com', '+966 13 812 0000', 'Dammam, Saudi Arabia', 'Windows'],
-    ['ITCO Industries', 'Saad Al Ghamdi', 'sales@itco.com.sa', '+966 11 265 8000', 'Riyadh, Saudi Arabia', 'Framing'],
-    ['Riyadh Stone', 'Mohammed Al Anazi', 'sales@riyadhstone.com', '+966 11 494 0000', 'Riyadh, Saudi Arabia', 'Flooring'],
-    ['Saudi Cables Company', 'Turki Al Rasheed', 'sales@saudicables.com', '+966 11 265 9000', 'Riyadh, Saudi Arabia', 'Electrical'],
-    ['Saudi Block', 'Abdulaziz Al Fayez', 'orders@saudiblock.com', '+966 11 265 1000', 'Riyadh, Saudi Arabia', 'Masonry'],
+    ['Zamil AC', 'الزامل للتكييف', 'Faisal Al Zamil', 'sales@zamilac.com', '+966 11 265 0000', 'Dammam, Saudi Arabia', 'HVAC'],
+    ['Hadeed Saudi Iron & Steel', 'حديد السعودية للحديد والصلب', 'Omar Al Hadeed', 'sales@hadeed.com.sa', '+966 13 341 2000', 'Jubail, Saudi Arabia', 'Steel'],
+    ['Saudi Readymix', 'الخلطة الجاهزة السعودية', 'Khalid Al Otaibi', 'orders@saudireadymix.com', '+966 11 456 7890', 'Riyadh, Saudi Arabia', 'Concrete'],
+    ['Jotun Saudi', 'جوتن السعودية', 'Layla Al Harbi', 'info@jotun.com.sa', '+966 12 636 1000', 'Jeddah, Saudi Arabia', 'Paint'],
+    ['Sika Saudi Arabia', 'سيكا السعودية', 'Yousef Al Qahtani', 'sales@sa.sika.com', '+966 11 217 9700', 'Riyadh, Saudi Arabia', 'Waterproofing'],
+    ['USG Boral', 'يو إس جي بورال', 'Nasser Al Dosari', 'sales@usgboral.com', '+966 13 340 8000', 'Dammam, Saudi Arabia', 'Drywall'],
+    ['Rak Ceramics KSA', 'راك للسيراميك السعودية', 'Fahad Al Mutairi', 'sales@rakceramics.com', '+966 11 265 5000', 'Riyadh, Saudi Arabia', 'Flooring'],
+    ['Alupco', 'ألوبكو للألمنيوم', 'Bandar Al Shammari', 'info@alupco.com', '+966 13 812 0000', 'Dammam, Saudi Arabia', 'Windows'],
+    ['ITCO Industries', 'شركة إيتكو للصناعات', 'Saad Al Ghamdi', 'sales@itco.com.sa', '+966 11 265 8000', 'Riyadh, Saudi Arabia', 'Framing'],
+    ['Riyadh Stone', 'أحجار الرياض', 'Mohammed Al Anazi', 'sales@riyadhstone.com', '+966 11 494 0000', 'Riyadh, Saudi Arabia', 'Flooring'],
+    ['Saudi Cables Company', 'الشركة السعودية للكابلات', 'Turki Al Rasheed', 'sales@saudicables.com', '+966 11 265 9000', 'Riyadh, Saudi Arabia', 'Electrical'],
+    ['Saudi Block', 'الطوب السعودي', 'Abdulaziz Al Fayez', 'orders@saudiblock.com', '+966 11 265 1000', 'Riyadh, Saudi Arabia', 'Masonry'],
 ];
 $supplierIds = [];
-foreach ($suppliers as [$name, $contact, $email, $phone, $address, $category]) {
+foreach ($suppliers as [$name, $nameAr, $contact, $email, $phone, $address, $category]) {
     $supplierIds[$name] = findOrInsert($pdo, 'suppliers', 'company_id', $companyId, 'name', $name, [
-        'company_id' => $companyId, 'name' => $name, 'contact_name' => $contact, 'email' => $email,
+        'company_id' => $companyId, 'name' => $name, 'name_ar' => $nameAr, 'contact_name' => $contact, 'email' => $email,
         'phone' => $phone, 'address' => $address, 'category' => $category,
     ]);
 }
@@ -77,28 +77,28 @@ echo count($suppliers) . " suppliers ready.\n";
 
 // ---- Materials (material + labor split) ----
 $materials = [
-    ['Excavation & earthwork', 'Excavation', 'm3', 0, 80, null, 'EXC-101'],
-    ['Ready-mix concrete (OPC)', 'Concrete', 'm3', 450, 300, 'Saudi Readymix', 'CON-102'],
-    ['Steel reinforcement bars', 'Steel', 'ton', 4200, 800, 'Hadeed Saudi Iron & Steel', 'STL-103'],
-    ['Concrete blockwork 200mm', 'Masonry', 'm2', 85, 65, 'Saudi Block', 'MAS-104'],
-    ['Timber framing & structure', 'Framing', 'm2', 150, 110, 'ITCO Industries', 'FRM-105'],
-    ['Waterproof roofing membrane', 'Roofing', 'm2', 220, 120, 'Sika Saudi Arabia', 'ROF-106'],
-    ['Thermal insulation panels', 'Insulation', 'm2', 60, 40, null, 'INS-107'],
-    ['Gypsum drywall partitions', 'Drywall', 'm2', 95, 70, 'USG Boral', 'DRY-108'],
-    ['Porcelain floor tiles', 'Flooring', 'm2', 180, 80, 'Rak Ceramics KSA', 'FLR-109'],
-    ['Marble staircase treads', 'Flooring', 'm2', 620, 180, 'Riyadh Stone', 'FLR-110'],
-    ['Interior wall painting (2 coats)', 'Paint', 'm2', 25, 35, 'Jotun Saudi', 'PNT-111'],
-    ['Internal solid wood door', 'Doors', 'each', 1200, 400, null, 'DOR-112'],
-    ['Aluminium glazed window', 'Windows', 'each', 2500, 600, 'Alupco', 'WIN-113'],
-    ['Electrical socket/outlet point', 'Electrical', 'point', 350, 150, 'Saudi Cables Company', 'ELE-114'],
-    ['Plumbing fixture connection', 'Plumbing', 'point', 450, 200, null, 'PLM-115'],
-    ['Split AC unit supply & install', 'HVAC', 'lot', 25000, 12000, 'Zamil AC', 'HVA-116'],
-    ['GRP waterproof tank lining', 'Other', 'lot', 8500, 3200, 'Sika Saudi Arabia', 'OTH-117'],
+    ['Excavation & earthwork', 'أعمال الحفر والترميم الترابي', 'Excavation', 'm3', 0, 80, null, 'EXC-101'],
+    ['Ready-mix concrete (OPC)', 'خرسانة جاهزة (أسمنت بورتلاندي عادي)', 'Concrete', 'm3', 450, 300, 'Saudi Readymix', 'CON-102'],
+    ['Steel reinforcement bars', 'حديد التسليح', 'Steel', 'ton', 4200, 800, 'Hadeed Saudi Iron & Steel', 'STL-103'],
+    ['Concrete blockwork 200mm', 'بلوك خرساني 200 مم', 'Masonry', 'm2', 85, 65, 'Saudi Block', 'MAS-104'],
+    ['Timber framing & structure', 'هيكل خشبي إنشائي', 'Framing', 'm2', 150, 110, 'ITCO Industries', 'FRM-105'],
+    ['Waterproof roofing membrane', 'غشاء عزل مائي للأسطح', 'Roofing', 'm2', 220, 120, 'Sika Saudi Arabia', 'ROF-106'],
+    ['Thermal insulation panels', 'ألواح عزل حراري', 'Insulation', 'm2', 60, 40, null, 'INS-107'],
+    ['Gypsum drywall partitions', 'قواطع جبسية', 'Drywall', 'm2', 95, 70, 'USG Boral', 'DRY-108'],
+    ['Porcelain floor tiles', 'بلاط أرضيات بورسلين', 'Flooring', 'm2', 180, 80, 'Rak Ceramics KSA', 'FLR-109'],
+    ['Marble staircase treads', 'درجات سلالم رخامية', 'Flooring', 'm2', 620, 180, 'Riyadh Stone', 'FLR-110'],
+    ['Interior wall painting (2 coats)', 'دهان جدران داخلية (طبقتين)', 'Paint', 'm2', 25, 35, 'Jotun Saudi', 'PNT-111'],
+    ['Internal solid wood door', 'باب خشبي داخلي مصمت', 'Doors', 'each', 1200, 400, null, 'DOR-112'],
+    ['Aluminium glazed window', 'نافذة ألمنيوم مزججة', 'Windows', 'each', 2500, 600, 'Alupco', 'WIN-113'],
+    ['Electrical socket/outlet point', 'نقطة مقبس كهربائي', 'Electrical', 'point', 350, 150, 'Saudi Cables Company', 'ELE-114'],
+    ['Plumbing fixture connection', 'توصيل تجهيزات سباكة', 'Plumbing', 'point', 450, 200, null, 'PLM-115'],
+    ['Split AC unit supply & install', 'توريد وتركيب مكيف سبليت', 'HVAC', 'lot', 25000, 12000, 'Zamil AC', 'HVA-116'],
+    ['GRP waterproof tank lining', 'بطانة عزل مائي لخزان GRP', 'Other', 'lot', 8500, 3200, 'Sika Saudi Arabia', 'OTH-117'],
 ];
-foreach ($materials as [$name, $category, $unit, $mat, $lab, $supplierName, $sku]) {
+foreach ($materials as [$name, $nameAr, $category, $unit, $mat, $lab, $supplierName, $sku]) {
     $supplierId = $supplierName ? ($supplierIds[$supplierName] ?? null) : null;
     findOrInsert($pdo, 'materials', 'company_id', $companyId, 'name', $name, [
-        'company_id' => $companyId, 'supplier_id' => $supplierId, 'sku' => $sku, 'name' => $name,
+        'company_id' => $companyId, 'supplier_id' => $supplierId, 'sku' => $sku, 'name' => $name, 'name_ar' => $nameAr,
         'category' => $category, 'unit' => $unit, 'material_cost' => $mat, 'labor_cost' => $lab,
         'unit_cost' => $mat + $lab,
     ]);
@@ -107,17 +107,17 @@ echo count($materials) . " materials ready.\n";
 
 // ---- Clients ----
 $clients = [
-    ['Al Faisaliah Development Co.', 'projects@alfaisaliah.sa', '+966 11 234 5678', 'Riyadh, Saudi Arabia'],
-    ['Al Andalus Real Estate', 'info@alandalus-re.com', '+966 12 345 6789', 'Jeddah, Saudi Arabia'],
-    ['Eastern Province Municipality — Contracts Office', 'tenders@dammam.gov.sa', '+966 13 456 7890', 'Dammam, Saudi Arabia'],
-    ['Al Waha Retail Group', 'facilities@alwaha.sa', '+966 11 567 8901', 'Riyadh, Saudi Arabia'],
-    ['Taybah Residential Towers', 'pm@taybahresidential.sa', '+966 12 678 9012', 'Jeddah, Saudi Arabia'],
-    ['Al Marjan Site Office Contracts', 'vendors@almarjan-sites.sa', '+966 14 789 0123', 'Tabuk, Saudi Arabia'],
+    ['Al Faisaliah Development Co.', 'شركة الفيصلية للتطوير العقاري', 'projects@alfaisaliah.sa', '+966 11 234 5678', 'Riyadh, Saudi Arabia'],
+    ['Al Andalus Real Estate', 'الأندلس العقارية', 'info@alandalus-re.com', '+966 12 345 6789', 'Jeddah, Saudi Arabia'],
+    ['Eastern Province Municipality — Contracts Office', 'أمانة المنطقة الشرقية - مكتب العقود', 'tenders@dammam.gov.sa', '+966 13 456 7890', 'Dammam, Saudi Arabia'],
+    ['Al Waha Retail Group', 'مجموعة الواحة للتجزئة', 'facilities@alwaha.sa', '+966 11 567 8901', 'Riyadh, Saudi Arabia'],
+    ['Taybah Residential Towers', 'أبراج طيبة السكنية', 'pm@taybahresidential.sa', '+966 12 678 9012', 'Jeddah, Saudi Arabia'],
+    ['Al Marjan Site Office Contracts', 'عقود مكتب موقع المرجان', 'vendors@almarjan-sites.sa', '+966 14 789 0123', 'Tabuk, Saudi Arabia'],
 ];
 $clientIds = [];
-foreach ($clients as [$name, $email, $phone, $address]) {
+foreach ($clients as [$name, $nameAr, $email, $phone, $address]) {
     $clientIds[$name] = findOrInsert($pdo, 'clients', 'company_id', $companyId, 'name', $name, [
-        'company_id' => $companyId, 'name' => $name, 'email' => $email, 'phone' => $phone, 'address' => $address,
+        'company_id' => $companyId, 'name' => $name, 'name_ar' => $nameAr, 'email' => $email, 'phone' => $phone, 'address' => $address,
     ]);
 }
 $origClient = $pdo->prepare("SELECT id, name FROM clients WHERE company_id = ? AND name = 'Jeddah Heights Development'");
@@ -129,18 +129,18 @@ echo count($clients) . " clients ready.\n";
 
 // ---- Projects ----
 $projects = [
-    ['Al Faisaliah Tower B Fit-out', 'Al Faisaliah Development Co.', 'Interior fit-out of a 12-floor commercial tower, Riyadh.', 'in_progress', 2400000, -40, 140],
-    ['Al Andalus Villas Phase 2', 'Al Andalus Real Estate', '18-unit luxury villa compound, Jeddah North.', 'planning', 5200000, 10, 380],
-    ['Dammam Corniche Public Facilities', 'Eastern Province Municipality — Contracts Office', 'Municipal contract: public facilities upgrade.', 'in_progress', 680000, -15, 45],
-    ['Al Waha Mall Renovation', 'Al Waha Retail Group', 'Retail unit renovation and food court expansion.', 'completed', 1150000, -180, -20],
-    ['Taybah Residential Tower — MEP', 'Taybah Residential Towers', 'MEP subcontract for a 22-floor residential tower.', 'in_progress', 3800000, -60, 200],
-    ['Al Marjan Site Office Complex', 'Al Marjan Site Office Contracts', 'Temporary site office and worker facilities.', 'planning', 920000, 20, 150],
+    ['Al Faisaliah Tower B Fit-out', 'تجهيز برج الفيصلية B', 'Al Faisaliah Development Co.', 'Interior fit-out of a 12-floor commercial tower, Riyadh.', 'أعمال تجهيز داخلي لبرج تجاري من 12 طابقاً، الرياض.', 'in_progress', 2400000, -40, 140],
+    ['Al Andalus Villas Phase 2', 'فلل الأندلس المرحلة الثانية', 'Al Andalus Real Estate', '18-unit luxury villa compound, Jeddah North.', 'مجمع فلل فاخرة من 18 وحدة، شمال جدة.', 'planning', 5200000, 10, 380],
+    ['Dammam Corniche Public Facilities', 'مرافق كورنيش الدمام العامة', 'Eastern Province Municipality — Contracts Office', 'Municipal contract: public facilities upgrade.', 'عقد بلدي: تطوير المرافق العامة.', 'in_progress', 680000, -15, 45],
+    ['Al Waha Mall Renovation', 'تجديد مول الواحة', 'Al Waha Retail Group', 'Retail unit renovation and food court expansion.', 'تجديد وحدة تجزئة وتوسعة منطقة المطاعم.', 'completed', 1150000, -180, -20],
+    ['Taybah Residential Tower — MEP', 'الأعمال الكهروميكانيكية لبرج طيبة السكني', 'Taybah Residential Towers', 'MEP subcontract for a 22-floor residential tower.', 'عقد كهروميكانيكي من الباطن لبرج سكني من 22 طابقاً.', 'in_progress', 3800000, -60, 200],
+    ['Al Marjan Site Office Complex', 'مجمع مكتب موقع المرجان', 'Al Marjan Site Office Contracts', 'Temporary site office and worker facilities.', 'مكتب موقع مؤقت ومرافق للعمال.', 'planning', 920000, 20, 150],
 ];
 $projectIds = [];
-foreach ($projects as [$name, $clientName, $desc, $status, $budget, $startOffset, $endOffset]) {
+foreach ($projects as [$name, $nameAr, $clientName, $desc, $descAr, $status, $budget, $startOffset, $endOffset]) {
     $projectIds[$name] = findOrInsert($pdo, 'projects', 'company_id', $companyId, 'name', $name, [
-        'company_id' => $companyId, 'client_id' => $clientIds[$clientName], 'name' => $name,
-        'description' => $desc, 'status' => $status, 'budget' => $budget,
+        'company_id' => $companyId, 'client_id' => $clientIds[$clientName], 'name' => $name, 'name_ar' => $nameAr,
+        'description' => $desc, 'description_ar' => $descAr, 'status' => $status, 'budget' => $budget,
         'start_date' => date('Y-m-d', strtotime("{$startOffset} days")),
         'end_date' => date('Y-m-d', strtotime("{$endOffset} days")),
     ]);
@@ -149,45 +149,45 @@ echo count($projects) . " projects ready.\n";
 
 // ---- Estimates (with line items) ----
 $estimateDefs = [
-    ['Al Faisaliah Tower B — Fit-out Estimate', 'Al Faisaliah Tower B Fit-out', 'Al Faisaliah Development Co.', 'accepted', [
-        ['Demolition & strip-out (12 floors)', 1, 180000],
-        ['Partitions, ceilings & flooring', 1, 950000],
-        ['MEP first & second fix', 1, 820000],
-        ['Fit-out finishes & joinery', 1, 450000],
+    ['Al Faisaliah Tower B — Fit-out Estimate', 'تسعيرة تجهيز برج الفيصلية B', 'Al Faisaliah Tower B Fit-out', 'Al Faisaliah Development Co.', 'accepted', [
+        ['Demolition & strip-out (12 floors)', 'أعمال الهدم والتفريغ (12 طابقاً)', 1, 180000],
+        ['Partitions, ceilings & flooring', 'قواطع وأسقف وأرضيات', 1, 950000],
+        ['MEP first & second fix', 'الأعمال الكهروميكانيكية (المرحلة الأولى والثانية)', 1, 820000],
+        ['Fit-out finishes & joinery', 'تشطيبات التجهيز والنجارة', 1, 450000],
     ]],
-    ['Al Andalus Villas Phase 2 — Preliminary Estimate', 'Al Andalus Villas Phase 2', 'Al Andalus Real Estate', 'sent', [
-        ['Site works & foundations (18 units)', 1, 1400000],
-        ['Structure & shell', 1, 2100000],
-        ['MEP rough-in', 1, 900000],
-        ['External works & landscaping', 1, 800000],
+    ['Al Andalus Villas Phase 2 — Preliminary Estimate', 'تسعيرة أولية لفلل الأندلس المرحلة الثانية', 'Al Andalus Villas Phase 2', 'Al Andalus Real Estate', 'sent', [
+        ['Site works & foundations (18 units)', 'أعمال الموقع والأساسات (18 وحدة)', 1, 1400000],
+        ['Structure & shell', 'الهيكل الإنشائي والقشرة الخارجية', 1, 2100000],
+        ['MEP rough-in', 'الأعمال الكهروميكانيكية الأولية', 1, 900000],
+        ['External works & landscaping', 'الأعمال الخارجية وتنسيق الحدائق', 1, 800000],
     ]],
-    ['Dammam Corniche — Municipal Facilities Estimate', 'Dammam Corniche Public Facilities', 'Eastern Province Municipality — Contracts Office', 'accepted', [
-        ['Demolition of existing structures', 1, 60000],
-        ['New construction — restroom blocks', 1, 420000],
-        ['Utilities connection & fit-out', 1, 200000],
+    ['Dammam Corniche — Municipal Facilities Estimate', 'تسعيرة مرافق بلدية كورنيش الدمام', 'Dammam Corniche Public Facilities', 'Eastern Province Municipality — Contracts Office', 'accepted', [
+        ['Demolition of existing structures', 'هدم المنشآت القائمة', 1, 60000],
+        ['New construction — restroom blocks', 'إنشاء جديد - مباني دورات المياه', 1, 420000],
+        ['Utilities connection & fit-out', 'توصيل الخدمات والتجهيز', 1, 200000],
     ]],
-    ['Taybah Tower — MEP Subcontract Estimate', 'Taybah Residential Tower — MEP', 'Taybah Residential Towers', 'accepted', [
-        ['Electrical distribution & wiring', 1, 1450000],
-        ['Plumbing & drainage systems', 1, 1200000],
-        ['HVAC supply & installation', 1, 1150000],
+    ['Taybah Tower — MEP Subcontract Estimate', 'تسعيرة عقد الباطن الكهروميكانيكي لبرج طيبة', 'Taybah Residential Tower — MEP', 'Taybah Residential Towers', 'accepted', [
+        ['Electrical distribution & wiring', 'التوزيع الكهربائي والأسلاك', 1, 1450000],
+        ['Plumbing & drainage systems', 'أنظمة السباكة والصرف', 1, 1200000],
+        ['HVAC supply & installation', 'توريد وتركيب التكييف', 1, 1150000],
     ]],
 ];
 $estimateIds = [];
-foreach ($estimateDefs as [$title, $projectName, $clientName, $status, $items]) {
+foreach ($estimateDefs as [$title, $titleAr, $projectName, $clientName, $status, $items]) {
     $exists = $pdo->prepare('SELECT id FROM estimates WHERE company_id = ? AND title = ?');
     $exists->execute([$companyId, $title]);
     if ($row = $exists->fetch()) {
         $estimateIds[$title] = (int) $row['id'];
         continue;
     }
-    $total = array_sum(array_map(fn($i) => $i[1] * $i[2], $items));
-    $pdo->prepare('INSERT INTO estimates (company_id, project_id, client_id, title, status, total, share_token) VALUES (?,?,?,?,?,?,?)')
-        ->execute([$companyId, $projectIds[$projectName], $clientIds[$clientName], $title, $status, $total, bin2hex(random_bytes(20))]);
+    $total = array_sum(array_map(fn($i) => $i[2] * $i[3], $items));
+    $pdo->prepare('INSERT INTO estimates (company_id, project_id, client_id, title, title_ar, status, total, share_token) VALUES (?,?,?,?,?,?,?,?)')
+        ->execute([$companyId, $projectIds[$projectName], $clientIds[$clientName], $title, $titleAr, $status, $total, bin2hex(random_bytes(20))]);
     $estimateId = (int) $pdo->lastInsertId();
     $estimateIds[$title] = $estimateId;
-    foreach ($items as [$desc, $qty, $cost]) {
-        $pdo->prepare('INSERT INTO estimate_items (estimate_id, description, qty, unit_cost, total) VALUES (?,?,?,?,?)')
-            ->execute([$estimateId, $desc, $qty, $cost, $qty * $cost]);
+    foreach ($items as [$desc, $descAr, $qty, $cost]) {
+        $pdo->prepare('INSERT INTO estimate_items (estimate_id, description, description_ar, qty, unit_cost, total) VALUES (?,?,?,?,?,?)')
+            ->execute([$estimateId, $desc, $descAr, $qty, $cost, $qty * $cost]);
     }
 }
 echo count($estimateDefs) . " estimates ready.\n";
@@ -195,19 +195,19 @@ echo count($estimateDefs) . " estimates ready.\n";
 // ---- Invoices (mixed statuses, a couple with retention) ----
 $invoiceDefs = [
     ['INV-2001', 'Al Faisaliah Tower B Fit-out', 'Al Faisaliah Development Co.', 'paid', -60, 10, [
-        ['Mobilization payment (20%)', 1, 480000],
+        ['Mobilization payment (20%)', 'دفعة التعبئة (20%)', 1, 480000],
     ]],
     ['INV-2002', 'Al Faisaliah Tower B Fit-out', 'Al Faisaliah Development Co.', 'paid', -20, 5, [
-        ['Progress payment — partitions & ceilings complete', 1, 620000],
+        ['Progress payment — partitions & ceilings complete', 'دفعة إنجاز - اكتمال القواطع والأسقف', 1, 620000],
     ]],
     ['INV-2003', 'Dammam Corniche Public Facilities', 'Eastern Province Municipality — Contracts Office', 'unpaid', -3, 5, [
-        ['Progress payment — restroom blocks 60% complete', 1, 250000],
+        ['Progress payment — restroom blocks 60% complete', 'دفعة إنجاز - اكتمال 60% من مباني دورات المياه', 1, 250000],
     ]],
     ['INV-2004', 'Taybah Residential Tower — MEP', 'Taybah Residential Towers', 'overdue', -35, 10, [
-        ['Progress payment — electrical distribution complete', 1, 700000],
+        ['Progress payment — electrical distribution complete', 'دفعة إنجاز - اكتمال التوزيع الكهربائي', 1, 700000],
     ]],
     ['INV-2005', 'Al Waha Mall Renovation', 'Al Waha Retail Group', 'paid', -190, 10, [
-        ['Final payment — retention released', 1, 172500],
+        ['Final payment — retention released', 'الدفعة النهائية - الإفراج عن الضمان', 1, 172500],
     ]],
 ];
 foreach ($invoiceDefs as [$number, $projectName, $clientName, $status, $dateOffset, $retentionPct, $items]) {
@@ -216,7 +216,7 @@ foreach ($invoiceDefs as [$number, $projectName, $clientName, $status, $dateOffs
     if ($exists->fetch()) {
         continue;
     }
-    $subtotal = array_sum(array_map(fn($i) => $i[1] * $i[2], $items));
+    $subtotal = array_sum(array_map(fn($i) => $i[2] * $i[3], $items));
     $vatAmount = round($subtotal * 0.15, 2);
     $total = $subtotal + $vatAmount;
     $retentionAmount = round($subtotal * $retentionPct / 100, 2);
@@ -225,59 +225,59 @@ foreach ($invoiceDefs as [$number, $projectName, $clientName, $status, $dateOffs
         ->execute([$companyId, $projectIds[$projectName], $clientIds[$clientName], $number, $status, $total, 15, $vatAmount,
             date('Y-m-d', strtotime("{$dateOffset} days +30 days")), $retentionPct, $retentionAmount, bin2hex(random_bytes(20)), $createdAt]);
     $invoiceId = (int) $pdo->lastInsertId();
-    foreach ($items as [$desc, $qty, $price]) {
-        $pdo->prepare('INSERT INTO invoice_items (invoice_id, description, qty, unit_price, total) VALUES (?,?,?,?,?)')
-            ->execute([$invoiceId, $desc, $qty, $price, $qty * $price]);
+    foreach ($items as [$desc, $descAr, $qty, $price]) {
+        $pdo->prepare('INSERT INTO invoice_items (invoice_id, description, description_ar, qty, unit_price, total) VALUES (?,?,?,?,?,?)')
+            ->execute([$invoiceId, $desc, $descAr, $qty, $price, $qty * $price]);
     }
 }
 echo count($invoiceDefs) . " invoices ready.\n";
 
 // ---- Change orders ----
 $changeOrders = [
-    ['Al Faisaliah Tower B Fit-out', 'Upgraded lobby finishes', 'Client requested premium stone cladding in the ground floor lobby.', 85000, 'approved'],
-    ['Al Faisaliah Tower B Fit-out', 'Additional server room cooling', 'Extra precision AC unit for the new server room.', 32000, 'pending'],
-    ['Taybah Residential Tower — MEP', 'Scope reduction — 4th floor deferred', 'Client deferred 4th floor MEP works to a later phase.', -180000, 'approved'],
+    ['Al Faisaliah Tower B Fit-out', 'Upgraded lobby finishes', 'ترقية تشطيبات الردهة', 'Client requested premium stone cladding in the ground floor lobby.', 'طلب العميل تكسية حجرية فاخرة في ردهة الطابق الأرضي.', 85000, 'approved'],
+    ['Al Faisaliah Tower B Fit-out', 'Additional server room cooling', 'تبريد إضافي لغرفة الخوادم', 'Extra precision AC unit for the new server room.', 'وحدة تكييف دقيقة إضافية لغرفة الخوادم الجديدة.', 32000, 'pending'],
+    ['Taybah Residential Tower — MEP', 'Scope reduction — 4th floor deferred', 'تقليص النطاق - تأجيل الطابق الرابع', 'Client deferred 4th floor MEP works to a later phase.', 'أجّل العميل أعمال الكهروميكانيكية للطابق الرابع إلى مرحلة لاحقة.', -180000, 'approved'],
 ];
-foreach ($changeOrders as [$projectName, $title, $desc, $amount, $status]) {
+foreach ($changeOrders as [$projectName, $title, $titleAr, $desc, $descAr, $amount, $status]) {
     $exists = $pdo->prepare('SELECT id FROM change_orders WHERE company_id = ? AND project_id = ? AND title = ?');
     $exists->execute([$companyId, $projectIds[$projectName], $title]);
     if ($exists->fetch()) {
         continue;
     }
-    $pdo->prepare('INSERT INTO change_orders (company_id, project_id, title, description, amount, status, approved_at) VALUES (?,?,?,?,?,?,?)')
-        ->execute([$companyId, $projectIds[$projectName], $title, $desc, $amount, $status, $status === 'approved' ? date('Y-m-d H:i:s') : null]);
+    $pdo->prepare('INSERT INTO change_orders (company_id, project_id, title, title_ar, description, description_ar, amount, status, approved_at) VALUES (?,?,?,?,?,?,?,?,?)')
+        ->execute([$companyId, $projectIds[$projectName], $title, $titleAr, $desc, $descAr, $amount, $status, $status === 'approved' ? date('Y-m-d H:i:s') : null]);
 }
 echo count($changeOrders) . " change orders ready.\n";
 
 // ---- Schedule tasks for the new in-progress projects ----
 $scheduleDefs = [
     ['Al Faisaliah Tower B Fit-out', [
-        ['Demolition & strip-out', -38, -20, 'done'],
-        ['Partition walls & ceilings', -18, 10, 'in_progress'],
-        ['MEP first fix', -5, 25, 'in_progress'],
-        ['Flooring & finishes', 30, 90, 'pending'],
-        ['Final handover walkthrough', 130, 140, 'pending'],
+        ['Demolition & strip-out', 'الهدم والتفريغ', -38, -20, 'done'],
+        ['Partition walls & ceilings', 'جدران القواطع والأسقف', -18, 10, 'in_progress'],
+        ['MEP first fix', 'الكهروميكانيكية - المرحلة الأولى', -5, 25, 'in_progress'],
+        ['Flooring & finishes', 'الأرضيات والتشطيبات', 30, 90, 'pending'],
+        ['Final handover walkthrough', 'جولة التسليم النهائي', 130, 140, 'pending'],
     ]],
     ['Dammam Corniche Public Facilities', [
-        ['Site clearance', -14, -8, 'done'],
-        ['Restroom block construction', -6, 30, 'in_progress'],
-        ['Utilities connection', 32, 42, 'pending'],
+        ['Site clearance', 'تجهيز الموقع', -14, -8, 'done'],
+        ['Restroom block construction', 'إنشاء مبنى دورات المياه', -6, 30, 'in_progress'],
+        ['Utilities connection', 'توصيل الخدمات', 32, 42, 'pending'],
     ]],
     ['Taybah Residential Tower — MEP', [
-        ['Electrical distribution', -58, -10, 'done'],
-        ['Plumbing rough-in', -8, 60, 'in_progress'],
-        ['HVAC installation', 65, 150, 'pending'],
+        ['Electrical distribution', 'التوزيع الكهربائي', -58, -10, 'done'],
+        ['Plumbing rough-in', 'أعمال السباكة الأولية', -8, 60, 'in_progress'],
+        ['HVAC installation', 'تركيب التكييف', 65, 150, 'pending'],
     ]],
 ];
 foreach ($scheduleDefs as [$projectName, $tasks]) {
-    foreach ($tasks as [$title, $startOffset, $endOffset, $status]) {
+    foreach ($tasks as [$title, $titleAr, $startOffset, $endOffset, $status]) {
         $exists = $pdo->prepare('SELECT id FROM schedule_tasks WHERE company_id = ? AND project_id = ? AND title = ?');
         $exists->execute([$companyId, $projectIds[$projectName], $title]);
         if ($exists->fetch()) {
             continue;
         }
-        $pdo->prepare('INSERT INTO schedule_tasks (company_id, project_id, title, start_date, end_date, status) VALUES (?,?,?,?,?,?)')
-            ->execute([$companyId, $projectIds[$projectName], $title, date('Y-m-d', strtotime("{$startOffset} days")), date('Y-m-d', strtotime("{$endOffset} days")), $status]);
+        $pdo->prepare('INSERT INTO schedule_tasks (company_id, project_id, title, title_ar, start_date, end_date, status) VALUES (?,?,?,?,?,?,?)')
+            ->execute([$companyId, $projectIds[$projectName], $title, $titleAr, date('Y-m-d', strtotime("{$startOffset} days")), date('Y-m-d', strtotime("{$endOffset} days")), $status]);
     }
 }
 echo "Schedule tasks ready.\n";
@@ -308,16 +308,27 @@ if ($region && $foundation) {
 
 // ---- Business Setup defaults (building/contact/client types, units of measure, tax rates) ----
 $simpleLookups = [
-    'building_types' => ['Single Family Residential', 'Villa', 'Duplex', 'Apartment Building', 'Commercial', 'Industrial', 'Renovation / Remodel'],
-    'contact_types' => ['Client', 'Subcontractor', 'Supplier', 'Consultant', 'Architect', 'Government / Municipality'],
-    'client_types' => ['Individual Homeowner', 'Real Estate Developer', 'Government Entity', 'Commercial Business', 'Property Management Company'],
+    'building_types' => [
+        ['Single Family Residential', 'سكني عائلة واحدة'], ['Villa', 'فيلا'], ['Duplex', 'دوبلكس'],
+        ['Apartment Building', 'مبنى شقق'], ['Commercial', 'تجاري'], ['Industrial', 'صناعي'],
+        ['Renovation / Remodel', 'تجديد / إعادة تشكيل'],
+    ],
+    'contact_types' => [
+        ['Client', 'عميل'], ['Subcontractor', 'مقاول من الباطن'], ['Supplier', 'مورد'],
+        ['Consultant', 'استشاري'], ['Architect', 'مهندس معماري'], ['Government / Municipality', 'حكومي / بلدية'],
+    ],
+    'client_types' => [
+        ['Individual Homeowner', 'مالك منزل فردي'], ['Real Estate Developer', 'مطور عقاري'],
+        ['Government Entity', 'جهة حكومية'], ['Commercial Business', 'منشأة تجارية'],
+        ['Property Management Company', 'شركة إدارة أملاك'],
+    ],
 ];
 foreach ($simpleLookups as $table => $names) {
-    foreach ($names as $i => $name) {
+    foreach ($names as $i => [$name, $nameAr]) {
         $exists = $pdo->prepare("SELECT id FROM {$table} WHERE company_id = ? AND name = ?");
         $exists->execute([$companyId, $name]);
         if (!$exists->fetch()) {
-            $pdo->prepare("INSERT INTO {$table} (company_id, name, sort_order) VALUES (?, ?, ?)")->execute([$companyId, $name, $i]);
+            $pdo->prepare("INSERT INTO {$table} (company_id, name, name_ar, sort_order) VALUES (?, ?, ?, ?)")->execute([$companyId, $name, $nameAr, $i]);
         }
     }
 }
@@ -325,33 +336,34 @@ echo "Business setup lookup lists ready.\n";
 
 // ---- Compliance documents — a realistic mix of expiry states to show the reminder banner in action ----
 $complianceDefs = [
-    ['cr', 'Commercial Registration', '1010456789', 240],
-    ['vat', 'VAT Certificate', '300456789100003', 240],
-    ['zakat', 'Zakat Certificate', 'ZK-2026-88213', 45],
-    ['gosi', 'GOSI Certificate of Good Standing', 'GOSI-774521', 18],
-    ['chamber', 'Riyadh Chamber of Commerce Membership', 'RCC-55012', 300],
-    ['nitaqat', 'Nitaqat (Saudization) Certificate — Platinum Band', 'NTQ-2026-4471', -5],
+    ['cr', 'Commercial Registration', 'السجل التجاري', '1010456789', 240],
+    ['vat', 'VAT Certificate', 'شهادة ضريبة القيمة المضافة', '300456789100003', 240],
+    ['zakat', 'Zakat Certificate', 'شهادة الزكاة', 'ZK-2026-88213', 45],
+    ['gosi', 'GOSI Certificate of Good Standing', 'شهادة حسن السلوك من التأمينات الاجتماعية', 'GOSI-774521', 18],
+    ['chamber', 'Riyadh Chamber of Commerce Membership', 'عضوية غرفة تجارة الرياض', 'RCC-55012', 300],
+    ['nitaqat', 'Nitaqat (Saudization) Certificate — Platinum Band', 'شهادة نطاقات (السعودة) - النطاق البلاتيني', 'NTQ-2026-4471', -5],
 ];
-foreach ($complianceDefs as [$type, $name, $number, $daysUntilExpiry]) {
+foreach ($complianceDefs as [$type, $name, $nameAr, $number, $daysUntilExpiry]) {
     $exists = $pdo->prepare('SELECT id FROM compliance_documents WHERE company_id = ? AND name = ?');
     $exists->execute([$companyId, $name]);
     if ($exists->fetch()) {
         continue;
     }
-    $pdo->prepare('INSERT INTO compliance_documents (company_id, doc_type, name, document_number, expiry_date) VALUES (?,?,?,?,?)')
-        ->execute([$companyId, $type, $name, $number, date('Y-m-d', strtotime("{$daysUntilExpiry} days"))]);
+    $pdo->prepare('INSERT INTO compliance_documents (company_id, doc_type, name, name_ar, document_number, expiry_date) VALUES (?,?,?,?,?,?)')
+        ->execute([$companyId, $type, $name, $nameAr, $number, date('Y-m-d', strtotime("{$daysUntilExpiry} days"))]);
 }
 echo count($complianceDefs) . " compliance documents ready.\n";
 
 $unitDefs = [
-    ['sqm', 'Square meter'], ['m3', 'Cubic meter'], ['lm', 'Linear meter'], ['each', 'Each'],
-    ['lot', 'Lot / Job'], ['hr', 'Hour'], ['ton', 'Ton'], ['point', 'Point (electrical/plumbing)'], ['kg', 'Kilogram'],
+    ['sqm', 'Square meter', 'متر مربع'], ['m3', 'Cubic meter', 'متر مكعب'], ['lm', 'Linear meter', 'متر طولي'],
+    ['each', 'Each', 'عدد'], ['lot', 'Lot / Job', 'مقطوعية / عمل'], ['hr', 'Hour', 'ساعة'], ['ton', 'Ton', 'طن'],
+    ['point', 'Point (electrical/plumbing)', 'نقطة (كهرباء/سباكة)'], ['kg', 'Kilogram', 'كيلوغرام'],
 ];
-foreach ($unitDefs as $i => [$code, $name]) {
+foreach ($unitDefs as $i => [$code, $name, $nameAr]) {
     $exists = $pdo->prepare('SELECT id FROM units_of_measure WHERE company_id = ? AND code = ?');
     $exists->execute([$companyId, $code]);
     if (!$exists->fetch()) {
-        $pdo->prepare('INSERT INTO units_of_measure (company_id, code, name, sort_order) VALUES (?,?,?,?)')->execute([$companyId, $code, $name, $i]);
+        $pdo->prepare('INSERT INTO units_of_measure (company_id, code, name, name_ar, sort_order) VALUES (?,?,?,?,?)')->execute([$companyId, $code, $name, $nameAr, $i]);
     }
 }
 echo "Units of measure ready.\n";
@@ -359,27 +371,27 @@ echo "Units of measure ready.\n";
 $taxExists = $pdo->prepare('SELECT id FROM tax_rates WHERE company_id = ? AND name = ?');
 $taxExists->execute([$companyId, 'Standard VAT']);
 if (!$taxExists->fetch()) {
-    $pdo->prepare('INSERT INTO tax_rates (company_id, name, rate_percent, is_default, sort_order) VALUES (?,?,?,?,?)')
-        ->execute([$companyId, 'Standard VAT', 15, 1, 0]);
+    $pdo->prepare('INSERT INTO tax_rates (company_id, name, name_ar, rate_percent, is_default, sort_order) VALUES (?,?,?,?,?,?)')
+        ->execute([$companyId, 'Standard VAT', 'ضريبة القيمة المضافة القياسية', 15, 1, 0]);
 }
 echo "Tax rates ready.\n";
 
 // ---- Leads (company-level CRM leads, distinct from the platform's public Quick Estimate leads) ----
 $leadDefs = [
-    ['Khalid Al Amri', 'Al Amri Trading Est.', 'khalid.amri@example.com', '+966 55 444 5566', 'referral', 'new', 320000],
-    ['Reem Al Harbi', null, 'reem.harbi@example.com', '+966 54 555 6677', 'website', 'contacted', 85000],
-    ['Bandar Construction Group', 'Bandar Construction Group', 'projects@bandarcg.example.com', '+966 11 666 7788', 'phone', 'qualified', 1450000],
-    ['Lubna Al Zahrani', null, 'lubna.z@example.com', '+966 56 777 8899', 'quick_estimate', 'won', 210000],
-    ['Yousef Al Otaibi', null, 'yousef.otaibi@example.com', '+966 50 888 9900', 'social_media', 'lost', 60000],
+    ['Khalid Al Amri', 'Al Amri Trading Est.', 'مؤسسة العامري التجارية', 'khalid.amri@example.com', '+966 55 444 5566', 'referral', 'new', 320000],
+    ['Reem Al Harbi', null, null, 'reem.harbi@example.com', '+966 54 555 6677', 'website', 'contacted', 85000],
+    ['Bandar Construction Group', 'Bandar Construction Group', 'مجموعة بندر للمقاولات', 'projects@bandarcg.example.com', '+966 11 666 7788', 'phone', 'qualified', 1450000],
+    ['Lubna Al Zahrani', null, null, 'lubna.z@example.com', '+966 56 777 8899', 'quick_estimate', 'won', 210000],
+    ['Yousef Al Otaibi', null, null, 'yousef.otaibi@example.com', '+966 50 888 9900', 'social_media', 'lost', 60000],
 ];
-foreach ($leadDefs as [$name, $companyName, $email, $phone, $source, $status, $value]) {
+foreach ($leadDefs as [$name, $companyName, $companyNameAr, $email, $phone, $source, $status, $value]) {
     $exists = $pdo->prepare('SELECT id FROM leads WHERE company_id = ? AND email = ?');
     $exists->execute([$companyId, $email]);
     if ($exists->fetch()) {
         continue;
     }
-    $pdo->prepare('INSERT INTO leads (company_id, name, company_name, email, phone, source, status, estimated_value, notes) VALUES (?,?,?,?,?,?,?,?,?)')
-        ->execute([$companyId, $name, $companyName, $email, $phone, $source, $status, $value, '']);
+    $pdo->prepare('INSERT INTO leads (company_id, name, company_name, company_name_ar, email, phone, source, status, estimated_value, notes) VALUES (?,?,?,?,?,?,?,?,?,?)')
+        ->execute([$companyId, $name, $companyName, $companyNameAr, $email, $phone, $source, $status, $value, '']);
 }
 echo count($leadDefs) . " leads ready.\n";
 

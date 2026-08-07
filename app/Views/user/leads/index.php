@@ -22,7 +22,7 @@
     <tbody>
     <?php foreach ($leads as $l): ?>
       <tr>
-        <td><a href="/app/leads/<?= $l['id'] ?>/edit"><?= View::e($l['name']) ?></a><?php if ($l['company_name']): ?><br><span class="help-text"><?= View::e($l['company_name']) ?></span><?php endif; ?></td>
+        <td><a href="/app/leads/<?= $l['id'] ?>/edit"><?= View::e($l['name']) ?></a><?php if ($l['company_name']): ?><br><span class="help-text"><?= View::e(View::local($l, 'company_name')) ?></span><?php endif; ?></td>
         <td><?= View::e($l['email'] ?: '—') ?><?php if ($l['phone']): ?><br><span class="help-text"><bdi><?= View::e($l['phone']) ?></bdi></span><?php endif; ?></td>
         <td><span class="badge badge-gray"><?= View::e(ucwords(str_replace('_', ' ', $l['source']))) ?></span></td>
         <td><?= View::money((float)$l['estimated_value']) ?></td>

@@ -2,7 +2,7 @@
 <div class="page-head">
   <div>
     <h1><?= View::e($invoice['invoice_number']) ?></h1>
-    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client['name'] ?? '—') ?><?php if ($project): ?> · Project: <a href="/app/projects/<?= $project['id'] ?>"><?= View::e($project['name']) ?></a><?php endif; ?></p>
+    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client ? View::local($client, 'name') : '—') ?><?php if ($project): ?> · Project: <a href="/app/projects/<?= $project['id'] ?>"><?= View::e(View::local($project, 'name')) ?></a><?php endif; ?></p>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge badge-<?= ['paid'=>'green','overdue'=>'red'][$invoice['status']] ?? 'yellow' ?>" style="font-size:13px;padding:6px 14px;"><?= View::e($invoice['status']) ?></span>
@@ -44,7 +44,7 @@
     <thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead>
     <tbody>
       <?php foreach ($items as $it): ?>
-        <tr><td><?= View::e($it['description']) ?></td><td><?= View::e($it['qty']) ?></td><td><?= View::money((float)$it['unit_price']) ?></td><td><?= View::money((float)$it['total']) ?></td></tr>
+        <tr><td><?= View::e(View::local($it, 'description')) ?></td><td><?= View::e($it['qty']) ?></td><td><?= View::money((float)$it['unit_price']) ?></td><td><?= View::money((float)$it['total']) ?></td></tr>
       <?php endforeach; ?>
     </tbody>
   </table>

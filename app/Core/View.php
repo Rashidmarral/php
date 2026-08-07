@@ -44,6 +44,16 @@ class View
         return self::e($_SESSION['old'][$key] ?? $default);
     }
 
+    /** Picks the Arabic value of a bilingual field when browsing in Arabic and one was entered, English otherwise. */
+    public static function local(array $row, string $enKey, ?string $arKey = null): string
+    {
+        $arKey = $arKey ?? $enKey . '_ar';
+        if (Lang::locale() === 'ar' && !empty($row[$arKey])) {
+            return (string) $row[$arKey];
+        }
+        return (string) ($row[$enKey] ?? '');
+    }
+
     /** Show/hide eye button for a password field — pair with wrapping the <input> in <div class="password-field">. */
     public static function passwordToggle(): string
     {

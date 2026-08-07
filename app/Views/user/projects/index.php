@@ -17,8 +17,8 @@
     <tbody>
     <?php foreach ($projects as $p): ?>
       <tr>
-        <td><a href="/app/projects/<?= $p['id'] ?>"><?= View::e($p['name']) ?></a></td>
-        <td><?= View::e($p['client_name'] ?? '—') ?></td>
+        <td><a href="/app/projects/<?= $p['id'] ?>"><?= View::e(View::local($p, 'name')) ?></a></td>
+        <td><?= View::e($p['client_name'] ? View::local($p, 'client_name') : '—') ?></td>
         <td><span class="badge badge-blue"><?= View::e(str_replace('_',' ',$p['status'])) ?></span></td>
         <td><?= View::money((float)$p['budget']) ?></td>
         <td class="help-text"><?= View::e($p['start_date']) ?> → <?= View::e($p['end_date']) ?></td>

@@ -19,7 +19,7 @@ class ProjectController extends Controller
     {
         $companyId = Auth::companyId();
         $projects = Project::query(
-            'SELECT p.*, c.name AS client_name FROM projects p LEFT JOIN clients c ON c.id = p.client_id WHERE p.company_id = ? ORDER BY p.created_at DESC',
+            'SELECT p.*, c.name AS client_name, c.name_ar AS client_name_ar FROM projects p LEFT JOIN clients c ON c.id = p.client_id WHERE p.company_id = ? ORDER BY p.created_at DESC',
             [$companyId]
         )->fetchAll();
 

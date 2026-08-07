@@ -39,8 +39,8 @@
     <tbody>
     <?php foreach ($documents as $d): ?>
       <tr>
-        <td><a href="<?= View::e($d['file_path']) ?>" target="_blank" download><?= View::e($d['name']) ?></a></td>
-        <td><?= View::e($d['project_name'] ?? '—') ?></td>
+        <td><a href="<?= View::e($d['file_path']) ?>" target="_blank" download><?= View::e(View::local($d, 'name')) ?></a></td>
+        <td><?= View::e($d['project_name'] ? View::local($d, 'project_name') : '—') ?></td>
         <td><span class="badge badge-gray"><?= View::e(strtoupper($d['file_type'])) ?></span></td>
         <td class="help-text"><?= number_format($d['file_size'] / 1024, 0) ?> KB</td>
         <td><?= View::e($d['uploaded_by_name'] ?? '—') ?></td>

@@ -27,7 +27,7 @@ class InvoiceController extends Controller
     public function index(): void
     {
         $invoices = Invoice::query(
-            'SELECT i.*, c.name AS client_name FROM invoices i LEFT JOIN clients c ON c.id = i.client_id WHERE i.company_id = ? ORDER BY i.created_at DESC',
+            'SELECT i.*, c.name AS client_name, c.name_ar AS client_name_ar FROM invoices i LEFT JOIN clients c ON c.id = i.client_id WHERE i.company_id = ? ORDER BY i.created_at DESC',
             [Auth::companyId()]
         )->fetchAll();
         $this->view('user/invoices/index', ['pageTitle' => 'Invoices', 'invoices' => $invoices], 'layouts/app');

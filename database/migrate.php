@@ -1046,44 +1046,44 @@ if (in_array('--seed-demo', $argv, true)) {
         $pdo->prepare('INSERT INTO payments (company_id, amount, currency, method, reference, status) VALUES (?, ?, ?, ?, ?, ?)')
             ->execute([$companyId, 449, 'SAR', 'mada', 'PMT-1001', 'paid']);
 
-        $pdo->prepare('INSERT INTO clients (company_id, name, email, phone, address) VALUES (?, ?, ?, ?, ?)')
-            ->execute([$companyId, 'Jeddah Heights Development', 'contact@jeddahheights.sa', '+966 55 987 6543', 'Jeddah, Saudi Arabia']);
+        $pdo->prepare('INSERT INTO clients (company_id, name, name_ar, email, phone, address) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$companyId, 'Jeddah Heights Development', 'تطوير مرتفعات جدة', 'contact@jeddahheights.sa', '+966 55 987 6543', 'Jeddah, Saudi Arabia']);
         $clientId = (int) $pdo->lastInsertId();
 
-        $pdo->prepare('INSERT INTO projects (company_id, client_id, name, description, status, budget, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$companyId, $clientId, 'Villa Renovation - Al Nakheel', 'Full renovation of a 600 sqm villa including MEP works.', 'in_progress', 350000, date('Y-m-d', strtotime('-10 days')), date('Y-m-d', strtotime('+80 days'))]);
+        $pdo->prepare('INSERT INTO projects (company_id, client_id, name, name_ar, description, description_ar, status, budget, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$companyId, $clientId, 'Villa Renovation - Al Nakheel', 'تجديد فيلا - النخيل', 'Full renovation of a 600 sqm villa including MEP works.', 'تجديد كامل لفيلا مساحتها 600 متر مربع يشمل الأعمال الكهروميكانيكية.', 'in_progress', 350000, date('Y-m-d', strtotime('-10 days')), date('Y-m-d', strtotime('+80 days'))]);
         $projectId = (int) $pdo->lastInsertId();
 
-        $pdo->prepare('INSERT INTO estimates (company_id, project_id, client_id, title, status, total) VALUES (?, ?, ?, ?, ?, ?)')
-            ->execute([$companyId, $projectId, $clientId, 'Villa Renovation Estimate', 'accepted', 350000]);
+        $pdo->prepare('INSERT INTO estimates (company_id, project_id, client_id, title, title_ar, status, total) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$companyId, $projectId, $clientId, 'Villa Renovation Estimate', 'تسعيرة تجديد الفيلا', 'accepted', 350000]);
         $estimateId = (int) $pdo->lastInsertId();
 
         $items = [
-            ['Demolition & site prep', 1, 25000],
-            ['Structural & MEP works', 1, 150000],
-            ['Finishing materials', 1, 100000],
-            ['Labor & supervision', 1, 75000],
+            ['Demolition & site prep', 'الهدم وتجهيز الموقع', 1, 25000],
+            ['Structural & MEP works', 'الأعمال الإنشائية والكهروميكانيكية', 1, 150000],
+            ['Finishing materials', 'مواد التشطيب', 1, 100000],
+            ['Labor & supervision', 'العمالة والإشراف', 1, 75000],
         ];
-        foreach ($items as [$desc, $qty, $cost]) {
-            $pdo->prepare('INSERT INTO estimate_items (estimate_id, description, qty, unit_cost, total) VALUES (?, ?, ?, ?, ?)')
-                ->execute([$estimateId, $desc, $qty, $cost, $qty * $cost]);
+        foreach ($items as [$desc, $descAr, $qty, $cost]) {
+            $pdo->prepare('INSERT INTO estimate_items (estimate_id, description, description_ar, qty, unit_cost, total) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$estimateId, $desc, $descAr, $qty, $cost, $qty * $cost]);
         }
 
         $pdo->prepare('INSERT INTO invoices (company_id, project_id, client_id, invoice_number, status, total, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)')
             ->execute([$companyId, $projectId, $clientId, 'INV-1001', 'paid', 100000, date('Y-m-d', strtotime('-5 days'))]);
         $invoiceId = (int) $pdo->lastInsertId();
-        $pdo->prepare('INSERT INTO invoice_items (invoice_id, description, qty, unit_price, total) VALUES (?, ?, ?, ?, ?)')
-            ->execute([$invoiceId, 'Mobilization payment (30%)', 1, 100000, 100000]);
+        $pdo->prepare('INSERT INTO invoice_items (invoice_id, description, description_ar, qty, unit_price, total) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$invoiceId, 'Mobilization payment (30%)', 'دفعة التعبئة (30%)', 1, 100000, 100000]);
 
         $tasks = [
-            ['Site demolition', -8, -2, 'done'],
-            ['Electrical rough-in', -1, 14, 'in_progress'],
-            ['Plumbing rough-in', 2, 16, 'pending'],
-            ['Interior finishing', 20, 60, 'pending'],
+            ['Site demolition', 'هدم الموقع', -8, -2, 'done'],
+            ['Electrical rough-in', 'الأعمال الكهربائية الأولية', -1, 14, 'in_progress'],
+            ['Plumbing rough-in', 'أعمال السباكة الأولية', 2, 16, 'pending'],
+            ['Interior finishing', 'التشطيبات الداخلية', 20, 60, 'pending'],
         ];
-        foreach ($tasks as [$title, $startOffset, $endOffset, $status]) {
-            $pdo->prepare('INSERT INTO schedule_tasks (company_id, project_id, title, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?)')
-                ->execute([$companyId, $projectId, $title, date('Y-m-d', strtotime("{$startOffset} days")), date('Y-m-d', strtotime("{$endOffset} days")), $status]);
+        foreach ($tasks as [$title, $titleAr, $startOffset, $endOffset, $status]) {
+            $pdo->prepare('INSERT INTO schedule_tasks (company_id, project_id, title, title_ar, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$companyId, $projectId, $title, $titleAr, date('Y-m-d', strtotime("{$startOffset} days")), date('Y-m-d', strtotime("{$endOffset} days")), $status]);
         }
 
         echo "Demo company seeded: owner@buildxact-saudi.local / Demo@12345\n";

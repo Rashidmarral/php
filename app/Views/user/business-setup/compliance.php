@@ -64,7 +64,7 @@
     ?>
       <tr>
         <td>
-          <?= View::e($r['name']) ?>
+          <?= View::e(View::local($r, 'name')) ?>
           <br><span class="help-text"><?= View::e($types[$r['doc_type']] ?? ucfirst($r['doc_type'])) ?></span>
           <?php if ($r['file_path']): ?> · <a href="<?= View::e($r['file_path']) ?>" target="_blank">File</a><?php endif; ?>
         </td>

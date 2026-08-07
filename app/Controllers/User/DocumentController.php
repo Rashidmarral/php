@@ -21,7 +21,7 @@ class DocumentController extends Controller
     {
         $companyId = Auth::companyId();
         $documents = Document::query(
-            'SELECT d.*, p.name AS project_name, u.name AS uploaded_by_name FROM documents d
+            'SELECT d.*, p.name AS project_name, p.name_ar AS project_name_ar, u.name AS uploaded_by_name FROM documents d
              LEFT JOIN projects p ON p.id = d.project_id
              LEFT JOIN users u ON u.id = d.uploaded_by
              WHERE d.company_id = ? ORDER BY d.created_at DESC',

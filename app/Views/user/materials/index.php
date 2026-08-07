@@ -71,13 +71,13 @@ $avgRate = count($materials) > 0 ? $totalRate / count($materials) : 0;
     <tbody>
     <?php foreach ($materials as $m): ?>
       <tr data-category="<?= View::e(strtolower($m['category'] ?: 'other')) ?>" data-search="<?= View::e(strtolower($m['name'] . ' ' . ($m['supplier_name'] ?? ''))) ?>">
-        <td><?= View::e($m['name']) ?><?php if ($m['sku']): ?><br><span class="help-text"><?= View::e($m['sku']) ?></span><?php endif; ?></td>
+        <td><?= View::e(View::local($m, 'name')) ?><?php if ($m['sku']): ?><br><span class="help-text"><?= View::e($m['sku']) ?></span><?php endif; ?></td>
         <td><?php if ($m['category']): ?><span class="badge badge-gray"><?= View::e($m['category']) ?></span><?php endif; ?></td>
         <td><?= View::e($m['unit']) ?></td>
         <td><?= View::money((float)($m['material_cost'] ?? 0)) ?></td>
         <td><?= View::money((float)($m['labor_cost'] ?? 0)) ?></td>
         <td><strong><?= View::money((float)$m['unit_cost']) ?></strong>/<?= View::e($m['unit']) ?></td>
-        <td><?= View::e($m['supplier_name'] ?? '—') ?></td>
+        <td><?= View::e($m['supplier_name'] ? View::local($m, 'supplier_name') : '—') ?></td>
         <td style="display:flex;gap:8px;">
           <a href="/app/materials/<?= $m['id'] ?>/edit" class="btn btn-sm btn-light">Edit</a>
           <form method="post" action="/app/materials/<?= $m['id'] ?>/delete" onsubmit="return confirm('Remove this material?');">

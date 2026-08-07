@@ -17,7 +17,7 @@
     <tbody>
     <?php foreach ($clients as $c): ?>
       <tr>
-        <td><?= View::e($c['name']) ?></td>
+        <td><?= View::e(View::local($c, 'name')) ?></td>
         <td><?= View::e($c['email']) ?></td>
         <td><?= View::e($c['phone']) ?></td>
         <td>

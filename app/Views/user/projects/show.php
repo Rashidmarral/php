@@ -1,8 +1,8 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
   <div>
-    <h1><?= View::e($project['name']) ?></h1>
-    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client['name'] ?? '—') ?></p>
+    <h1><?= View::e(View::local($project, 'name')) ?></h1>
+    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client ? View::local($client, 'name') : '—') ?></p>
   </div>
   <div style="display:flex;gap:8px;">
     <a href="/app/projects/<?= $project['id'] ?>/edit" class="btn btn-light">Edit</a>
@@ -53,7 +53,7 @@
       <tbody>
       <?php foreach ($changeOrders as $co): ?>
         <tr>
-          <td><?= View::e($co['title']) ?><?php if ($co['description']): ?><br><span class="help-text"><?= View::e($co['description']) ?></span><?php endif; ?></td>
+          <td><?= View::e(View::local($co, 'title')) ?><?php if ($co['description']): ?><br><span class="help-text"><?= View::e(View::local($co, 'description')) ?></span><?php endif; ?></td>
           <td><?= (float)$co['amount'] >= 0 ? '+' : '' ?><?= View::money((float)$co['amount']) ?></td>
           <td><span class="badge badge-<?= $co['status']==='approved'?'green':($co['status']==='rejected'?'red':'yellow') ?>"><?= View::e(ucfirst($co['status'])) ?></span></td>
           <td style="display:flex;gap:6px;">

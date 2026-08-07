@@ -2,8 +2,8 @@
 <div class="page-head">
   <div>
     <a href="/app/estimates/new" class="help-text">← Back</a>
-    <h1 style="margin-top:6px;display:flex;align-items:center;gap:10px;"><span><?= View::e($template['icon']) ?></span> <?= View::e($template['name_en']) ?></h1>
-    <p class="help-text" style="margin-top:2px;"><?= View::e($template['description_en']) ?></p>
+    <h1 style="margin-top:6px;display:flex;align-items:center;gap:10px;"><span><?= View::e($template['icon']) ?></span> <?= View::e(View::local($template, 'name_en', 'name_ar')) ?></h1>
+    <p class="help-text" style="margin-top:2px;"><?= View::e(View::local($template, 'description_en', 'description_ar')) ?></p>
   </div>
 </div>
 
@@ -14,10 +14,10 @@
       <tbody>
       <?php $lastSection = null; foreach ($items as $it): ?>
         <?php if ($it['section_number'] !== $lastSection): $lastSection = $it['section_number']; ?>
-          <tr style="background:#fafcfb;"><td colspan="5"><strong><?= View::e($it['section_number']) ?> <?= View::e($it['section_title_en']) ?></strong></td></tr>
+          <tr style="background:#fafcfb;"><td colspan="5"><strong><?= View::e($it['section_number']) ?> <?= View::e(View::local($it, 'section_title_en', 'section_title_ar')) ?></strong></td></tr>
         <?php endif; ?>
         <tr>
-          <td><?= View::e($it['item_number']) ?> <?= View::e($it['description_en']) ?></td>
+          <td><?= View::e($it['item_number']) ?> <?= View::e(View::local($it, 'description_en', 'description_ar')) ?></td>
           <td><span class="badge badge-<?= $it['item_type'] === 'labor' ? 'yellow' : 'gray' ?>"><?= ucfirst($it['item_type']) ?></span></td>
           <td>0 <span class="help-text">(<?= View::e(rtrim(rtrim(number_format((float)$it['default_qty'], 2), '0'), '.')) ?>)</span></td>
           <td><?= View::e($it['uom']) ?></td>
@@ -37,7 +37,7 @@
       <p class="help-text" style="margin-top:2px;">Otherwise quantities start at 0 and you fill them in.</p>
     </div>
 
-    <div class="form-group"><label>Description</label><input type="text" name="title" value="<?= View::e($template['name_en']) ?>"></div>
+    <div class="form-group"><label>Description</label><input type="text" name="title" value="<?= View::e(View::local($template, 'name_en', 'name_ar')) ?>"></div>
 
     <div class="form-group">
       <label>Building Type</label>
