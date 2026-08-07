@@ -9,7 +9,7 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
   <a href="/admin/plans" class="btn btn-light">← Back to plans</a>
 </div>
 
-<form method="post" action="<?= $plan ? '/admin/plans/' . $plan['id'] : '/admin/plans' ?>" class="card" style="max-width:680px;">
+<form method="post" action="<?= $plan ? '/admin/plans/' . $plan['id'] : '/admin/plans' ?>" class="card" style="max-width:760px;">
   <?= Csrf::field() ?>
   <div class="form-row">
     <div class="form-group"><label>Plan name</label><input type="text" name="name" required value="<?= View::e($plan['name'] ?? '') ?>"></div>
@@ -31,15 +31,42 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
   </div>
   <div class="form-group">
     <label>Module access</label>
-    <p class="help-text" style="margin-top:-2px;">Controls which parts of the user panel companies on this plan can actually use.</p>
-    <div class="grid grid-2" style="gap:8px;">
-      <?php foreach ($allFeatures as $key => $label): ?>
-        <label style="font-weight:400;font-size:14px;">
-          <input type="checkbox" name="feature_<?= $key ?>" value="1" style="width:auto;display:inline-block;" <?= !empty($activeFlags[$key]) ? 'checked' : '' ?>>
-          <?= View::e($label) ?>
-        </label>
-      <?php endforeach; ?>
-    </div>
+    <p class="help-text" style="margin-top:-2px;">Controls which parts of the user panel companies on this plan can actually use. Core features (projects, estimates, invoices, clients, schedule, team) are always included and aren't listed here.</p>
+    <?php
+      $featureGroups = [
+        'Estimating & Sales' => ['ai_estimate_generator', 'estimate_templates', 'quick_estimate', 'leads'],
+        'Project Delivery' => ['takeoff', 'change_orders', 'project_photos', 'documents'],
+        'Money' => ['online_invoice_payments', 'zatca_phase2', 'reports'],
+        'Vendors & Materials' => ['suppliers', 'materials'],
+        'Compliance & Clients' => ['compliance', 'client_portal'],
+        'Platform' => ['integrations'],
+      ];
+      $grouped = array_merge(...array_values($featureGroups));
+      $ungrouped = array_diff(array_keys($allFeatures), $grouped);
+    ?>
+    <?php foreach ($featureGroups as $groupLabel => $keys): ?>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:6px;"><?= View::e($groupLabel) ?></div>
+        <div class="grid grid-2" style="gap:8px;">
+          <?php foreach ($keys as $key): if (!isset($allFeatures[$key])) continue; ?>
+            <label style="font-weight:400;font-size:14px;">
+              <input type="checkbox" name="feature_<?= $key ?>" value="1" style="width:auto;display:inline-block;" <?= !empty($activeFlags[$key]) ? 'checked' : '' ?>>
+              <?= View::e($allFeatures[$key]) ?>
+            </label>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    <?php if (!empty($ungrouped)): ?>
+      <div class="grid grid-2" style="gap:8px;">
+        <?php foreach ($ungrouped as $key): ?>
+          <label style="font-weight:400;font-size:14px;">
+            <input type="checkbox" name="feature_<?= $key ?>" value="1" style="width:auto;display:inline-block;" <?= !empty($activeFlags[$key]) ? 'checked' : '' ?>>
+            <?= View::e($allFeatures[$key]) ?>
+          </label>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
   </div>
   <div class="form-row">
     <div class="form-group"><label>Sort order</label><input type="number" name="sort_order" value="<?= View::e((string)($plan['sort_order'] ?? 0)) ?>"></div>

@@ -4,11 +4,17 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\ComplianceDocument;
 
 class ComplianceController extends Controller
 {
     private const ALLOWED_TYPES = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
+
+    public function __construct()
+    {
+        Feature::requireOrRedirect('compliance');
+    }
 
     public function index(): void
     {

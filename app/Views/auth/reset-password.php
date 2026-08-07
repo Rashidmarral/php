@@ -13,11 +13,17 @@
       <?= Csrf::field() ?>
       <div class="form-group">
         <label>New password</label>
-        <input type="password" name="password" required minlength="8" autofocus>
+        <div class="password-field">
+          <input type="password" name="password" required minlength="8" autofocus>
+          <?= View::passwordToggle() ?>
+        </div>
       </div>
       <div class="form-group">
         <label>Confirm new password</label>
-        <input type="password" name="password_confirm" required minlength="8">
+        <div class="password-field">
+          <input type="password" name="password_confirm" required minlength="8">
+          <?= View::passwordToggle() ?>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary btn-block">Reset password</button>
     </form>

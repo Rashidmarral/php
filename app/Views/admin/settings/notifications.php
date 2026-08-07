@@ -43,7 +43,10 @@
   </div>
   <div class="form-group">
     <label>Access token</label>
-    <input type="password" name="whatsapp_access_token" placeholder="<?= !empty($settings['whatsapp_access_token']) ? '••••••••••••••••  (leave blank to keep current)' : 'EAAG...' ?>">
+    <div class="password-field">
+      <input type="password" name="whatsapp_access_token" placeholder="<?= !empty($settings['whatsapp_access_token']) ? '••••••••••••••••  (leave blank to keep current)' : 'EAAG...' ?>">
+      <?= View::passwordToggle() ?>
+    </div>
   </div>
   <button type="submit" class="btn btn-primary">Save</button>
 </form>

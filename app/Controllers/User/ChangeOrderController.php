@@ -4,11 +4,17 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\ChangeOrder;
 use App\Models\Project;
 
 class ChangeOrderController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('change_orders');
+    }
+
     public function store(string $projectId): void
     {
         $this->verifyCsrf();

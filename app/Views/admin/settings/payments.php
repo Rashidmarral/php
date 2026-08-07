@@ -42,7 +42,10 @@
   <div class="form-group"><label>Publishable key</label><input type="text" name="moyasar_publishable_key" value="<?= View::e($settings['moyasar_publishable_key'] ?? '') ?>" placeholder="pk_live_..."></div>
   <div class="form-group">
     <label>Secret key</label>
-    <input type="password" name="moyasar_secret_key" placeholder="<?= !empty($settings['moyasar_secret_key']) ? '••••••••••••••••  (leave blank to keep current)' : 'sk_live_...' ?>">
+    <div class="password-field">
+      <input type="password" name="moyasar_secret_key" placeholder="<?= !empty($settings['moyasar_secret_key']) ? '••••••••••••••••  (leave blank to keep current)' : 'sk_live_...' ?>">
+      <?= View::passwordToggle() ?>
+    </div>
   </div>
 
   <button type="submit" class="btn btn-primary">Save payment settings</button>

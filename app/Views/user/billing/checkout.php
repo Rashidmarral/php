@@ -29,10 +29,14 @@
           <tr><td>Account number</td><td><?= View::e($bank['accountNumber'] ?: '—') ?></td></tr>
         </tbody>
       </table>
-      <form method="post" action="/app/billing/bank-transfer">
+      <form method="post" action="/app/billing/bank-transfer" enctype="multipart/form-data">
         <?= Csrf::field() ?>
         <input type="hidden" name="plan" value="<?= View::e($plan['slug']) ?>">
         <input type="hidden" name="cycle" value="<?= View::e($cycle) ?>">
+        <div class="form-group">
+          <label>Transfer receipt (optional, but speeds up approval)</label>
+          <input type="file" name="receipt" accept="application/pdf,image/jpeg,image/png">
+        </div>
         <button type="submit" class="btn btn-primary btn-block">I've made the transfer</button>
       </form>
     </div>
@@ -54,10 +58,10 @@
       data-methods="creditcard,applepay,stcpay"
       data-save-card="true">
     </div>
+    <p class="help-text" id="card-loading-hint">Loading payment form…</p>
   </div>
 </div>
 <link rel="stylesheet" href="https://cdn.moyasar.com/mpf/1.15.0/moyasar.css">
-<script src="https://cdn.moyasar.com/mpf/1.15.0/moyasar.js"></script>
 <?php endif; ?>
 
 <script>
@@ -68,6 +72,19 @@ document.querySelectorAll('.tab-link').forEach(link => {
     document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
     link.classList.add('active');
     document.getElementById('tab-' + link.dataset.tab).style.display = 'block';
+
+    // Moyasar's widget sizes itself against the DOM when its script runs — loading it
+    // eagerly while this tab sits under display:none gives it a zero-width container and
+    // it silently fails to render anything. Load it lazily, only once the tab (and its
+    // real width) is actually visible.
+    if (link.dataset.tab === 'card' && !window.__moyasarLoaded) {
+      window.__moyasarLoaded = true;
+      const script = document.createElement('script');
+      script.src = 'https://cdn.moyasar.com/mpf/1.15.0/moyasar.js';
+      script.onload = () => { const hint = document.getElementById('card-loading-hint'); if (hint) hint.remove(); };
+      script.onerror = () => { const hint = document.getElementById('card-loading-hint'); if (hint) hint.textContent = 'Could not load the payment form — please check your connection and try again, or use bank transfer.'; };
+      document.body.appendChild(script);
+    }
   });
 });
 </script>

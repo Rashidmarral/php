@@ -664,18 +664,36 @@ echo "Default plans seeded.\n";
 
 // ---- Seed default feature flags onto existing plans (idempotent: only fills blanks) ----
 $defaultFlagsByPlan = [
-    'starter' => ['takeoff' => false, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => false, 'client_portal' => false, 'integrations' => false, 'zatca_phase2' => false],
-    'professional' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => false],
-    'enterprise' => ['takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true, 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true],
+    'starter' => [
+        'takeoff' => false, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => false,
+        'client_portal' => false, 'integrations' => false, 'zatca_phase2' => false, 'leads' => true,
+        'compliance' => true, 'change_orders' => false, 'project_photos' => true, 'quick_estimate' => true,
+        'ai_estimate_generator' => false, 'estimate_templates' => true, 'online_invoice_payments' => false,
+    ],
+    'professional' => [
+        'takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true,
+        'client_portal' => true, 'integrations' => true, 'zatca_phase2' => false, 'leads' => true,
+        'compliance' => true, 'change_orders' => true, 'project_photos' => true, 'quick_estimate' => true,
+        'ai_estimate_generator' => true, 'estimate_templates' => true, 'online_invoice_payments' => true,
+    ],
+    'enterprise' => [
+        'takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true,
+        'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true, 'leads' => true,
+        'compliance' => true, 'change_orders' => true, 'project_photos' => true, 'quick_estimate' => true,
+        'ai_estimate_generator' => true, 'estimate_templates' => true, 'online_invoice_payments' => true,
+    ],
 ];
 $planRows = $pdo->query('SELECT id, slug, feature_flags FROM plans')->fetchAll();
 $updateFlags = $pdo->prepare('UPDATE plans SET feature_flags = ? WHERE id = ?');
 foreach ($planRows as $row) {
-    if (!empty($row['feature_flags'])) {
-        continue;
+    $defaults = $defaultFlagsByPlan[$row['slug']] ?? $defaultFlagsByPlan['starter'];
+    $existing = !empty($row['feature_flags']) ? (json_decode((string) $row['feature_flags'], true) ?: []) : [];
+    // Merge in any flag keys the stored JSON is missing (e.g. new modules added after this plan
+    // was first seeded) without touching flags an admin has already toggled by hand.
+    $merged = $existing + $defaults;
+    if ($merged !== $existing) {
+        $updateFlags->execute([json_encode($merged), $row['id']]);
     }
-    $flags = $defaultFlagsByPlan[$row['slug']] ?? $defaultFlagsByPlan['starter'];
-    $updateFlags->execute([json_encode($flags), $row['id']]);
 }
 echo "Plan feature flags seeded.\n";
 

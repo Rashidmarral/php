@@ -40,7 +40,10 @@
   </div>
   <div class="form-group">
     <label>API key</label>
-    <input type="password" name="ai_api_key" placeholder="<?= !empty($settings['ai_api_key']) ? 'Saved — leave blank to keep it' : 'sk-ant-...' ?>">
+    <div class="password-field">
+      <input type="password" name="ai_api_key" placeholder="<?= !empty($settings['ai_api_key']) ? 'Saved — leave blank to keep it' : 'sk-ant-...' ?>">
+      <?= View::passwordToggle() ?>
+    </div>
   </div>
   <?php if (!empty($settings['ai_last_error'])): ?>
     <div class="alert alert-error">Last API error: <?= View::e($settings['ai_last_error']) ?></div>

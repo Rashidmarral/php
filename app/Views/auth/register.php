@@ -22,7 +22,13 @@
       </div>
       <div class="form-row">
         <div class="form-group"><label><?= t('auth.city') ?></label><input type="text" name="city" value="<?= View::old('city') ?>" placeholder="Riyadh"></div>
-        <div class="form-group"><label><?= t('auth.password') ?></label><input type="password" name="password" required minlength="8"></div>
+        <div class="form-group">
+          <label><?= t('auth.password') ?></label>
+          <div class="password-field">
+            <input type="password" name="password" required minlength="8">
+            <?= View::passwordToggle() ?>
+          </div>
+        </div>
       </div>
 
       <div class="form-group">

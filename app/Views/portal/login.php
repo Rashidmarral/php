@@ -12,7 +12,13 @@
     <form method="post" action="/portal/login">
       <?= Csrf::field() ?>
       <div class="form-group"><label>Email address</label><input type="email" name="email" required></div>
-      <div class="form-group"><label>Password</label><input type="password" name="password" required></div>
+      <div class="form-group">
+        <label>Password</label>
+        <div class="password-field">
+          <input type="password" name="password" required>
+          <?= View::passwordToggle() ?>
+        </div>
+      </div>
       <button type="submit" class="btn btn-primary btn-block">Log in</button>
     </form>
     <p class="help-text" style="margin-top:14px;">Your contractor gives you access to the client portal — contact them if you don't have a login yet.</p>

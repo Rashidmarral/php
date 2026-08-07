@@ -23,6 +23,14 @@ class Feature
         'client_portal' => 'Client Portal',
         'integrations' => 'Integrations',
         'zatca_phase2' => 'ZATCA Phase 2 e-invoicing',
+        'leads' => 'Leads & CRM',
+        'compliance' => 'Compliance Document Tracker',
+        'change_orders' => 'Change Orders',
+        'project_photos' => 'Project Photo Gallery',
+        'quick_estimate' => 'Quick Estimate Tool',
+        'ai_estimate_generator' => 'AI Estimate Generator',
+        'estimate_templates' => 'Estimate Template Library',
+        'online_invoice_payments' => 'Client Online Invoice Payments (Moyasar)',
     ];
 
     private static ?array $cachedFlags = null;
@@ -60,6 +68,17 @@ class Feature
             return true;
         }
         return !empty(self::flags()[$key]);
+    }
+
+    /** Same check as allows(), but for an arbitrary company (e.g. on public client-facing pages with no session). */
+    public static function allowsForCompany(string $key, ?array $company): bool
+    {
+        if (!$company || !$company['plan_id']) {
+            return false;
+        }
+        $plan = Plan::find((int) $company['plan_id']);
+        $flags = $plan ? (json_decode((string) ($plan['feature_flags'] ?? '{}'), true) ?: []) : [];
+        return !empty($flags[$key]);
     }
 
     /** Redirects to Billing with an upgrade prompt if the current company's plan lacks $key. */

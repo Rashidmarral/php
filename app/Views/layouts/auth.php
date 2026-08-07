@@ -22,5 +22,6 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
   </div>
 </header>
 <?= $content ?>
+<script src="/assets/js/password-toggle.js"></script>
 </body>
 </html>

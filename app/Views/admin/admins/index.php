@@ -9,7 +9,13 @@
     <?= Csrf::field() ?>
     <div class="form-group" style="margin:0;"><label>Name</label><input type="text" name="name" required></div>
     <div class="form-group" style="margin:0;"><label>Email</label><input type="email" name="email" required></div>
-    <div class="form-group" style="margin:0;"><label>Password</label><input type="password" name="password" required minlength="8"></div>
+    <div class="form-group" style="margin:0;">
+      <label>Password</label>
+      <div class="password-field">
+        <input type="password" name="password" required minlength="8">
+        <?= View::passwordToggle() ?>
+      </div>
+    </div>
     <button type="submit" class="btn btn-primary">Add admin</button>
   </form>
 </div>

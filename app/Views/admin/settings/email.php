@@ -44,7 +44,10 @@
     <div class="form-group"><label>Username</label><input type="text" name="smtp_username" value="<?= View::e($settings['smtp_username'] ?? '') ?>"></div>
     <div class="form-group">
       <label>Password</label>
-      <input type="password" name="smtp_password" placeholder="<?= !empty($settings['smtp_password']) ? '••••••••••••••••  (leave blank to keep current)' : 'App password or SMTP key' ?>">
+      <div class="password-field">
+        <input type="password" name="smtp_password" placeholder="<?= !empty($settings['smtp_password']) ? '••••••••••••••••  (leave blank to keep current)' : 'App password or SMTP key' ?>">
+        <?= View::passwordToggle() ?>
+      </div>
     </div>
   </div>
   <div class="form-row">

@@ -6,6 +6,7 @@ use App\Core\AiEstimateGenerator;
 use App\Core\Auth;
 use App\Core\Controller;
 use App\Core\Env;
+use App\Core\Feature;
 use App\Core\Lang;
 use App\Core\WhatsApp;
 use App\Models\BuildingType;
@@ -49,6 +50,7 @@ class EstimateController extends Controller
 
     public function templatePreview(string $id): void
     {
+        Feature::requireOrRedirect('estimate_templates');
         $template = EstimateTemplate::find((int) $id);
         if (!$template || !$template['is_active']) {
             http_response_code(404);
@@ -71,6 +73,7 @@ class EstimateController extends Controller
     {
         $this->verifyCsrf();
         Auth::requireAbility('write');
+        Feature::requireOrRedirect('estimate_templates');
         $template = EstimateTemplate::find((int) $id);
         if (!$template || !$template['is_active']) {
             http_response_code(404);
@@ -121,6 +124,7 @@ class EstimateController extends Controller
 
     public function aiGenerator(): void
     {
+        Feature::requireOrRedirect('ai_estimate_generator');
         $this->view('user/estimates/ai', [
             'pageTitle' => 'AI Estimate Generator',
             'aiConfigured' => AiEstimateGenerator::isConfigured(),
@@ -131,6 +135,7 @@ class EstimateController extends Controller
     {
         $this->verifyCsrf();
         Auth::requireAbility('write');
+        Feature::requireOrRedirect('ai_estimate_generator');
 
         $description = trim((string) $this->input('description'));
         if ($description === '') {

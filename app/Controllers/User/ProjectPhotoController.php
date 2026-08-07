@@ -4,12 +4,18 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
 
 class ProjectPhotoController extends Controller
 {
     private const ALLOWED_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+
+    public function __construct()
+    {
+        Feature::requireOrRedirect('project_photos');
+    }
 
     public function store(string $projectId): void
     {

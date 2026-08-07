@@ -28,6 +28,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/admin/payments" class="<?= $isActive('/admin/payments') ?>">💵 <?= t('aside.payments') ?></a>
       <a href="/admin/integrations" class="<?= $isActive('/admin/integrations') ?>">🔌 Integrations</a>
       <a href="/admin/quick-estimate" class="<?= $isActive('/admin/quick-estimate') ?>">🧮 <?= t('aside.quick_estimate') ?></a>
+      <a href="/admin/estimate-templates" class="<?= $isActive('/admin/estimate-templates') ?>">📐 Estimate Templates</a>
       <div class="nav-section">Website</div>
       <a href="/admin/pages" class="<?= $isActive('/admin/pages') ?>">📄 Pages</a>
       <a href="/admin/settings/header" class="<?= $isActive('/admin/settings/header') ?>">🖼️ Header &amp; Footer</a>
@@ -63,5 +64,6 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
     </div>
   </div>
 </div>
+<script src="/assets/js/password-toggle.js"></script>
 </body>
 </html>

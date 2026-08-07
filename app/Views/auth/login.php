@@ -17,7 +17,10 @@
       </div>
       <div class="form-group">
         <label><?= t('auth.password') ?></label>
-        <input type="password" name="password" required>
+        <div class="password-field">
+          <input type="password" name="password" required>
+          <?= View::passwordToggle() ?>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary btn-block"><?= t('auth.login_btn') ?></button>
     </form>

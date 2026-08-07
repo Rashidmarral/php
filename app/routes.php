@@ -31,6 +31,7 @@ use App\Controllers\Admin\SiteSettingsController;
 use App\Controllers\Admin\AdminPageController;
 use App\Controllers\Admin\AdminTranslationController;
 use App\Controllers\Admin\QuickEstimateAdminController;
+use App\Controllers\Admin\EstimateTemplateAdminController;
 use App\Controllers\Site\QuickEstimateController;
 use App\Controllers\Site\PageController;
 use App\Controllers\Site\ShareController;
@@ -314,6 +315,16 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
 
     $router->get('/admin/quick-estimate/leads', [QuickEstimateAdminController::class, 'leads']);
     $router->post('/admin/quick-estimate/leads/{id}/status', [QuickEstimateAdminController::class, 'updateLeadStatus']);
+
+    $router->get('/admin/estimate-templates', [EstimateTemplateAdminController::class, 'index']);
+    $router->post('/admin/estimate-templates', [EstimateTemplateAdminController::class, 'store']);
+    $router->post('/admin/estimate-templates/{id}', [EstimateTemplateAdminController::class, 'update']);
+    $router->post('/admin/estimate-templates/{id}/delete', [EstimateTemplateAdminController::class, 'destroy']);
+    $router->post('/admin/estimate-templates/{id}/default', [EstimateTemplateAdminController::class, 'setDefault']);
+    $router->get('/admin/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'items']);
+    $router->post('/admin/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'storeItem']);
+    $router->post('/admin/estimate-templates/{id}/items/{itemId}', [EstimateTemplateAdminController::class, 'updateItem']);
+    $router->post('/admin/estimate-templates/{id}/items/{itemId}/delete', [EstimateTemplateAdminController::class, 'destroyItem']);
 });
 
 // ---------- Client Portal ----------

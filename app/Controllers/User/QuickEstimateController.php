@@ -4,6 +4,7 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Core\Lang;
 use App\Core\QuickEstimateCalc;
 use App\Core\Settings;
@@ -18,6 +19,11 @@ use App\Models\QuickEstimateRegion;
 
 class QuickEstimateController extends Controller
 {
+    public function __construct()
+    {
+        Feature::requireOrRedirect('quick_estimate');
+    }
+
     public function index(): void
     {
         $companyId = Auth::companyId();

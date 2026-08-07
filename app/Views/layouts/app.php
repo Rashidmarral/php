@@ -79,5 +79,6 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
     </div>
   </div>
 </div>
+<script src="/assets/js/password-toggle.js"></script>
 </body>
 </html>

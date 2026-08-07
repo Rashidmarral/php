@@ -4,6 +4,7 @@ namespace App\Controllers\User;
 
 use App\Core\Auth;
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Models\Client;
 use App\Models\Lead;
 
@@ -11,6 +12,11 @@ class LeadController extends Controller
 {
     private const STATUSES = ['new', 'contacted', 'qualified', 'won', 'lost'];
     private const SOURCES = ['website', 'quick_estimate', 'referral', 'phone', 'walk_in', 'social_media', 'other'];
+
+    public function __construct()
+    {
+        Feature::requireOrRedirect('leads');
+    }
 
     public function index(): void
     {

@@ -3,6 +3,7 @@
 namespace App\Controllers\Site;
 
 use App\Core\Controller;
+use App\Core\Feature;
 use App\Core\Moyasar;
 use App\Core\Notifications;
 use App\Core\Zatca\Phase1Qr;
@@ -181,7 +182,7 @@ class ShareController extends Controller
         if ($invoice['status'] === 'paid') {
             self::redirect('/i/' . $token);
         }
-        if (!Moyasar::isConfiguredForCompany($company)) {
+        if (!Moyasar::isConfiguredForCompany($company) || !Feature::allowsForCompany('online_invoice_payments', $company)) {
             $this->flash('error', 'Online payment isn\'t available for this invoice yet — please contact ' . ($company['name'] ?? 'the company') . ' directly.');
             self::redirect('/i/' . $token);
         }

@@ -13,6 +13,8 @@ use App\Models\Subscription;
 
 class BillingController extends Controller
 {
+    private const ALLOWED_RECEIPT_TYPES = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
+
     public function index(): void
     {
         $companyId = Auth::companyId();
@@ -82,7 +84,7 @@ class BillingController extends Controller
         $cycle = $this->input('cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
         $amount = (float) ($cycle === 'yearly' ? $plan['price_yearly'] : $plan['price_monthly']);
 
-        Payment::create([
+        $data = [
             'company_id' => $companyId,
             'subscription_id' => null,
             'plan_id' => $plan['id'],
@@ -92,10 +94,41 @@ class BillingController extends Controller
             'method' => 'bank_transfer',
             'reference' => 'BT-' . strtoupper(bin2hex(random_bytes(4))),
             'status' => 'pending',
-        ]);
+        ];
 
-        $this->flash('success', 'Your bank transfer request has been submitted. Your plan will be activated once our team confirms receipt of payment.');
+        $uploadError = $this->handleReceiptUpload($data);
+        if ($uploadError) {
+            $this->flash('error', $uploadError);
+            self::redirect('/app/billing/checkout?plan=' . urlencode($plan['slug']) . '&cycle=' . $cycle);
+        }
+
+        Payment::create($data);
+
+        $this->flash('success', 'Your bank transfer request has been submitted' . (isset($data['proof_file_path']) ? ' with your receipt attached' : '') . '. Your plan will be activated once our team confirms receipt of payment.');
         self::redirect('/app/billing');
+    }
+
+    /** @param array $data by reference — sets proof_file_path on success */
+    private function handleReceiptUpload(array &$data): ?string
+    {
+        if (empty($_FILES['receipt']['tmp_name']) || $_FILES['receipt']['error'] !== UPLOAD_ERR_OK) {
+            return null;
+        }
+        $mime = mime_content_type($_FILES['receipt']['tmp_name']);
+        if (!isset(self::ALLOWED_RECEIPT_TYPES[$mime])) {
+            return 'Receipt must be a PDF, JPG, or PNG file.';
+        }
+        if ($_FILES['receipt']['size'] > 10 * 1024 * 1024) {
+            return 'Receipt must be smaller than 10MB.';
+        }
+        $dir = BASE_PATH . '/public/uploads/payment-receipts';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+        $filename = 'receipt-' . Auth::companyId() . '-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_RECEIPT_TYPES[$mime];
+        move_uploaded_file($_FILES['receipt']['tmp_name'], "{$dir}/{$filename}");
+        $data['proof_file_path'] = "/uploads/payment-receipts/{$filename}";
+        return null;
     }
 
     public function moyasarCallback(): void

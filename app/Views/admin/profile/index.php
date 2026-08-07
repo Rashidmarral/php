@@ -11,10 +11,28 @@
 
   <h3 style="font-size:14px;margin-top:20px;">Change password</h3>
   <p class="help-text" style="margin-top:-8px;">Leave blank to keep your current password.</p>
-  <div class="form-group"><label>Current password</label><input type="password" name="current_password" autocomplete="current-password"></div>
+  <div class="form-group">
+    <label>Current password</label>
+    <div class="password-field">
+      <input type="password" name="current_password" autocomplete="current-password">
+      <?= View::passwordToggle() ?>
+    </div>
+  </div>
   <div class="form-row">
-    <div class="form-group"><label>New password</label><input type="password" name="new_password" autocomplete="new-password" minlength="8"></div>
-    <div class="form-group"><label>Confirm new password</label><input type="password" name="new_password_confirm" autocomplete="new-password" minlength="8"></div>
+    <div class="form-group">
+      <label>New password</label>
+      <div class="password-field">
+        <input type="password" name="new_password" autocomplete="new-password" minlength="8">
+        <?= View::passwordToggle() ?>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Confirm new password</label>
+      <div class="password-field">
+        <input type="password" name="new_password_confirm" autocomplete="new-password" minlength="8">
+        <?= View::passwordToggle() ?>
+      </div>
+    </div>
   </div>
 
   <button type="submit" class="btn btn-primary" style="margin-top:8px;">Save changes</button>
