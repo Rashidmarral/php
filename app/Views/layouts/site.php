@@ -4,6 +4,7 @@ use App\Core\Lang;
 use App\Core\Auth;
 use App\Core\Settings;
 use App\Core\View;
+use App\Models\Page;
 
 $otherLang = Lang::locale() === 'ar' ? 'en' : 'ar';
 $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
@@ -11,6 +12,26 @@ $platformLogo = Settings::get('platform_logo_path', '');
 $platformCr = Settings::get('platform_cr_number', '');
 $platformVat = Settings::get('platform_vat_number', '');
 $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_name_ar', '') ?: Settings::get('platform_legal_name_en', 'BuildXact Saudi')) : Settings::get('platform_legal_name_en', 'BuildXact Saudi');
+$isAr = Lang::locale() === 'ar';
+$headerPhone = Settings::get('header_phone', '');
+$footerTagline = ($isAr ? Settings::get('footer_tagline_ar', '') : Settings::get('footer_tagline_en', '')) ?: t('footer.tagline');
+$footerCities = ($isAr ? Settings::get('footer_cities_ar', '') : Settings::get('footer_cities_en', '')) ?: 'Riyadh · Jeddah · Dammam';
+$footerBottomNote = $isAr ? Settings::get('footer_bottom_note_ar', '') : Settings::get('footer_bottom_note_en', '');
+$socialLinks = [
+    'Facebook' => Settings::get('social_facebook_url', ''),
+    'X' => Settings::get('social_twitter_url', ''),
+    'Instagram' => Settings::get('social_instagram_url', ''),
+    'LinkedIn' => Settings::get('social_linkedin_url', ''),
+    'WhatsApp' => Settings::get('social_whatsapp_url', ''),
+];
+$navPages = [];
+$footerPages = [];
+try {
+    $navPages = Page::forNav();
+    $footerPages = Page::forFooter();
+} catch (\Throwable $e) {
+    // pages table may not exist yet on a not-yet-migrated install
+}
 ?><!doctype html>
 <html lang="<?= Lang::locale() ?>" dir="<?= Lang::dir() ?>">
 <head>
@@ -38,8 +59,12 @@ $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_na
       <a href="/quick-estimate"><?= t('nav.quick_estimate') ?></a>
       <a href="/about"><?= t('nav.about') ?></a>
       <a href="/contact"><?= t('nav.contact') ?></a>
+      <?php foreach ($navPages as $np): ?>
+        <a href="/p/<?= View::e($np['slug']) ?>"><?= View::e(($isAr ? ($np['nav_label_ar'] ?: $np['title_ar']) : ($np['nav_label_en'] ?: $np['title_en']))) ?></a>
+      <?php endforeach; ?>
     </nav>
     <div class="header-actions">
+      <?php if ($headerPhone): ?><a class="lang-switch" href="tel:<?= View::e(preg_replace('/\s+/', '', $headerPhone)) ?>" style="direction:ltr;"><?= View::e($headerPhone) ?></a><?php endif; ?>
       <a class="lang-switch" href="?lang=<?= $otherLang ?>"><?= $otherLangLabel ?></a>
       <?php if (Auth::check()): ?>
         <a class="btn btn-outline btn-sm" href="<?= Auth::isSuperAdmin() ? '/admin' : '/app' ?>"><?= t('nav.dashboard') ?></a>
@@ -58,7 +83,14 @@ $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_na
     <div class="footer-grid">
       <div>
         <div class="logo" style="color:#fff"><span class="mark">BX</span> BuildXact Saudi</div>
-        <p style="color:#a9c4bd;font-size:13.5px;margin-top:10px;max-width:280px;"><?= t('footer.tagline') ?></p>
+        <p style="color:#a9c4bd;font-size:13.5px;margin-top:10px;max-width:280px;"><?= View::e($footerTagline) ?></p>
+        <?php if (array_filter($socialLinks)): ?>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <?php foreach ($socialLinks as $label => $url): if (!$url): continue; endif; ?>
+              <a href="<?= View::e($url) ?>" target="_blank" rel="noopener" title="<?= View::e($label) ?>" style="color:#a9c4bd;font-size:12.5px;border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 8px;"><?= View::e($label) ?></a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
       </div>
       <div>
         <h4><?= t('footer.product') ?></h4>
@@ -73,6 +105,9 @@ $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_na
         <ul>
           <li><a href="/about"><?= t('nav.about') ?></a></li>
           <li><a href="/contact"><?= t('nav.contact') ?></a></li>
+          <?php foreach ($footerPages as $fp): ?>
+            <li><a href="/p/<?= View::e($fp['slug']) ?>"><?= View::e(($isAr ? ($fp['nav_label_ar'] ?: $fp['title_ar']) : ($fp['nav_label_en'] ?: $fp['title_en']))) ?></a></li>
+          <?php endforeach; ?>
         </ul>
       </div>
       <div>
@@ -87,8 +122,8 @@ $platformLegalName = Lang::locale() === 'ar' ? (Settings::get('platform_legal_na
       <span>&copy; <?= date('Y') ?> <?= View::e($platformLegalName) ?>. <?= t('footer.rights') ?><?php if ($platformCr || $platformVat): ?>
         <?php if ($platformCr): ?> · <?= t('footer.cr') ?>: <bdi><?= View::e($platformCr) ?></bdi><?php endif; ?>
         <?php if ($platformVat): ?> · <?= t('footer.vat') ?>: <bdi><?= View::e($platformVat) ?></bdi><?php endif; ?>
-      <?php endif; ?></span>
-      <span>Riyadh · Jeddah · Dammam</span>
+      <?php endif; ?><?php if ($footerBottomNote): ?> · <?= View::e($footerBottomNote) ?><?php endif; ?></span>
+      <span><?= View::e($footerCities) ?></span>
     </div>
   </div>
 </footer>

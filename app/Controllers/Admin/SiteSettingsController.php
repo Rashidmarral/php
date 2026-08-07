@@ -92,6 +92,33 @@ class SiteSettingsController extends Controller
         return null;
     }
 
+    public function header(): void
+    {
+        $this->view('admin/settings/header', [
+            'pageTitle' => 'Header & Footer',
+            'settings' => Settings::all(),
+        ], 'layouts/admin');
+    }
+
+    public function updateHeader(): void
+    {
+        $this->verifyCsrf();
+
+        foreach ([
+            'header_phone',
+            'footer_tagline_en', 'footer_tagline_ar',
+            'footer_cities_en', 'footer_cities_ar',
+            'footer_bottom_note_en', 'footer_bottom_note_ar',
+            'social_facebook_url', 'social_twitter_url', 'social_instagram_url',
+            'social_linkedin_url', 'social_whatsapp_url',
+        ] as $key) {
+            Settings::set($key, trim((string) $this->input($key, '')));
+        }
+
+        $this->flash('success', 'Header & footer content updated.');
+        self::redirect('/admin/settings/header');
+    }
+
     public function notifications(): void
     {
         $this->view('admin/settings/notifications', [

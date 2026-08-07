@@ -304,6 +304,34 @@ $statements[] = "CREATE TABLE IF NOT EXISTS documents (
     created_at {$ts}
 ){$engine}";
 
+$statements[] = "CREATE TABLE IF NOT EXISTS pages (
+    id {$id},
+    slug VARCHAR(150) NOT NULL UNIQUE,
+    title_en VARCHAR(200) NOT NULL,
+    title_ar VARCHAR(200) NOT NULL,
+    content_en TEXT,
+    content_ar TEXT,
+    meta_description_en VARCHAR(255),
+    meta_description_ar VARCHAR(255),
+    nav_label_en VARCHAR(80),
+    nav_label_ar VARCHAR(80),
+    show_in_nav INT NOT NULL DEFAULT 0,
+    show_in_footer INT NOT NULL DEFAULT 0,
+    nav_order INT NOT NULL DEFAULT 0,
+    is_published INT NOT NULL DEFAULT 1,
+    created_at {$ts},
+    updated_at {$ts}
+){$engine}";
+
+$statements[] = "CREATE TABLE IF NOT EXISTS translations (
+    id {$id},
+    locale VARCHAR(5) NOT NULL,
+    translation_key VARCHAR(190) NOT NULL,
+    value TEXT,
+    updated_at {$ts},
+    UNIQUE(locale, translation_key)
+){$engine}";
+
 foreach ($statements as $sql) {
     $pdo->exec($sql);
 }

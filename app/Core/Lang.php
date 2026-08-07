@@ -15,8 +15,25 @@ class Lang
             $_SESSION['lang'] = $lang;
         }
         self::$current = $lang;
-        $file = BASE_PATH . "/app/lang/{$lang}.php";
-        self::$strings = is_file($file) ? require $file : [];
+        self::$strings = self::fileDefaults($lang);
+
+        try {
+            $overrides = \App\Models\Translation::overridesFor($lang);
+            foreach ($overrides as $key => $value) {
+                if ($value !== '') {
+                    self::$strings[$key] = $value;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Translations table may not exist yet on a not-yet-migrated install — file defaults still apply.
+        }
+    }
+
+    /** Raw file-based default strings for a locale, unaffected by database overrides. */
+    public static function fileDefaults(string $locale): array
+    {
+        $file = BASE_PATH . "/app/lang/{$locale}.php";
+        return is_file($file) ? require $file : [];
     }
 
     public static function locale(): string

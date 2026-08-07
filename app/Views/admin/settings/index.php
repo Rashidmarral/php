@@ -7,6 +7,7 @@
   <a href="/admin/settings" class="active">General</a>
   <a href="/admin/settings/payments">Payment Methods</a>
   <a href="/admin/settings/legal">Legal & Branding</a>
+  <a href="/admin/settings/header">Header & Footer</a>
   <a href="/admin/settings/notifications">Notifications</a>
   <a href="/admin/settings/email">Email</a>
 </div>

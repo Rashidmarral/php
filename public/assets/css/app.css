@@ -153,6 +153,15 @@ html.js .reveal.in-view { opacity: 1; transform: translateY(0); }
   .visual-panel .grid-icons span { animation: none; }
 }
 
+/* ---------- Admin-authored page content ---------- */
+.page-content { color: var(--ink); font-size: 15.5px; line-height: 1.75; }
+.page-content h2 { font-size: 22px; margin-top: 1.4em; }
+.page-content h3 { font-size: 18px; margin-top: 1.2em; }
+.page-content p { margin: 0 0 1em; }
+.page-content ul, .page-content ol { margin: 0 0 1em; padding-inline-start: 24px; }
+.page-content a { text-decoration: underline; }
+.page-content img { border-radius: 8px; margin: 12px 0; }
+
 /* ---------- Map embed ---------- */
 .map-embed { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); }
 .map-embed iframe { display: block; width: 100%; height: 320px; border: 0; }

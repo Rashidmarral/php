@@ -28,6 +28,11 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
       <a href="/admin/payments" class="<?= $isActive('/admin/payments') ?>">💵 <?= t('aside.payments') ?></a>
       <a href="/admin/integrations" class="<?= $isActive('/admin/integrations') ?>">🔌 Integrations</a>
       <a href="/admin/quick-estimate" class="<?= $isActive('/admin/quick-estimate') ?>">🧮 <?= t('aside.quick_estimate') ?></a>
+      <div class="nav-section">Website</div>
+      <a href="/admin/pages" class="<?= $isActive('/admin/pages') ?>">📄 Pages</a>
+      <a href="/admin/settings/header" class="<?= $isActive('/admin/settings/header') ?>">🖼️ Header &amp; Footer</a>
+      <a href="/admin/translations" class="<?= $isActive('/admin/translations') ?>">🌐 Translations</a>
+      <div class="nav-section">Platform</div>
       <a href="/admin/admins" class="<?= $isActive('/admin/admins') ?>">🛡️ <?= t('aside.admins') ?></a>
       <a href="/admin/settings" class="<?= $isActive('/admin/settings') ?>">⚙️ <?= t('aside.settings') ?></a>
       <a href="/admin/profile" class="<?= $isActive('/admin/profile') ?>">👤 My Profile</a>

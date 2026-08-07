@@ -25,8 +25,11 @@ use App\Controllers\Admin\AdminProfileController;
 use App\Controllers\Admin\AdminReportController;
 use App\Controllers\Admin\AdminIntegrationController;
 use App\Controllers\Admin\SiteSettingsController;
+use App\Controllers\Admin\AdminPageController;
+use App\Controllers\Admin\AdminTranslationController;
 use App\Controllers\Admin\QuickEstimateAdminController;
 use App\Controllers\Site\QuickEstimateController;
+use App\Controllers\Site\PageController;
 use App\Controllers\Site\ShareController;
 use App\Controllers\User\QuickEstimateController as UserQuickEstimateController;
 use App\Controllers\User\TakeoffController;
@@ -49,6 +52,7 @@ $router->get('/contact', [HomeController::class, 'contact']);
 $router->post('/contact', [HomeController::class, 'contactSubmit']);
 $router->get('/privacy', [HomeController::class, 'privacy']);
 $router->get('/terms', [HomeController::class, 'terms']);
+$router->get('/p/{slug}', [PageController::class, 'show']);
 
 $router->get('/quick-estimate', [QuickEstimateController::class, 'index']);
 $router->post('/quick-estimate', [QuickEstimateController::class, 'store']);
@@ -228,7 +232,21 @@ $router->group([fn() => Auth::requireSuperAdmin()], function (Router $router) {
     $router->post('/admin/settings/notifications', [SiteSettingsController::class, 'updateNotifications']);
     $router->get('/admin/settings/email', [SiteSettingsController::class, 'email']);
     $router->post('/admin/settings/email', [SiteSettingsController::class, 'updateEmail']);
+    $router->get('/admin/settings/header', [SiteSettingsController::class, 'header']);
+    $router->post('/admin/settings/header', [SiteSettingsController::class, 'updateHeader']);
     $router->get('/admin/integrations', [AdminIntegrationController::class, 'index']);
+
+    $router->get('/admin/pages', [AdminPageController::class, 'index']);
+    $router->get('/admin/pages/create', [AdminPageController::class, 'create']);
+    $router->post('/admin/pages', [AdminPageController::class, 'store']);
+    $router->get('/admin/pages/{id}/edit', [AdminPageController::class, 'edit']);
+    $router->post('/admin/pages/{id}', [AdminPageController::class, 'update']);
+    $router->post('/admin/pages/{id}/delete', [AdminPageController::class, 'destroy']);
+
+    $router->get('/admin/translations', [AdminTranslationController::class, 'index']);
+    $router->post('/admin/translations/update', [AdminTranslationController::class, 'update']);
+    $router->post('/admin/translations/store', [AdminTranslationController::class, 'store']);
+    $router->post('/admin/translations/reset', [AdminTranslationController::class, 'reset']);
 
     $router->get('/admin/quick-estimate', [QuickEstimateAdminController::class, 'index']);
 
