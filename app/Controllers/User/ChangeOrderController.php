@@ -32,7 +32,9 @@ class ChangeOrderController extends Controller
             'company_id' => Auth::companyId(),
             'project_id' => $project['id'],
             'title' => $title,
+            'title_ar' => trim((string) $this->input('title_ar', '')),
             'description' => $this->input('description', ''),
+            'description_ar' => $this->input('description_ar', ''),
             'amount' => $amount,
             'status' => 'pending',
         ]);

@@ -91,7 +91,9 @@ class EstimateController extends Controller
             $total += $lineTotal;
             $rows[] = [
                 'description' => $ti['description_en'],
+                'description_ar' => $ti['description_ar'] ?? '',
                 'section_title' => $ti['section_number'] . ' ' . $ti['section_title_en'],
+                'section_title_ar' => $ti['section_number'] . ' ' . ($ti['section_title_ar'] ?? ''),
                 'item_type' => $ti['item_type'],
                 'qty' => $qty,
                 'uom' => $ti['uom'],
@@ -105,6 +107,7 @@ class EstimateController extends Controller
             'project_id' => null,
             'client_id' => $this->input('client_id') ?: null,
             'title' => trim((string) $this->input('title')) ?: $template['name_en'],
+            'title_ar' => trim((string) $this->input('title_ar', '')) ?: ($template['name_ar'] ?? ''),
             'status' => 'draft',
             'total' => $total,
             'share_token' => bin2hex(random_bytes(20)),
@@ -210,6 +213,7 @@ class EstimateController extends Controller
         }
 
         $descriptions = $_POST['item_description'] ?? [];
+        $descriptionsAr = $_POST['item_description_ar'] ?? [];
         $qtys = $_POST['item_qty'] ?? [];
         $costs = $_POST['item_cost'] ?? [];
 
@@ -224,7 +228,7 @@ class EstimateController extends Controller
             $cost = (float) ($costs[$i] ?? 0);
             $lineTotal = $qty * $cost;
             $total += $lineTotal;
-            $items[] = ['description' => $desc, 'qty' => $qty, 'unit_cost' => $cost, 'total' => $lineTotal];
+            $items[] = ['description' => $desc, 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')), 'qty' => $qty, 'unit_cost' => $cost, 'total' => $lineTotal];
         }
 
         $estimateId = Estimate::create([
@@ -232,6 +236,7 @@ class EstimateController extends Controller
             'project_id' => $this->input('project_id') ?: null,
             'client_id' => $this->input('client_id') ?: null,
             'title' => $title,
+            'title_ar' => trim((string) $this->input('title_ar', '')),
             'status' => 'draft',
             'total' => $total,
             'share_token' => bin2hex(random_bytes(20)),
@@ -320,8 +325,8 @@ class EstimateController extends Controller
             'issuer' => ['name' => $company['name'] ?? '', 'meta' => array_filter([$company['phone'] ?? null, $company['vat_number'] ?? null ? 'VAT: ' . $company['vat_number'] : null, ($company['cr_number'] ?? null) ? 'CR: ' . $company['cr_number'] : null])],
             'companyNameAr' => $company['name_ar'] ?? '',
             'companyLogo' => !empty($company['logo_path']) ? ('file://' . BASE_PATH . '/public' . $company['logo_path']) : null,
-            'billTo' => $client ? ['name' => $client['name'], 'meta' => array_filter([$client['email'] ?? null, $client['phone'] ?? null, $client['address'] ?? null])] : null,
-            'items' => array_map(fn($i) => ['description' => $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_cost'], 'total' => $i['total']], $items),
+            'billTo' => $client ? ['name' => ($lang === 'ar' && !empty($client['name_ar'])) ? $client['name_ar'] : $client['name'], 'meta' => array_filter([$client['email'] ?? null, $client['phone'] ?? null, $client['address'] ?? null])] : null,
+            'items' => array_map(fn($i) => ['description' => ($lang === 'ar' && !empty($i['description_ar'])) ? $i['description_ar'] : $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_cost'], 'total' => $i['total']], $items),
             'subtotal' => (float) $estimate['total'],
             'discountPercent' => 0,
             'discountAmount' => 0,

@@ -80,9 +80,11 @@
 
   <form method="post" action="/app/projects/<?= $project['id'] ?>/change-orders" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
     <?= Csrf::field() ?>
-    <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label>Title</label><input type="text" name="title" placeholder="e.g. Additional glazing" required></div>
+    <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label>Title (English)</label><input type="text" name="title" placeholder="e.g. Additional glazing" required></div>
+    <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label>Title (Arabic)</label><input type="text" name="title_ar" dir="rtl" placeholder="العنوان بالعربية"></div>
     <div class="form-group" style="margin:0;width:160px;"><label>Amount (SAR)</label><input type="number" step="0.01" name="amount" placeholder="e.g. 15000 or -5000" required></div>
-    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label>Description</label><input type="text" name="description"></div>
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label>Description (English)</label><input type="text" name="description"></div>
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label>Description (Arabic)</label><input type="text" name="description_ar" dir="rtl"></div>
     <button type="submit" class="btn btn-outline">+ Add change order</button>
   </form>
 </div>

@@ -1,5 +1,6 @@
 <?php
 use App\Core\View;
+use App\Core\Lang;
 $featured = 'professional';
 ?>
 <section class="section" style="padding-top:56px;">
@@ -23,8 +24,8 @@ $featured = 'professional';
       <?php foreach ($plans as $plan): $features = json_decode($plan['features'], true) ?: []; ?>
         <div class="card pricing-card <?= $plan['slug'] === $featured ? 'featured' : '' ?>">
           <?php if ($plan['slug'] === $featured): ?><span class="badge-featured"><?= t('pricing.most_popular') ?></span><?php endif; ?>
-          <h3><?= View::e($plan['name']) ?></h3>
-          <p style="color:var(--muted);font-size:13.5px;min-height:36px;"><?= View::e($plan['tagline']) ?></p>
+          <h3><?= View::e((Lang::locale() === 'ar' && !empty($plan['name_ar'])) ? $plan['name_ar'] : $plan['name']) ?></h3>
+          <p style="color:var(--muted);font-size:13.5px;min-height:36px;"><?= View::e((Lang::locale() === 'ar' && !empty($plan['tagline_ar'])) ? $plan['tagline_ar'] : $plan['tagline']) ?></p>
           <div class="price">
             <span class="price-amount"
               data-monthly="<?= number_format((float)$plan['price_monthly'], 0) ?>"

@@ -74,6 +74,7 @@ class DocumentController extends Controller
             'project_id' => $projectId,
             'uploaded_by' => Auth::user()['id'],
             'name' => $originalName,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'file_path' => "/uploads/documents/{$companyId}/{$storedName}",
             'file_type' => $ext,
             'file_size' => $_FILES['file']['size'],

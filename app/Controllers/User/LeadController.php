@@ -60,6 +60,7 @@ class LeadController extends Controller
             'company_id' => Auth::companyId(),
             'name' => $name,
             'company_name' => trim((string) $this->input('company_name', '')),
+            'company_name_ar' => trim((string) $this->input('company_name_ar', '')),
             'email' => trim((string) $this->input('email', '')),
             'phone' => trim((string) $this->input('phone', '')),
             'source' => in_array($this->input('source'), self::SOURCES, true) ? $this->input('source') : 'other',
@@ -87,6 +88,7 @@ class LeadController extends Controller
         Lead::update($lead['id'], [
             'name' => trim((string) $this->input('name')),
             'company_name' => trim((string) $this->input('company_name', '')),
+            'company_name_ar' => trim((string) $this->input('company_name_ar', '')),
             'email' => trim((string) $this->input('email', '')),
             'phone' => trim((string) $this->input('phone', '')),
             'source' => in_array($this->input('source'), self::SOURCES, true) ? $this->input('source') : 'other',
@@ -125,6 +127,7 @@ class LeadController extends Controller
         $clientId = Client::create([
             'company_id' => Auth::companyId(),
             'name' => $lead['company_name'] ?: $lead['name'],
+            'name_ar' => $lead['company_name_ar'] ?? '',
             'email' => $lead['email'],
             'phone' => $lead['phone'],
             'address' => '',

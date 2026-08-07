@@ -37,6 +37,7 @@ class SupplierController extends Controller
         Supplier::create([
             'company_id' => Auth::companyId(),
             'name' => $name,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'contact_name' => $this->input('contact_name', ''),
             'email' => $this->input('email', ''),
             'phone' => $this->input('phone', ''),
@@ -61,6 +62,7 @@ class SupplierController extends Controller
         $supplier = $this->findOwned((int) $id);
         Supplier::update($supplier['id'], [
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'contact_name' => $this->input('contact_name', ''),
             'email' => $this->input('email', ''),
             'phone' => $this->input('phone', ''),

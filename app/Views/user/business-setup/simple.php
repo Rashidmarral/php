@@ -15,9 +15,10 @@
 <?php if (Auth::can('manage_business_setup')): ?>
 <div class="card" style="margin-bottom:20px;">
   <h3 style="font-size:14px;"><?= View::e($config['label']) ?></h3>
-  <form method="post" action="/app/business-setup/<?= View::e($type) ?>" class="form-row" style="align-items:end;grid-template-columns:1fr 140px auto;">
+  <form method="post" action="/app/business-setup/<?= View::e($type) ?>" class="form-row" style="align-items:end;grid-template-columns:1fr 1fr 140px auto;">
     <?= Csrf::field() ?>
-    <div class="form-group" style="margin:0;"><label>Name</label><input type="text" name="name" required></div>
+    <div class="form-group" style="margin:0;"><label>Name (English)</label><input type="text" name="name" required></div>
+    <div class="form-group" style="margin:0;"><label>Name (Arabic)</label><input type="text" name="name_ar" dir="rtl" placeholder="بالعربية"></div>
     <div class="form-group" style="margin:0;"><label>Sort order</label><input type="number" name="sort_order" value="0"></div>
     <button type="submit" class="btn btn-primary">Add</button>
   </form>
@@ -34,14 +35,15 @@
   <div class="empty-state card"><p>No <?= View::e(strtolower($config['label'])) ?> yet.</p></div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Name</th><th>Sort order</th><th></th></tr></thead>
+    <thead><tr><th>Name (English)</th><th>Name (Arabic)</th><th>Sort order</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): $fid = 'row-' . $r['id']; ?>
       <?php if (Auth::can('manage_business_setup')): ?>
         <form id="<?= $fid ?>" method="post" action="/app/business-setup/<?= View::e($type) ?>/<?= $r['id'] ?>"><?= Csrf::field() ?></form>
       <?php endif; ?>
       <tr>
-        <td><input form="<?= $fid ?>" type="text" name="name" value="<?= View::e($r['name']) ?>" <?= Auth::can('manage_business_setup') ? '' : 'disabled' ?> style="min-width:220px;"></td>
+        <td><input form="<?= $fid ?>" type="text" name="name" value="<?= View::e($r['name']) ?>" <?= Auth::can('manage_business_setup') ? '' : 'disabled' ?> style="min-width:180px;"></td>
+        <td><input form="<?= $fid ?>" type="text" name="name_ar" dir="rtl" value="<?= View::e($r['name_ar'] ?? '') ?>" <?= Auth::can('manage_business_setup') ? '' : 'disabled' ?> style="min-width:180px;"></td>
         <td><input form="<?= $fid ?>" type="number" name="sort_order" value="<?= View::e((string)$r['sort_order']) ?>" <?= Auth::can('manage_business_setup') ? '' : 'disabled' ?> style="width:90px;"></td>
         <td style="display:flex;gap:6px;">
           <?php if (Auth::can('manage_business_setup')): ?>

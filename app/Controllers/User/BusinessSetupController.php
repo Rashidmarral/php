@@ -57,6 +57,7 @@ class BusinessSetupController extends Controller
         $config['model']::create([
             'company_id' => Auth::companyId(),
             'name' => $name,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'sort_order' => (int) $this->input('sort_order', 0),
         ]);
         $this->flash('success', 'Added.');
@@ -72,6 +73,7 @@ class BusinessSetupController extends Controller
 
         $config['model']::update($row['id'], [
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'sort_order' => (int) $this->input('sort_order', 0),
         ]);
         $this->flash('success', 'Updated.');
@@ -128,6 +130,7 @@ class BusinessSetupController extends Controller
         }
         UnitOfMeasure::create([
             'company_id' => Auth::companyId(), 'code' => $code, 'name' => $name,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'sort_order' => (int) $this->input('sort_order', 0),
         ]);
         $this->flash('success', 'Unit added.');
@@ -142,6 +145,7 @@ class BusinessSetupController extends Controller
         UnitOfMeasure::update($row['id'], [
             'code' => trim((string) $this->input('code')),
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'sort_order' => (int) $this->input('sort_order', 0),
         ]);
         $this->flash('success', 'Unit updated.');
@@ -203,6 +207,7 @@ class BusinessSetupController extends Controller
         }
         TaxRate::create([
             'company_id' => $companyId, 'name' => $name,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'rate_percent' => (float) $this->input('rate_percent', 0),
             'is_default' => $isDefault,
             'sort_order' => (int) $this->input('sort_order', 0),
@@ -222,6 +227,7 @@ class BusinessSetupController extends Controller
         }
         TaxRate::update($row['id'], [
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'rate_percent' => (float) $this->input('rate_percent', 0),
             'is_default' => $isDefault,
             'sort_order' => (int) $this->input('sort_order', 0),

@@ -228,6 +228,7 @@ class MaterialController extends Controller
             'supplier_id' => $this->input('supplier_id') ?: null,
             'sku' => $this->input('sku', ''),
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'category' => $this->input('category', ''),
             'unit' => $this->input('unit', 'unit'),
             'material_cost' => $materialCost,

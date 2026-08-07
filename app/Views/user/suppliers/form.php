@@ -7,7 +7,10 @@
 <form method="post" action="<?= $supplier ? '/app/suppliers/' . $supplier['id'] : '/app/suppliers' ?>" class="card" style="max-width:640px;">
   <?= Csrf::field() ?>
   <div class="form-row">
-    <div class="form-group"><label>Supplier name</label><input type="text" name="name" required value="<?= View::e($supplier['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Supplier name (English)</label><input type="text" name="name" required value="<?= View::e($supplier['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Supplier name (Arabic)</label><input type="text" name="name_ar" dir="rtl" value="<?= View::e($supplier['name_ar'] ?? '') ?>" placeholder="اسم المورد"></div>
+  </div>
+  <div class="form-row">
     <div class="form-group"><label>Category</label><input type="text" name="category" placeholder="e.g. Steel, Electrical, Concrete" value="<?= View::e($supplier['category'] ?? '') ?>"></div>
   </div>
   <div class="form-row">

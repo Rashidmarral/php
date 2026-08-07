@@ -62,6 +62,7 @@ class InvoiceController extends Controller
         $companyId = Auth::companyId();
 
         $descriptions = $_POST['item_description'] ?? [];
+        $descriptionsAr = $_POST['item_description_ar'] ?? [];
         $qtys = $_POST['item_qty'] ?? [];
         $prices = $_POST['item_price'] ?? [];
 
@@ -76,7 +77,7 @@ class InvoiceController extends Controller
             $price = (float) ($prices[$i] ?? 0);
             $lineTotal = $qty * $price;
             $subtotal += $lineTotal;
-            $items[] = ['description' => $desc, 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
+            $items[] = ['description' => $desc, 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')), 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
         }
 
         $applyVat = (bool) $this->input('apply_vat', true);
@@ -297,8 +298,8 @@ class InvoiceController extends Controller
             'issuer' => ['name' => $company['name'] ?? '', 'meta' => array_filter([$company['phone'] ?? null, ($company['vat_number'] ?? null) ? 'VAT: ' . $company['vat_number'] : null, ($company['cr_number'] ?? null) ? 'CR: ' . $company['cr_number'] : null])],
             'companyNameAr' => $company['name_ar'] ?? '',
             'companyLogo' => !empty($company['logo_path']) ? ('file://' . BASE_PATH . '/public' . $company['logo_path']) : null,
-            'billTo' => $client ? ['name' => $client['name'], 'meta' => array_filter([$client['email'] ?? null, $client['phone'] ?? null, $client['address'] ?? null])] : null,
-            'items' => array_map(fn($i) => ['description' => $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_price'], 'total' => $i['total']], $items),
+            'billTo' => $client ? ['name' => ($lang === 'ar' && !empty($client['name_ar'])) ? $client['name_ar'] : $client['name'], 'meta' => array_filter([$client['email'] ?? null, $client['phone'] ?? null, $client['address'] ?? null])] : null,
+            'items' => array_map(fn($i) => ['description' => ($lang === 'ar' && !empty($i['description_ar'])) ? $i['description_ar'] : $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_price'], 'total' => $i['total']], $items),
             'subtotal' => (float) $invoice['total'] - (float) $invoice['vat_amount'],
             'discountPercent' => 0,
             'discountAmount' => 0,

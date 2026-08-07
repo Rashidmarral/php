@@ -7,7 +7,10 @@
 <form method="post" action="<?= $material ? '/app/materials/' . $material['id'] : '/app/materials' ?>" class="card" style="max-width:640px;">
   <?= Csrf::field() ?>
   <div class="form-row">
-    <div class="form-group"><label>Name</label><input type="text" name="name" required value="<?= View::e($material['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Name (English)</label><input type="text" name="name" required value="<?= View::e($material['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Name (Arabic)</label><input type="text" name="name_ar" dir="rtl" value="<?= View::e($material['name_ar'] ?? '') ?>" placeholder="الاسم بالعربية"></div>
+  </div>
+  <div class="form-row">
     <div class="form-group"><label>SKU</label><input type="text" name="sku" value="<?= View::e($material['sku'] ?? '') ?>"></div>
   </div>
   <div class="form-row">

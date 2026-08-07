@@ -6,9 +6,9 @@
 
 <form method="post" action="<?= $project ? '/app/projects/' . $project['id'] : '/app/projects' ?>" class="card" style="max-width:680px;">
   <?= Csrf::field() ?>
-  <div class="form-group">
-    <label>Project name</label>
-    <input type="text" name="name" required value="<?= View::e($project['name'] ?? '') ?>">
+  <div class="form-row">
+    <div class="form-group"><label>Project name (English)</label><input type="text" name="name" required value="<?= View::e($project['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Project name (Arabic)</label><input type="text" name="name_ar" dir="rtl" value="<?= View::e($project['name_ar'] ?? '') ?>" placeholder="اسم المشروع بالعربية"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
@@ -38,9 +38,15 @@
     <div class="form-group"><label>Start date</label><input type="date" name="start_date" value="<?= View::e($project['start_date'] ?? '') ?>"></div>
     <div class="form-group"><label>End date</label><input type="date" name="end_date" value="<?= View::e($project['end_date'] ?? '') ?>"></div>
   </div>
-  <div class="form-group">
-    <label>Description</label>
-    <textarea name="description"><?= View::e($project['description'] ?? '') ?></textarea>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Description (English)</label>
+      <textarea name="description"><?= View::e($project['description'] ?? '') ?></textarea>
+    </div>
+    <div class="form-group">
+      <label>Description (Arabic)</label>
+      <textarea name="description_ar" dir="rtl" placeholder="الوصف بالعربية"><?= View::e($project['description_ar'] ?? '') ?></textarea>
+    </div>
   </div>
   <button type="submit" class="btn btn-primary"><?= $project ? 'Save changes' : 'Create project' ?></button>
 </form>

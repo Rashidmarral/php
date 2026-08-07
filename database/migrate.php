@@ -619,6 +619,30 @@ addColumnIfMissing($pdo, $driver, 'subscriptions', 'retry_count', 'INT NOT NULL 
 
 addColumnIfMissing($pdo, $driver, 'plans', 'consultation_quota_monthly', 'INT NOT NULL DEFAULT 0');
 
+// ---- Arabic name/title/description fields alongside every English one, system-wide ----
+addColumnIfMissing($pdo, $driver, 'clients', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'projects', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'projects', 'description_ar', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'suppliers', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'materials', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'estimates', 'title_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'estimate_items', 'description_ar', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'estimate_items', 'section_title_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'invoice_items', 'description_ar', 'VARCHAR(255)');
+addColumnIfMissing($pdo, $driver, 'change_orders', 'title_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'change_orders', 'description_ar', 'TEXT');
+addColumnIfMissing($pdo, $driver, 'schedule_tasks', 'title_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'documents', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'leads', 'company_name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'building_types', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'contact_types', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'client_types', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'units_of_measure', 'name_ar', 'VARCHAR(100)');
+addColumnIfMissing($pdo, $driver, 'tax_rates', 'name_ar', 'VARCHAR(100)');
+addColumnIfMissing($pdo, $driver, 'compliance_documents', 'name_ar', 'VARCHAR(150)');
+addColumnIfMissing($pdo, $driver, 'plans', 'name_ar', 'VARCHAR(100)');
+addColumnIfMissing($pdo, $driver, 'plans', 'tagline_ar', 'VARCHAR(255)');
+
 // ---- Consultation quota defaults by tier (idempotent: only fills plans still at the 0 default) ----
 $consultationQuotaByPlan = ['starter' => 1, 'professional' => 3, 'enterprise' => 5];
 $updateQuota = $pdo->prepare('UPDATE plans SET consultation_quota_monthly = ? WHERE slug = ? AND consultation_quota_monthly = 0');

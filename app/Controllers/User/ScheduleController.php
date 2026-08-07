@@ -43,6 +43,7 @@ class ScheduleController extends Controller
             'company_id' => $companyId,
             'project_id' => $projectId,
             'title' => $title,
+            'title_ar' => trim((string) $this->input('title_ar', '')),
             'start_date' => $this->input('start_date') ?: null,
             'end_date' => $this->input('end_date') ?: null,
             'status' => 'pending',

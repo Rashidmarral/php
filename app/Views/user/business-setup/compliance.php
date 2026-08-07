@@ -29,7 +29,10 @@
           <?php foreach ($types as $key => $label): ?><option value="<?= $key ?>"><?= View::e($label) ?></option><?php endforeach; ?>
         </select>
       </div>
-      <div class="form-group"><label>Name</label><input type="text" name="name" placeholder="e.g. Commercial Registration" required></div>
+      <div class="form-group"><label>Name (English)</label><input type="text" name="name" placeholder="e.g. Commercial Registration" required></div>
+      <div class="form-group"><label>Name (Arabic)</label><input type="text" name="name_ar" dir="rtl" placeholder="السجل التجاري"></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label>Document number</label><input type="text" name="document_number"></div>
     </div>
     <div class="form-row">

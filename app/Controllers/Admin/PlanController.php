@@ -75,7 +75,9 @@ class PlanController extends Controller
         $data = [
             'slug' => strtolower(trim((string) $this->input('slug'))),
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'tagline' => $this->input('tagline', ''),
+            'tagline_ar' => $this->input('tagline_ar', ''),
             'price_monthly' => (float) $this->input('price_monthly', 0),
             'price_yearly' => (float) $this->input('price_yearly', 0),
             'max_users' => (int) $this->input('max_users', 5),

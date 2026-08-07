@@ -45,6 +45,7 @@ class ComplianceController extends Controller
             'company_id' => Auth::companyId(),
             'doc_type' => array_key_exists($this->input('doc_type'), ComplianceDocument::TYPES) ? $this->input('doc_type') : 'other',
             'name' => $name,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'document_number' => trim((string) $this->input('document_number', '')),
             'expiry_date' => $this->input('expiry_date') ?: null,
             'notes' => trim((string) $this->input('notes', '')),
@@ -70,6 +71,7 @@ class ComplianceController extends Controller
         $data = [
             'doc_type' => array_key_exists($this->input('doc_type'), ComplianceDocument::TYPES) ? $this->input('doc_type') : 'other',
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'document_number' => trim((string) $this->input('document_number', '')),
             'expiry_date' => $this->input('expiry_date') ?: null,
             'notes' => trim((string) $this->input('notes', '')),

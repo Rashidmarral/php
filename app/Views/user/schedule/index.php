@@ -8,11 +8,15 @@
   <?php if (empty($projects)): ?>
     <p class="help-text">Create a project first before scheduling tasks.</p>
   <?php else: ?>
-    <form method="post" action="/app/schedule" class="form-row" style="align-items:end;grid-template-columns:2fr 1fr 1fr 1fr auto;">
+    <form method="post" action="/app/schedule" class="form-row" style="align-items:end;grid-template-columns:1.4fr 1.4fr 1fr 1fr 1fr auto;">
       <?= Csrf::field() ?>
       <div class="form-group" style="margin:0;">
-        <label>Task</label>
+        <label>Task (English)</label>
         <input type="text" name="title" required placeholder="e.g. Electrical rough-in">
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Task (Arabic)</label>
+        <input type="text" name="title_ar" dir="rtl" placeholder="اسم المهمة بالعربية">
       </div>
       <div class="form-group" style="margin:0;">
         <label>Project</label>

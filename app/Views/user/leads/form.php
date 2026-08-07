@@ -8,7 +8,10 @@
   <?= Csrf::field() ?>
   <div class="form-row">
     <div class="form-group"><label>Name</label><input type="text" name="name" value="<?= View::e($lead['name'] ?? '') ?>" required></div>
-    <div class="form-group"><label>Company name</label><input type="text" name="company_name" value="<?= View::e($lead['company_name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Company name (English)</label><input type="text" name="company_name" value="<?= View::e($lead['company_name'] ?? '') ?>"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label>Company name (Arabic)</label><input type="text" name="company_name_ar" dir="rtl" value="<?= View::e($lead['company_name_ar'] ?? '') ?>" placeholder="اسم الشركة بالعربية"></div>
   </div>
   <div class="form-row">
     <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= View::e($lead['email'] ?? '') ?>"></div>

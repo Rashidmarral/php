@@ -4,10 +4,13 @@
   <a href="/app/estimates" class="btn btn-light">← Back to estimates</a>
 </div>
 
-<form method="post" action="/app/estimates" class="card" style="max-width:820px;">
+<form method="post" action="/app/estimates" class="card" style="max-width:900px;">
   <?= Csrf::field() ?>
   <div class="form-row">
-    <div class="form-group"><label>Estimate title</label><input type="text" name="title" required placeholder="e.g. Villa Renovation Estimate"></div>
+    <div class="form-group"><label>Estimate title (English)</label><input type="text" name="title" required placeholder="e.g. Villa Renovation Estimate"></div>
+    <div class="form-group"><label>Estimate title (Arabic)</label><input type="text" name="title_ar" dir="rtl" placeholder="عنوان التسعيرة بالعربية"></div>
+  </div>
+  <div class="form-row">
     <div class="form-group">
       <label>Client</label>
       <select name="client_id">
@@ -26,10 +29,11 @@
 
   <label>Line items</label>
   <table class="line-items" id="items-table">
-    <thead><tr><th style="width:50%">Description</th><th>Qty</th><th>Unit cost (SAR)</th><th>Line total</th><th></th></tr></thead>
+    <thead><tr><th style="width:32%">Description (English)</th><th style="width:28%">Description (Arabic)</th><th>Qty</th><th>Unit cost (SAR)</th><th>Line total</th><th></th></tr></thead>
     <tbody id="items-body">
       <tr>
         <td><input type="text" name="item_description[]" placeholder="e.g. Demolition & site prep"></td>
+        <td><input type="text" name="item_description_ar[]" dir="rtl" placeholder="الوصف بالعربية"></td>
         <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
         <td><input type="number" step="0.01" name="item_cost[]" value="0" class="cost"></td>
         <td class="line-total">0.00</td>
@@ -58,6 +62,7 @@
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><input type="text" name="item_description[]" placeholder="Description"></td>
+      <td><input type="text" name="item_description_ar[]" dir="rtl" placeholder="الوصف بالعربية"></td>
       <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
       <td><input type="number" step="0.01" name="item_cost[]" value="0" class="cost"></td>
       <td class="line-total">0.00</td>
@@ -93,6 +98,7 @@
     const tr = firstEmpty ? firstRow : rowTemplate();
     if (!firstEmpty) body.appendChild(tr);
     tr.querySelector('[name="item_description[]"]').value = e.detail.description;
+    tr.querySelector('[name="item_description_ar[]"]').value = e.detail.descriptionAr || '';
     tr.querySelector('.cost').value = e.detail.unitCost;
     recalc();
   });

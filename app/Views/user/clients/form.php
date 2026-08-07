@@ -6,7 +6,10 @@
 
 <form method="post" action="<?= $client ? '/app/clients/' . $client['id'] : '/app/clients' ?>" class="card" style="max-width:600px;">
   <?= Csrf::field() ?>
-  <div class="form-group"><label>Name</label><input type="text" name="name" required value="<?= View::e($client['name'] ?? '') ?>"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Name (English)</label><input type="text" name="name" required value="<?= View::e($client['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Name (Arabic)</label><input type="text" name="name_ar" dir="rtl" value="<?= View::e($client['name_ar'] ?? '') ?>" placeholder="الاسم بالعربية"></div>
+  </div>
   <div class="form-row">
     <div class="form-group"><label>Email</label><input type="email" name="email" value="<?= View::e($client['email'] ?? '') ?>"></div>
     <div class="form-group"><label>Phone</label><input type="tel" name="phone" placeholder="+966 5x xxx xxxx" value="<?= View::e($client['phone'] ?? '') ?>"></div>

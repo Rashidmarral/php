@@ -12,7 +12,7 @@
       <input type="text" id="library-picker-search" placeholder="Search materials or suppliers..." style="margin-bottom:10px;">
       <div id="library-picker-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;">
         <?php foreach ($materials as $m): ?>
-          <button type="button" class="library-picker-item" data-desc="<?= View::e($m['name']) ?>" data-cost="<?= (float) $m['unit_cost'] ?>"
+          <button type="button" class="library-picker-item" data-desc="<?= View::e($m['name']) ?>" data-desc-ar="<?= View::e($m['name_ar'] ?? '') ?>" data-cost="<?= (float) $m['unit_cost'] ?>"
             data-search="<?= View::e(strtolower($m['name'] . ' ' . ($m['category'] ?? '') . ' ' . ($m['supplier_name'] ?? ''))) ?>"
             style="text-align:start;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;">
             <span>
@@ -54,7 +54,7 @@
       const btn = e.target.closest('.library-picker-item');
       if (!btn) return;
       document.dispatchEvent(new CustomEvent('library-item-picked', {
-        detail: { description: btn.dataset.desc, unitCost: parseFloat(btn.dataset.cost) || 0 }
+        detail: { description: btn.dataset.desc, descriptionAr: btn.dataset.descAr || '', unitCost: parseFloat(btn.dataset.cost) || 0 }
       }));
       overlay.style.display = 'none';
     });

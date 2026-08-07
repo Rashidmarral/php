@@ -32,6 +32,7 @@ class ClientController extends Controller
         Client::create([
             'company_id' => Auth::companyId(),
             'name' => $name,
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'email' => $this->input('email', ''),
             'phone' => $this->input('phone', ''),
             'address' => $this->input('address', ''),
@@ -53,6 +54,7 @@ class ClientController extends Controller
         $client = $this->findOwned((int) $id);
         Client::update($client['id'], [
             'name' => trim((string) $this->input('name')),
+            'name_ar' => trim((string) $this->input('name_ar', '')),
             'email' => $this->input('email', ''),
             'phone' => $this->input('phone', ''),
             'address' => $this->input('address', ''),

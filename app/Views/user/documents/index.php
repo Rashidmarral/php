@@ -18,6 +18,10 @@
         <?php foreach ($projects as $p): ?><option value="<?= $p['id'] ?>"><?= View::e($p['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
+    <div class="form-group" style="margin:0;">
+      <label>Arabic label (optional)</label>
+      <input type="text" name="name_ar" dir="rtl" placeholder="اسم الملف بالعربية">
+    </div>
     <button type="submit" class="btn btn-primary">Upload</button>
   </form>
   <p class="help-text" style="margin-top:8px;">PDF, images, Office documents, or ZIP — up to 15MB.</p>

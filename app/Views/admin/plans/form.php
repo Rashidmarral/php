@@ -12,10 +12,14 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
 <form method="post" action="<?= $plan ? '/admin/plans/' . $plan['id'] : '/admin/plans' ?>" class="card" style="max-width:760px;">
   <?= Csrf::field() ?>
   <div class="form-row">
-    <div class="form-group"><label>Plan name</label><input type="text" name="name" required value="<?= View::e($plan['name'] ?? '') ?>"></div>
-    <div class="form-group"><label>Slug</label><input type="text" name="slug" required value="<?= View::e($plan['slug'] ?? '') ?>" placeholder="e.g. professional"></div>
+    <div class="form-group"><label>Plan name (English)</label><input type="text" name="name" required value="<?= View::e($plan['name'] ?? '') ?>"></div>
+    <div class="form-group"><label>Plan name (Arabic)</label><input type="text" name="name_ar" dir="rtl" value="<?= View::e($plan['name_ar'] ?? '') ?>" placeholder="اسم الباقة"></div>
   </div>
-  <div class="form-group"><label>Tagline</label><input type="text" name="tagline" value="<?= View::e($plan['tagline'] ?? '') ?>"></div>
+  <div class="form-group"><label>Slug</label><input type="text" name="slug" required value="<?= View::e($plan['slug'] ?? '') ?>" placeholder="e.g. professional"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Tagline (English)</label><input type="text" name="tagline" value="<?= View::e($plan['tagline'] ?? '') ?>"></div>
+    <div class="form-group"><label>Tagline (Arabic)</label><input type="text" name="tagline_ar" dir="rtl" value="<?= View::e($plan['tagline_ar'] ?? '') ?>"></div>
+  </div>
   <div class="form-row">
     <div class="form-group"><label>Price / month (SAR)</label><input type="number" step="0.01" name="price_monthly" value="<?= View::e((string)($plan['price_monthly'] ?? 0)) ?>"></div>
     <div class="form-group"><label>Price / year (SAR)</label><input type="number" step="0.01" name="price_yearly" value="<?= View::e((string)($plan['price_yearly'] ?? 0)) ?>"></div>
