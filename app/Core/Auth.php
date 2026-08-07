@@ -145,5 +145,33 @@ class Auth
         if (self::isSuperAdmin()) {
             Controller::redirect('/admin');
         }
+        self::blockIfTrialExpired();
+    }
+
+    /**
+     * A company whose trial has ended (status still 'trial' and trial_ends_at in the past)
+     * is redirected to Billing on every page except Billing itself and logout — otherwise
+     * an expired trial would grant unlimited free access forever, since nothing else in the
+     * app checks subscription state.
+     */
+    private static function blockIfTrialExpired(): void
+    {
+        $companyId = self::companyId();
+        if (!$companyId) {
+            return;
+        }
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+        if (str_starts_with($path, '/app/billing') || $path === '/logout') {
+            return;
+        }
+        $company = \App\Models\Company::find($companyId);
+        if (!$company || $company['status'] !== 'trial' || empty($company['trial_ends_at'])) {
+            return;
+        }
+        if (strtotime($company['trial_ends_at']) >= strtotime(date('Y-m-d'))) {
+            return;
+        }
+        $_SESSION['flash']['error'][] = 'Your trial has ended. Choose a plan to continue using BuildXact Saudi.';
+        Controller::redirect('/app/billing');
     }
 }

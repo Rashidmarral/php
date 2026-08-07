@@ -85,6 +85,22 @@
   </div>
 </section>
 
+<section class="section reveal-section" style="background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow"><?= t('platform3.eyebrow') ?></div>
+      <h2><?= t('platform3.title') ?></h2>
+      <p style="color:var(--muted)"><?= t('platform3.subtitle') ?></p>
+    </div>
+    <div class="grid grid-4">
+      <div class="card feature-card reveal"><div class="icon">📋</div><h3><?= t('platform3.templates.title') ?></h3><p><?= t('platform3.templates.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">✨</div><h3><?= t('platform3.ai.title') ?></h3><p><?= t('platform3.ai.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🧑‍💼</div><h3><?= t('platform3.roles.title') ?></h3><p><?= t('platform3.roles.desc') ?></p></div>
+      <div class="card feature-card reveal"><div class="icon">🎯</div><h3><?= t('platform3.leads.title') ?></h3><p><?= t('platform3.leads.desc') ?></p></div>
+    </div>
+  </div>
+</section>
+
 <section class="section">
   <div class="container">
     <div class="section-head">

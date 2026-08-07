@@ -51,7 +51,7 @@
       data-description="<?= View::e($plan['name']) ?> plan (<?= View::e($cycle) ?>)"
       data-publishable-api-key="<?= View::e($moyasarPublishableKey) ?>"
       data-callback-url="<?= View::e('/app/billing/moyasar-callback?plan=' . urlencode($plan['slug']) . '&cycle=' . urlencode($cycle)) ?>"
-      data-methods="creditcard,applepay">
+      data-methods="creditcard,applepay,stcpay">
     </div>
   </div>
 </div>

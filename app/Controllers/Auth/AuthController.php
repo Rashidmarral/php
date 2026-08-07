@@ -45,7 +45,8 @@ class AuthController extends Controller
         }
         $plans = Plan::query('SELECT * FROM plans WHERE is_active = 1 ORDER BY sort_order ASC')->fetchAll();
         $selected = $this->input('plan', $plans[1]['slug'] ?? ($plans[0]['slug'] ?? ''));
-        $this->view('auth/register', ['pageTitle' => 'Start your free trial', 'plans' => $plans, 'selected' => $selected], 'layouts/auth');
+        $selectedCycle = $this->input('cycle') === 'yearly' ? 'yearly' : 'monthly';
+        $this->view('auth/register', ['pageTitle' => 'Start your free trial', 'plans' => $plans, 'selected' => $selected, 'selectedCycle' => $selectedCycle], 'layouts/auth');
     }
 
     public function register(): void
@@ -73,10 +74,17 @@ class AuthController extends Controller
         if (!empty($errors)) {
             $this->flash('error', implode(' ', $errors));
             $this->withOld(['company_name' => $companyName, 'name' => $name, 'email' => $email, 'phone' => $phone, 'city' => $city]);
-            self::redirect('/register?plan=' . urlencode($planSlug));
+            $cycleParam = $this->input('cycle') === 'yearly' ? 'yearly' : 'monthly';
+            self::redirect('/register?plan=' . urlencode($planSlug) . '&cycle=' . $cycleParam);
         }
 
         $trialDays = (int) Settings::get('trial_days', \App\Core\Env::get('TRIAL_DAYS', 14));
+        $cycle = $this->input('cycle') === 'yearly' ? 'yearly' : 'monthly';
+        // A trial_days of 0 (set by the platform admin) means "no free trial" — back-date
+        // trial_ends_at so the account is immediately treated as expired and routed to checkout,
+        // rather than silently granting unlimited free access with a day-level rounding gap.
+        $trialEndsAt = date('Y-m-d', strtotime($trialDays > 0 ? "+{$trialDays} days" : '-1 day'));
+
         $companyId = Company::create([
             'name' => $companyName,
             'email' => $email,
@@ -84,7 +92,7 @@ class AuthController extends Controller
             'city' => $city,
             'status' => 'trial',
             'plan_id' => $plan['id'],
-            'trial_ends_at' => date('Y-m-d', strtotime("+{$trialDays} days")),
+            'trial_ends_at' => $trialEndsAt,
         ]);
 
         $userId = User::create([
@@ -99,14 +107,19 @@ class AuthController extends Controller
         Subscription::create([
             'company_id' => $companyId,
             'plan_id' => $plan['id'],
-            'billing_cycle' => 'monthly',
+            'billing_cycle' => $cycle,
             'status' => 'trialing',
-            'current_period_end' => date('Y-m-d', strtotime("+{$trialDays} days")),
+            'current_period_end' => $trialEndsAt,
         ]);
 
         $user = User::find($userId);
         Auth::login($user);
         $this->clearOld();
+
+        if ($trialDays <= 0) {
+            $this->flash('success', "Welcome to BuildXact Saudi! This account requires a subscription to activate — choose a plan below.");
+            self::redirect('/app/billing/checkout?plan=' . urlencode($plan['slug']) . '&cycle=' . $cycle);
+        }
         $this->flash('success', 'Welcome to BuildXact Saudi! Your ' . $trialDays . '-day free trial has started.');
         self::redirect('/app');
     }

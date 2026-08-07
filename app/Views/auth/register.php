@@ -11,6 +11,7 @@
 
     <form method="post" action="/register">
       <?= Csrf::field() ?>
+      <input type="hidden" name="cycle" value="<?= View::e($selectedCycle) ?>">
       <div class="form-row">
         <div class="form-group"><label><?= t('auth.company_name') ?></label><input type="text" name="company_name" required value="<?= View::old('company_name') ?>"></div>
         <div class="form-group"><label><?= t('auth.your_name') ?></label><input type="text" name="name" required value="<?= View::old('name') ?>"></div>

@@ -85,6 +85,19 @@ return [
     'platform2.saudi_invoice.title' => 'Authentic Saudi tax invoice layout',
     'platform2.saudi_invoice.desc' => 'A bilingual PDF template modeled on real Saudi tax invoices — VAT breakdown, amount in words, and company registration details laid out the way clients expect.',
 
+    // Platform capabilities — just shipped
+    'platform3.eyebrow' => 'Just shipped',
+    'platform3.title' => 'Estimating just got a lot faster',
+    'platform3.subtitle' => 'A template library, an AI generator, and the operational tools to run your whole team.',
+    'platform3.templates.title' => '12 built-in estimate templates',
+    'platform3.templates.desc' => 'Start from a ready-made template — kitchen remodel, villa build, roofing, and more — with sectioned, priced line items instead of a blank page.',
+    'platform3.ai.title' => 'AI Estimate Generator',
+    'platform3.ai.desc' => 'Describe a project in plain language and get a draft, itemized estimate back in seconds — ready to review and send.',
+    'platform3.roles.title' => 'Role-based team permissions',
+    'platform3.roles.desc' => 'Give each team member exactly the access they need — Admin, Estimator, Accountant, or read-only Viewer.',
+    'platform3.leads.title' => 'Leads pipeline',
+    'platform3.leads.desc' => 'Track prospects from first contact through won or lost, and convert a qualified lead into a client in one click.',
+
     // Pricing
     'pricing.eyebrow' => 'Simple pricing',
     'pricing.title' => 'Plans built for contractors of every size',

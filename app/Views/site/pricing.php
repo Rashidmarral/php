@@ -41,7 +41,7 @@ $featured = 'professional';
           <ul class="plan-features">
             <?php foreach ($features as $f): ?><li><?= View::e($f) ?></li><?php endforeach; ?>
           </ul>
-          <a href="/register?plan=<?= urlencode($plan['slug']) ?>" class="btn <?= $plan['slug'] === $featured ? 'btn-primary' : 'btn-outline' ?> btn-block"><?= t('pricing.cta') ?></a>
+          <a href="/register?plan=<?= urlencode($plan['slug']) ?>" class="btn <?= $plan['slug'] === $featured ? 'btn-primary' : 'btn-outline' ?> btn-block plan-cta" data-slug="<?= urlencode($plan['slug']) ?>"><?= t('pricing.cta') ?></a>
         </div>
       <?php endforeach; ?>
     </div>
@@ -54,6 +54,7 @@ $featured = 'professional';
       const yearlyLabel = document.getElementById('cycle-label-yearly');
       const monthlyNotes = document.querySelectorAll('.price-monthly-note');
       const yearlyNotes = document.querySelectorAll('.price-yearly-note');
+      const ctas = document.querySelectorAll('.plan-cta');
 
       toggle.addEventListener('change', () => {
         const yearly = toggle.checked;
@@ -64,6 +65,7 @@ $featured = 'professional';
         monthlyLabel.style.color = yearly ? 'var(--muted)' : '';
         yearlyLabel.style.fontWeight = yearly ? '700' : '400';
         yearlyLabel.style.color = yearly ? '' : 'var(--muted)';
+        ctas.forEach(a => { a.href = '/register?plan=' + a.dataset.slug + '&cycle=' + (yearly ? 'yearly' : 'monthly'); });
       });
     })();
     </script>

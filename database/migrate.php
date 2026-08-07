@@ -713,6 +713,51 @@ foreach ($newFeatureLinesByPlan as $slug => $lines) {
 }
 echo "Plan feature copy updated with newer platform capabilities.\n";
 
+// ---- Call out the estimate template library, AI generator, leads, business setup & roles (idempotent) ----
+$newFeatureLinesByPlan2 = [
+    'starter' => [
+        '12 built-in estimate templates',
+        'AI Estimate Generator',
+        'Role-based team permissions',
+        'Leads pipeline',
+        'Business Setup (building types, tax rates & more)',
+    ],
+    'professional' => [
+        'Everything in Starter',
+    ],
+    'enterprise' => [
+        'Everything in Professional',
+    ],
+];
+$selectPlanFeatures3 = $pdo->prepare('SELECT id, features FROM plans WHERE slug = ?');
+$updatePlanFeatures3 = $pdo->prepare('UPDATE plans SET features = ? WHERE id = ?');
+foreach ($newFeatureLinesByPlan2 as $slug => $lines) {
+    $selectPlanFeatures3->execute([$slug]);
+    $plan = $selectPlanFeatures3->fetch();
+    if (!$plan) {
+        continue;
+    }
+    $features = json_decode((string) $plan['features'], true) ?: [];
+    $changed = false;
+    foreach ($lines as $line) {
+        $alreadyMentioned = false;
+        foreach ($features as $f) {
+            if (stripos((string) $f, $line) !== false) {
+                $alreadyMentioned = true;
+                break;
+            }
+        }
+        if (!$alreadyMentioned) {
+            $features[] = $line;
+            $changed = true;
+        }
+    }
+    if ($changed) {
+        $updatePlanFeatures3->execute([json_encode($features), $plan['id']]);
+    }
+}
+echo "Plan feature copy updated with template library, AI generator, leads & business setup.\n";
+
 // ---- Seed super admin account ----
 $checkUser = $pdo->prepare('SELECT id FROM users WHERE email = ?');
 $checkUser->execute(['admin@buildxact-saudi.local']);
