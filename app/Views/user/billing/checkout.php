@@ -1,32 +1,32 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
-  <h1>Checkout</h1>
-  <a href="/app/billing" class="btn btn-light">← Back to billing</a>
+  <h1><?= t('user.billing.checkout') ?></h1>
+  <a href="/app/billing" class="btn btn-light"><?= t('user.billing.back_to_billing') ?></a>
 </div>
 
 <div class="card" style="max-width:520px;margin-bottom:20px;">
   <h3 style="margin-bottom:4px;"><?= View::e($plan['name']) ?> plan</h3>
-  <p class="help-text" style="margin-bottom:14px;"><?= ucfirst($cycle) ?> billing</p>
-  <div class="total-row"><?= View::money($amount) ?><?= $cycle === 'yearly' ? ' / year' : ' / month' ?></div>
+  <p class="help-text" style="margin-bottom:14px;"><?= ucfirst($cycle) ?> <?= t('user.billing.billing_suffix') ?></p>
+  <div class="total-row"><?= View::money($amount) ?><?= $cycle === 'yearly' ? ' ' . t('user.billing.per_year') : ' ' . t('user.billing.per_month') ?></div>
 </div>
 
 <div class="tabs" id="method-tabs">
-  <a href="#bank" class="tab-link active" data-tab="bank">🏦 Bank Transfer</a>
+  <a href="#bank" class="tab-link active" data-tab="bank"><?= t('user.billing.bank_transfer') ?></a>
   <?php if ($moyasarConfigured): ?>
-    <a href="#card" class="tab-link" data-tab="card">💳 Card (mada / Visa / Mastercard)</a>
+    <a href="#card" class="tab-link" data-tab="card"><?= t('user.billing.card_option') ?></a>
   <?php endif; ?>
 </div>
 
 <div id="tab-bank" class="tab-panel">
   <?php if ($bankTransferEnabled): ?>
     <div class="card" style="max-width:520px;">
-      <p class="help-text">Transfer the exact amount above to the account below, then confirm your request. Your plan activates once our team verifies the transfer (usually within one business day).</p>
+      <p class="help-text"><?= t('user.billing.transfer_hint') ?></p>
       <table class="data" style="margin:14px 0;">
         <tbody>
-          <tr><td>Bank</td><td><?= View::e($bank['name'] ?: '—') ?></td></tr>
-          <tr><td>Account name</td><td><?= View::e($bank['accountName'] ?: '—') ?></td></tr>
-          <tr><td>IBAN</td><td><?= View::e($bank['iban'] ?: '—') ?></td></tr>
-          <tr><td>Account number</td><td><?= View::e($bank['accountNumber'] ?: '—') ?></td></tr>
+          <tr><td><?= t('user.billing.bank') ?></td><td><?= View::e($bank['name'] ?: '—') ?></td></tr>
+          <tr><td><?= t('user.billing.account_name') ?></td><td><?= View::e($bank['accountName'] ?: '—') ?></td></tr>
+          <tr><td><?= t('common.iban') ?></td><td><?= View::e($bank['iban'] ?: '—') ?></td></tr>
+          <tr><td><?= t('user.billing.account_number') ?></td><td><?= View::e($bank['accountNumber'] ?: '—') ?></td></tr>
         </tbody>
       </table>
       <form method="post" action="/app/billing/bank-transfer" enctype="multipart/form-data">
@@ -34,21 +34,21 @@
         <input type="hidden" name="plan" value="<?= View::e($plan['slug']) ?>">
         <input type="hidden" name="cycle" value="<?= View::e($cycle) ?>">
         <div class="form-group">
-          <label>Transfer receipt (optional, but speeds up approval)</label>
+          <label><?= t('user.billing.transfer_receipt') ?></label>
           <input type="file" name="receipt" accept="application/pdf,image/jpeg,image/png">
         </div>
-        <button type="submit" class="btn btn-primary btn-block">I've made the transfer</button>
+        <button type="submit" class="btn btn-primary btn-block"><?= t('user.billing.made_transfer') ?></button>
       </form>
     </div>
   <?php else: ?>
-    <div class="card" style="max-width:520px;"><p class="help-text">Bank transfer isn't currently available. Please use a card payment or contact your platform administrator.</p></div>
+    <div class="card" style="max-width:520px;"><p class="help-text"><?= t('user.billing.bank_unavailable') ?></p></div>
   <?php endif; ?>
 </div>
 
 <?php if ($moyasarConfigured): ?>
 <div id="tab-card" class="tab-panel" style="display:none;">
   <div class="card" style="max-width:520px;">
-    <p class="help-text" style="margin-bottom:14px;">Your card details are handled directly by Moyasar — they never pass through our servers. Your card is saved securely so your subscription can renew automatically — no need to re-enter it next period.</p>
+    <p class="help-text" style="margin-bottom:14px;"><?= t('user.billing.card_hint') ?></p>
     <div class="mysr-form"
       data-amount="<?= (int) round($amount * 100) ?>"
       data-currency="SAR"
@@ -58,7 +58,7 @@
       data-methods="creditcard,applepay,stcpay"
       data-save-card="true">
     </div>
-    <p class="help-text" id="card-loading-hint">Loading payment form…</p>
+    <p class="help-text" id="card-loading-hint"><?= t('user.billing.loading_payment_form') ?></p>
   </div>
 </div>
 <link rel="stylesheet" href="https://cdn.moyasar.com/mpf/1.15.0/moyasar.css">

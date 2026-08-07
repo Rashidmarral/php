@@ -2,7 +2,7 @@
 <div class="page-head">
   <div>
     <h1>⚡ <?= t('qe.title') ?></h1>
-    <p class="help-text" style="margin-top:4px;">Generate an instant, branded quote for a prospect — pick a region, foundation type and add-ons, and get a shareable PDF in seconds.</p>
+    <p class="help-text" style="margin-top:4px;"><?= t('user.quick_estimate.intro_hint') ?></p>
   </div>
 </div>
 
@@ -50,9 +50,9 @@
             <input type="text" name="project_name" placeholder="<?= t('qe.project_name') ?>">
           </div>
           <div class="form-group">
-            <label>Client (optional)</label>
+            <label><?= t('user.quick_estimate.client_optional') ?></label>
             <select name="client_id">
-              <option value="">— No client linked —</option>
+              <option value=""><?= t('user.quick_estimate.no_client_linked') ?></option>
               <?php foreach ($clients as $c): ?>
                 <option value="<?= $c['id'] ?>"><?= View::e($c['name']) ?></option>
               <?php endforeach; ?>
@@ -120,12 +120,12 @@
 </form>
 
 <div class="card" style="margin-top:28px;">
-  <h3>My quick estimates</h3>
+  <h3><?= t('user.quick_estimate.my_quick_estimates') ?></h3>
   <?php if (empty($quotes)): ?>
-    <p class="help-text">No quick estimates generated yet.</p>
+    <p class="help-text"><?= t('user.quick_estimate.none_generated') ?></p>
   <?php else: ?>
     <table class="data">
-      <thead><tr><th>Date</th><th>Project</th><th>Client</th><th>Area</th><th>Total</th><th></th></tr></thead>
+      <thead><tr><th><?= t('common.date') ?></th><th><?= t('user.quick_estimate.project_col') ?></th><th><?= t('common.client') ?></th><th><?= t('user.quick_estimate.area_col') ?></th><th><?= t('common.total') ?></th><th></th></tr></thead>
       <tbody>
         <?php foreach ($quotes as $q): ?>
           <tr>
@@ -134,7 +134,7 @@
             <td><?= View::e($q['client_name'] ?? '—') ?></td>
             <td><?= View::e($q['total_area']) ?> m²</td>
             <td><?= View::money((float)$q['total']) ?></td>
-            <td><a href="/app/quick-estimate/<?= $q['id'] ?>" class="btn btn-outline btn-sm">View</a></td>
+            <td><a href="/app/quick-estimate/<?= $q['id'] ?>" class="btn btn-outline btn-sm"><?= t('common.view') ?></a></td>
           </tr>
         <?php endforeach; ?>
       </tbody>

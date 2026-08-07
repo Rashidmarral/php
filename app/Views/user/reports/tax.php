@@ -1,30 +1,30 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Business Reports</h1>
+  <h1><?= t('user.reports.title') ?></h1>
 </div>
 
 <div class="tabs">
-  <a href="/app/reports">Performance</a>
-  <a href="/app/reports/profit">Profit Tracker</a>
-  <a href="/app/reports/tax" class="active">Tax Summary</a>
-  <a href="/app/reports/retention">Retention Ledger</a>
+  <a href="/app/reports"><?= t('user.reports.tab_performance') ?></a>
+  <a href="/app/reports/profit"><?= t('user.reports.tab_profit') ?></a>
+  <a href="/app/reports/tax" class="active"><?= t('user.reports.tab_tax') ?></a>
+  <a href="/app/reports/retention"><?= t('user.reports.tab_retention') ?></a>
 </div>
 
 <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
-  <div class="kpi"><div class="label">Invoices with VAT</div><div class="value"><?= $invoiceCount ?></div></div>
-  <div class="kpi"><div class="label">Taxable amount</div><div class="value"><?= View::money($totalTaxable) ?></div></div>
-  <div class="kpi"><div class="label">VAT collected</div><div class="value"><?= View::money($totalVat) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.invoices_with_vat') ?></div><div class="value"><?= $invoiceCount ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.taxable_amount') ?></div><div class="value"><?= View::money($totalTaxable) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.vat_collected') ?></div><div class="value"><?= View::money($totalVat) ?></div></div>
 </div>
 
 <?php if (empty($byMonth)): ?>
   <div class="card empty-state">
     <div class="icon">🧾</div>
-    <h3>No VAT-inclusive invoices yet</h3>
-    <p>Invoices created with "Apply VAT" checked will show up here, grouped by month.</p>
+    <h3><?= t('user.reports.no_vat_invoices_title') ?></h3>
+    <p><?= t('user.reports.no_vat_invoices_hint') ?></p>
   </div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Month</th><th>Invoices</th><th>Taxable amount</th><th>VAT collected</th><th>Total</th></tr></thead>
+    <thead><tr><th><?= t('user.reports.month_col') ?></th><th><?= t('user.reports.invoices_col') ?></th><th><?= t('user.reports.taxable_amount') ?></th><th><?= t('user.reports.vat_collected') ?></th><th><?= t('common.total') ?></th></tr></thead>
     <tbody>
     <?php foreach ($byMonth as $month => $data): ?>
       <tr>

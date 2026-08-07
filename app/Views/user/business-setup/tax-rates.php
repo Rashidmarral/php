@@ -1,37 +1,37 @@
 <?php use App\Core\View; use App\Core\Csrf; use App\Core\Auth; ?>
 <div class="page-head">
-  <h1>Business Setup</h1>
+  <h1><?= t('user.business_setup.title') ?></h1>
 </div>
 
 <div class="tabs">
-  <a href="/app/business-setup/building-types">Building Types</a>
-  <a href="/app/business-setup/contact-types">Contact Types</a>
-  <a href="/app/business-setup/client-types">Client Types</a>
-  <a href="/app/business-setup/units-of-measure">Units of Measure</a>
-  <a href="/app/business-setup/tax-rates" class="active">Tax Rates</a>
-  <a href="/app/business-setup/compliance">Compliance Documents</a>
+  <a href="/app/business-setup/building-types"><?= t('user.business_setup.tab_building_types') ?></a>
+  <a href="/app/business-setup/contact-types"><?= t('user.business_setup.tab_contact_types') ?></a>
+  <a href="/app/business-setup/client-types"><?= t('user.business_setup.tab_client_types') ?></a>
+  <a href="/app/business-setup/units-of-measure"><?= t('user.business_setup.tab_units') ?></a>
+  <a href="/app/business-setup/tax-rates" class="active"><?= t('user.business_setup.tab_tax_rates') ?></a>
+  <a href="/app/business-setup/compliance"><?= t('user.business_setup.tab_compliance') ?></a>
 </div>
 
 <?php if (Auth::can('manage_business_setup')): ?>
 <div class="card" style="margin-bottom:20px;">
-  <h3 style="font-size:14px;">Tax Rates</h3>
-  <p class="help-text" style="margin-top:-6px;">The default rate is applied automatically to new invoices — this doesn't change ZATCA's required 15% VAT reporting, it's for internal reference and any additional/local rates.</p>
+  <h3 style="font-size:14px;"><?= t('user.business_setup.tab_tax_rates') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.business_setup.tax_rates_hint') ?></p>
   <form method="post" action="/app/business-setup/tax-rates" class="form-row" style="align-items:end;grid-template-columns:1fr 1fr 120px 120px auto;">
     <?= Csrf::field() ?>
-    <div class="form-group" style="margin:0;"><label>Name (English)</label><input type="text" name="name" placeholder="e.g. Standard VAT" required></div>
-    <div class="form-group" style="margin:0;"><label>Name (Arabic)</label><input type="text" name="name_ar" dir="rtl" placeholder="ضريبة القيمة المضافة"></div>
-    <div class="form-group" style="margin:0;"><label>Rate %</label><input type="number" step="0.01" name="rate_percent" value="15"></div>
-    <div class="form-group" style="margin:0;"><label><input type="checkbox" name="is_default" value="1" style="width:auto;display:inline-block;"> Default</label></div>
-    <button type="submit" class="btn btn-primary">Add</button>
+    <div class="form-group" style="margin:0;"><label><?= t('common.name_en') ?></label><input type="text" name="name" placeholder="e.g. Standard VAT" required></div>
+    <div class="form-group" style="margin:0;"><label><?= t('common.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" placeholder="ضريبة القيمة المضافة"></div>
+    <div class="form-group" style="margin:0;"><label><?= t('user.business_setup.rate_percent') ?></label><input type="number" step="0.01" name="rate_percent" value="15"></div>
+    <div class="form-group" style="margin:0;"><label><input type="checkbox" name="is_default" value="1" style="width:auto;display:inline-block;"> <?= t('common.default') ?></label></div>
+    <button type="submit" class="btn btn-primary"><?= t('common.add') ?></button>
   </form>
 </div>
 <?php endif; ?>
 
 <?php if (empty($rows)): ?>
-  <div class="empty-state card"><p>No tax rates yet — add your standard VAT rate above.</p></div>
+  <div class="empty-state card"><p><?= t('user.business_setup.no_tax_rates_hint') ?></p></div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Name (English)</th><th>Name (Arabic)</th><th>Rate %</th><th>Default</th><th></th></tr></thead>
+    <thead><tr><th><?= t('common.name_en') ?></th><th><?= t('common.name_ar') ?></th><th><?= t('user.business_setup.rate_percent') ?></th><th><?= t('common.default') ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): $fid = 'tax-' . $r['id']; ?>
       <?php if (Auth::can('manage_business_setup')): ?>
@@ -44,10 +44,10 @@
         <td><input form="<?= $fid ?>" type="checkbox" name="is_default" value="1" <?= $r['is_default'] ? 'checked' : '' ?> <?= Auth::can('manage_business_setup') ? '' : 'disabled' ?>></td>
         <td style="display:flex;gap:6px;">
           <?php if (Auth::can('manage_business_setup')): ?>
-            <button form="<?= $fid ?>" type="submit" class="btn btn-sm btn-light">Save</button>
-            <form method="post" action="/app/business-setup/tax-rates/<?= $r['id'] ?>/delete" onsubmit="return confirm('Delete this tax rate?');" style="display:inline;">
+            <button form="<?= $fid ?>" type="submit" class="btn btn-sm btn-light"><?= t('common.save') ?></button>
+            <form method="post" action="/app/business-setup/tax-rates/<?= $r['id'] ?>/delete" onsubmit="return confirm('<?= t('user.business_setup.delete_tax_rate_confirm') ?>');" style="display:inline;">
               <?= Csrf::field() ?>
-              <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+              <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
             </form>
           <?php endif; ?>
         </td>

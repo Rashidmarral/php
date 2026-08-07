@@ -10,7 +10,7 @@
 <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;align-items:start;">
   <div class="card" style="padding:0;overflow:hidden;">
     <table class="data" style="border:none;">
-      <thead><tr><th>Description</th><th>Type</th><th>Qty</th><th>UOM</th><th>Unit Cost</th></tr></thead>
+      <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.type') ?></th><th><?= t('common.qty') ?></th><th>UOM</th><th><?= t('common.unit_cost') ?></th></tr></thead>
       <tbody>
       <?php $lastSection = null; foreach ($items as $it): ?>
         <?php if ($it['section_number'] !== $lastSection): $lastSection = $it['section_number']; ?>
@@ -30,41 +30,41 @@
 
   <form method="post" action="/app/estimates/templates/<?= $template['id'] ?>" class="card" style="position:sticky;top:90px;">
     <?= Csrf::field() ?>
-    <h3 style="font-size:14px;">Configuration</h3>
+    <h3 style="font-size:14px;"><?= t('user.estimates.configuration') ?></h3>
 
     <div class="form-group">
-      <label><input type="checkbox" name="include_quantities" value="1" style="width:auto;display:inline-block;"> Include template quantities</label>
-      <p class="help-text" style="margin-top:2px;">Otherwise quantities start at 0 and you fill them in.</p>
+      <label><input type="checkbox" name="include_quantities" value="1" style="width:auto;display:inline-block;"> <?= t('user.estimates.include_template_quantities') ?></label>
+      <p class="help-text" style="margin-top:2px;"><?= t('user.estimates.include_quantities_hint') ?></p>
     </div>
 
-    <div class="form-group"><label>Description</label><input type="text" name="title" value="<?= View::e(View::local($template, 'name_en', 'name_ar')) ?>"></div>
+    <div class="form-group"><label><?= t('common.description') ?></label><input type="text" name="title" value="<?= View::e(View::local($template, 'name_en', 'name_ar')) ?>"></div>
 
     <div class="form-group">
-      <label>Building Type</label>
+      <label><?= t('common.building_type') ?></label>
       <select name="building_type">
-        <option value="">Building type…</option>
+        <option value=""><?= t('user.estimates.building_type_placeholder') ?></option>
         <?php foreach ($buildingTypes as $bt): ?>
           <option value="<?= View::e($bt['name']) ?>" <?= $bt['name'] === $template['building_type'] ? 'selected' : '' ?>><?= View::e($bt['name']) ?></option>
         <?php endforeach; ?>
       </select>
-      <?php if (empty($buildingTypes)): ?><p class="help-text">No building types yet — add some in <a href="/app/business-setup/building-types" target="_blank">Business Setup</a>.</p><?php endif; ?>
+      <?php if (empty($buildingTypes)): ?><p class="help-text"><?= t('user.estimates.no_building_types_hint') ?> <a href="/app/business-setup/building-types" target="_blank"><?= t('user.business_setup.title') ?></a>.</p><?php endif; ?>
     </div>
 
-    <div class="form-group"><label>Job address or suburb</label><input type="text" name="job_address" placeholder="Job address or suburb…"></div>
+    <div class="form-group"><label><?= t('user.estimates.job_address') ?></label><input type="text" name="job_address" placeholder="Job address or suburb…"></div>
 
     <div class="form-group">
-      <label>Client</label>
+      <label><?= t('common.client') ?></label>
       <select name="client_id">
-        <option value="">Client name…</option>
+        <option value=""><?= t('user.estimates.client_name_placeholder') ?></option>
         <?php foreach ($clients as $c): ?><option value="<?= $c['id'] ?>"><?= View::e($c['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
 
-    <div class="total-row" style="font-size:15px;">Template value: <?= View::money($subtotal) ?></div>
+    <div class="total-row" style="font-size:15px;"><?= t('user.estimates.template_value') ?> <?= View::money($subtotal) ?></div>
 
     <div style="display:flex;gap:8px;margin-top:14px;">
-      <a href="/app/estimates/new" class="btn btn-light" style="flex:1;text-align:center;">Cancel</a>
-      <button type="submit" class="btn btn-primary" style="flex:2;">Create estimate</button>
+      <a href="/app/estimates/new" class="btn btn-light" style="flex:1;text-align:center;"><?= t('common.cancel') ?></a>
+      <button type="submit" class="btn btn-primary" style="flex:2;"><?= t('user.estimates.create_estimate') ?></button>
     </div>
   </form>
 </div>

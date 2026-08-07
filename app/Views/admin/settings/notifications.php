@@ -1,16 +1,16 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
-  <h1>Platform Settings</h1>
+  <h1><?= t('admin.settings.title') ?></h1>
 </div>
 
 <div class="tabs">
-  <a href="/admin/settings">General</a>
-  <a href="/admin/settings/payments">Payment Methods</a>
-  <a href="/admin/settings/legal">Legal & Branding</a>
-  <a href="/admin/settings/header">Header & Footer</a>
-  <a href="/admin/settings/ai">AI Generator</a>
-  <a href="/admin/settings/notifications" class="active">Notifications</a>
-  <a href="/admin/settings/email">Email</a>
+  <a href="/admin/settings"><?= t('admin.settings.tab_general') ?></a>
+  <a href="/admin/settings/payments"><?= t('admin.settings.tab_payments') ?></a>
+  <a href="/admin/settings/legal"><?= t('admin.settings.tab_legal') ?></a>
+  <a href="/admin/settings/header"><?= t('admin.settings.tab_header') ?></a>
+  <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
+  <a href="/admin/settings/notifications" class="active"><?= t('admin.settings.tab_notifications') ?></a>
+  <a href="/admin/settings/email"><?= t('admin.settings.tab_email') ?></a>
 </div>
 
 <div class="card" style="max-width:680px;margin-bottom:20px;">
@@ -27,8 +27,8 @@
 <form method="post" action="/admin/settings/notifications" class="card" style="max-width:680px;">
   <?= Csrf::field() ?>
   <div style="display:flex;justify-content:space-between;align-items:center;">
-    <h3 style="margin:0;">🤖 Automated WhatsApp notifications</h3>
-    <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="whatsapp_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['whatsapp_enabled']) ? 'checked' : '' ?>> Enabled</label>
+    <h3 style="margin:0;">🤖 <?= t('admin.settings.automated_whatsapp') ?></h3>
+    <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="whatsapp_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['whatsapp_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
   </div>
   <p class="help-text">
     Requires a real <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noopener">Meta WhatsApp Business Cloud API</a>
@@ -38,15 +38,15 @@
     works best for time-sensitive notifications sent shortly after a client last messaged you.
   </p>
   <div class="form-group">
-    <label>Phone number ID</label>
+    <label><?= t('admin.settings.phone_number_id') ?></label>
     <input type="text" name="whatsapp_phone_number_id" value="<?= View::e($settings['whatsapp_phone_number_id'] ?? '') ?>" placeholder="e.g. 109876543210123">
   </div>
   <div class="form-group">
-    <label>Access token</label>
+    <label><?= t('admin.settings.access_token') ?></label>
     <div class="password-field">
       <input type="password" name="whatsapp_access_token" placeholder="<?= !empty($settings['whatsapp_access_token']) ? '••••••••••••••••  (leave blank to keep current)' : 'EAAG...' ?>">
       <?= View::passwordToggle() ?>
     </div>
   </div>
-  <button type="submit" class="btn btn-primary">Save</button>
+  <button type="submit" class="btn btn-primary"><?= t('common.save') ?></button>
 </form>

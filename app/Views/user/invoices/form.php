@@ -1,35 +1,35 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
-  <h1>New Invoice</h1>
-  <a href="/app/invoices" class="btn btn-light">← Back to invoices</a>
+  <h1><?= t('user.invoices.new_title') ?></h1>
+  <a href="/app/invoices" class="btn btn-light"><?= t('user.invoices.back_to_invoices') ?></a>
 </div>
 
 <form method="post" action="/app/invoices" class="card" style="max-width:820px;">
   <?= Csrf::field() ?>
   <div class="form-row">
-    <div class="form-group"><label>Invoice number</label><input type="text" name="invoice_number" value="<?= View::e($nextNumber) ?>"></div>
-    <div class="form-group"><label>Due date</label><input type="date" name="due_date"></div>
+    <div class="form-group"><label><?= t('user.invoices.invoice_number') ?></label><input type="text" name="invoice_number" value="<?= View::e($nextNumber) ?>"></div>
+    <div class="form-group"><label><?= t('user.invoices.due_date') ?></label><input type="date" name="due_date"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
-      <label>Client</label>
+      <label><?= t('common.client') ?></label>
       <select name="client_id">
-        <option value="">— No client —</option>
+        <option value=""><?= t('user.projects.no_client') ?></option>
         <?php foreach ($clients as $c): ?><option value="<?= $c['id'] ?>"><?= View::e($c['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
     <div class="form-group">
-      <label>Project</label>
+      <label><?= t('common.project') ?></label>
       <select name="project_id">
-        <option value="">— None —</option>
+        <option value=""><?= t('user.invoices.no_project') ?></option>
         <?php foreach ($projects as $p): ?><option value="<?= $p['id'] ?>"><?= View::e($p['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
   </div>
 
-  <label>Line items</label>
+  <label><?= t('user.invoices.line_items') ?></label>
   <table class="line-items" id="items-table">
-    <thead><tr><th style="width:50%">Description</th><th>Qty</th><th>Unit price (SAR)</th><th>Line total</th><th></th></tr></thead>
+    <thead><tr><th style="width:50%"><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.unit_price') ?> (SAR)</th><th><?= t('user.invoices.line_total') ?></th><th></th></tr></thead>
     <tbody id="items-body">
       <tr>
         <td><input type="text" name="item_description[]" placeholder="e.g. Mobilization payment (30%)"></td>
@@ -41,30 +41,30 @@
     </tbody>
   </table>
   <div style="display:flex;gap:8px;">
-    <button type="button" id="add-row" class="btn btn-sm btn-outline">+ Add line item</button>
-    <button type="button" id="open-library-picker" class="btn btn-sm btn-outline">📚 Pull from library</button>
+    <button type="button" id="add-row" class="btn btn-sm btn-outline"><?= t('user.invoices.add_line_item') ?></button>
+    <button type="button" id="open-library-picker" class="btn btn-sm btn-outline"><?= t('user.invoices.pull_from_library') ?></button>
   </div>
 
   <div class="form-row" style="margin-top:14px;align-items:end;">
     <div class="form-group" style="margin:0;">
-      <label><input type="checkbox" name="apply_vat" id="apply-vat" value="1" checked style="width:auto;display:inline-block;"> Apply VAT (<?= View::e((string)$vatRate) ?>%)</label>
+      <label><input type="checkbox" name="apply_vat" id="apply-vat" value="1" checked style="width:auto;display:inline-block;"> <?= t('user.invoices.apply_vat') ?> (<?= View::e((string)$vatRate) ?>%)</label>
     </div>
     <div class="form-group" style="margin:0;">
-      <label>Retention withheld (%)</label>
+      <label><?= t('user.invoices.retention_withheld_percent') ?></label>
       <input type="number" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= View::e((string)$defaultRetentionPercent) ?>">
-      <p class="help-text">Common on Saudi contracts (5–10%), released after the defects liability period.</p>
+      <p class="help-text"><?= t('user.invoices.retention_hint') ?></p>
     </div>
   </div>
 
   <div style="text-align:right;font-size:14px;color:var(--muted);">
-    Subtotal: <span id="grand-subtotal">0.00</span> SAR<br>
-    VAT: <span id="grand-vat">0.00</span> SAR<br>
-    Retention withheld: <span id="grand-retention">0.00</span> SAR
+    <?= t('common.subtotal') ?>: <span id="grand-subtotal">0.00</span> SAR<br>
+    <?= t('common.vat') ?>: <span id="grand-vat">0.00</span> SAR<br>
+    <?= t('user.invoices.retention_withheld') ?> <span id="grand-retention">0.00</span> SAR
   </div>
-  <div class="total-row">Total: <span id="grand-total">0.00</span> SAR</div>
-  <p class="help-text" style="text-align:right;">Net payable now (after retention): <strong><span id="grand-net">0.00</span> SAR</strong></p>
+  <div class="total-row"><?= t('common.total') ?>: <span id="grand-total">0.00</span> SAR</div>
+  <p class="help-text" style="text-align:right;"><?= t('user.invoices.net_payable_now') ?> <strong><span id="grand-net">0.00</span> SAR</strong></p>
 
-  <button type="submit" class="btn btn-primary" style="margin-top:16px;">Create invoice</button>
+  <button type="submit" class="btn btn-primary" style="margin-top:16px;"><?= t('user.invoices.create_invoice') ?></button>
 </form>
 
 <?php require BASE_PATH . '/app/Views/user/partials/library-picker.php'; ?>

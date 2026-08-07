@@ -2,11 +2,11 @@
 <div class="page-head">
   <div>
     <h1><?= View::e($estimate['project_name'] ?: ('Quick Estimate #' . $estimate['id'])) ?></h1>
-    <p class="help-text" style="margin-top:4px;">Client: <?= View::e($client['name'] ?? '—') ?> · Generated <?= View::e($estimate['created_at']) ?></p>
+    <p class="help-text" style="margin-top:4px;"><?= t('common.client') ?>: <?= View::e($client['name'] ?? '—') ?> · <?= t('user.quick_estimate.generated') ?> <?= View::e($estimate['created_at']) ?></p>
   </div>
-  <form method="post" action="/app/quick-estimate/<?= $estimate['id'] ?>/delete" onsubmit="return confirm('Delete this quick estimate?');">
+  <form method="post" action="/app/quick-estimate/<?= $estimate['id'] ?>/delete" onsubmit="return confirm('<?= t('user.quick_estimate.delete_confirm') ?>');">
     <?= Csrf::field() ?>
-    <button type="submit" class="btn btn-danger">Delete</button>
+    <button type="submit" class="btn btn-danger"><?= t('common.delete') ?></button>
   </form>
 </div>
 
@@ -45,8 +45,8 @@
     <button type="submit" class="btn btn-primary">⬇ <?= t('qe.download_pdf') ?></button>
   </form>
 
-  <form method="post" action="/app/quick-estimate/<?= $estimate['id'] ?>/convert" style="margin-top:12px;" onsubmit="return confirm('Convert this into a full estimate you can track and invoice against?');">
+  <form method="post" action="/app/quick-estimate/<?= $estimate['id'] ?>/convert" style="margin-top:12px;" onsubmit="return confirm('<?= t('user.quick_estimate.convert_confirm') ?>');">
     <?= Csrf::field() ?>
-    <button type="submit" class="btn btn-outline">Convert to full estimate →</button>
+    <button type="submit" class="btn btn-outline"><?= t('user.quick_estimate.convert_to_full') ?></button>
   </form>
 </div>

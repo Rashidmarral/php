@@ -3,13 +3,13 @@
 <div id="library-picker-overlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,18,.5);z-index:1000;align-items:center;justify-content:center;">
   <div class="card" style="width:640px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <h3 style="margin:0;">📚 Pull from library</h3>
+      <h3 style="margin:0;"><?= t('user.library_picker.title') ?></h3>
       <button type="button" id="library-picker-close" class="btn btn-sm btn-light">✕</button>
     </div>
     <?php if (empty($materials)): ?>
-      <p class="help-text">Your <a href="/app/materials">Materials & Pricing Library</a> is empty — add items there first, or sync from Google Sheets.</p>
+      <p class="help-text">Your <a href="/app/materials"><?= t('user.materials.title') ?></a> <?= t('user.library_picker.empty_hint') ?></p>
     <?php else: ?>
-      <input type="text" id="library-picker-search" placeholder="Search materials or suppliers..." style="margin-bottom:10px;">
+      <input type="text" id="library-picker-search" placeholder="<?= t('user.library_picker.search_placeholder') ?>" style="margin-bottom:10px;">
       <div id="library-picker-list" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:6px;">
         <?php foreach ($materials as $m): ?>
           <button type="button" class="library-picker-item" data-desc="<?= View::e($m['name']) ?>" data-desc-ar="<?= View::e($m['name_ar'] ?? '') ?>" data-cost="<?= (float) $m['unit_cost'] ?>"

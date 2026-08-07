@@ -1,43 +1,43 @@
 <?php use App\Core\View; use App\Core\Csrf; ?>
 <div class="page-head">
-  <h1>Billing & Subscription</h1>
+  <h1><?= t('user.billing.title') ?></h1>
 </div>
 
 <?php if ($pendingPayment): ?>
   <div class="alert" style="background:#fdf3e0;color:#b8860b;border:1px solid #f0dca4;">
-    ⏳ A bank transfer payment (<?= View::e($pendingPayment['reference']) ?>, <?= View::money((float)$pendingPayment['amount']) ?>) is awaiting admin approval.
+    ⏳ <?= t('user.billing.pending_payment', ['ref' => View::e($pendingPayment['reference']), 'amount' => View::money((float)$pendingPayment['amount'])]) ?>
   </div>
 <?php endif; ?>
 
 <div class="card" style="margin-bottom:24px;">
-  <h3>Current plan</h3>
+  <h3><?= t('user.billing.current_plan') ?></h3>
   <?php if ($currentPlan): ?>
     <p style="font-size:20px;font-weight:800;color:var(--brand-dark);"><?= View::e($currentPlan['name']) ?></p>
     <p class="help-text">
-      Status: <span class="badge badge-<?= $company['status']==='active'?'green':'yellow' ?>"><?= View::e($company['status']) ?></span>
-      <?php if ($subscription): ?> · Billing cycle: <?= View::e(ucfirst($subscription['billing_cycle'])) ?> · Renews: <?= View::e($subscription['current_period_end']) ?><?php endif; ?>
+      <?= t('common.status') ?>: <span class="badge badge-<?= $company['status']==='active'?'green':'yellow' ?>"><?= View::e($company['status']) ?></span>
+      <?php if ($subscription): ?> · <?= t('user.billing.billing_cycle') ?> <?= View::e(ucfirst($subscription['billing_cycle'])) ?> · <?= t('user.billing.renews') ?> <?= View::e($subscription['current_period_end']) ?><?php endif; ?>
     </p>
   <?php else: ?>
-    <p class="help-text">No active plan.</p>
+    <p class="help-text"><?= t('user.billing.no_active_plan') ?></p>
   <?php endif; ?>
 </div>
 
 <div class="card" style="margin-bottom:24px;">
-  <h3>Change plan</h3>
+  <h3><?= t('user.billing.change_plan') ?></h3>
 
   <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:24px;">
-    <span id="cycle-label-monthly" style="font-weight:700;">Monthly</span>
+    <span id="cycle-label-monthly" style="font-weight:700;"><?= t('billing.monthly') ?></span>
     <label class="cycle-switch">
       <input type="checkbox" id="cycle-toggle">
       <span class="cycle-slider"></span>
     </label>
-    <span id="cycle-label-yearly" style="color:var(--muted);">Yearly <span class="badge badge-green">2 months free</span></span>
+    <span id="cycle-label-yearly" style="color:var(--muted);"><?= t('billing.yearly') ?> <span class="badge badge-green"><?= t('user.billing.months_free') ?></span></span>
   </div>
 
   <div class="grid grid-3">
     <?php foreach ($plans as $plan): $features = json_decode($plan['features'], true) ?: []; ?>
       <div class="pricing-card card <?= $currentPlan && $currentPlan['id']==$plan['id'] ? 'featured' : '' ?>">
-        <?php if ($currentPlan && $currentPlan['id']==$plan['id']): ?><span class="badge-featured">Current</span><?php endif; ?>
+        <?php if ($currentPlan && $currentPlan['id']==$plan['id']): ?><span class="badge-featured"><?= t('user.billing.current') ?></span><?php endif; ?>
         <h3><?= View::e($plan['name']) ?></h3>
         <div class="price">
           <span class="price-amount"
@@ -48,14 +48,14 @@
         <p class="help-text price-yearly-note" style="display:none;margin-top:-8px;"><?= number_format((float)$plan['price_yearly'], 0) ?> SAR/year, billed yearly</p>
         <ul class="plan-features"><?php foreach ($features as $f): ?><li><?= View::e($f) ?></li><?php endforeach; ?></ul>
         <?php if ($currentPlan && $currentPlan['id']==$plan['id']): ?>
-          <button class="btn btn-light btn-block" disabled>Current plan</button>
+          <button class="btn btn-light btn-block" disabled><?= t('user.billing.current_plan_btn') ?></button>
         <?php else: ?>
-          <a href="/app/billing/checkout?plan=<?= urlencode($plan['slug']) ?>&cycle=monthly" class="btn btn-primary btn-block plan-cta" data-slug="<?= urlencode($plan['slug']) ?>">Choose this plan</a>
+          <a href="/app/billing/checkout?plan=<?= urlencode($plan['slug']) ?>&cycle=monthly" class="btn btn-primary btn-block plan-cta" data-slug="<?= urlencode($plan['slug']) ?>"><?= t('user.billing.choose_plan') ?></a>
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
   </div>
-  <p class="help-text" style="margin-top:16px;">Pay by bank transfer (held for admin approval) or card via Moyasar, if enabled by your platform administrator.</p>
+  <p class="help-text" style="margin-top:16px;"><?= t('user.billing.pay_methods_hint') ?></p>
 </div>
 
 <script>
@@ -81,12 +81,12 @@
 </script>
 
 <div class="card">
-  <h3>Payment history</h3>
+  <h3><?= t('user.billing.payment_history') ?></h3>
   <?php if (empty($payments)): ?>
-    <p class="help-text">No payments yet.</p>
+    <p class="help-text"><?= t('user.billing.no_payments_yet') ?></p>
   <?php else: ?>
     <table class="data">
-      <thead><tr><th>Date</th><th>Reference</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead>
+      <thead><tr><th><?= t('common.date') ?></th><th><?= t('common.reference') ?></th><th><?= t('common.method') ?></th><th><?= t('common.amount') ?></th><th><?= t('common.status') ?></th></tr></thead>
       <tbody>
       <?php foreach ($payments as $p): ?>
         <tr>

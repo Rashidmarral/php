@@ -1,16 +1,14 @@
 <?php use App\Core\Csrf; ?>
 <div class="page-head">
   <div>
-    <a href="/app/estimates/new" class="help-text">← Back</a>
-    <h1 style="margin-top:6px;">✨ AI Estimate Generator</h1>
+    <a href="/app/estimates/new" class="help-text"><?= t('user.estimates.back') ?></a>
+    <h1 style="margin-top:6px;">✨ <?= t('user.estimates.ai_title') ?></h1>
   </div>
 </div>
 
 <?php if (!$aiConfigured): ?>
   <div class="alert" style="background:#fdf3e0;color:var(--warning);border:1px solid #e8c76b;">
-    No AI provider is configured yet, so generated estimates are suggested from the closest matching
-    template in our library instead of a tailored AI write-up. A platform admin can turn on real AI
-    generation under Admin → Platform Settings → AI Generator.
+    <?= t('user.estimates.ai_no_provider') ?>
   </div>
 <?php endif; ?>
 
@@ -18,13 +16,13 @@
   <form method="post" action="/app/estimates/ai/generate">
     <?= Csrf::field() ?>
     <div class="form-group">
-      <label>Describe the project</label>
+      <label><?= t('user.estimates.ai_describe_project') ?></label>
       <textarea name="description" id="ai-description" rows="5" placeholder="e.g. Remodel a 220ft² kitchen. Remove 50 linear feet of upper cabinets and 45 linear feet of damaged base units. Install new quartz countertops and porcelain flooring." required></textarea>
     </div>
-    <button type="submit" class="btn btn-primary">Generate →</button>
+    <button type="submit" class="btn btn-primary"><?= t('common.generate') ?></button>
   </form>
 
-  <p class="help-text" style="margin-top:20px;margin-bottom:10px;">Try these prompts to get started</p>
+  <p class="help-text" style="margin-top:20px;margin-bottom:10px;"><?= t('user.estimates.ai_try_prompts') ?></p>
   <div class="grid grid-3" style="gap:10px;">
     <?php
     $prompts = [

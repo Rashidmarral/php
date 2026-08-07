@@ -1,14 +1,14 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Companies</h1>
-  <a href="/admin/companies/export.csv" class="btn btn-light">⬇ Export CSV</a>
+  <h1><?= t('aside.companies') ?></h1>
+  <a href="/admin/companies/export.csv" class="btn btn-light">⬇ <?= t('common.export_csv') ?></a>
 </div>
 
 <?php if (empty($companies)): ?>
-  <div class="card empty-state"><div class="icon">🏢</div><h3>No companies yet</h3></div>
+  <div class="card empty-state"><div class="icon">🏢</div><h3><?= t('common.no_data') ?></h3></div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Company</th><th>Email</th><th>Plan</th><th>Status</th><th>Joined</th></tr></thead>
+    <thead><tr><th><?= t('common.company') ?></th><th><?= t('common.email') ?></th><th><?= t('common.plan') ?></th><th><?= t('common.status') ?></th><th><?= t('common.joined') ?></th></tr></thead>
     <tbody>
     <?php foreach ($companies as $c): ?>
       <tr>

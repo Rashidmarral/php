@@ -1,19 +1,19 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Invoices</h1>
-  <a href="/app/invoices/create" class="btn btn-primary">+ New Invoice</a>
+  <h1><?= t('user.invoices.title') ?></h1>
+  <a href="/app/invoices/create" class="btn btn-primary"><?= t('user.invoices.new') ?></a>
 </div>
 
 <?php if (empty($invoices)): ?>
   <div class="card empty-state">
     <div class="icon">💳</div>
-    <h3>No invoices yet</h3>
-    <p>Create an invoice and track payments through to completion.</p>
-    <a href="/app/invoices/create" class="btn btn-primary">+ New Invoice</a>
+    <h3><?= t('user.invoices.no_invoices_title') ?></h3>
+    <p><?= t('user.invoices.no_invoices_hint') ?></p>
+    <a href="/app/invoices/create" class="btn btn-primary"><?= t('user.invoices.new') ?></a>
   </div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>#</th><th>Client</th><th>Status</th><th>Total</th><th>Due</th></tr></thead>
+    <thead><tr><th>#</th><th><?= t('common.client') ?></th><th><?= t('common.status') ?></th><th><?= t('common.total') ?></th><th><?= t('common.due') ?></th></tr></thead>
     <tbody>
     <?php foreach ($invoices as $i): ?>
       <tr>

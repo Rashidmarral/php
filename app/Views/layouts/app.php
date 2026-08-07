@@ -37,22 +37,22 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
       <a href="/app/schedule" class="<?= $isActive('/app/schedule') ?>">📅 <?= t('side.schedule') ?></a>
       <?php $navLink('/app/takeoffs', '📐', t('side.takeoffs'), 'takeoff'); ?>
 
-      <div class="nav-section">Resources</div>
+      <div class="nav-section"><?= t('side.section_resources') ?></div>
       <?php $navLink('/app/suppliers', '🚚', t('side.suppliers'), 'suppliers'); ?>
       <?php $navLink('/app/materials', '📦', t('side.materials'), 'materials'); ?>
       <?php $navLink('/app/documents', '📁', t('side.documents'), 'documents'); ?>
 
-      <div class="nav-section">Insights</div>
+      <div class="nav-section"><?= t('side.section_insights') ?></div>
       <?php $navLink('/app/reports', '📈', t('side.reports'), 'reports'); ?>
 
-      <a href="/app/consultations" class="<?= $isActive('/app/consultations') ?>">🎓 Expert Consultation</a>
+      <a href="/app/consultations" class="<?= $isActive('/app/consultations') ?>">🎓 <?= t('side.consultations') ?></a>
 
-      <div class="nav-section">Company</div>
-      <a href="/app/leads" class="<?= $isActive('/app/leads') ?>">🎯 Leads</a>
+      <div class="nav-section"><?= t('side.section_company') ?></div>
+      <a href="/app/leads" class="<?= $isActive('/app/leads') ?>">🎯 <?= t('side.leads') ?></a>
       <a href="/app/team" class="<?= $isActive('/app/team') ?>">🧑‍💼 <?= t('side.team') ?></a>
       <a href="/app/billing" class="<?= $isActive('/app/billing') ?>">💰 <?= t('side.billing') ?></a>
       <?php $navLink('/app/integrations', '🔌', t('side.integrations'), 'integrations'); ?>
-      <a href="/app/business-setup" class="<?= $isActive('/app/business-setup') ?>">🧩 Business Setup</a>
+      <a href="/app/business-setup" class="<?= $isActive('/app/business-setup') ?>">🧩 <?= t('side.business_setup') ?></a>
       <a href="/app/settings" class="<?= $isActive('/app/settings') ?>">⚙️ <?= t('side.settings') ?></a>
     </nav>
     <div class="foot">
@@ -72,10 +72,10 @@ $navLink = function (string $href, string $icon, string $label, ?string $feature
     </div>
     <?php if (!empty($_SESSION['impersonator_admin_id'])): ?>
       <div style="background:#3d2b0a;color:#f5d78e;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span>🕵️ You're viewing this account as an admin support session.</span>
+        <span>🕵️ <?= t('side.impersonation_banner') ?></span>
         <form method="post" action="/app/end-impersonation" style="margin:0;">
           <?= \App\Core\Csrf::field() ?>
-          <button type="submit" class="btn btn-sm" style="background:#f5d78e;color:#3d2b0a;border:none;">← Return to admin</button>
+          <button type="submit" class="btn btn-sm" style="background:#f5d78e;color:#3d2b0a;border:none;"><?= t('side.return_to_admin') ?></button>
         </form>
       </div>
     <?php endif; ?>

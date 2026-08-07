@@ -1,23 +1,23 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Platform Overview</h1>
+  <h1><?= t('admin.dashboard.title') ?></h1>
 </div>
 
 <div class="kpi-grid">
-  <div class="kpi"><div class="label">MRR</div><div class="value"><?= View::money($mrr) ?></div></div>
-  <div class="kpi"><div class="label">Revenue This Month</div><div class="value"><?= View::money($revenueThisMonth) ?></div></div>
-  <div class="kpi"><div class="label">Total Companies</div><div class="value"><?= $totalCompanies ?></div><div class="delta">+<?= $signupsThisMonth ?> this month</div></div>
-  <div class="kpi"><div class="label">Active / Trial</div><div class="value"><?= $activeCompanies ?> / <?= $trialCompanies ?></div></div>
+  <div class="kpi"><div class="label"><?= t('admin.dashboard.mrr') ?></div><div class="value"><?= View::money($mrr) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('admin.dashboard.revenue_month') ?></div><div class="value"><?= View::money($revenueThisMonth) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('admin.dashboard.total_companies') ?></div><div class="value"><?= $totalCompanies ?></div><div class="delta">+<?= $signupsThisMonth ?> <?= t('admin.dashboard.this_month') ?></div></div>
+  <div class="kpi"><div class="label"><?= t('admin.dashboard.active_trial') ?></div><div class="value"><?= $activeCompanies ?> / <?= $trialCompanies ?></div></div>
 </div>
 
 <div class="grid grid-2">
   <div class="card">
-    <h3>Recent Companies</h3>
+    <h3><?= t('admin.dashboard.recent_companies') ?></h3>
     <?php if (empty($recentCompanies)): ?>
-      <p class="help-text">No companies yet.</p>
+      <p class="help-text"><?= t('admin.dashboard.no_companies') ?></p>
     <?php else: ?>
       <table class="data">
-        <thead><tr><th>Company</th><th>Plan</th><th>Status</th></tr></thead>
+        <thead><tr><th><?= t('common.company') ?></th><th><?= t('common.plan') ?></th><th><?= t('common.status') ?></th></tr></thead>
         <tbody>
         <?php foreach ($recentCompanies as $c): ?>
           <tr>
@@ -32,9 +32,9 @@
   </div>
 
   <div class="card">
-    <h3>Companies by Plan</h3>
+    <h3><?= t('admin.dashboard.by_plan') ?></h3>
     <table class="data">
-      <thead><tr><th>Plan</th><th>Companies</th></tr></thead>
+      <thead><tr><th><?= t('common.plan') ?></th><th><?= t('admin.dashboard.companies') ?></th></tr></thead>
       <tbody>
       <?php foreach ($planCounts as $pc): ?>
         <tr><td><?= View::e($pc['name']) ?></td><td><?= (int)$pc['company_count'] ?></td></tr>

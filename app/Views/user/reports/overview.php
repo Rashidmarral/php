@@ -1,27 +1,27 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Business Reports</h1>
+  <h1><?= t('user.reports.title') ?></h1>
 </div>
 
 <div class="tabs">
-  <a href="/app/reports" class="active">Performance</a>
-  <a href="/app/reports/profit">Profit Tracker</a>
-  <a href="/app/reports/tax">Tax Summary</a>
-  <a href="/app/reports/retention">Retention Ledger</a>
+  <a href="/app/reports" class="active"><?= t('user.reports.tab_performance') ?></a>
+  <a href="/app/reports/profit"><?= t('user.reports.tab_profit') ?></a>
+  <a href="/app/reports/tax"><?= t('user.reports.tab_tax') ?></a>
+  <a href="/app/reports/retention"><?= t('user.reports.tab_retention') ?></a>
 </div>
 
 <div class="kpi-grid">
-  <div class="kpi"><div class="label">Active Projects</div><div class="value"><?= $activeProjects ?></div></div>
-  <div class="kpi"><div class="label">Total Budget</div><div class="value"><?= View::money($totalBudget) ?></div></div>
-  <div class="kpi"><div class="label">Revenue Collected</div><div class="value"><?= View::money($totalRevenuePaid) ?></div></div>
-  <div class="kpi"><div class="label">Outstanding</div><div class="value"><?= View::money($totalOutstanding) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.active_projects') ?></div><div class="value"><?= $activeProjects ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.total_budget') ?></div><div class="value"><?= View::money($totalBudget) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.revenue_collected') ?></div><div class="value"><?= View::money($totalRevenuePaid) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.reports.outstanding') ?></div><div class="value"><?= View::money($totalOutstanding) ?></div></div>
 </div>
 
 <div class="grid grid-2">
   <div class="card">
-    <h3>Revenue — last 6 months</h3>
+    <h3><?= t('user.reports.revenue_chart') ?></h3>
     <?php if (array_sum($monthly) == 0): ?>
-      <p class="help-text">No paid invoices yet.</p>
+      <p class="help-text"><?= t('user.reports.no_paid_invoices') ?></p>
     <?php else: ?>
       <div style="display:flex;align-items:end;gap:10px;height:160px;padding-top:10px;">
         <?php foreach ($monthly as $month => $amount): ?>
@@ -35,15 +35,15 @@
   </div>
 
   <div class="card">
-    <h3>Estimate win rate</h3>
+    <h3><?= t('user.reports.win_rate_title') ?></h3>
     <?php if ($winRate === null): ?>
-      <p class="help-text">Not enough decided estimates yet (accepted or declined).</p>
+      <p class="help-text"><?= t('user.reports.win_rate_hint') ?></p>
     <?php else: ?>
       <div class="kpi" style="text-align:center;margin-bottom:14px;">
-        <div class="label">Win rate</div>
+        <div class="label"><?= t('user.reports.win_rate') ?></div>
         <div class="value" style="font-size:32px;"><?= $winRate ?>%</div>
       </div>
-      <p class="help-text" style="text-align:center;"><?= $accepted ?> accepted · <?= $declined ?> declined</p>
+      <p class="help-text" style="text-align:center;"><?= t('user.reports.accepted_declined', ['accepted' => $accepted, 'declined' => $declined]) ?></p>
     <?php endif; ?>
   </div>
 </div>

@@ -1,19 +1,19 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Estimates</h1>
-  <a href="/app/estimates/new" class="btn btn-primary">+ New Estimate</a>
+  <h1><?= t('user.estimates.title') ?></h1>
+  <a href="/app/estimates/new" class="btn btn-primary"><?= t('user.estimates.new') ?></a>
 </div>
 
 <?php if (empty($estimates)): ?>
   <div class="card empty-state">
     <div class="icon">🧾</div>
-    <h3>No estimates yet</h3>
-    <p>Build a detailed estimate and convert it into a project once accepted.</p>
-    <a href="/app/estimates/new" class="btn btn-primary">+ New Estimate</a>
+    <h3><?= t('user.estimates.no_estimates_title') ?></h3>
+    <p><?= t('user.estimates.no_estimates_hint') ?></p>
+    <a href="/app/estimates/new" class="btn btn-primary"><?= t('user.estimates.new') ?></a>
   </div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Title</th><th>Client</th><th>Status</th><th>Total</th></tr></thead>
+    <thead><tr><th><?= t('common.title') ?></th><th><?= t('common.client') ?></th><th><?= t('common.status') ?></th><th><?= t('common.total') ?></th></tr></thead>
     <tbody>
     <?php foreach ($estimates as $e): ?>
       <tr>

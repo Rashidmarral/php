@@ -1,22 +1,22 @@
 <?php use App\Core\View; ?>
 <div class="page-head">
-  <h1>Business Reports</h1>
+  <h1><?= t('user.reports.title') ?></h1>
 </div>
 
 <div class="tabs">
-  <a href="/app/reports">Performance</a>
-  <a href="/app/reports/profit" class="active">Profit Tracker</a>
-  <a href="/app/reports/tax">Tax Summary</a>
-  <a href="/app/reports/retention">Retention Ledger</a>
+  <a href="/app/reports"><?= t('user.reports.tab_performance') ?></a>
+  <a href="/app/reports/profit" class="active"><?= t('user.reports.tab_profit') ?></a>
+  <a href="/app/reports/tax"><?= t('user.reports.tab_tax') ?></a>
+  <a href="/app/reports/retention"><?= t('user.reports.tab_retention') ?></a>
 </div>
 
-<p class="help-text" style="margin-bottom:16px;">Profit is calculated as payments collected minus project budget — a simplified view based on budget vs. revenue, since detailed expense tracking isn't captured per project yet.</p>
+<p class="help-text" style="margin-bottom:16px;"><?= t('user.reports.profit_hint') ?></p>
 
 <?php if (empty($rows)): ?>
-  <div class="card empty-state"><div class="icon">📈</div><h3>No projects yet</h3></div>
+  <div class="card empty-state"><div class="icon">📈</div><h3><?= t('user.reports.no_projects_title') ?></h3></div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th>Project</th><th>Budget</th><th>Invoiced</th><th>Paid</th><th>Profit</th><th>Margin</th></tr></thead>
+    <thead><tr><th><?= t('common.project') ?></th><th><?= t('common.amount') ?></th><th><?= t('user.reports.invoiced_col') ?></th><th><?= t('user.reports.paid_col') ?></th><th><?= t('user.reports.profit_col') ?></th><th><?= t('common.margin') ?></th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): ?>
       <tr>

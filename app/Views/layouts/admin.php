@@ -22,24 +22,24 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
     <div class="brand"><span class="mark" style="background:#fff;color:#151f1e">BX</span> Platform Admin</div>
     <nav>
       <a href="/admin" class="<?= $path === '/admin' ? 'active' : '' ?>">📊 <?= t('aside.dashboard') ?></a>
-      <a href="/admin/reports" class="<?= $isActive('/admin/reports') ?>">📈 Reports</a>
+      <a href="/admin/reports" class="<?= $isActive('/admin/reports') ?>">📈 <?= t('aside.reports') ?></a>
       <a href="/admin/companies" class="<?= $isActive('/admin/companies') ?>">🏢 <?= t('aside.companies') ?></a>
       <a href="/admin/plans" class="<?= $isActive('/admin/plans') ?>">📦 <?= t('aside.plans') ?></a>
       <a href="/admin/payments" class="<?= $isActive('/admin/payments') ?>">💵 <?= t('aside.payments') ?></a>
-      <a href="/admin/integrations" class="<?= $isActive('/admin/integrations') ?>">🔌 Integrations</a>
+      <a href="/admin/integrations" class="<?= $isActive('/admin/integrations') ?>">🔌 <?= t('aside.integrations') ?></a>
       <a href="/admin/quick-estimate" class="<?= $isActive('/admin/quick-estimate') ?>">🧮 <?= t('aside.quick_estimate') ?></a>
-      <a href="/admin/estimate-templates" class="<?= $isActive('/admin/estimate-templates') ?>">📐 Estimate Templates</a>
-      <div class="nav-section">Website</div>
-      <a href="/admin/pages" class="<?= $isActive('/admin/pages') ?>">📄 Pages</a>
-      <a href="/admin/settings/header" class="<?= $isActive('/admin/settings/header') ?>">🖼️ Header &amp; Footer</a>
-      <a href="/admin/translations" class="<?= $isActive('/admin/translations') ?>">🌐 Translations</a>
-      <div class="nav-section">Platform</div>
-      <a href="/admin/usage" class="<?= $isActive('/admin/usage') ?>">📊 Usage</a>
-      <a href="/admin/consultations" class="<?= $isActive('/admin/consultations') ?>">🎓 Consultations</a>
-      <a href="/admin/audit-log" class="<?= $isActive('/admin/audit-log') ?>">🧾 Audit Log</a>
+      <a href="/admin/estimate-templates" class="<?= $isActive('/admin/estimate-templates') ?>">📐 <?= t('aside.estimate_templates') ?></a>
+      <div class="nav-section"><?= t('aside.section_website') ?></div>
+      <a href="/admin/pages" class="<?= $isActive('/admin/pages') ?>">📄 <?= t('aside.pages') ?></a>
+      <a href="/admin/settings/header" class="<?= $isActive('/admin/settings/header') ?>">🖼️ <?= t('aside.header_footer') ?></a>
+      <a href="/admin/translations" class="<?= $isActive('/admin/translations') ?>">🌐 <?= t('aside.translations') ?></a>
+      <div class="nav-section"><?= t('aside.section_platform') ?></div>
+      <a href="/admin/usage" class="<?= $isActive('/admin/usage') ?>">📊 <?= t('aside.usage') ?></a>
+      <a href="/admin/consultations" class="<?= $isActive('/admin/consultations') ?>">🎓 <?= t('aside.consultations') ?></a>
+      <a href="/admin/audit-log" class="<?= $isActive('/admin/audit-log') ?>">🧾 <?= t('aside.audit_log') ?></a>
       <a href="/admin/admins" class="<?= $isActive('/admin/admins') ?>">🛡️ <?= t('aside.admins') ?></a>
       <a href="/admin/settings" class="<?= $isActive('/admin/settings') ?>">⚙️ <?= t('aside.settings') ?></a>
-      <a href="/admin/profile" class="<?= $isActive('/admin/profile') ?>">👤 My Profile</a>
+      <a href="/admin/profile" class="<?= $isActive('/admin/profile') ?>">👤 <?= t('aside.my_profile') ?></a>
     </nav>
     <div class="foot">
       <a href="/" style="color:#a9c4bd">← <?= t('side.back_site') ?></a>
@@ -47,7 +47,7 @@ $otherLangLabel = Lang::locale() === 'ar' ? 'EN' : 'AR';
   </aside>
   <div class="main">
     <div class="topbar">
-      <div class="who"><a href="/admin/profile" style="color:inherit;text-decoration:none;"><?= \App\Core\View::e($user['name'] ?? '') ?></a> · <span class="badge badge-gray">Super Admin</span></div>
+      <div class="who"><a href="/admin/profile" style="color:inherit;text-decoration:none;"><?= \App\Core\View::e($user['name'] ?? '') ?></a> · <span class="badge badge-gray"><?= t('aside.super_admin_badge') ?></span></div>
       <div class="header-actions">
         <a class="lang-switch" href="?lang=<?= $otherLang ?>"><?= $otherLangLabel ?></a>
         <form method="post" action="/logout" style="margin:0">

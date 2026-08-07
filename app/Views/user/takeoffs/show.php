@@ -3,17 +3,17 @@
   <div>
     <h1><?= View::e($takeoff['name']) ?></h1>
     <p class="help-text" style="margin-top:4px;" id="scale-status">
-      <?= $takeoff['plan_image_path'] ? 'Calibrating scale…' : 'No plan image uploaded — measurements will use pixel coordinates only.' ?>
+      <?= $takeoff['plan_image_path'] ? t('user.takeoffs.calibrating_scale') : t('user.takeoffs.no_plan_image') ?>
     </p>
   </div>
   <div style="display:flex;gap:8px;">
-    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/convert" onsubmit="return confirm('Convert all measurements into a new draft estimate?');">
+    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/convert" onsubmit="return confirm('<?= t('user.takeoffs.convert_confirm') ?>');">
       <?= Csrf::field() ?>
-      <button type="submit" class="btn btn-outline">📄 Convert to Estimate</button>
+      <button type="submit" class="btn btn-outline"><?= t('user.takeoffs.convert_to_estimate') ?></button>
     </form>
-    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/delete" onsubmit="return confirm('Delete this takeoff?');">
+    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/delete" onsubmit="return confirm('<?= t('user.takeoffs.delete_confirm') ?>');">
       <?= Csrf::field() ?>
-      <button type="submit" class="btn btn-danger">Delete</button>
+      <button type="submit" class="btn btn-danger"><?= t('common.delete') ?></button>
     </form>
   </div>
 </div>
@@ -24,48 +24,48 @@
       <canvas id="takeoff-canvas" style="max-width:100%;border:1px solid var(--border);cursor:crosshair;"></canvas>
       <img id="plan-image" src="<?= View::e($takeoff['plan_image_path']) ?>" style="display:none;">
     <?php else: ?>
-      <div class="empty-state"><div class="icon">🖼️</div><p>No plan image was uploaded for this takeoff.</p></div>
+      <div class="empty-state"><div class="icon">🖼️</div><p><?= t('user.takeoffs.no_plan_uploaded') ?></p></div>
     <?php endif; ?>
   </div>
 
   <div>
     <div class="card" style="margin-bottom:16px;">
-      <h3 style="font-size:14px;">Tools</h3>
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.tools') ?></h3>
       <div class="toolbar" style="margin-bottom:8px;">
-        <button type="button" class="btn btn-sm btn-outline" id="tool-calibrate">📏 Calibrate Scale</button>
+        <button type="button" class="btn btn-sm btn-outline" id="tool-calibrate"><?= t('user.takeoffs.calibrate_scale') ?></button>
       </div>
       <div class="toolbar">
-        <button type="button" class="btn btn-sm btn-light" data-tool="length">📐 Length</button>
-        <button type="button" class="btn btn-sm btn-light" data-tool="area">◻ Area</button>
-        <button type="button" class="btn btn-sm btn-light" data-tool="count">📍 Count</button>
+        <button type="button" class="btn btn-sm btn-light" data-tool="length"><?= t('user.takeoffs.length_tool') ?></button>
+        <button type="button" class="btn btn-sm btn-light" data-tool="area"><?= t('user.takeoffs.area_tool') ?></button>
+        <button type="button" class="btn btn-sm btn-light" data-tool="count"><?= t('user.takeoffs.count_tool') ?></button>
       </div>
-      <p class="help-text" id="tool-hint">Click points on the plan, then press Finish.</p>
+      <p class="help-text" id="tool-hint"><?= t('user.takeoffs.click_finish_hint') ?></p>
       <div class="toolbar">
-        <button type="button" class="btn btn-sm btn-primary" id="btn-finish" style="display:none;">Finish</button>
-        <button type="button" class="btn btn-sm btn-light" id="btn-cancel" style="display:none;">Cancel</button>
+        <button type="button" class="btn btn-sm btn-primary" id="btn-finish" style="display:none;"><?= t('user.takeoffs.finish') ?></button>
+        <button type="button" class="btn btn-sm btn-light" id="btn-cancel" style="display:none;"><?= t('common.cancel') ?></button>
       </div>
     </div>
 
     <div class="card" id="pending-panel" style="display:none;margin-bottom:16px;">
-      <h3 style="font-size:14px;">Save measurement</h3>
-      <p class="help-text">Value: <strong id="pending-value"></strong></p>
-      <div class="form-group"><label>Label</label><input type="text" id="pending-label" placeholder="e.g. North wall"></div>
-      <div class="form-group"><label>Cost per unit (SAR)</label><input type="number" step="0.01" id="pending-cost" value="0"></div>
-      <button type="button" class="btn btn-sm btn-outline" id="open-library-picker" style="margin-bottom:10px;">📚 Pick cost from library</button>
-      <button type="button" class="btn btn-primary btn-sm" id="btn-save-measurement">Save</button>
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.save_measurement') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.value_label') ?> <strong id="pending-value"></strong></p>
+      <div class="form-group"><label><?= t('user.takeoffs.label_field') ?></label><input type="text" id="pending-label" placeholder="e.g. North wall"></div>
+      <div class="form-group"><label><?= t('user.takeoffs.cost_per_unit') ?></label><input type="number" step="0.01" id="pending-cost" value="0"></div>
+      <button type="button" class="btn btn-sm btn-outline" id="open-library-picker" style="margin-bottom:10px;"><?= t('user.takeoffs.pick_cost_library') ?></button>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-save-measurement"><?= t('common.save') ?></button>
     </div>
 
     <div id="calibrate-panel" style="display:none;margin-bottom:16px;" class="card">
-      <h3 style="font-size:14px;">Set scale</h3>
-      <p class="help-text">Enter the real-world length of the line you just drew.</p>
-      <div class="form-group"><label>Real length (meters)</label><input type="number" step="0.01" id="calibrate-length" value="1"></div>
-      <button type="button" class="btn btn-primary btn-sm" id="btn-save-calibration">Save scale</button>
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.set_scale') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.set_scale_hint') ?></p>
+      <div class="form-group"><label><?= t('user.takeoffs.real_length') ?></label><input type="number" step="0.01" id="calibrate-length" value="1"></div>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-save-calibration"><?= t('user.takeoffs.save_scale') ?></button>
     </div>
 
     <div class="card">
-      <h3 style="font-size:14px;">Measurements</h3>
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.measurements') ?></h3>
       <?php if (empty($measurements)): ?>
-        <p class="help-text">No measurements yet.</p>
+        <p class="help-text"><?= t('user.takeoffs.no_measurements_yet') ?></p>
       <?php else: ?>
         <div class="card-list">
           <?php foreach ($measurements as $m): ?>
@@ -74,7 +74,7 @@
                 <div style="font-size:13px;font-weight:600;"><?= View::e($m['label']) ?></div>
                 <div class="help-text"><bdi><?= View::e(number_format((float)$m['value'],2)) ?> <?= View::e($m['unit']) ?></bdi> · <?= View::money((float)$m['total_cost']) ?></div>
               </div>
-              <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/measurements/<?= $m['id'] ?>/delete" onsubmit="return confirm('Remove this measurement?');">
+              <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/measurements/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.takeoffs.remove_measurement_confirm') ?>');">
                 <?= Csrf::field() ?>
                 <button type="submit" class="btn btn-sm btn-light">✕</button>
               </form>
