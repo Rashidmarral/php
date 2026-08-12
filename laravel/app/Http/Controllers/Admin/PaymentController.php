@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Support\Billing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -81,7 +82,7 @@ class PaymentController extends Controller
         }
         $cycle = $request->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 
-        $this->activatePlan($payment->company_id, $plan, $cycle);
+        Billing::activatePlan($payment->company_id, $plan, $cycle);
 
         $payment->update([
             'plan_id' => $plan->id,
@@ -101,7 +102,7 @@ class PaymentController extends Controller
 
         $plan = $payment->plan_id ? Plan::find($payment->plan_id) : null;
         if ($plan) {
-            $this->activatePlan($payment->company_id, $plan, $payment->billing_cycle ?: 'monthly');
+            Billing::activatePlan($payment->company_id, $plan, $payment->billing_cycle ?: 'monthly');
         }
 
         $payment->update([
@@ -151,20 +152,6 @@ class PaymentController extends Controller
         return response($body, 200, [
             'Content-Type' => 'text/csv; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="payments-' . now()->format('Y-m-d') . '.csv"',
-        ]);
-    }
-
-    /** Mirrors App\Http\Controllers\Admin\CompanyController::activatePlan / the user-panel BillingController::activatePlan. */
-    private function activatePlan(int $companyId, Plan $plan, string $cycle): void
-    {
-        \App\Models\Company::whereKey($companyId)->update(['plan_id' => $plan->id, 'status' => 'active']);
-
-        \App\Models\Subscription::create([
-            'company_id' => $companyId,
-            'plan_id' => $plan->id,
-            'billing_cycle' => $cycle,
-            'status' => 'active',
-            'current_period_end' => now()->add($cycle === 'yearly' ? '1 year' : '30 days'),
         ]);
     }
 }

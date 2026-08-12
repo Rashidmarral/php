@@ -8,8 +8,8 @@ use App\Models\Company;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Project;
-use App\Models\Subscription;
 use App\Models\User;
+use App\Support\Billing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -135,25 +135,10 @@ class CompanyController extends Controller
         }
         $cycle = $request->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 
-        $this->activatePlan($company->id, $plan, $cycle);
+        Billing::activatePlan($company->id, $plan, $cycle);
         AuditLog::record($request->user(), 'company_plan_override', 'company', $company->id, "{$company->name} → {$plan->name}");
 
         return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', "Plan changed to {$plan->name} (admin override, no charge recorded).");
-    }
-
-    /** Mirrors App\Http\Controllers\App\BillingController::activatePlan (ported alongside it in the user-panel phase). */
-    private function activatePlan(int $companyId, Plan $plan, string $cycle, ?string $cardToken = null): void
-    {
-        Company::whereKey($companyId)->update(['plan_id' => $plan->id, 'status' => 'active']);
-
-        Subscription::create([
-            'company_id' => $companyId,
-            'plan_id' => $plan->id,
-            'billing_cycle' => $cycle,
-            'status' => 'active',
-            'current_period_end' => now()->add($cycle === 'yearly' ? '1 year' : '30 days'),
-            'moyasar_card_token' => $cardToken,
-        ]);
     }
 
     /** Log the admin in as this company's owner, for support/debugging. Ends via /app/end-impersonation. */

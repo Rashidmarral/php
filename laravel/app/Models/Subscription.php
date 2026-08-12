@@ -14,7 +14,7 @@ class Subscription extends Model
 
     protected function casts(): array
     {
-        return ['current_period_end' => 'datetime'];
+        return ['current_period_end' => 'date:Y-m-d'];
     }
 
     public function company(): BelongsTo

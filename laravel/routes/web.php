@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\UsageController;
+use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\DashboardController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\App\InvoiceController;
 use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\ScheduleController;
+use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -115,8 +117,18 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/team/{id}/role', [TeamController::class, 'updateRole']);
     Route::post('/team/{id}/delete', [TeamController::class, 'destroy']);
 
-    // Billing, business setup, leads, quick estimate, reports, takeoffs, consultations,
-    // integrations, materials, suppliers, documents, settings — ported module-by-module
+    Route::get('/billing', [BillingController::class, 'index']);
+    Route::post('/billing/upgrade', [BillingController::class, 'upgrade']);
+    Route::get('/billing/checkout', [BillingController::class, 'checkout']);
+    Route::post('/billing/bank-transfer', [BillingController::class, 'requestBankTransfer']);
+    Route::get('/billing/moyasar-callback', [BillingController::class, 'moyasarCallback']);
+
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::post('/settings', [SettingsController::class, 'update']);
+    Route::post('/settings/password', [SettingsController::class, 'updatePassword']);
+
+    // Business setup, leads, quick estimate, reports, takeoffs, consultations,
+    // integrations, materials, suppliers, documents — ported module-by-module
     // in the rest of this phase.
 });
 
