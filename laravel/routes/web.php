@@ -22,6 +22,8 @@ use App\Http\Controllers\App\BusinessSetupController;
 use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\ComplianceController;
+use App\Http\Controllers\App\LeadController;
+use App\Http\Controllers\App\MaterialController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\App\InvoiceController;
@@ -29,6 +31,7 @@ use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\ScheduleController;
 use App\Http\Controllers\App\SettingsController;
+use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -149,9 +152,33 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/business-setup/{type}/{id}', [BusinessSetupController::class, 'updateSimple']);
     Route::post('/business-setup/{type}/{id}/delete', [BusinessSetupController::class, 'destroySimple']);
 
-    // Leads, quick estimate, reports, takeoffs, consultations, integrations,
-    // materials, suppliers, documents — ported module-by-module in the rest
-    // of this phase.
+    Route::get('/leads', [LeadController::class, 'index']);
+    Route::get('/leads/create', [LeadController::class, 'create']);
+    Route::post('/leads', [LeadController::class, 'store']);
+    Route::get('/leads/{id}/edit', [LeadController::class, 'edit']);
+    Route::post('/leads/{id}', [LeadController::class, 'update']);
+    Route::post('/leads/{id}/status', [LeadController::class, 'updateStatus']);
+    Route::post('/leads/{id}/convert', [LeadController::class, 'convertToClient']);
+    Route::post('/leads/{id}/delete', [LeadController::class, 'destroy']);
+
+    Route::get('/suppliers', [SupplierController::class, 'index']);
+    Route::get('/suppliers/create', [SupplierController::class, 'create']);
+    Route::post('/suppliers', [SupplierController::class, 'store']);
+    Route::get('/suppliers/{id}/edit', [SupplierController::class, 'edit']);
+    Route::post('/suppliers/{id}', [SupplierController::class, 'update']);
+    Route::post('/suppliers/{id}/delete', [SupplierController::class, 'destroy']);
+
+    Route::get('/materials', [MaterialController::class, 'index']);
+    Route::get('/materials/create', [MaterialController::class, 'create']);
+    Route::post('/materials', [MaterialController::class, 'store']);
+    Route::post('/materials/import', [MaterialController::class, 'importCsv']);
+    Route::post('/materials/sync-sheet', [MaterialController::class, 'syncFromSheet']);
+    Route::get('/materials/{id}/edit', [MaterialController::class, 'edit']);
+    Route::post('/materials/{id}', [MaterialController::class, 'update']);
+    Route::post('/materials/{id}/delete', [MaterialController::class, 'destroy']);
+
+    // Quick estimate, reports, takeoffs, consultations, integrations, documents
+    // — ported module-by-module in the rest of this phase.
 });
 
 /*

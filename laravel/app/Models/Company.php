@@ -17,7 +17,7 @@ class Company extends Model
     {
         return [
             'trial_ends_at' => 'datetime',
-            'price_sync_last_at' => 'datetime',
+            'price_sync_last_at' => 'datetime:Y-m-d H:i:s',
             'trial_reminder_sent_at' => 'datetime',
             'client_portal_enabled' => 'boolean',
             'moyasar_enabled' => 'boolean',
