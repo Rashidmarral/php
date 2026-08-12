@@ -62,14 +62,51 @@ original) — those two mutating actions currently flash "lands in a later phase
 alongside the rest of ZATCA Phase 2 in the business-logic phase. The read-only status view and
 the plain environment toggle work today.
 
+## Phase 3 — User (company) panel (done)
+
+Every `/app` screen from the original app, fully ported and verified against real MySQL:
+dashboard (trial banner, KPIs, expiring-documents alert), projects (change orders, site-diary
+photos), clients (portal access), estimates (blank/template-gallery/template-configured
+creation, status workflow, client share link), invoices (VAT, retention withholding, WhatsApp
+notification), schedule, team (invite with temp password + optional SMTP email), billing (plan
+checkout, bank transfer with receipt upload, Moyasar card scaffold), company settings (profile,
+logo, legal documents, ZATCA address, self-service password change), business setup (lookup
+tables + units of measure + tax rates), compliance documents (expiry tracking), leads CRM
+(status pipeline, lead-to-client conversion), suppliers, materials (CSV import + Google Sheets
+price sync), documents, integrations (Google Sheets link, per-company Moyasar keys), live
+expert consultations (monthly quota), quick estimate (in-app calculator + saved quotes),
+business reports (performance/profit/tax/retention), digital takeoff (canvas measurement tool),
+and admin impersonation hand-back.
+
+Three self-contained integrations were fully ported rather than stubbed, since none need
+external API credentials to build correctly: `WhatsApp` (wa.me deep links + the Cloud API
+call), `Mailer` (the raw-socket SMTP client), and `Moyasar` (the REST client for verifying
+payments and charging saved cards — only the platform/company *credentials* to actually use it
+are still unconfigured in a fresh install). `Billing::activatePlan()` was extracted into
+`App\Support\Billing` and now backs both the user-panel checkout flow and the two admin
+override paths that duplicated it in Phase 2.
+
+Two systemic bugs were caught by testing every module end-to-end and fixed at the root rather
+than per-screen: date-only columns were serializing with a timestamp instead of a plain date,
+silently blanking `<input type="date">` fields on every edit (fixed via explicit `date:Y-m-d`
+casts); and flash messages were never cleared from the session, so they piled up and
+re-displayed on every page load forever (fixed in both layouts). A new `App\Models\Model` base
+class now gives every model a consistent `Y-m-d H:i:s` timestamp format by default, matching
+the original app's raw MySQL strings, so this class of bug shouldn't recur module-by-module.
+
+**Known deferred pieces**, consistent with the ZATCA precedent above — each flashes "lands in a
+later phase" and redirects cleanly rather than 404ing or crashing: PDF export (estimates,
+invoices, quick estimates — needs the dompdf multi-template engine), ZATCA UBL/XML export and
+Phase 2 submission (needs the crypto/API client), and the AI estimate generator (needs an LLM
+integration).
+
 ## Not yet ported (later phases)
 
-- User panel controllers/views (projects, clients, estimates, invoices, billing, business
-  setup, schedule, team, leads, quick estimate, reports, takeoffs, consultations,
-  integrations, materials, suppliers, documents, settings) and the client portal.
+- The client portal (separate `client` guard) and the public marketing site.
 - Business logic: multi-template PDF generation, ZATCA Phase 1 QR + Phase 2 XML/UBL signing
-  (crypto/API client), Moyasar payment gateway, WhatsApp integration, the AI estimate
-  generator, subscription renewal cron, transactional emails, and the public marketing site.
+  (crypto/API client), the AI estimate generator, subscription renewal cron, and transactional
+  email triggers (the underlying `Mailer`/`WhatsApp` clients are already ported — this is about
+  wiring them into the actual invoice/estimate/team-invite lifecycle events).
 
 ## Local setup
 
