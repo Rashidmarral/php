@@ -57,8 +57,8 @@ try {
     <nav class="nav-links">
       <a href="{{ url('/features') }}">{{ t('nav.features') }}</a>
       <a href="{{ url('/pricing') }}">{{ t('nav.pricing') }}</a>
-      <a href="{{ url('/quick-estimate') }}">{{ t('nav.quick_estimate') }}</a>
       <a href="{{ url('/about') }}">{{ t('nav.about') }}</a>
+      <a href="{{ url('/support') }}">{{ t('nav.support') }}</a>
       <a href="{{ url('/contact') }}">{{ t('nav.contact') }}</a>
       @foreach ($navPages as $np)
         <a href="{{ url('/p/' . $np->slug) }}">{{ $isAr ? ($np->nav_label_ar ?: $np->title_ar) : ($np->nav_label_en ?: $np->title_en) }}</a>
@@ -109,6 +109,7 @@ try {
         <ul>
           <li><a href="{{ url('/about') }}">{{ t('nav.about') }}</a></li>
           <li><a href="{{ url('/contact') }}">{{ t('nav.contact') }}</a></li>
+          <li><a href="{{ url('/support') }}">{{ t('nav.support') }}</a></li>
           @foreach ($footerPages as $fp)
             <li><a href="{{ url('/p/' . $fp->slug) }}">{{ $isAr ? ($fp->nav_label_ar ?: $fp->title_ar) : ($fp->nav_label_en ?: $fp->title_en) }}</a></li>
           @endforeach
@@ -119,6 +120,7 @@ try {
         <ul>
           <li><a href="{{ url('/privacy') }}">{{ t('footer.privacy') }}</a></li>
           <li><a href="{{ url('/terms') }}">{{ t('footer.terms') }}</a></li>
+          <li><a href="{{ url('/security') }}">{{ t('nav.security') }}</a></li>
         </ul>
       </div>
     </div>

@@ -13,6 +13,10 @@
 <header class="site-header">
   <div class="container">
     <a href="{{ url('/portal') }}" class="logo"><span class="mark">BX</span> {{ $company->name ?? 'Client Portal' }}</a>
+    <nav class="nav-links">
+      <a href="{{ url('/portal') }}">Dashboard</a>
+      <a href="{{ url('/portal/support') }}">Support</a>
+    </nav>
     <div class="header-actions">
       <a class="lang-switch" href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'EN' : 'AR' }}</a>
       <span class="help-text">{{ $client->name ?? '' }}</span>

@@ -32,6 +32,7 @@ class Feature
         'ai_estimate_generator' => 'AI Estimate Generator',
         'estimate_templates' => 'Estimate Template Library',
         'online_invoice_payments' => 'Client Online Invoice Payments (Moyasar)',
+        'priority_support' => 'Priority Support (faster ticket response)',
     ];
 
     private static ?Plan $cachedPlan = null;

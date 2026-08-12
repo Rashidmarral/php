@@ -75,6 +75,42 @@
     <p style="text-align:center;color:var(--muted);margin-top:36px;font-size:13.5px;">
       All plans include a 14-day free trial. Prices exclude 15% Saudi VAT. Need a custom plan for a large enterprise? <a href="{{ url('/contact') }}">Talk to sales</a>.
     </p>
+
+    <div class="section-head" style="margin-top:56px;">
+      <div class="eyebrow">{{ t('pricing.compare_eyebrow') }}</div>
+      <h2>{{ t('pricing.compare_title') }}</h2>
+    </div>
+    <div class="compare-table-wrap">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>{{ t('pricing.compare_feature') }}</th>
+            @foreach ($plans as $plan)
+              <th>{{ (app()->getLocale() === 'ar' && !empty($plan['name_ar'])) ? $plan['name_ar'] : $plan['name'] }}</th>
+            @endforeach
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ t('pricing.users') }}</td>
+            @foreach ($plans as $plan)<td>{{ $plan['max_users'] >= 999 ? '∞' : $plan['max_users'] }}</td>@endforeach
+          </tr>
+          <tr>
+            <td>{{ t('pricing.projects') }}</td>
+            @foreach ($plans as $plan)<td>{{ $plan['max_projects'] >= 999 ? '∞' : $plan['max_projects'] }}</td>@endforeach
+          </tr>
+          @foreach ($allFeatures as $key => $label)
+            <tr>
+              <td>{{ $label }}</td>
+              @foreach ($plans as $plan)
+                @php($flags = json_decode($plan['feature_flags'], true) ?: [])
+                <td>@if(!empty($flags[$key]))<span class="yes">✓</span>@else<span class="no">—</span>@endif</td>
+              @endforeach
+            </tr>
+          @endforeach
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 @endsection

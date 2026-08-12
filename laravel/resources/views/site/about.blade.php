@@ -75,13 +75,36 @@
   </div>
 </section>
 
+@if($certificates->isNotEmpty())
+<section class="section" style="background:#fff;border-top:1px solid var(--border);">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">{{ t('about.certs.eyebrow') }}</div>
+      <h2>{{ t('about.certs.title') }}</h2>
+      <p style="color:var(--muted)">{{ t('about.certs.subtitle') }}</p>
+    </div>
+    <div class="grid grid-4 reveal-stagger" style="align-items:stretch;">
+      @foreach ($certificates as $cert)
+        <div class="card feature-card reveal" style="text-align:center;">
+          <img src="{{ $cert->image_path }}" alt="{{ app()->getLocale() === 'ar' && $cert->title_ar ? $cert->title_ar : $cert->title_en }}" style="max-height:64px;max-width:100%;object-fit:contain;margin:0 auto 12px;">
+          <h3 style="font-size:14.5px;">{{ app()->getLocale() === 'ar' && $cert->title_ar ? $cert->title_ar : $cert->title_en }}</h3>
+          @if($cert->issuer_en)
+            <p style="font-size:12.5px;">{{ app()->getLocale() === 'ar' && $cert->issuer_ar ? $cert->issuer_ar : $cert->issuer_en }}</p>
+          @endif
+        </div>
+      @endforeach
+    </div>
+  </div>
+</section>
+@endif
+
 <section class="section" style="border-top:1px solid var(--border);">
   <div class="container reveal-section reveal" style="text-align:center;">
     <h2>{{ t('about.cta.title') }}</h2>
     <p style="color:var(--muted)">{{ t('about.cta.subtitle') }}</p>
     <div class="hero-actions" style="justify-content:center;margin-top:16px;">
       <a href="{{ url('/register') }}" class="btn btn-primary">{{ t('hero.cta_primary') }}</a>
-      <a href="{{ url('/quick-estimate') }}" class="btn btn-outline">{{ t('nav.quick_estimate') }}</a>
+      <a href="{{ url('/support') }}" class="btn btn-outline">{{ t('nav.support') }}</a>
     </div>
   </div>
 </section>

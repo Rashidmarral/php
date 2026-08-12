@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
+use App\Models\Certificate;
 use App\Models\Plan;
+use App\Support\Feature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -22,12 +24,25 @@ class HomeController extends Controller
     public function pricing(): View
     {
         $plans = Plan::where('is_active', true)->orderBy('sort_order')->get();
-        return view('site.pricing', ['pageTitle' => 'Pricing', 'plans' => $plans]);
+        return view('site.pricing', ['pageTitle' => 'Pricing', 'plans' => $plans, 'allFeatures' => Feature::ALL]);
     }
 
     public function about(): View
     {
-        return view('site.about', ['pageTitle' => 'About Us']);
+        return view('site.about', [
+            'pageTitle' => 'About Us',
+            'certificates' => Certificate::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
+        ]);
+    }
+
+    public function support(): View
+    {
+        return view('site.support', ['pageTitle' => 'Help Center']);
+    }
+
+    public function security(): View
+    {
+        return view('site.security', ['pageTitle' => 'Security & Compliance']);
     }
 
     public function contact(): View

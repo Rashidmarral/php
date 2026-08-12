@@ -1312,5 +1312,38 @@
     "user.takeoffs.save_scale": "Save scale",
     "user.takeoffs.measurements": "Measurements",
     "user.takeoffs.no_measurements_yet": "No measurements yet.",
-    "user.takeoffs.remove_measurement_confirm": "Remove this measurement?"
+    "user.takeoffs.remove_measurement_confirm": "Remove this measurement?",
+
+    "nav.support": "Support",
+    "nav.security": "Security",
+    "side.support": "Support",
+    "aside.support": "Support Tickets",
+    "aside.certificates": "Certificates",
+
+    "pricing.compare_eyebrow": "Compare plans",
+    "pricing.compare_title": "See exactly what's included",
+    "pricing.compare_feature": "Feature",
+
+    "about.certs.eyebrow": "Trust & credentials",
+    "about.certs.title": "Certified and compliant",
+    "about.certs.subtitle": "Registered and recognized by the authorities that matter to Saudi contractors.",
+
+    "user.support.title": "Support",
+    "user.support.new_ticket": "New ticket",
+    "user.support.priority_badge": "Your plan includes priority support — expect a faster response.",
+    "user.support.tab_mine": "My tickets to BuildXact",
+    "user.support.tab_clients": "Tickets from my clients",
+    "user.support.subject": "Subject",
+    "user.support.last_activity": "Last activity",
+    "user.support.none_mine": "You haven't opened any support tickets yet.",
+    "user.support.none_clients": "None of your clients have raised a support request yet.",
+    "user.support.category": "Category",
+    "user.support.priority": "Priority",
+    "user.support.message": "Message",
+    "user.support.message_hint": "Describe the issue in as much detail as possible.",
+    "user.support.attachment": "Attach a screenshot or file (optional)",
+    "user.support.submit": "Submit ticket",
+    "user.support.reply": "Reply",
+    "user.support.send_reply": "Send reply",
+    "user.support.ticket_details": "Ticket details"
 }

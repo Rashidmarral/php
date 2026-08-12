@@ -1312,5 +1312,38 @@
     "user.takeoffs.save_scale": "حفظ المقياس",
     "user.takeoffs.measurements": "القياسات",
     "user.takeoffs.no_measurements_yet": "لا توجد قياسات بعد.",
-    "user.takeoffs.remove_measurement_confirm": "هل تريد إزالة هذا القياس؟"
+    "user.takeoffs.remove_measurement_confirm": "هل تريد إزالة هذا القياس؟",
+
+    "nav.support": "الدعم",
+    "nav.security": "الأمان",
+    "side.support": "الدعم",
+    "aside.support": "تذاكر الدعم",
+    "aside.certificates": "الشهادات",
+
+    "pricing.compare_eyebrow": "قارن الباقات",
+    "pricing.compare_title": "تعرف بالتفصيل على ما تتضمنه كل باقة",
+    "pricing.compare_feature": "الميزة",
+
+    "about.certs.eyebrow": "الثقة والاعتماد",
+    "about.certs.title": "معتمدون ومتوافقون",
+    "about.certs.subtitle": "مسجّلون ومعترف بنا من الجهات التي تهم المقاولين السعوديين.",
+
+    "user.support.title": "الدعم",
+    "user.support.new_ticket": "تذكرة جديدة",
+    "user.support.priority_badge": "باقتك تتضمن دعمًا ذا أولوية — استجابة أسرع.",
+    "user.support.tab_mine": "تذاكري إلى BuildXact",
+    "user.support.tab_clients": "تذاكر من عملائي",
+    "user.support.subject": "الموضوع",
+    "user.support.last_activity": "آخر نشاط",
+    "user.support.none_mine": "لم تفتح أي تذكرة دعم بعد.",
+    "user.support.none_clients": "لم يقم أي من عملائك بفتح طلب دعم بعد.",
+    "user.support.category": "التصنيف",
+    "user.support.priority": "الأولوية",
+    "user.support.message": "الرسالة",
+    "user.support.message_hint": "صف المشكلة بأكبر قدر ممكن من التفاصيل.",
+    "user.support.attachment": "إرفاق صورة أو ملف (اختياري)",
+    "user.support.submit": "إرسال التذكرة",
+    "user.support.reply": "الرد",
+    "user.support.send_reply": "إرسال الرد",
+    "user.support.ticket_details": "تفاصيل التذكرة"
 }

@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminReportController;
 use App\Http\Controllers\Admin\AdminTranslationController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CompanyZatcaController;
 use App\Http\Controllers\Admin\ConsultationAdminController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
+use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
@@ -40,10 +42,12 @@ use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\ScheduleController;
 use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
+use App\Http\Controllers\App\SupportTicketController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalController;
+use App\Http\Controllers\Portal\SupportTicketController as PortalSupportTicketController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\QuickEstimateController as SiteQuickEstimateController;
@@ -66,6 +70,8 @@ Route::get('/contact', [HomeController::class, 'contact']);
 Route::post('/contact', [HomeController::class, 'contactSubmit']);
 Route::get('/privacy', [HomeController::class, 'privacy']);
 Route::get('/terms', [HomeController::class, 'terms']);
+Route::get('/support', [HomeController::class, 'support']);
+Route::get('/security', [HomeController::class, 'security']);
 Route::get('/p/{slug}', [PageController::class, 'show']);
 
 Route::get('/quick-estimate', [SiteQuickEstimateController::class, 'index']);
@@ -236,6 +242,13 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/consultations', [ConsultationController::class, 'store']);
     Route::post('/consultations/{id}/cancel', [ConsultationController::class, 'cancel']);
 
+    Route::get('/support', [SupportTicketController::class, 'index']);
+    Route::get('/support/new', [SupportTicketController::class, 'create']);
+    Route::post('/support', [SupportTicketController::class, 'store']);
+    Route::get('/support/{id}', [SupportTicketController::class, 'show']);
+    Route::post('/support/{id}/reply', [SupportTicketController::class, 'reply']);
+    Route::post('/support/{id}/status', [SupportTicketController::class, 'updateStatus']);
+
     Route::post('/end-impersonation', [ImpersonationController::class, 'stop']);
 
     Route::get('/reports', [ReportController::class, 'overview']);
@@ -307,6 +320,11 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 
     Route::get('/consultations', [ConsultationAdminController::class, 'index']);
 
+    Route::get('/support', [AdminSupportTicketController::class, 'index']);
+    Route::get('/support/{id}', [AdminSupportTicketController::class, 'show']);
+
+    Route::get('/certificates', [CertificateController::class, 'index']);
+
     Route::get('/companies', [CompanyController::class, 'index']);
     Route::get('/companies/export.csv', [CompanyController::class, 'exportCsv']);
     Route::get('/companies/{id}', [CompanyController::class, 'show']);
@@ -376,6 +394,13 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/settings/email', [SiteSettingsController::class, 'updateEmail']);
         Route::post('/settings/header', [SiteSettingsController::class, 'updateHeader']);
         Route::post('/settings/ai', [SiteSettingsController::class, 'updateAi']);
+
+        Route::post('/support/{id}/reply', [AdminSupportTicketController::class, 'reply']);
+        Route::post('/support/{id}/status', [AdminSupportTicketController::class, 'updateStatus']);
+
+        Route::post('/certificates', [CertificateController::class, 'store']);
+        Route::post('/certificates/{id}/toggle', [CertificateController::class, 'toggle']);
+        Route::post('/certificates/{id}/delete', [CertificateController::class, 'destroy']);
     });
 });
 
@@ -394,5 +419,11 @@ Route::prefix('portal')->group(function () {
         Route::get('/projects/{id}', [PortalController::class, 'project']);
         Route::get('/estimates/{id}', [PortalController::class, 'estimate']);
         Route::get('/invoices/{id}', [PortalController::class, 'invoice']);
+
+        Route::get('/support', [PortalSupportTicketController::class, 'index']);
+        Route::get('/support/new', [PortalSupportTicketController::class, 'create']);
+        Route::post('/support', [PortalSupportTicketController::class, 'store']);
+        Route::get('/support/{id}', [PortalSupportTicketController::class, 'show']);
+        Route::post('/support/{id}/reply', [PortalSupportTicketController::class, 'reply']);
     });
 });
