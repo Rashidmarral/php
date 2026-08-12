@@ -92,6 +92,66 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3>Budget vs. Actual</h3>
+  <p class="help-text" style="margin-top:-6px;">Real costs recorded against vendor bills, compared to the revised budget (original + approved change orders).</p>
+
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-top:12px;">
+    <div class="kpi"><div class="label">Revised budget</div><div class="value" style="font-size:20px;"><?= money($revisedBudget) ?></div></div>
+    <div class="kpi"><div class="label">Actual spent</div><div class="value" style="font-size:20px;"><?= money($actualCostTotal) ?></div></div>
+    <div class="kpi"><div class="label"><?= $budgetVariance >= 0 ? 'Remaining' : 'Over budget' ?></div><div class="value" style="font-size:20px;color:<?= $budgetVariance < 0 ? 'var(--danger)' : 'var(--brand-dark)' ?>;"><?= money(abs($budgetVariance)) ?></div></div>
+  </div>
+  <div style="background:var(--bg);border-radius:8px;height:10px;overflow:hidden;margin:14px 0 6px;">
+    <div style="background:<?= $budgetUsedPercent > 100 ? 'var(--danger)' : 'linear-gradient(90deg,var(--brand),var(--brand-dark))' ?>;height:100%;width:<?= min(100, $budgetUsedPercent) ?>%;"></div>
+  </div>
+  <p class="help-text"><?= $budgetUsedPercent ?>% of revised budget spent</p>
+
+  <?php if (!empty($vendorBills)): ?>
+    <table class="data" style="margin:16px 0;">
+      <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($vendorBills as $vb): ?>
+        <tr>
+          <td><?= e($vb['description']) ?><?php if ($vb['reference']): ?><br><span class="help-text"><?= e($vb['reference']) ?></span><?php endif; ?></td>
+          <td><span class="badge badge-gray"><?= e(ucfirst($vb['category'])) ?></span></td>
+          <td><?= e($vb['bill_date']) ?></td>
+          <td><?= money((float)$vb['amount']) ?></td>
+          <td><span class="badge badge-<?= $vb['status']==='paid'?'green':'yellow' ?>"><?= e(ucfirst($vb['status'])) ?></span></td>
+          <td>
+            <?php if ($vb['file_path']): ?><a href="<?= e($vb['file_path']) ?>" target="_blank" class="btn btn-sm btn-light">📎</a><?php endif; ?>
+            <form method="post" action="/app/vendor-bills/<?= $vb['id'] ?>/delete" onsubmit="return confirm('Remove this vendor bill?');" style="display:inline;">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-sm btn-danger">✕</button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/vendor-bills" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label>Description</label><input type="text" name="description" placeholder="e.g. Rebar delivery — invoice #4521" required></div>
+    <div class="form-group" style="margin:0;width:140px;"><label>Category</label>
+      <select name="category">
+        <?php foreach (\App\Models\VendorBill::CATEGORIES as $val => $label): ?><option value="<?= $val ?>"><?= $label ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:150px;"><label>Supplier</label>
+      <select name="supplier_id">
+        <option value="">—</option>
+        <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:130px;"><label>Amount (SAR)</label><input type="number" step="0.01" min="0.01" name="amount" required></div>
+    <div class="form-group" style="margin:0;width:150px;"><label>Bill date</label><input type="date" name="bill_date"></div>
+    <div class="form-group" style="margin:0;width:150px;"><label>Reference #</label><input type="text" name="reference" placeholder="Invoice / PO #"></div>
+    <div class="form-group" style="margin:0;min-width:180px;"><label>Receipt (optional)</label><input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png"></div>
+    <button type="submit" class="btn btn-outline">Add vendor bill</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.projects.site_photo_diary') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.site_photo_hint') ?></p>
 

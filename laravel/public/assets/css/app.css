@@ -318,6 +318,23 @@ html[dir="rtl"] .line-items th { text-align: right; }
 .total-row { text-align: right; font-size: 18px; font-weight: 800; color: var(--brand-dark); margin-top: 10px; }
 html[dir="rtl"] .total-row { text-align: left; }
 
+/* ---------- Gantt schedule ---------- */
+.gantt-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow-sm); }
+.gantt-grid { display: grid; align-items: stretch; }
+.gantt-head-label, .gantt-row-label { position: sticky; inset-inline-start: 0; background: #fff; z-index: 2; padding: 8px 14px; font-size: 12.5px; font-weight: 600; border-inline-end: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+.gantt-head-label { background: #fafcfb; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; z-index: 3; }
+.gantt-day { text-align: center; font-size: 10.5px; color: var(--muted); padding: 8px 2px; border-bottom: 1px solid var(--border); border-inline-end: 1px solid #f0f3f2; background: #fafcfb; }
+.gantt-day.weekend { background: #f3f6f5; }
+.gantt-day .dow { display: block; font-size: 9px; opacity: .7; }
+.gantt-project-row { grid-column: 1 / -1; background: var(--brand-light); color: var(--brand-dark); font-weight: 700; font-size: 12.5px; padding: 7px 14px; border-bottom: 1px solid var(--border); position: sticky; inset-inline-start: 0; }
+.gantt-task-cell { border-bottom: 1px solid var(--border); border-inline-end: 1px solid #f0f3f2; min-height: 38px; position: relative; }
+.gantt-bar { position: relative; margin: 6px 3px; height: 20px; border-radius: 5px; background: var(--muted); display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.gantt-bar.status-pending { background: linear-gradient(135deg, #98a5a3, #7f8b89); }
+.gantt-bar.status-in_progress { background: linear-gradient(135deg, var(--accent), #b5860a); color: #2b2200; }
+.gantt-bar.status-done { background: linear-gradient(135deg, var(--success), #14713f); }
+.gantt-today-line { grid-row: 1 / -1; border-inline-start: 2px solid var(--danger); position: relative; }
+.gantt-today-line::before { content: "Today"; position: absolute; top: -18px; inset-inline-start: -14px; font-size: 9px; color: var(--danger); font-weight: 700; white-space: nowrap; }
+
 .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
 .tabs a { padding: 10px 16px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; transition: color .15s ease, border-color .15s ease; }
 .tabs a:hover { color: var(--brand-dark); text-decoration: none; }

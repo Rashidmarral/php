@@ -10,6 +10,8 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
 use App\Models\ScheduleTask;
+use App\Models\Supplier;
+use App\Models\VendorBill;
 use App\Support\Feature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -89,6 +91,10 @@ class ProjectController extends Controller
         $changeOrders = ChangeOrder::where('project_id', $project->id)->orderByDesc('created_at')->get();
         $approvedTotal = $changeOrders->sum(fn ($co) => $co->status === 'approved' ? (float) $co->amount : 0);
         $photos = ProjectPhoto::where('project_id', $project->id)->orderByDesc('taken_on')->orderByDesc('created_at')->get();
+        $vendorBills = VendorBill::where('project_id', $project->id)->orderByDesc('bill_date')->orderByDesc('id')->get();
+        $suppliers = Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get();
+        $actualCostTotal = (float) $vendorBills->sum('amount');
+        $revisedBudget = (float) $project->budget + $approvedTotal;
 
         return view('app.projects.show', [
             'project' => $project->toArray(),
@@ -99,6 +105,12 @@ class ProjectController extends Controller
             'changeOrders' => $changeOrders->toArray(),
             'approvedChangeOrdersTotal' => $approvedTotal,
             'photos' => $photos->toArray(),
+            'vendorBills' => $vendorBills->toArray(),
+            'suppliers' => $suppliers->toArray(),
+            'actualCostTotal' => $actualCostTotal,
+            'revisedBudget' => $revisedBudget,
+            'budgetVariance' => $revisedBudget - $actualCostTotal,
+            'budgetUsedPercent' => $revisedBudget > 0 ? min(999, round($actualCostTotal / $revisedBudget * 100)) : 0,
         ]);
     }
 

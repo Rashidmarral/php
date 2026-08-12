@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    use HasApiTokens;
     /** Roles assignable to a company team member by the owner/admin. 'owner' is fixed to the account creator. */
     public const ASSIGNABLE_ROLES = [
         'admin' => 'Admin — full access except billing',

@@ -40,6 +40,51 @@
     <p><?= t('user.schedule.no_tasks_hint') ?></p>
   </div>
 <?php else: ?>
+  <div class="tabs">
+    <a href="#" class="view-tab active" data-view="gantt">📊 Gantt</a>
+    <a href="#" class="view-tab" data-view="list">📋 List</a>
+  </div>
+
+  <div id="view-gantt">
+    <?php
+      $dayWidth = 32;
+      $labelWidth = 220;
+      $dayCount = count($gantt['days']);
+      $today = now()->format('Y-m-d');
+    ?>
+    <div class="gantt-wrap">
+      <div class="gantt-grid" style="grid-template-columns:<?= $labelWidth ?>px repeat(<?= $dayCount ?>, <?= $dayWidth ?>px);grid-auto-rows:min-content;position:relative;min-width:<?= $labelWidth + $dayCount * $dayWidth ?>px;">
+        <div class="gantt-head-label"><?= t('user.dashboard.task_col') ?></div>
+        <?php foreach ($gantt['days'] as $d): ?>
+          <div class="gantt-day<?= in_array($d->dayOfWeek, [5,6], true) ? ' weekend' : '' ?>">
+            <span class="dow"><?= $d->format('D') ?></span><?= $d->format('j') ?>
+          </div>
+        <?php endforeach; ?>
+
+        <?php foreach ($gantt['byProject'] as $projectId => $group): ?>
+          <div class="gantt-project-row"><?= e(app()->getLocale() === 'ar' && !empty($group['project_name_ar']) ? $group['project_name_ar'] : $group['project_name']) ?></div>
+          <?php foreach ($group['tasks'] as $t): ?>
+            <div class="gantt-row-label" title="<?= e(local($t, 'title')) ?>"><?= e(local($t, 'title')) ?></div>
+            <?php
+              $hasDates = !empty($t['start_date']) && !empty($t['end_date']);
+              $startOffset = $hasDates ? $gantt['rangeStart']->diffInDays(\Carbon\Carbon::parse($t['start_date']), false) : 0;
+              $duration = $hasDates ? max(1, \Carbon\Carbon::parse($t['start_date'])->diffInDays(\Carbon\Carbon::parse($t['end_date'])) + 1) : $dayCount;
+            ?>
+            <div class="gantt-task-cell" style="grid-column: 2 / span <?= $dayCount ?>;">
+              <?php if ($hasDates && $startOffset >= 0 && $startOffset < $dayCount): ?>
+                <div class="gantt-bar status-<?= $t['status'] ?>" style="margin-inline-start:<?= $startOffset * $dayWidth + 3 ?>px;width:<?= min($duration * $dayWidth, ($dayCount - $startOffset) * $dayWidth) - 6 ?>px;" title="<?= e(local($t, 'title')) ?>: <?= e($t['start_date']) ?> → <?= e($t['end_date']) ?>">
+                  <?= e(local($t, 'title')) ?>
+                </div>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <p class="help-text" style="margin-top:8px;">Bar color: gray = pending, gold = in progress, green = done.</p>
+  </div>
+
+  <div id="view-list" style="display:none;">
   <table class="data">
     <thead><tr><th><?= t('user.dashboard.task_col') ?></th><th><?= t('common.project') ?></th><th><?= t('common.start') ?></th><th><?= t('user.projects.end_col') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
     <tbody>
@@ -69,6 +114,21 @@
     <?php endforeach; ?>
     </tbody>
   </table>
+  </div>
+
+  <script>
+  (function() {
+    document.querySelectorAll('.view-tab').forEach(function(tab) {
+      tab.addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelectorAll('.view-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById('view-gantt').style.display = tab.dataset.view === 'gantt' ? '' : 'none';
+        document.getElementById('view-list').style.display = tab.dataset.view === 'list' ? '' : 'none';
+      });
+    });
+  })();
+  </script>
 <?php endif; ?>
 
 @endsection

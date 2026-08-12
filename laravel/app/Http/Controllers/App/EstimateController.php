@@ -15,6 +15,7 @@ use App\Models\TaxRate;
 use App\Models\UnitOfMeasure;
 use App\Support\AiEstimateGenerator;
 use App\Support\EstimateCalc;
+use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -138,6 +139,7 @@ class EstimateController extends Controller
         foreach ($rows as $row) {
             EstimateItem::create(['estimate_id' => $estimate->id, ...$row]);
         }
+        WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
 
         $this->flash('success', 'Estimate created from "' . $template->name_en . '".');
         return redirect('/app/estimates/' . $estimate->id);
@@ -217,6 +219,7 @@ class EstimateController extends Controller
         foreach ($rows as $row) {
             EstimateItem::create(['estimate_id' => $estimate->id, ...$row]);
         }
+        WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
 
         if (!empty($result['note'])) {
             $this->flash('success', $result['note']);
@@ -324,6 +327,7 @@ class EstimateController extends Controller
         foreach ($items as $item) {
             EstimateItem::create(['estimate_id' => $estimate->id, ...$item]);
         }
+        WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
 
         $this->flash('success', 'Estimate created.');
         return redirect('/app/estimates/' . $estimate->id);

@@ -60,10 +60,26 @@ return new class extends Migration
             $table->unsignedBigInteger('assigned_to')->nullable();
             $table->timestamp('created_at')->nullable()->useCurrent();
         });
+
+        Schema::create('vendor_bills', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('company_id')->index();
+            $table->unsignedBigInteger('project_id')->index();
+            $table->unsignedBigInteger('supplier_id')->nullable();
+            $table->string('category', 20)->default('material');
+            $table->string('description', 255);
+            $table->decimal('amount', 12, 2)->default(0);
+            $table->date('bill_date')->nullable();
+            $table->string('reference', 100)->nullable();
+            $table->string('status', 20)->default('unpaid');
+            $table->string('file_path', 255)->nullable();
+            $table->timestamp('created_at')->nullable()->useCurrent();
+        });
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('vendor_bills');
         Schema::dropIfExists('schedule_tasks');
         Schema::dropIfExists('change_orders');
         Schema::dropIfExists('project_photos');

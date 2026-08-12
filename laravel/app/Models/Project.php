@@ -56,8 +56,23 @@ class Project extends Model
         return $this->hasMany(ScheduleTask::class);
     }
 
+    public function vendorBills(): HasMany
+    {
+        return $this->hasMany(VendorBill::class);
+    }
+
     public function approvedChangeOrdersTotal(): float
     {
         return (float) $this->changeOrders()->where('status', 'approved')->sum('amount');
+    }
+
+    public function actualCostTotal(): float
+    {
+        return (float) $this->vendorBills()->sum('amount');
+    }
+
+    public function revisedBudget(): float
+    {
+        return (float) $this->budget + $this->approvedChangeOrdersTotal();
     }
 }

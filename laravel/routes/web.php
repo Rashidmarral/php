@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
 use App\Http\Controllers\App\ChangeOrderController;
+use App\Http\Controllers\App\VendorBillController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\ComplianceController;
 use App\Http\Controllers\App\ConsultationController;
@@ -41,6 +42,8 @@ use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Portal\PortalAuthController;
+use App\Http\Controllers\Portal\PortalController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\QuickEstimateController as SiteQuickEstimateController;
@@ -111,6 +114,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/change-orders', [ChangeOrderController::class, 'store']);
     Route::post('/change-orders/{id}/status', [ChangeOrderController::class, 'updateStatus']);
     Route::post('/change-orders/{id}/delete', [ChangeOrderController::class, 'destroy']);
+    Route::post('/projects/{id}/vendor-bills', [VendorBillController::class, 'store']);
+    Route::post('/vendor-bills/{id}/delete', [VendorBillController::class, 'destroy']);
     Route::post('/projects/{id}/photos', [ProjectPhotoController::class, 'store']);
     Route::post('/project-photos/{id}/delete', [ProjectPhotoController::class, 'destroy']);
 
@@ -221,6 +226,11 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/integrations', [IntegrationController::class, 'index']);
     Route::post('/integrations/google-sheets', [IntegrationController::class, 'updateGoogleSheets']);
     Route::post('/integrations/client-payments', [IntegrationController::class, 'updateClientPayments']);
+    Route::post('/integrations/webhooks', [IntegrationController::class, 'storeWebhook']);
+    Route::post('/integrations/webhooks/{id}/toggle', [IntegrationController::class, 'toggleWebhook']);
+    Route::post('/integrations/webhooks/{id}/delete', [IntegrationController::class, 'destroyWebhook']);
+    Route::post('/integrations/api-tokens', [IntegrationController::class, 'createApiToken']);
+    Route::post('/integrations/api-tokens/{id}/delete', [IntegrationController::class, 'revokeApiToken']);
 
     Route::get('/consultations', [ConsultationController::class, 'index']);
     Route::post('/consultations', [ConsultationController::class, 'store']);
@@ -375,9 +385,14 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('portal')->group(function () {
-    Route::get('/login', fn () => view('portal.login'))->name('portal.login');
+    Route::get('/login', [PortalAuthController::class, 'showLogin'])->name('portal.login');
+    Route::post('/login', [PortalAuthController::class, 'login']);
+    Route::post('/logout', [PortalAuthController::class, 'logout']);
 
     Route::middleware('portal.client')->group(function () {
-        // Client-facing read-only views of their own projects/estimates/invoices — next phase.
+        Route::get('/', [PortalController::class, 'dashboard']);
+        Route::get('/projects/{id}', [PortalController::class, 'project']);
+        Route::get('/estimates/{id}', [PortalController::class, 'estimate']);
+        Route::get('/invoices/{id}', [PortalController::class, 'invoice']);
     });
 });

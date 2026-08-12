@@ -28,7 +28,36 @@ class ScheduleController extends Controller
         return view('app.schedule.index', [
             'tasks' => $tasks,
             'projects' => Project::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'gantt' => $this->buildGantt($tasks),
         ]);
+    }
+
+    /** Buckets tasks by project and computes a shared day-by-day timeline for the Gantt view. */
+    private function buildGantt(array $tasks): array
+    {
+        $dated = array_filter($tasks, fn ($t) => !empty($t['start_date']) && !empty($t['end_date']));
+        if (empty($dated)) {
+            $rangeStart = now()->startOfWeek();
+            $rangeEnd = now()->addWeeks(3)->endOfWeek();
+        } else {
+            $rangeStart = min(array_map(fn ($t) => \Carbon\Carbon::parse($t['start_date']), $dated))->copy()->subDays(2);
+            $rangeEnd = max(array_map(fn ($t) => \Carbon\Carbon::parse($t['end_date']), $dated))->copy()->addDays(2);
+        }
+        $rangeEnd = $rangeStart->diffInDays($rangeEnd) > 120 ? $rangeStart->copy()->addDays(120) : $rangeEnd;
+
+        $days = [];
+        for ($d = $rangeStart->copy(); $d->lte($rangeEnd); $d->addDay()) {
+            $days[] = $d->copy();
+        }
+
+        $byProject = [];
+        foreach ($tasks as $t) {
+            $byProject[$t['project_id']]['project_name'] = $t['project_name'];
+            $byProject[$t['project_id']]['project_name_ar'] = $t['project_name_ar'];
+            $byProject[$t['project_id']]['tasks'][] = $t;
+        }
+
+        return ['rangeStart' => $rangeStart, 'days' => $days, 'byProject' => $byProject];
     }
 
     public function store(Request $request): RedirectResponse

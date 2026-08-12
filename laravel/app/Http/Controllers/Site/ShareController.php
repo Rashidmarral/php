@@ -13,6 +13,7 @@ use App\Models\InvoicePayment;
 use App\Support\Moyasar;
 use App\Support\Notifications;
 use App\Support\Feature;
+use App\Support\WebhookDispatcher;
 use App\Support\Zatca\Phase1Qr;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -67,6 +68,7 @@ class ShareController extends Controller
                 'signed_ip' => $request->ip() ?? '',
             ]);
             Notifications::estimateSigned($estimate->id, $signedByName);
+            WebhookDispatcher::dispatch($estimate->company_id, 'estimate.signed', $estimate->fresh()->toArray());
             $this->flash('success', 'Thank you — the estimate has been signed and accepted.');
         } else {
             $estimate->update(['status' => 'declined']);
@@ -209,6 +211,7 @@ class ShareController extends Controller
                 'payer_name' => (string) ($moyasarPayment['source']['name'] ?? ''),
             ]);
             Notifications::invoicePaid($invoice->id);
+            WebhookDispatcher::dispatch($invoice->company_id, 'invoice.paid', $invoice->fresh()->toArray());
         }
 
         return $this->redirectWithFlash('/i/' . $token, 'success', 'Payment received — thank you!');

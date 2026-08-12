@@ -9,6 +9,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
 use App\Support\Zatca\ApiClient;
 use App\Support\Zatca\Phase1Qr;
@@ -118,6 +119,7 @@ class InvoiceController extends Controller
         $company = Company::find($companyId);
         $client = $request->input('client_id') ? Client::find((int) $request->input('client_id')) : null;
         $this->chainZatca($invoice->fresh(), $company, $client, $items);
+        WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
 
         $this->flash('success', 'Invoice created.');
         return redirect('/app/invoices/' . $invoice->id);
@@ -237,7 +239,11 @@ class InvoiceController extends Controller
         $invoice = $this->findOwned($id);
         $status = (string) $request->input('status', 'unpaid');
         if (in_array($status, ['unpaid', 'paid', 'overdue'], true)) {
+            $wasPaid = $invoice->status === 'paid';
             $invoice->update(['status' => $status]);
+            if ($status === 'paid' && !$wasPaid) {
+                WebhookDispatcher::dispatch($invoice->company_id, 'invoice.paid', $invoice->fresh()->toArray());
+            }
             $this->flash('success', 'Invoice status updated.');
         }
         return redirect('/app/invoices/' . $invoice->id);
