@@ -1,0 +1,72 @@
+<?php
+
+namespace Database\Seeders;
+
+use App\Models\QuickEstimateAddon;
+use App\Models\QuickEstimateFoundation;
+use App\Models\QuickEstimateRegion;
+use Illuminate\Database\Seeder;
+
+class QuickEstimateSeeder extends Seeder
+{
+    public function run(): void
+    {
+        if (QuickEstimateRegion::count() === 0) {
+            $regions = [
+                ['Riyadh (Central Region)', 'الرياض (المنطقة الوسطى)', 100, 1.00, 1],
+                ['Jeddah (Western Region)', 'جدة (المنطقة الغربية)', 112, 1.12, 2],
+                ['Dammam (Eastern Region)', 'الدمام (المنطقة الشرقية)', 92, 0.92, 3],
+                ['Makkah (Holy City)', 'مكة المكرمة (المدينة المقدسة)', 108, 1.08, 4],
+                ['Madinah (Holy City)', 'المدينة المنورة (المدينة المقدسة)', 105, 1.05, 5],
+            ];
+            foreach ($regions as [$en, $ar, $price, $mult, $sort]) {
+                QuickEstimateRegion::create([
+                    'name_en' => $en, 'name_ar' => $ar, 'price_per_sqm' => $price,
+                    'multiplier' => $mult, 'sort_order' => $sort, 'is_active' => true,
+                ]);
+            }
+        }
+
+        if (QuickEstimateFoundation::count() === 0) {
+            $foundations = [
+                ['Regular Foundation', 'أساسات عادية', 'Standard reinforced concrete', 'خرسانة مسلحة قياسية', 550, 1],
+                ['Raft Foundation', 'أساسات حصيرة', 'Reinforced concrete raft', 'حصيرة خرسانية مسلحة', 700, 2],
+            ];
+            foreach ($foundations as [$en, $ar, $descEn, $descAr, $price, $sort]) {
+                QuickEstimateFoundation::create([
+                    'name_en' => $en, 'name_ar' => $ar, 'description_en' => $descEn, 'description_ar' => $descAr,
+                    'price_per_sqm' => $price, 'sort_order' => $sort, 'is_active' => true,
+                ]);
+            }
+        }
+
+        if (QuickEstimateAddon::count() === 0) {
+            $addons = [
+                ['Water Tank', 'خزان مياه', 'Water storage tank with fittings', 'خزان مياه مع التوصيلات', 40, 'ton', false, 1],
+                ['Fencing', 'سياج', 'Perimeter fencing', 'سياج محيطي', 143, 'sqm', false, 2],
+                ['Guard Room', 'غرفة حارس', 'Security guard room with basic finishing', 'غرفة حارس مع تشطيب أساسي', 30, 'sqm', false, 3],
+                ['Sewage Tank', 'خزان صرف صحي', 'Sewage tank with connections', 'خزان صرف صحي مع التوصيلات', 35, 'sqm', false, 4],
+                ['Interior Paint', 'دهان داخلي وخارجي', 'Full interior and exterior painting', 'دهان داخلي وخارجي كامل', 90, 'sqm', false, 5],
+                ['Landscaping', 'لياسة', 'Interior and exterior finishing', 'تشطيب داخلي وخارجي', 73, 'sqm', false, 6],
+                ['Plumbing Works', 'أعمال صحية', 'Complete plumbing works', 'أعمال صحية كاملة', 132, 'sqm', false, 7],
+                ['Electrical Works', 'أعمال كهربائية', 'Complete electrical works', 'تمديدات كهربائية كاملة', 135, 'sqm', false, 8],
+                ['Aluminum Works', 'أعمال ألمنيوم', 'Windows, doors and railings', 'نوافذ وأبواب ودرابزين', 60, 'sqm', false, 9],
+                ['Gypsum Ceiling', 'تشطيب الأسقف', 'Suspended gypsum ceiling', 'أسقف جبسية معلقة', 85, 'sqm', false, 10],
+                ['Roof Insulation', 'عزل السطح', 'Waterproofing and thermal insulation', 'عزل مائي وحراري', 43, 'sqm', false, 11],
+                ['WPC Cladding', 'أبواب WPC', 'Weather-resistant WPC cladding', 'كسوة WPC مقاومة للعوامل الجوية', 50, 'sqm', false, 12],
+                ['Site Survey', 'مسح', 'Topographic site survey', 'مسح طبوغرافي للموقع', 90, 'sqm', true, 13],
+                ['Central AC System', 'تكييف مركزي', 'Central air conditioning ductwork', 'نظام تكييف مركزي بالدكت', 800, 'sqm', true, 14],
+                ['Swimming Pool', 'مسبح', 'Standard residential swimming pool', 'مسبح سكني قياسي', 380, 'unit', true, 15],
+            ];
+            foreach ($addons as [$en, $ar, $descEn, $descAr, $price, $unitType, $isPro, $sort]) {
+                QuickEstimateAddon::create([
+                    'name_en' => $en, 'name_ar' => $ar, 'description_en' => $descEn, 'description_ar' => $descAr,
+                    'unit_price' => $price, 'unit_type' => $unitType, 'is_pro' => $isPro,
+                    'sort_order' => $sort, 'is_active' => true,
+                ]);
+            }
+        }
+
+        $this->command?->info('Quick estimate calculator data seeded.');
+    }
+}
