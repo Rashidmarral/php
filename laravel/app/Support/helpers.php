@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Translation;
+use App\Support\Pdf\ArabicText;
 
 if (!function_exists('money')) {
     /** Wrapped in <bdi> so mixed LTR numerals/currency don't get visually scrambled inside an RTL layout. */
@@ -32,6 +33,15 @@ if (!function_exists('passwordToggle')) {
               <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-3.22 4.44M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
             HTML;
+    }
+}
+
+if (!function_exists('pdfText')) {
+    /** Escapes text for a PDF template, reshaping Arabic glyphs when needed. */
+    function pdfText(?string $value, string $lang = 'en'): string
+    {
+        $escaped = e($value);
+        return $lang === 'ar' ? ArabicText::shape($escaped) : $escaped;
     }
 }
 

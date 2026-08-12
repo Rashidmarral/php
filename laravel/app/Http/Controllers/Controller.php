@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Support\Feature;
+use App\Support\Pdf\Pdf;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 
 abstract class Controller
 {
@@ -41,5 +43,17 @@ abstract class Controller
         }
         $label = Feature::ALL[$key] ?? $key;
         return $this->redirectWithFlash('/app/billing', 'error', "{$label} isn't included in your current plan. Upgrade to unlock it.");
+    }
+
+    /** Renders resources/views/pdf/document.blade.php with $data and returns it as a downloadable PDF. */
+    protected function streamPdf(array $data, string $filename): Response
+    {
+        $html = view('pdf.document', $data)->render();
+        $pdf = Pdf::output($html, $data['lang'] ?? 'en');
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 }
