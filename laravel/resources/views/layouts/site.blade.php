@@ -5,6 +5,7 @@ use App\Models\Setting;
 $isAr = app()->getLocale() === 'ar';
 $otherLang = $isAr ? 'en' : 'ar';
 $otherLangLabel = $isAr ? 'EN' : 'AR';
+$siteName = Setting::siteName();
 $platformLogo = Setting::get('platform_logo_path', '');
 $platformCr = Setting::get('platform_cr_number', '');
 $platformVat = Setting::get('platform_vat_number', '');
@@ -35,7 +36,7 @@ try {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ isset($pageTitle) ? $pageTitle . ' · ' : '' }}BuildXact Saudi</title>
+<title>{{ isset($pageTitle) ? $pageTitle . ' · ' : '' }}{{ $siteName }}</title>
 <meta name="description" content="Construction management and job costing software for Saudi Arabia's contractors, builders and developers.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +53,7 @@ try {
       @else
         <span class="mark">BX</span>
       @endif
-      BuildXact <span style="color:#d4a017">السعودية</span>
+      {{ $siteName }}
     </a>
     <nav class="nav-links">
       <a href="{{ url('/features') }}">{{ t('nav.features') }}</a>
@@ -85,7 +86,7 @@ try {
   <div class="container">
     <div class="footer-grid">
       <div>
-        <div class="logo" style="color:#fff"><span class="mark">BX</span> BuildXact Saudi</div>
+        <div class="logo" style="color:#fff"><span class="mark">BX</span> {{ $siteName }}</div>
         <p style="color:#a9c4bd;font-size:13.5px;margin-top:10px;max-width:280px;">{{ $footerTagline }}</p>
         @if(array_filter($socialLinks))
           <div style="display:flex;gap:10px;margin-top:14px;">

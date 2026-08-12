@@ -1,6 +1,7 @@
 @extends('layouts.site')
 
 @php($isAr = app()->getLocale() === 'ar')
+@php($siteName = \App\Models\Setting::siteName())
 
 @section('content')
 <section class="hero" style="padding-bottom:40px;">
@@ -9,7 +10,7 @@
       <span class="hero-badge">🔒 {{ $isAr ? 'الأمان والامتثال' : 'Security & Compliance' }}</span>
       <h1>{{ $isAr ? 'بياناتك محمية وموثوقة' : 'Your data, protected and compliant' }}</h1>
       <p class="lead" style="max-width:680px;margin-left:auto;margin-right:auto;">
-        {{ $isAr ? 'بُنيت BuildXact السعودية لتلبية متطلبات المقاولين السعوديين — من التوافق مع هيئة الزكاة والضريبة والجمارك إلى حماية بيانات عملائك.' : 'BuildXact Saudi is built for Saudi contractors — from ZATCA compliance to keeping your project and client data safe.' }}
+        {{ $isAr ? "بُنيت {$siteName} لتلبية متطلبات المقاولين السعوديين — من التوافق مع هيئة الزكاة والضريبة والجمارك إلى حماية بيانات عملائك." : "{$siteName} is built for Saudi contractors — from ZATCA compliance to keeping your project and client data safe." }}
       </p>
     </div>
   </div>

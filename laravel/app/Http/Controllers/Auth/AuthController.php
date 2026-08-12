@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\PasswordReset;
 use App\Models\Plan;
+use App\Models\Setting;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\Mailer;
@@ -93,7 +94,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect('/app')->with('flash.success', ['Welcome to BuildXact Saudi! Your ' . $trialDays . '-day trial has started.']);
+        return redirect('/app')->with('flash.success', ['Welcome to ' . Setting::siteName() . '! Your ' . $trialDays . '-day trial has started.']);
     }
 
     public function logout(Request $request): RedirectResponse
@@ -135,8 +136,8 @@ class AuthController extends Controller
                 Mailer::send(
                     $email,
                     $user->name,
-                    'Reset your BuildXact Saudi password',
-                    "Hi {$user->name},\n\nSomeone (hopefully you) requested a password reset for your BuildXact Saudi account.\n\nReset your password: {$resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't change."
+                    'Reset your ' . Setting::siteName() . ' password',
+                    "Hi {$user->name},\n\nSomeone (hopefully you) requested a password reset for your " . Setting::siteName() . " account.\n\nReset your password: {$resetUrl}\n\nThis link expires in 1 hour. If you didn't request this, you can safely ignore this email — your password won't change."
                 );
             }
         }

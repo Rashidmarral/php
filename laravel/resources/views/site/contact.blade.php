@@ -89,7 +89,7 @@
           src="https://maps.google.com/maps?q=Riyadh%2C%20Saudi%20Arabia&t=&z=11&ie=UTF8&iwloc=&output=embed"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
-          title="BuildXact Saudi office location"
+          title="{{ \App\Models\Setting::siteName() }} office location"
         ></iframe>
       </div>
     </div>

@@ -32,7 +32,7 @@ class Mailer
         $password = Setting::get('smtp_password', '');
         $encryption = Setting::get('smtp_encryption', 'tls');
         $fromEmail = Setting::get('smtp_from_email', $username);
-        $fromName = Setting::get('smtp_from_name', 'BuildXact Saudi');
+        $fromName = Setting::get('smtp_from_name') ?: Setting::siteName();
 
         $transport = $encryption === 'ssl' ? 'ssl://' : '';
         $socket = @stream_socket_client("{$transport}{$host}:{$port}", $errno, $errstr, 15);

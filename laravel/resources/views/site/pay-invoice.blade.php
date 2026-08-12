@@ -10,7 +10,7 @@
     </div>
 
     <div class="card">
-      <p class="help-text" style="margin-bottom:14px;">Your card details are handled directly by Moyasar — they never pass through {{ $company->name ?? 'our' }}'s servers or BuildXact Saudi's.</p>
+      <p class="help-text" style="margin-bottom:14px;">Your card details are handled directly by Moyasar — they never pass through {{ $company->name ?? 'our' }}'s servers or {{ \App\Models\Setting::siteName() }}'s.</p>
       <div class="mysr-form"
         data-amount="{{ (int) round((float) $invoice->total * 100) }}"
         data-currency="SAR"

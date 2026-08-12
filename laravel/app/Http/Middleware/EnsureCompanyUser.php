@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Company;
+use App\Models\Setting;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,7 +48,7 @@ class EnsureCompanyUser
         }
 
         if ($company->status === 'trial' && $company->trial_ends_at && $company->trial_ends_at->lt(now()->startOfDay())) {
-            $request->session()->flash('flash.error', ['Your trial has ended. Choose a plan to continue using BuildXact Saudi.']);
+            $request->session()->flash('flash.error', ['Your trial has ended. Choose a plan to continue using ' . Setting::siteName() . '.']);
             return redirect('/app/billing');
         }
 

@@ -8,7 +8,7 @@
 
     @if ($type === 'privacy')
       <p style="color:var(--muted);">
-        This notice explains how BuildXact Saudi ("we," "us," "the platform") collects, uses, and
+        This notice explains how {{ \App\Models\Setting::siteName() }} ("we," "us," "the platform") collects, uses, and
         protects personal data, in line with Saudi Arabia's Personal Data Protection Law (PDPL) and
         its implementing regulations. It covers both subscribing companies (our direct customers)
         and the individuals whose data those companies process through the platform (their clients,
@@ -46,12 +46,12 @@
       </p>
     @else
       <p style="color:var(--muted);">
-        These Terms of Service govern use of the BuildXact Saudi platform by any company or
+        These Terms of Service govern use of the {{ \App\Models\Setting::siteName() }} platform by any company or
         individual that creates an account ("you"). By registering, you agree to these terms.
       </p>
 
       <h3 style="margin-top:28px;">The service</h3>
-      <p style="color:var(--muted);">BuildXact Saudi provides construction estimating, project, and invoicing software on a subscription basis, billed monthly or yearly per the plan you choose at <a href="{{ url('/pricing') }}">/pricing</a>. Features available to your account depend on your subscribed plan.</p>
+      <p style="color:var(--muted);">{{ \App\Models\Setting::siteName() }} provides construction estimating, project, and invoicing software on a subscription basis, billed monthly or yearly per the plan you choose at <a href="{{ url('/pricing') }}">/pricing</a>. Features available to your account depend on your subscribed plan.</p>
 
       <h3 style="margin-top:28px;">Your account</h3>
       <p style="color:var(--muted);">You're responsible for keeping your login credentials confidential and for all activity under your account. Notify us immediately if you suspect unauthorized access.</p>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\Feature;
 use App\Support\Mailer;
@@ -65,8 +66,8 @@ class TeamController extends Controller
             $result = Mailer::send(
                 $email,
                 $name,
-                "You've been invited to {$company->name} on BuildXact Saudi",
-                "Hi {$name},\n\nYou've been added to {$company->name}'s BuildXact Saudi account.\n\nLog in at " . rtrim((string) config('app.url'), '/') . "/login\nEmail: {$email}\nTemporary password: {$tempPassword}\n\nPlease change your password after logging in."
+                "You've been invited to {$company->name} on " . Setting::siteName(),
+                "Hi {$name},\n\nYou've been added to {$company->name}'s " . Setting::siteName() . " account.\n\nLog in at " . rtrim((string) config('app.url'), '/') . "/login\nEmail: {$email}\nTemporary password: {$tempPassword}\n\nPlease change your password after logging in."
             );
             $this->flash($result['ok'] ? 'success' : 'error', $result['ok']
                 ? "Team member invited — an email with login details was sent to {$email}."

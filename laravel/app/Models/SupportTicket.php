@@ -11,7 +11,7 @@ class SupportTicket extends Model
 
     protected $guarded = ['id'];
 
-    public const CHANNELS = ['platform' => 'To BuildXact Saudi', 'company' => 'From client'];
+    public const CHANNELS = ['platform' => 'To platform support', 'company' => 'From client'];
     public const STATUSES = ['open' => 'Open', 'pending' => 'Pending', 'resolved' => 'Resolved', 'closed' => 'Closed'];
     public const PRIORITIES = ['low' => 'Low', 'normal' => 'Normal', 'high' => 'High', 'urgent' => 'Urgent'];
     public const CATEGORIES = [

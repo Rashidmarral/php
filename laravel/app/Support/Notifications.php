@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\Invoice;
+use App\Models\Setting;
 use App\Models\User;
 
 /**
@@ -69,11 +70,12 @@ class Notifications
         if (!$owner) {
             return;
         }
+        $siteName = Setting::siteName();
         Mailer::send(
             $owner->email,
             $owner->name,
-            "Your BuildXact Saudi trial ends in {$daysLeft} day" . ($daysLeft === 1 ? '' : 's'),
-            "Hi {$owner->name},\n\nYour free trial ends in {$daysLeft} day" . ($daysLeft === 1 ? '' : 's') . ". Choose a plan to keep using BuildXact Saudi without interruption.\n\nSubscribe: " . rtrim((string) config('app.url'), '/') . '/app/billing'
+            "Your {$siteName} trial ends in {$daysLeft} day" . ($daysLeft === 1 ? '' : 's'),
+            "Hi {$owner->name},\n\nYour free trial ends in {$daysLeft} day" . ($daysLeft === 1 ? '' : 's') . ". Choose a plan to keep using {$siteName} without interruption.\n\nSubscribe: " . rtrim((string) config('app.url'), '/') . '/app/billing'
         );
     }
 
@@ -86,7 +88,7 @@ class Notifications
         Mailer::send(
             $owner->email,
             $owner->name,
-            'Your BuildXact Saudi subscription was renewed',
+            'Your ' . Setting::siteName() . ' subscription was renewed',
             "Hi {$owner->name},\n\nYour subscription was renewed automatically — " . number_format($amount, 2) . " SAR was charged to your card on file.\n\nView your billing history: " . rtrim((string) config('app.url'), '/') . '/app/billing'
         );
     }
@@ -100,7 +102,7 @@ class Notifications
         Mailer::send(
             $owner->email,
             $owner->name,
-            "We couldn't renew your BuildXact Saudi subscription",
+            "We couldn't renew your " . Setting::siteName() . ' subscription',
             "Hi {$owner->name},\n\nWe tried to charge your card on file for your subscription renewal, but the payment didn't go through (attempt {$attempt}). Please update your payment method to avoid losing access.\n\nUpdate billing: " . rtrim((string) config('app.url'), '/') . '/app/billing'
         );
     }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@hasSection('title')@yield('title') · @endif BuildXact Saudi</title>
+<title>@hasSection('title')@yield('title') · @endif {{ \App\Models\Setting::siteName() }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
@@ -12,7 +12,7 @@
 <body>
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand"><span class="mark" style="background:#fff;color:var(--brand-dark)">BX</span> BuildXact</div>
+    <div class="brand"><span class="mark" style="background:#fff;color:var(--brand-dark)">BX</span> {{ \App\Models\Setting::siteName() }}</div>
     <nav>
       <a href="{{ url('/app') }}" class="{{ request()->is('app') ? 'active' : '' }}">📊 {{ t('side.dashboard') }}</a>
       <a href="{{ url('/app/projects') }}" class="{{ request()->is('app/projects*') ? 'active' : '' }}">🏗️ {{ t('side.projects') }}</a>

@@ -34,7 +34,7 @@
       <span class="badge badge-<?= $moyasarConfigured ? 'green' : 'yellow' ?>"><?= $moyasarConfigured ? t('user.integrations.moyasar_connected') : t('user.integrations.bank_transfer_only') ?></span>
     </div>
     <p class="help-text">
-      Your own BuildXact Saudi subscription can be paid by bank transfer (reviewed and approved
+      Your own <?= e(\App\Models\Setting::siteName()) ?> subscription can be paid by bank transfer (reviewed and approved
       by your platform administrator) at any time from <a href="/app/billing"><?= t('side.billing') ?></a>.
       <?= $moyasarConfigured ? 'Card / mada / Apple Pay / STC Pay checkout via Moyasar is also enabled.' : 'Online card checkout isn\'t enabled yet — ask your platform administrator to connect Moyasar.' ?>
     </p>
@@ -47,8 +47,7 @@
     </div>
     <p class="help-text">
       Connect your <strong>own</strong> Moyasar account so a "Pay now" button appears on every
-      invoice you send — payments go directly into your Moyasar account, not through BuildXact
-      Saudi. Get your keys from your <a href="https://dashboard.moyasar.com" target="_blank" rel="noopener">Moyasar dashboard</a>.
+      invoice you send — payments go directly into your Moyasar account, not through <?= e(\App\Models\Setting::siteName()) ?>. Get your keys from your <a href="https://dashboard.moyasar.com" target="_blank" rel="noopener">Moyasar dashboard</a>.
     </p>
     <?php if (auth()->user()->can('manage_company_settings')): ?>
       <form method="post" action="/app/integrations/client-payments">

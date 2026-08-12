@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ t('auth.login_title') ?? 'Log in' }} · BuildXact Saudi</title>
+<title>{{ t('auth.login_title') ?? 'Log in' }} · {{ \App\Models\Setting::siteName() }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
@@ -11,7 +11,7 @@
 </head>
 <body class="auth-body">
   <div class="auth-card card" style="max-width:420px;margin:80px auto;">
-    <h1 style="font-size:20px;">BuildXact Saudi</h1>
+    <h1 style="font-size:20px;">{{ \App\Models\Setting::siteName() }}</h1>
     @if ($errors->any())
       <div class="alert alert-error">{{ $errors->first() }}</div>
     @endif

@@ -16,7 +16,7 @@
 </div>
 
 <p class="help-text" style="max-width:680px;margin-bottom:16px;">
-  This is BuildXact Saudi's own legal identity as the platform operator — shown in the public
+  This is <?= e(\App\Models\Setting::siteName()) ?>'s own legal identity as the platform operator — shown in the public
   website footer (VAT/CR) and used for the platform's own brand logo. This is separate from any
   subscriber company's profile, which they manage from their own Settings page (or you can edit on
   their behalf from Companies → a company → Edit company profile).
