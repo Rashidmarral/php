@@ -13,7 +13,7 @@
       </p>
       <div class="hero-actions" style="justify-content:center;">
         <a href="{{ url('/app/support') }}" class="btn btn-primary">{{ $isAr ? 'دخول لوحة الشركة' : 'Company panel login' }}</a>
-        <a href="{{ url('/portal/login') }}" class="btn btn-outline">{{ $isAr ? 'دخول بوابة العميل' : 'Client portal login' }}</a>
+        <a href="{{ url('/portal/login') }}" class="btn btn-outline-light">{{ $isAr ? 'دخول بوابة العميل' : 'Client portal login' }}</a>
       </div>
     </div>
   </div>

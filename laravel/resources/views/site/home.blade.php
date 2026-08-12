@@ -9,7 +9,7 @@
       <p class="lead">{{ t('hero.lead') }}</p>
       <div class="hero-actions">
         <a href="{{ url('/register') }}" class="btn btn-primary">{{ t('hero.cta_primary') }}</a>
-        <a href="{{ url('/features') }}" class="btn btn-outline">{{ t('hero.cta_secondary') }}</a>
+        <a href="{{ url('/features') }}" class="btn btn-outline-light">{{ t('hero.cta_secondary') }}</a>
       </div>
     </div>
     <div class="hero-visual">
