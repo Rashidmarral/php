@@ -199,13 +199,13 @@ html[dir="rtl"] .plan-features { text-align: right; }
 .plan-features li::before { content: "✓ "; color: var(--success); font-weight: 700; }
 
 /* ---------- Footer ---------- */
-.site-footer { background: var(--brand-dark); color: #d8e9e5; padding: 48px 0 24px; margin-top: 40px; }
+.site-footer { background: var(--brand-dark); color: #c3cbdf; padding: 48px 0 24px; margin-top: 40px; }
 .site-footer a { color: #fff; }
 .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; }
 .footer-grid h4 { color: #fff; font-size: 14px; margin-bottom: 12px; }
 .footer-grid ul { list-style: none; padding: 0; margin: 0; }
 .footer-grid li { margin-bottom: 8px; font-size: 13.5px; }
-.footer-bottom { border-top: 1px solid rgba(255,255,255,.12); margin-top: 32px; padding-top: 18px; font-size: 13px; display: flex; justify-content: space-between; color: #a9c4bd; }
+.footer-bottom { border-top: 1px solid rgba(255,255,255,.12); margin-top: 32px; padding-top: 18px; font-size: 13px; display: flex; justify-content: space-between; color: #8b96b5; }
 
 /* ---------- Forms ---------- */
 .form-group { margin-bottom: 18px; }
@@ -321,18 +321,18 @@ input[type=file]::file-selector-button:hover { opacity: .9; }
 
 /* ---------- App shell (user/admin panels) ---------- */
 .app-shell { display: flex; min-height: 100vh; }
-.sidebar { width: 250px; background: linear-gradient(180deg, var(--brand-dark), #08362e); color: #dcece8; flex-shrink: 0; display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(0,0,0,.08); }
+.sidebar { width: 250px; background: linear-gradient(160deg, var(--brand-dark), var(--brand) 75%); color: #c3cbdf; flex-shrink: 0; display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(0,0,0,.08); }
 .sidebar .brand { padding: 20px; font-weight: 800; color: #fff; font-size: 17px; border-bottom: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 10px; }
 .sidebar nav { padding: 14px 10px; flex: 1; overflow-y: auto; }
-.sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; color: #cfe4de; font-size: 14px; font-weight: 500; margin-bottom: 2px; position: relative; transition: background .15s ease, color .15s ease, padding-inline-start .15s ease; }
+.sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; color: #c3cbdf; font-size: 14px; font-weight: 500; margin-bottom: 2px; position: relative; transition: background .15s ease, color .15s ease, padding-inline-start .15s ease; }
 .sidebar nav a:hover { background: rgba(255,255,255,.08); color: #fff; text-decoration: none; }
 .sidebar nav a.active { background: rgba(255,255,255,.14); color: #fff; text-decoration: none; font-weight: 700; }
 .sidebar nav a.active::before { content: ""; position: absolute; inset-inline-start: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 3px; background: var(--accent); }
-.sidebar nav .nav-section { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #7fa89d; padding: 14px 14px 6px; }
+.sidebar nav .nav-section { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: #8b96b5; padding: 14px 14px 6px; }
 .sidebar nav .nav-section:first-child { padding-top: 4px; }
 .sidebar nav a.locked { opacity: .55; }
 .sidebar nav a .lock { font-size: 10px; margin-inline-start: 2px; }
-.sidebar .foot { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; color: #a9c4bd; }
+.sidebar .foot { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 12.5px; color: #8b96b5; }
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 0 28px; height: 64px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow-sm); position: relative; z-index: 5; }
 .topbar .who { font-size: 13.5px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
@@ -406,7 +406,7 @@ html[dir="rtl"] .total-row { text-align: left; }
 /* ---------- Quick Estimate calculator ---------- */
 .qe-hero { background: linear-gradient(135deg, var(--brand-dark), var(--brand)); color: #fff; padding: 40px 0; }
 .qe-hero h1 { color: #fff; font-size: 26px; margin-bottom: 4px; }
-.qe-hero p { color: #d8ece7; margin: 0; }
+.qe-hero p { color: #c3cbdf; margin: 0; }
 .qe-badges { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 .qe-badge { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 600; }
 .qe-layout { display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start; padding: 28px 0 60px; }

@@ -8,11 +8,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}">
+@include('partials.theme-vars')
 </head>
 <body>
 <div class="app-shell">
-  <aside class="sidebar" style="background:#151f1e">
-    <div class="brand"><span class="mark" style="background:#fff;color:#151f1e">BX</span> Platform Admin</div>
+  <aside class="sidebar">
+    <div class="brand"><span class="mark" style="background:#fff;color:var(--brand-dark)">BX</span> Platform Admin</div>
     <nav>
       <a href="{{ url('/admin') }}" class="{{ request()->is('admin') ? 'active' : '' }}">📊 {{ t('aside.dashboard') }}</a>
       <a href="{{ url('/admin/reports') }}" class="{{ request()->is('admin/reports*') ? 'active' : '' }}">📈 {{ t('aside.reports') }}</a>
@@ -32,6 +33,7 @@
       <a href="{{ url('/admin/support') }}" class="{{ request()->is('admin/support*') ? 'active' : '' }}">🎧 {{ t('aside.support') }}</a>
       <a href="{{ url('/admin/certificates') }}" class="{{ request()->is('admin/certificates*') ? 'active' : '' }}">🏅 {{ t('aside.certificates') }}</a>
       <a href="{{ url('/admin/media') }}" class="{{ request()->is('admin/media*') ? 'active' : '' }}">🖼️ {{ t('aside.media') }}</a>
+      <a href="{{ url('/admin/content') }}" class="{{ request()->is('admin/content*') ? 'active' : '' }}">📝 {{ t('aside.page_content') }}</a>
       <a href="{{ url('/admin/audit-log') }}" class="{{ request()->is('admin/audit-log*') ? 'active' : '' }}">🧾 {{ t('aside.audit_log') }}</a>
       <a href="{{ url('/admin/admins') }}" class="{{ request()->is('admin/admins*') ? 'active' : '' }}">🛡️ {{ t('aside.admins') }}</a>
       <a href="{{ url('/admin/settings') }}" class="{{ request()->is('admin/settings') ? 'active' : '' }}">⚙️ {{ t('aside.settings') }}</a>

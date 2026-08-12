@@ -13,6 +13,7 @@
   <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
   <a href="/admin/settings/notifications"><?= t('admin.settings.tab_notifications') ?></a>
   <a href="/admin/settings/email"><?= t('admin.settings.tab_email') ?></a>
+  <a href="/admin/settings/theme"><?= t('admin.settings.tab_theme') ?></a>
 </div>
 
 <form method="post" action="/admin/settings" class="card" style="max-width:680px;">

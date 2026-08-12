@@ -112,6 +112,42 @@ class SiteSettingsController extends Controller
         return $this->redirectWithFlash('/admin/settings/header', 'success', 'Header, footer & website content updated.');
     }
 
+    /** Default navy/amber theme — used whenever the admin hasn't overridden a color. */
+    public const THEME_DEFAULTS = [
+        'theme_brand' => '#16233f', 'theme_brand_dark' => '#0a1428', 'theme_brand_light' => '#edf0f8',
+        'theme_accent' => '#f0932b', 'theme_accent_dark' => '#c9720f',
+    ];
+
+    public function theme(): View
+    {
+        $settings = Setting::all();
+        $colors = [];
+        foreach (self::THEME_DEFAULTS as $key => $default) {
+            $value = $settings[$key] ?? '';
+            $colors[$key] = $value !== '' ? $value : $default;
+        }
+        return view('admin.settings.theme', ['colors' => $colors]);
+    }
+
+    public function updateTheme(Request $request): RedirectResponse
+    {
+        if ($request->boolean('reset')) {
+            foreach (array_keys(self::THEME_DEFAULTS) as $key) {
+                Setting::set($key, '');
+            }
+            return $this->redirectWithFlash('/admin/settings/theme', 'success', 'Theme reset to the default navy & amber colors.');
+        }
+
+        foreach (array_keys(self::THEME_DEFAULTS) as $key) {
+            $value = trim((string) $request->input($key, ''));
+            if (preg_match('/^#[0-9a-fA-F]{6}$/', $value)) {
+                Setting::set($key, $value);
+            }
+        }
+
+        return $this->redirectWithFlash('/admin/settings/theme', 'success', 'Theme colors updated across the whole system.');
+    }
+
     public function ai(): View
     {
         return view('admin.settings.ai', ['settings' => Setting::all()]);

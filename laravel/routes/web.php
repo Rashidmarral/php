@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CompanyZatcaController;
 use App\Http\Controllers\Admin\ConsultationAdminController;
+use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\EstimateTemplateAdminController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\MediaController;
@@ -302,6 +303,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/settings/email', [SiteSettingsController::class, 'email']);
     Route::get('/settings/header', [SiteSettingsController::class, 'header']);
     Route::get('/settings/ai', [SiteSettingsController::class, 'ai']);
+    Route::get('/settings/theme', [SiteSettingsController::class, 'theme']);
     Route::get('/integrations', [AdminIntegrationController::class, 'index']);
 
     Route::get('/pages', [AdminPageController::class, 'index']);
@@ -326,6 +328,9 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 
     Route::get('/certificates', [CertificateController::class, 'index']);
     Route::get('/media', [MediaController::class, 'index']);
+
+    Route::get('/content', [ContentController::class, 'index']);
+    Route::get('/content/{page}', [ContentController::class, 'edit']);
 
     Route::get('/companies', [CompanyController::class, 'index']);
     Route::get('/companies/export.csv', [CompanyController::class, 'exportCsv']);
@@ -396,6 +401,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/settings/email', [SiteSettingsController::class, 'updateEmail']);
         Route::post('/settings/header', [SiteSettingsController::class, 'updateHeader']);
         Route::post('/settings/ai', [SiteSettingsController::class, 'updateAi']);
+        Route::post('/settings/theme', [SiteSettingsController::class, 'updateTheme']);
 
         Route::post('/support/{id}/reply', [AdminSupportTicketController::class, 'reply']);
         Route::post('/support/{id}/status', [AdminSupportTicketController::class, 'updateStatus']);
@@ -406,6 +412,8 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 
         Route::post('/media', [MediaController::class, 'store']);
         Route::post('/media/{id}/delete', [MediaController::class, 'destroy']);
+
+        Route::post('/content/{page}', [ContentController::class, 'update']);
     });
 });
 
