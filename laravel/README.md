@@ -56,11 +56,8 @@ to small Laravel-native globals (`e()` is Laravel's own; `money()`, `local()`,
 / @section('content')`. This kept ~20 view files faithful to the original pixel-for-pixel while
 still being genuine Blade templates.
 
-**Known deferred piece:** CSR generation and compliance/production CSID issuance on the ZATCA
-screen need the real crypto/API client (`App\Core\Zatca\ApiClient` / `CsrGenerator` in the
-original) — those two mutating actions currently flash "lands in a later phase" and get ported
-alongside the rest of ZATCA Phase 2 in the business-logic phase. The read-only status view and
-the plain environment toggle work today.
+CSR generation and compliance/production CSID issuance on the ZATCA screen were stubbed here
+pending the real crypto/API client — fully wired in Phase 4 below.
 
 ## Phase 3 — User (company) panel (done)
 
@@ -94,19 +91,67 @@ re-displayed on every page load forever (fixed in both layouts). A new `App\Mode
 class now gives every model a consistent `Y-m-d H:i:s` timestamp format by default, matching
 the original app's raw MySQL strings, so this class of bug shouldn't recur module-by-module.
 
-**Known deferred pieces**, consistent with the ZATCA precedent above — each flashes "lands in a
-later phase" and redirects cleanly rather than 404ing or crashing: PDF export (estimates,
-invoices, quick estimates — needs the dompdf multi-template engine), ZATCA UBL/XML export and
-Phase 2 submission (needs the crypto/API client), and the AI estimate generator (needs an LLM
-integration).
+PDF export, ZATCA UBL/XML export and Phase 2 submission, and the AI estimate generator were
+stubbed here pending their respective engines — all fully wired in Phase 4 below.
 
-## Not yet ported (later phases)
+## Phase 4 — Business logic, integrations, public site & client portal (done)
 
-- The client portal (separate `client` guard) and the public marketing site.
-- Business logic: multi-template PDF generation, ZATCA Phase 1 QR + Phase 2 XML/UBL signing
-  (crypto/API client), the AI estimate generator, subscription renewal cron, and transactional
-  email triggers (the underlying `Mailer`/`WhatsApp` clients are already ported — this is about
-  wiring them into the actual invoice/estimate/team-invite lifecycle events).
+- **PDF generation**: `App\Support\Pdf\Pdf` ports the original's dompdf wrapper (chroot'd to the
+  project root, no remote resources), with `App\Support\Pdf\ArabicText` (glyph shaping via
+  `ar-php`, since dompdf doesn't shape Arabic natively) and `App\Support\Pdf\NumberToWords`. All
+  6 visual templates (modern/classic/minimal/bold/elegant/saudi) work for estimates, invoices,
+  and quick estimates, in both languages, via `Controller::streamPdf()`.
+- **ZATCA Phase 1**: `App\Support\Zatca\Phase1Qr` generates the TLV-encoded, Base64 QR payload
+  (seller name, VAT number, timestamp, total, VAT total) rendered as an inline SVG data URI —
+  embedded on every invoice PDF and share page once a company's VAT number is set.
+- **ZATCA Phase 2**: `App\Support\Zatca\{CsrGenerator,ApiClient,UblInvoice}` port the EC
+  (secp256k1) CSR generation, the Fatoora gateway REST client (compliance/production CSID
+  issuance, invoice reporting), and UBL 2.1 XML generation with the PIH hash chain.
+  `InvoiceController::store()` chains every new invoice (UUID v4, incrementing ICV, SHA-256
+  hash linked to the company's previous invoice hash); `xml()`/`submitZatca()` export the UBL
+  document and report it to ZATCA's gateway. The admin ZATCA screen's CSR/compliance-CSID/
+  production-CSID actions are fully wired (previously stubbed in Phase 2 of this conversion).
+- **AI estimate generator**: `App\Support\AiEstimateGenerator` ports both paths — a real
+  Anthropic API call when a key is configured, and a zero-config template-keyword-matching
+  fallback otherwise, so the feature is useful out of the box.
+- **Subscription lifecycle**: `App\Console\Commands\RunDailyTasks` (`php artisan app:daily-tasks`,
+  scheduled daily via `routes/console.php`) handles auto-renewal against saved Moyasar card
+  tokens with retry/past-due escalation, trial-ending reminders, and compliance-document expiry
+  reminders — all idempotent, safe to run more than once a day.
+- **Transactional email**: `App\Support\Notifications` ports all 6 triggers (invoice paid,
+  estimate signed, trial ending, subscription renewed, renewal failed, compliance doc expiring),
+  wired into the cron above and the client-facing share-link actions below.
+- **Public marketing site**: home, features, pricing (live from the `plans` table), about,
+  contact (with a working contact form), privacy/terms, and admin-managed CMS pages (`/p/{slug}`)
+  — all in `App\Http\Controllers\Site\{Home,Page}Controller` + `resources/views/site/*.blade.php`
+  under a new `layouts/site.blade.php` (bilingual nav, admin-configurable footer/social links,
+  CMS page links).
+- **Client portal / share links**: `App\Http\Controllers\Site\ShareController` — public,
+  token-based (unauthenticated, 160-bit unguessable tokens) pages for estimate review + canvas
+  e-signature, invoice viewing/PDF download with the ZATCA QR embedded, and per-company Moyasar
+  card payment with a server-verified payment callback. `App\Http\Controllers\Site\
+  QuickEstimateController` ports the public Quick Estimate calculator (region/foundation/add-on
+  pricing, PDF export, lead capture).
+
+Every piece above was verified against a real MySQL instance after a clean `migrate:fresh --seed`:
+ZATCA hash-chain correctness (verified the chain increments and links correctly across multiple
+invoices), a real generated CSR validated with `openssl req -text`, well-formed UBL XML, PDF
+structural validation, and a live end-to-end run of the estimate-signing and invoice-payment
+flows through the actual public routes.
+
+## Phase 5 — Final verification & demo data (done)
+
+- Full regression pass: every `/app`, `/admin`, and public/share route smoke-tested end to end
+  against a clean `migrate:fresh --seed`, across the owner, estimator, and platform-admin roles.
+- `DemoCompanySeeder` substantially enriched so a fresh seed produces a realistic, fully
+  populated demo company rather than a bare-minimum fixture: 2 projects, 2 clients, 2 estimates,
+  2 invoices (one with a real ZATCA hash chain), a full schedule, 2 change orders, project
+  photos, 2 suppliers with 5 materials, 2 documents, 3 compliance documents (including one
+  expiring soon, to exercise the reminder banner), 3 CRM leads across different pipeline stages,
+  a converted quick estimate, a digital takeoff with measurements, a completed consultation, and
+  all 5 business-setup lookup tables (building/contact/client types, units of measure, tax
+  rates) — plus two additional team members (`estimator@`/`accountant@buildxact-saudi.local`,
+  same password) to exercise role-based access with real distinct accounts.
 
 ## Local setup
 
@@ -121,3 +166,7 @@ php artisan serve
 Seeded accounts:
 - Platform admin: `admin@buildxact-saudi.local` / `Admin@12345`
 - Demo company owner: `owner@buildxact-saudi.local` / `Demo@12345`
+- Demo company estimator: `estimator@buildxact-saudi.local` / `Demo@12345`
+- Demo company accountant: `accountant@buildxact-saudi.local` / `Demo@12345`
+
+To run the subscription/reminder cron manually: `php artisan app:daily-tasks`.
