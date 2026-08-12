@@ -11,6 +11,7 @@ use App\Models\EstimateItem;
 use App\Models\EstimateTemplate;
 use App\Models\EstimateTemplateItem;
 use App\Models\Project;
+use App\Support\AiEstimateGenerator;
 use App\Support\WhatsApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,14 +131,70 @@ class EstimateController extends Controller
         return redirect('/app/estimates/' . $estimate->id);
     }
 
-    public function aiGenerator(): RedirectResponse
+    public function aiGenerator(): View|RedirectResponse
     {
-        return $this->redirectWithFlash('/app/estimates/new', 'error', 'The AI estimate generator lands in a later phase of this conversion.');
+        if ($redirect = $this->requireFeature('ai_estimate_generator')) {
+            return $redirect;
+        }
+        return view('app.estimates.ai', [
+            'aiConfigured' => AiEstimateGenerator::isConfigured(),
+        ]);
     }
 
-    public function aiGenerate(): RedirectResponse
+    public function aiGenerate(Request $request): RedirectResponse
     {
-        return $this->redirectWithFlash('/app/estimates/new', 'error', 'The AI estimate generator lands in a later phase of this conversion.');
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireFeature('ai_estimate_generator')) {
+            return $redirect;
+        }
+
+        $description = trim((string) $request->input('description'));
+        if ($description === '') {
+            return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Describe the project first.');
+        }
+
+        $result = AiEstimateGenerator::generate($description);
+        $companyId = Auth::user()->company_id;
+
+        $total = 0;
+        $rows = [];
+        foreach ($result['items'] as $item) {
+            $lineTotal = $item['qty'] * $item['unit_cost'];
+            $total += $lineTotal;
+            $rows[] = [
+                'description' => $item['description'],
+                'section_title' => $item['section_title'],
+                'item_type' => $item['item_type'],
+                'qty' => $item['qty'],
+                'uom' => $item['uom'],
+                'unit_cost' => $item['unit_cost'],
+                'total' => $lineTotal,
+            ];
+        }
+
+        $estimate = Estimate::create([
+            'company_id' => $companyId,
+            'project_id' => null,
+            'client_id' => null,
+            'title' => $result['title'],
+            'status' => 'draft',
+            'total' => $total,
+            'share_token' => bin2hex(random_bytes(20)),
+            'source' => 'ai',
+        ]);
+
+        foreach ($rows as $row) {
+            EstimateItem::create(['estimate_id' => $estimate->id, ...$row]);
+        }
+
+        if (!empty($result['note'])) {
+            $this->flash('success', $result['note']);
+        } else {
+            $this->flash('success', 'AI-generated estimate created — review and adjust as needed.');
+        }
+        return redirect('/app/estimates/' . $estimate->id);
     }
 
     public function create(): View
