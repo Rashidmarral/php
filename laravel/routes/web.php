@@ -41,17 +41,42 @@ use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Site\HomeController;
+use App\Http\Controllers\Site\PageController;
+use App\Http\Controllers\Site\QuickEstimateController as SiteQuickEstimateController;
+use App\Http\Controllers\Site\ShareController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | Public site
 |--------------------------------------------------------------------------
-| The full marketing site (home, pricing, quick-estimate calculator, CMS
-| pages, etc.) is ported in a later phase. For now the root redirects
-| straight to login, matching an unauthenticated visitor's next step.
+| The marketing site (home, pricing, quick-estimate calculator, CMS pages)
+| and the token-based client-facing share links (estimate signing, invoice
+| viewing/payment) — none of this needs a login.
 */
-Route::get('/', fn () => redirect('/login'));
+Route::get('/', [HomeController::class, 'index']);
+Route::get('/features', [HomeController::class, 'features']);
+Route::get('/pricing', [HomeController::class, 'pricing']);
+Route::get('/about', [HomeController::class, 'about']);
+Route::get('/contact', [HomeController::class, 'contact']);
+Route::post('/contact', [HomeController::class, 'contactSubmit']);
+Route::get('/privacy', [HomeController::class, 'privacy']);
+Route::get('/terms', [HomeController::class, 'terms']);
+Route::get('/p/{slug}', [PageController::class, 'show']);
+
+Route::get('/quick-estimate', [SiteQuickEstimateController::class, 'index']);
+Route::post('/quick-estimate', [SiteQuickEstimateController::class, 'store']);
+Route::get('/quick-estimate/{id}', [SiteQuickEstimateController::class, 'show']);
+Route::get('/quick-estimate/{id}/pdf', [SiteQuickEstimateController::class, 'pdf']);
+
+Route::get('/e/{token}', [ShareController::class, 'estimate']);
+Route::post('/e/{token}/sign', [ShareController::class, 'signEstimate']);
+Route::get('/e/{token}/pdf', [ShareController::class, 'estimatePdf']);
+Route::get('/i/{token}', [ShareController::class, 'invoice']);
+Route::get('/i/{token}/pdf', [ShareController::class, 'invoicePdf']);
+Route::get('/i/{token}/pay', [ShareController::class, 'payInvoice']);
+Route::get('/i/{token}/pay/callback', [ShareController::class, 'invoicePaymentCallback']);
 
 /*
 |--------------------------------------------------------------------------

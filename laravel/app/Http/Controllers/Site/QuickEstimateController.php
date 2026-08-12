@@ -1,0 +1,116 @@
+<?php
+
+namespace App\Http\Controllers\Site;
+
+use App\Http\Controllers\Controller;
+use App\Models\QuickEstimate;
+use App\Models\QuickEstimateAddon;
+use App\Models\QuickEstimateFoundation;
+use App\Models\QuickEstimateRegion;
+use App\Models\Setting;
+use App\Support\QuickEstimateCalc;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\View\View;
+
+class QuickEstimateController extends Controller
+{
+    public function index(): View
+    {
+        return view('site.quick-estimate', [
+            'pageTitle' => 'Quick Estimate',
+            'regions' => QuickEstimateRegion::where('is_active', true)->orderBy('sort_order')->get(),
+            'foundations' => QuickEstimateFoundation::where('is_active', true)->orderBy('sort_order')->get(),
+            'addons' => QuickEstimateAddon::where('is_active', true)->orderBy('sort_order')->get(),
+            'vatRate' => (float) Setting::get('vat_rate', '15'),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $region = QuickEstimateRegion::find((int) $request->input('region_id'));
+        $foundation = QuickEstimateFoundation::find((int) $request->input('foundation_id'));
+        $totalArea = max(0, (float) $request->input('total_area', 0));
+        $discountPercent = min(100, max(0, (float) $request->input('discount_percent', 0)));
+        $vatRate = (float) Setting::get('vat_rate', '15');
+
+        if (!$region || !$foundation || $totalArea <= 0) {
+            return $this->redirectWithFlash('/quick-estimate', 'error', 'Please choose a region, a foundation type, and enter a total area.');
+        }
+
+        $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
+        $addonRows = empty($selectedAddonIds) ? [] : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->map(fn ($a) => $a->toArray())->all();
+
+        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate);
+
+        $estimate = QuickEstimate::create([
+            'project_name' => trim((string) $request->input('project_name')) ?: null,
+            'region_id' => $region->id,
+            'foundation_id' => $foundation->id,
+            'total_area' => $totalArea,
+            'discount_percent' => $discountPercent,
+            'addons_json' => json_encode($result['addons_payload']),
+            'subtotal' => $result['subtotal'],
+            'vat_amount' => $result['vat_amount'],
+            'total' => $result['total'],
+            'lang' => app()->getLocale(),
+            'contact_name' => trim((string) $request->input('contact_name')) ?: null,
+            'contact_email' => trim((string) $request->input('contact_email')) ?: null,
+            'contact_phone' => trim((string) $request->input('contact_phone')) ?: null,
+            'status' => 'new',
+        ]);
+
+        return redirect('/quick-estimate/' . $estimate->id);
+    }
+
+    public function show(int $id): View
+    {
+        $estimate = QuickEstimate::find($id);
+        abort_if(!$estimate, 404, 'Estimate not found.');
+        $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
+        $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $addons = json_decode((string) $estimate->addons_json, true) ?: [];
+
+        return view('site.quick-estimate-result', [
+            'pageTitle' => 'Your Estimate',
+            'estimate' => $estimate->toArray(),
+            'region' => $region?->toArray(),
+            'foundation' => $foundation?->toArray(),
+            'addons' => $addons,
+            'vatRate' => (float) Setting::get('vat_rate', '15'),
+        ]);
+    }
+
+    public function pdf(Request $request, int $id): Response
+    {
+        $estimate = QuickEstimate::find($id);
+        abort_if(!$estimate, 404, 'Estimate not found.');
+        $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
+        $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $addons = json_decode((string) $estimate->addons_json, true) ?: [];
+        $lang = $estimate->lang === 'ar' ? 'ar' : 'en';
+        $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
+
+        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang);
+
+        return $this->streamPdf([
+            'template' => $template,
+            'lang' => $lang,
+            'currency' => 'SAR',
+            'docType' => $lang === 'ar' ? 'تسعيرة سريعة' : 'Quick Estimate',
+            'docNumber' => (string) $estimate->id,
+            'docDate' => $estimate->created_at,
+            'issuer' => ['name' => 'BuildXact Saudi', 'meta' => []],
+            'billTo' => $estimate->contact_name ? ['name' => $estimate->contact_name, 'meta' => array_filter([$estimate->contact_email, $estimate->contact_phone])] : null,
+            'items' => $items,
+            'subtotal' => (float) $estimate->subtotal,
+            'discountPercent' => (float) $estimate->discount_percent,
+            'discountAmount' => (float) $estimate->subtotal * (float) $estimate->discount_percent / 100,
+            'vatRate' => (float) Setting::get('vat_rate', '15'),
+            'vatAmount' => (float) $estimate->vat_amount,
+            'total' => (float) $estimate->total,
+            'footerNote' => $lang === 'ar' ? 'تسعيرة تقديرية — تم إنشاؤها بواسطة BuildXact Saudi' : 'Preliminary estimate — generated by BuildXact Saudi',
+        ], 'Quick-Estimate-' . $estimate->id . '.pdf');
+    }
+}
