@@ -89,11 +89,15 @@ p { margin: 0 0 1em; }
 .hero::before { width: 380px; height: 380px; top: -160px; inset-inline-end: -100px; background: radial-gradient(circle at 30% 30%, rgba(240,147,43,.26), rgba(240,147,43,0) 70%); }
 .hero::after { width: 300px; height: 300px; bottom: -140px; inset-inline-start: -80px; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.08), rgba(255,255,255,0) 70%); animation-delay: -7s; }
 @keyframes floatBlob { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-22px) scale(1.06); } }
-.hero .container { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
+.hero .container { position: relative; z-index: 2; display: grid; grid-template-columns: 1.1fr .9fr; gap: 48px; align-items: center; }
 .hero h1 { font-size: 44px; letter-spacing: -0.02em; color: #fff; }
 .hero p.lead { font-size: 18px; color: #c3cbdf; max-width: 520px; }
 .hero-actions { display: flex; gap: 12px; margin-top: 24px; }
 .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(240,147,43,.16); border: 1px solid rgba(240,147,43,.4); padding: 6px 14px; border-radius: 20px; font-size: 13px; color: #ffb35c; font-weight: 600; margin-bottom: 18px; }
+.hero.has-media::before, .hero.has-media::after { display: none; }
+.hero-bg-media { position: absolute; inset: 0; z-index: 1; overflow: hidden; }
+.hero-bg-media img, .hero-bg-media video, .hero-bg-media iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.hero-bg-media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(10,20,40,.88), rgba(22,35,63,.82) 55%, rgba(36,52,92,.72)); }
 .hero-visual { background: #fff; border-radius: 16px; box-shadow: var(--shadow-lg); padding: 24px; border: 1px solid var(--border); animation: heroVisualIn .7s ease both; }
 @keyframes heroVisualIn { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .stat-row { display: flex; justify-content: space-between; margin-top: 30px; }

@@ -81,6 +81,7 @@ class CompanyController extends Controller
             'email' => trim((string) $request->input('email')),
             'phone' => $request->input('phone', ''),
             'city' => $request->input('city', ''),
+            'team_size' => $request->input('team_size', ''),
             'address' => $request->input('address', ''),
             'cr_number' => $request->input('cr_number', ''),
             'vat_number' => $request->input('vat_number', ''),

@@ -57,6 +57,10 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'plan' => ['required', 'exists:plans,slug'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'cr_number' => ['nullable', 'string', 'max:50'],
+            'team_size' => ['nullable', 'string', 'max:20'],
         ]);
 
         $plan = Plan::where('slug', $data['plan'])->firstOrFail();
@@ -66,6 +70,10 @@ class AuthController extends Controller
             $company = Company::create([
                 'name' => $data['company_name'],
                 'email' => strtolower(trim($data['email'])),
+                'phone' => $data['phone'] ?? null,
+                'city' => $data['city'] ?? null,
+                'cr_number' => $data['cr_number'] ?? null,
+                'team_size' => $data['team_size'] ?? null,
                 'status' => 'trial',
                 'plan_id' => $plan->id,
                 'trial_ends_at' => now()->addDays($trialDays),

@@ -2,6 +2,7 @@
 
 @section('content')
 <section class="hero" style="padding-bottom:40px;">
+  @include('partials.hero-media', ['page' => 'contact'])
   <div class="container" style="grid-template-columns:1fr;max-width:720px;text-align:center;">
     <div>
       <span class="hero-badge">✉️ {{ t('contact.eyebrow') }}</span>

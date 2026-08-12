@@ -31,6 +31,7 @@
       <a href="{{ url('/admin/consultations') }}" class="{{ request()->is('admin/consultations*') ? 'active' : '' }}">🎓 {{ t('aside.consultations') }}</a>
       <a href="{{ url('/admin/support') }}" class="{{ request()->is('admin/support*') ? 'active' : '' }}">🎧 {{ t('aside.support') }}</a>
       <a href="{{ url('/admin/certificates') }}" class="{{ request()->is('admin/certificates*') ? 'active' : '' }}">🏅 {{ t('aside.certificates') }}</a>
+      <a href="{{ url('/admin/media') }}" class="{{ request()->is('admin/media*') ? 'active' : '' }}">🖼️ {{ t('aside.media') }}</a>
       <a href="{{ url('/admin/audit-log') }}" class="{{ request()->is('admin/audit-log*') ? 'active' : '' }}">🧾 {{ t('aside.audit_log') }}</a>
       <a href="{{ url('/admin/admins') }}" class="{{ request()->is('admin/admins*') ? 'active' : '' }}">🛡️ {{ t('aside.admins') }}</a>
       <a href="{{ url('/admin/settings') }}" class="{{ request()->is('admin/settings') ? 'active' : '' }}">⚙️ {{ t('aside.settings') }}</a>

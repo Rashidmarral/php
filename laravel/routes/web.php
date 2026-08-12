@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\CompanyZatcaController;
 use App\Http\Controllers\Admin\ConsultationAdminController;
 use App\Http\Controllers\Admin\EstimateTemplateAdminController;
 use App\Http\Controllers\Admin\PaymentController;
+use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
@@ -324,6 +325,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/support/{id}', [AdminSupportTicketController::class, 'show']);
 
     Route::get('/certificates', [CertificateController::class, 'index']);
+    Route::get('/media', [MediaController::class, 'index']);
 
     Route::get('/companies', [CompanyController::class, 'index']);
     Route::get('/companies/export.csv', [CompanyController::class, 'exportCsv']);
@@ -401,6 +403,9 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/certificates', [CertificateController::class, 'store']);
         Route::post('/certificates/{id}/toggle', [CertificateController::class, 'toggle']);
         Route::post('/certificates/{id}/delete', [CertificateController::class, 'destroy']);
+
+        Route::post('/media', [MediaController::class, 'store']);
+        Route::post('/media/{id}/delete', [MediaController::class, 'destroy']);
     });
 });
 

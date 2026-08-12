@@ -35,7 +35,9 @@ class PlanSeeder extends Seeder
 
         $plans = [
             [
-                'slug' => 'starter', 'name' => 'Starter', 'tagline' => 'For small contractors getting organized',
+                'slug' => 'starter', 'name' => 'Starter', 'name_ar' => 'أساسي',
+                'tagline' => 'For small contractors getting organized',
+                'tagline_ar' => 'للمقاولين الصغار الذين يريدون التنظيم',
                 'price_monthly' => 199, 'price_yearly' => 1990, 'max_users' => 3, 'max_projects' => 10,
                 'consultation_quota_monthly' => 1, 'sort_order' => 1,
                 'features' => [
@@ -48,9 +50,21 @@ class PlanSeeder extends Seeder
                     '12 built-in estimate templates', 'Role-based team permissions',
                     'Leads pipeline', 'Business Setup (building types, tax rates & more)',
                 ],
+                'features_ar' => [
+                    'تقديرات وعروض أسعار غير محدودة', 'حتى 10 مشاريع نشطة', '3 أعضاء فريق',
+                    'إدارة العملاء والفواتير', 'تذاكر دعم قياسية (بريد إلكتروني + لوحة التحكم)',
+                    'فوترة برمز الاستجابة السريعة (فاتورة المرحلة الأولى)',
+                    'مشاركة عبر واتساب للعروض والفواتير', 'توقيع العميل الإلكتروني على العروض',
+                    'سجل صور الموقع لكل مشروع',
+                    'تخطيط فاتورة ضريبية سعودية بصيغة PDF',
+                    '12 قالب تقدير جاهز', 'صلاحيات فريق حسب الدور',
+                    'مسار متابعة العملاء المحتملين', 'إعداد الأعمال (أنواع المباني، معدلات الضريبة والمزيد)',
+                ],
             ],
             [
-                'slug' => 'professional', 'name' => 'Professional', 'tagline' => 'For growing contracting businesses',
+                'slug' => 'professional', 'name' => 'Professional', 'name_ar' => 'احترافي',
+                'tagline' => 'For growing contracting businesses',
+                'tagline_ar' => 'لشركات المقاولات المتنامية',
                 'price_monthly' => 449, 'price_yearly' => 4490, 'max_users' => 15, 'max_projects' => 50,
                 'consultation_quota_monthly' => 3, 'sort_order' => 2,
                 'features' => [
@@ -60,15 +74,29 @@ class PlanSeeder extends Seeder
                     'Client portal with online payments', 'Priority support (faster ticket response)',
                     'REST API & webhooks', 'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing',
                 ],
+                'features_ar' => [
+                    'كل ما في باقة أساسي', 'حتى 50 مشروعًا نشطًا', '15 عضو فريق',
+                    'تتبع تكاليف المشروع والميزانية', 'جدولة مشاريع مرئية (مخطط جانت)',
+                    'أوامر التغيير وتتبع الاحتجاز', 'القياس الرقمي ومولّد التقديرات بالذكاء الاصطناعي',
+                    'بوابة عميل مع الدفع الإلكتروني', 'دعم ذو أولوية (استجابة أسرع للتذاكر)',
+                    'واجهة برمجة REST وWebhooks', 'فوترة فاتورة المرحلة الأولى والثانية',
+                ],
             ],
             [
-                'slug' => 'enterprise', 'name' => 'Enterprise', 'tagline' => 'For large contractors & developers',
+                'slug' => 'enterprise', 'name' => 'Enterprise', 'name_ar' => 'المؤسسات',
+                'tagline' => 'For large contractors & developers',
+                'tagline_ar' => 'للمقاولين والمطورين الكبار',
                 'price_monthly' => 899, 'price_yearly' => 8990, 'max_users' => 999, 'max_projects' => 999,
                 'consultation_quota_monthly' => 5, 'sort_order' => 3,
                 'features' => [
                     'Everything in Professional', 'Unlimited projects & users', 'Multi-branch support',
                     'Dedicated account manager', 'Priority support with faster SLA', 'Custom onboarding',
                     'ZATCA Phase 1 + Phase 2 (Fatoora) e-invoicing, fully managed',
+                ],
+                'features_ar' => [
+                    'كل ما في باقة احترافي', 'مشاريع ومستخدمون غير محدودين', 'دعم متعدد الفروع',
+                    'مدير حساب مخصص', 'دعم ذو أولوية باتفاقية مستوى خدمة أسرع', 'تهيئة مخصصة عند الانضمام',
+                    'فوترة فاتورة المرحلة الأولى والثانية، بإدارة كاملة',
                 ],
             ],
         ];
@@ -78,7 +106,9 @@ class PlanSeeder extends Seeder
                 ['slug' => $p['slug']],
                 [
                     'name' => $p['name'],
+                    'name_ar' => $p['name_ar'],
                     'tagline' => $p['tagline'],
+                    'tagline_ar' => $p['tagline_ar'],
                     'price_monthly' => $p['price_monthly'],
                     'price_yearly' => $p['price_yearly'],
                     'currency' => 'SAR',
@@ -86,6 +116,7 @@ class PlanSeeder extends Seeder
                     'max_projects' => $p['max_projects'],
                     'consultation_quota_monthly' => $p['consultation_quota_monthly'],
                     'features' => json_encode($p['features']),
+                    'features_ar' => json_encode($p['features_ar']),
                     'feature_flags' => json_encode($featureFlagsByPlan[$p['slug']]),
                     'is_active' => true,
                     'sort_order' => $p['sort_order'],

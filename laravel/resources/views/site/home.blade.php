@@ -2,6 +2,7 @@
 
 @section('content')
 <section class="hero">
+  @include('partials.hero-media', ['page' => 'home'])
   <div class="container">
     <div>
       <span class="hero-badge">🇸🇦 {{ t('hero.badge') }}</span>

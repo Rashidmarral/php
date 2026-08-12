@@ -22,7 +22,7 @@
 
     <div class="grid grid-3">
       @foreach ($plans as $plan)
-        @php($features = json_decode($plan['features'], true) ?: [])
+        @php($features = (app()->getLocale() === 'ar' && !empty($plan['features_ar'])) ? (json_decode($plan['features_ar'], true) ?: []) : (json_decode($plan['features'], true) ?: []))
         <div class="card pricing-card {{ $plan['slug'] === $featured ? 'featured' : '' }}">
           @if($plan['slug'] === $featured)<span class="badge-featured">{{ t('pricing.most_popular') }}</span>@endif
           <h3>{{ (app()->getLocale() === 'ar' && !empty($plan['name_ar'])) ? $plan['name_ar'] : $plan['name'] }}</h3>
@@ -101,7 +101,7 @@
           </tr>
           @foreach ($allFeatures as $key => $label)
             <tr>
-              <td>{{ $label }}</td>
+              <td>{{ t('feature.' . $key) }}</td>
               @foreach ($plans as $plan)
                 @php($flags = json_decode($plan['feature_flags'], true) ?: [])
                 <td>@if(!empty($flags[$key]))<span class="yes">✓</span>@else<span class="no">—</span>@endif</td>

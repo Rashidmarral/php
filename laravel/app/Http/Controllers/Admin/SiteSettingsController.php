@@ -14,6 +14,12 @@ class SiteSettingsController extends Controller
     private const ALLOWED_LOGO_TYPES = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
     private const ALLOWED_DOC_TYPES = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
 
+    /** Public marketing pages the admin can set a hero background image/video for (see Media Library). */
+    public const HERO_PAGES = [
+        'home' => 'Homepage', 'about' => 'About Us', 'contact' => 'Contact',
+        'support' => 'Help Center', 'security' => 'Security & Compliance',
+    ];
+
     public function index(): View
     {
         return view('admin.settings.index', ['settings' => Setting::all()]);
@@ -82,7 +88,7 @@ class SiteSettingsController extends Controller
 
     public function header(): View
     {
-        return view('admin.settings.header', ['settings' => Setting::all()]);
+        return view('admin.settings.header', ['settings' => Setting::all(), 'heroPages' => self::HERO_PAGES]);
     }
 
     public function updateHeader(Request $request): RedirectResponse
@@ -98,7 +104,12 @@ class SiteSettingsController extends Controller
             Setting::set($key, trim((string) $request->input($key, '')));
         }
 
-        return $this->redirectWithFlash('/admin/settings/header', 'success', 'Header & footer content updated.');
+        foreach (array_keys(self::HERO_PAGES) as $page) {
+            Setting::set("hero_image_{$page}", trim((string) $request->input("hero_image_{$page}", '')));
+            Setting::set("hero_video_{$page}", trim((string) $request->input("hero_video_{$page}", '')));
+        }
+
+        return $this->redirectWithFlash('/admin/settings/header', 'success', 'Header, footer & website content updated.');
     }
 
     public function ai(): View

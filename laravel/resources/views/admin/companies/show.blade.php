@@ -51,6 +51,18 @@
       <div class="form-group"><label><?= t('admin.company.address_freetext') ?></label><input type="text" name="address" value="<?= e($company['address'] ?? '') ?>"></div>
     </div>
     <div class="form-row">
+      <div class="form-group">
+        <label><?= t('auth.team_size') ?></label>
+        <select name="team_size">
+          <option value="">—</option>
+          <?php foreach (['1-5', '6-15', '16-50', '51-200', '200+'] as $ts): ?>
+            <option value="<?= $ts ?>" <?= ($company['team_size'] ?? '') === $ts ? 'selected' : '' ?>><?= $ts ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($company['cr_number']) ?>"></div>
       <div class="form-group"><label><?= t('admin.company.vat_number') ?></label><input type="text" name="vat_number" value="<?= e($company['vat_number']) ?>"></div>
     </div>

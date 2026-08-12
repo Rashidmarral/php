@@ -41,7 +41,7 @@ abstract class Controller
         if (Feature::allows($key)) {
             return null;
         }
-        $label = Feature::ALL[$key] ?? $key;
+        $label = array_key_exists($key, Feature::ALL) ? t('feature.' . $key) : $key;
         return $this->redirectWithFlash('/app/billing', 'error', "{$label} isn't included in your current plan. Upgrade to unlock it.");
     }
 

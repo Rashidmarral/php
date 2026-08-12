@@ -50,6 +50,27 @@
             {!! passwordToggle() !!}
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group"><label>{{ t('auth.phone') }}</label><input type="tel" name="phone" value="{{ old('phone') }}" placeholder="+966 5x xxx xxxx"></div>
+          <div class="form-group"><label>{{ t('auth.city') }}</label><input type="text" name="city" value="{{ old('city') }}" placeholder="Riyadh"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>{{ t('auth.cr_number') }} <span class="help-text" style="display:inline;">({{ t('common.optional') }})</span></label>
+            <input type="text" name="cr_number" value="{{ old('cr_number') }}" placeholder="1010XXXXXX">
+          </div>
+          <div class="form-group">
+            <label>{{ t('auth.team_size') }}</label>
+            <select name="team_size">
+              <option value="">{{ t('auth.team_size_placeholder') }}</option>
+              <option value="1-5">1–5</option>
+              <option value="6-15">6–15</option>
+              <option value="16-50">16–50</option>
+              <option value="51-200">51–200</option>
+              <option value="200+">200+</option>
+            </select>
+          </div>
+        </div>
         <div class="form-group">
           <label>{{ t('common.plan') }}</label>
           <select name="plan" required>
