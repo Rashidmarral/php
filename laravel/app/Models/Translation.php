@@ -21,4 +21,18 @@ class Translation extends Model
             ->pluck('value', 'translation_key')
             ->all();
     }
+
+    public static function upsert(string $locale, string $key, string $value): void
+    {
+        static::query()->updateOrCreate(
+            ['locale' => $locale, 'translation_key' => $key],
+            ['value' => $value]
+        );
+    }
+
+    /** Resets a key back to its file-based default by removing the DB override in both locales. */
+    public static function deleteKey(string $key): void
+    {
+        static::query()->where('translation_key', $key)->delete();
+    }
 }

@@ -22,4 +22,10 @@ class Setting extends Model
     {
         static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
     }
+
+    /** All settings as a flat [key => value] map, for admin forms that pre-fill from the whole table. */
+    public static function all($columns = ['*']): \Illuminate\Support\Collection
+    {
+        return static::query()->pluck('value', 'key');
+    }
 }

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Consultation extends Model
 {
+    public const STATUSES = ['requested', 'scheduled', 'completed', 'cancelled'];
+
     public $timestamps = true;
     const UPDATED_AT = null;
 
