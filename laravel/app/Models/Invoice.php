@@ -20,8 +20,8 @@ class Invoice extends Model
             'vat_amount' => 'decimal:2',
             'retention_amount' => 'decimal:2',
             'retention_released' => 'boolean',
-            'retention_released_at' => 'datetime',
-            'due_date' => 'date',
+            'retention_released_at' => 'datetime:Y-m-d H:i:s',
+            'due_date' => 'date:Y-m-d',
             'zatca_submitted_at' => 'datetime',
         ];
     }

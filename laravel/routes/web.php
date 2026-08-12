@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\DashboardController;
+use App\Http\Controllers\App\EstimateController;
+use App\Http\Controllers\App\InvoiceController;
 use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\Auth\AuthController;
@@ -76,9 +78,34 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/clients/{id}/enable-portal', [ClientController::class, 'enablePortal']);
     Route::post('/clients/{id}/disable-portal', [ClientController::class, 'disablePortal']);
 
-    // Estimates, invoices, billing, business setup, schedule, team, leads, quick estimate,
-    // reports, takeoffs, consultations, integrations, materials, suppliers, documents,
-    // settings — ported module-by-module in the rest of this phase.
+    Route::get('/estimates', [EstimateController::class, 'index']);
+    Route::get('/estimates/new', [EstimateController::class, 'newChoice']);
+    Route::get('/estimates/create', [EstimateController::class, 'create']);
+    Route::post('/estimates', [EstimateController::class, 'store']);
+    Route::get('/estimates/templates/{id}', [EstimateController::class, 'templatePreview']);
+    Route::post('/estimates/templates/{id}', [EstimateController::class, 'storeFromTemplate']);
+    Route::get('/estimates/ai', [EstimateController::class, 'aiGenerator']);
+    Route::post('/estimates/ai/generate', [EstimateController::class, 'aiGenerate']);
+    Route::get('/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
+    Route::get('/estimates/{id}', [EstimateController::class, 'show']);
+    Route::post('/estimates/{id}/status', [EstimateController::class, 'updateStatus']);
+    Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);
+
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::get('/invoices/create', [InvoiceController::class, 'create']);
+    Route::post('/invoices', [InvoiceController::class, 'store']);
+    Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
+    Route::get('/invoices/{id}/xml', [InvoiceController::class, 'xml']);
+    Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::post('/invoices/{id}/status', [InvoiceController::class, 'updateStatus']);
+    Route::post('/invoices/{id}/release-retention', [InvoiceController::class, 'releaseRetention']);
+    Route::post('/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
+    Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
+    Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
+
+    // Billing, business setup, schedule, team, leads, quick estimate, reports, takeoffs,
+    // consultations, integrations, materials, suppliers, documents, settings — ported
+    // module-by-module in the rest of this phase.
 });
 
 /*

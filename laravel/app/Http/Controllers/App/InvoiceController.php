@@ -1,0 +1,240 @@
+<?php
+
+namespace App\Http\Controllers\App;
+
+use App\Http\Controllers\Controller;
+use App\Models\Client;
+use App\Models\Company;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
+use App\Models\Project;
+use App\Models\Setting;
+use App\Support\WhatsApp;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+
+class InvoiceController extends Controller
+{
+    public function index(): View
+    {
+        $invoices = DB::table('invoices as i')
+            ->leftJoin('clients as c', 'c.id', '=', 'i.client_id')
+            ->where('i.company_id', Auth::user()->company_id)
+            ->orderByDesc('i.created_at')
+            ->select('i.*', 'c.name as client_name', 'c.name_ar as client_name_ar')
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->all();
+
+        return view('app.invoices.index', ['invoices' => $invoices]);
+    }
+
+    public function create(): View
+    {
+        $companyId = Auth::user()->company_id;
+        $nextNumber = 'INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1);
+        $materials = DB::table('materials as m')
+            ->leftJoin('suppliers as s', 's.id', '=', 'm.supplier_id')
+            ->where('m.company_id', $companyId)
+            ->orderBy('m.category')->orderBy('m.name')
+            ->select('m.*', 's.name as supplier_name')
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->all();
+        $company = Company::find($companyId);
+
+        return view('app.invoices.form', [
+            'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'projects' => Project::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'nextNumber' => $nextNumber,
+            'vatRate' => (float) Setting::get('vat_rate', '15'),
+            'materials' => $materials,
+            'defaultRetentionPercent' => (float) ($company->default_retention_percent ?? 0),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+
+        $descriptions = $request->input('item_description', []);
+        $descriptionsAr = $request->input('item_description_ar', []);
+        $qtys = $request->input('item_qty', []);
+        $prices = $request->input('item_price', []);
+
+        $subtotal = 0;
+        $items = [];
+        foreach ($descriptions as $i => $desc) {
+            $desc = trim((string) $desc);
+            if ($desc === '') {
+                continue;
+            }
+            $qty = (float) ($qtys[$i] ?? 1);
+            $price = (float) ($prices[$i] ?? 0);
+            $lineTotal = $qty * $price;
+            $subtotal += $lineTotal;
+            $items[] = ['description' => $desc, 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')), 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
+        }
+
+        $applyVat = (bool) $request->input('apply_vat', true);
+        $vatRate = $applyVat ? (float) Setting::get('vat_rate', '15') : 0;
+        $vatAmount = $subtotal * $vatRate / 100;
+        $total = $subtotal + $vatAmount;
+
+        $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', 0)));
+        $retentionAmount = $subtotal * $retentionPercent / 100;
+
+        $invoice = Invoice::create([
+            'company_id' => $companyId,
+            'project_id' => $request->input('project_id') ?: null,
+            'client_id' => $request->input('client_id') ?: null,
+            'invoice_number' => trim((string) $request->input('invoice_number')) ?: ('INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1)),
+            'status' => 'unpaid',
+            'total' => $total,
+            'vat_rate' => $vatRate,
+            'vat_amount' => $vatAmount,
+            'due_date' => $request->input('due_date') ?: null,
+            'retention_percent' => $retentionPercent,
+            'retention_amount' => $retentionAmount,
+            'share_token' => bin2hex(random_bytes(20)),
+        ]);
+
+        foreach ($items as $item) {
+            InvoiceItem::create(['invoice_id' => $invoice->id, ...$item]);
+        }
+
+        $this->flash('success', 'Invoice created.');
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    public function show(int $id): View
+    {
+        $invoice = $this->findOwned($id);
+        $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get()->toArray();
+        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $project = $invoice->project_id ? Project::find($invoice->project_id) : null;
+        $company = Company::find($invoice->company_id);
+
+        if (empty($invoice->share_token)) {
+            $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
+        }
+        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+
+        $whatsappLink = null;
+        if ($client && !empty($client->phone)) {
+            $message = "Hi {$client->name}, your invoice {$invoice->invoice_number} from {$company->name} is ready: {$shareUrl}";
+            $whatsappLink = WhatsApp::shareLink($client->phone, $message);
+        }
+
+        return view('app.invoices.show', [
+            'invoice' => $invoice->toArray(),
+            'items' => $items,
+            'client' => $client,
+            'project' => $project,
+            'company' => $company,
+            'zatcaQr' => null,
+            'whatsappLink' => $whatsappLink,
+            'whatsappApiConfigured' => WhatsApp::isConfigured(),
+            'shareUrl' => $shareUrl,
+        ]);
+    }
+
+    public function sendWhatsApp(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $company = Company::find($invoice->company_id);
+
+        if (!$client || empty($client->phone)) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
+        }
+        if (empty($invoice->share_token)) {
+            $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
+        }
+        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+
+        $message = "Hi {$client->name}, your invoice {$invoice->invoice_number} from {$company->name} for "
+            . number_format((float) $invoice->total, 2) . " SAR is ready: {$shareUrl}";
+        $result = WhatsApp::sendMessage($client->phone, $message);
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'WhatsApp notification sent.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    public function updateStatus(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        $status = (string) $request->input('status', 'unpaid');
+        if (in_array($status, ['unpaid', 'paid', 'overdue'], true)) {
+            $invoice->update(['status' => $status]);
+            $this->flash('success', 'Invoice status updated.');
+        }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    public function releaseRetention(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        if ((float) $invoice->retention_amount > 0 && !$invoice->retention_released) {
+            $invoice->update(['retention_released' => true, 'retention_released_at' => now()]);
+            $this->flash('success', 'Retention marked as released.');
+        }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    public function destroy(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        InvoiceItem::where('invoice_id', $invoice->id)->delete();
+        $invoice->delete();
+        $this->flash('success', 'Invoice deleted.');
+        return redirect('/app/invoices');
+    }
+
+    public function pdf(int $id): RedirectResponse
+    {
+        $invoice = $this->findOwned($id);
+        return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'PDF export lands in a later phase of this conversion.');
+    }
+
+    public function xml(int $id): RedirectResponse
+    {
+        $invoice = $this->findOwned($id);
+        return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'ZATCA UBL/XML export lands in a later phase of this conversion.');
+    }
+
+    public function submitZatca(int $id): RedirectResponse
+    {
+        $invoice = $this->findOwned($id);
+        return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'ZATCA Phase 2 submission lands in a later phase of this conversion.');
+    }
+
+    private function findOwned(int $id): Invoice
+    {
+        $invoice = Invoice::find($id);
+        abort_if(!$invoice || $invoice->company_id !== Auth::user()->company_id, 404, 'Invoice not found.');
+        return $invoice;
+    }
+}

@@ -17,7 +17,7 @@ class Estimate extends Model
     {
         return [
             'total' => 'decimal:2',
-            'signed_at' => 'datetime',
+            'signed_at' => 'datetime:Y-m-d H:i:s',
         ];
     }
 
