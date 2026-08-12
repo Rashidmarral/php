@@ -24,9 +24,13 @@ use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\ComplianceController;
 use App\Http\Controllers\App\ConsultationController;
 use App\Http\Controllers\App\DocumentController;
+use App\Http\Controllers\App\ImpersonationController;
 use App\Http\Controllers\App\IntegrationController;
 use App\Http\Controllers\App\LeadController;
 use App\Http\Controllers\App\MaterialController;
+use App\Http\Controllers\App\QuickEstimateController;
+use App\Http\Controllers\App\ReportController;
+use App\Http\Controllers\App\TakeoffController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\App\InvoiceController;
@@ -192,8 +196,29 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/consultations', [ConsultationController::class, 'store']);
     Route::post('/consultations/{id}/cancel', [ConsultationController::class, 'cancel']);
 
-    // Quick estimate, reports, takeoffs — ported module-by-module in the
-    // rest of this phase.
+    Route::post('/end-impersonation', [ImpersonationController::class, 'stop']);
+
+    Route::get('/reports', [ReportController::class, 'overview']);
+    Route::get('/reports/profit', [ReportController::class, 'profit']);
+    Route::get('/reports/tax', [ReportController::class, 'tax']);
+    Route::get('/reports/retention', [ReportController::class, 'retention']);
+
+    Route::get('/quick-estimate', [QuickEstimateController::class, 'index']);
+    Route::post('/quick-estimate', [QuickEstimateController::class, 'store']);
+    Route::get('/quick-estimate/{id}/pdf', [QuickEstimateController::class, 'pdf']);
+    Route::get('/quick-estimate/{id}', [QuickEstimateController::class, 'show']);
+    Route::post('/quick-estimate/{id}/convert', [QuickEstimateController::class, 'convertToEstimate']);
+    Route::post('/quick-estimate/{id}/delete', [QuickEstimateController::class, 'destroy']);
+
+    Route::get('/takeoffs', [TakeoffController::class, 'index']);
+    Route::get('/takeoffs/create', [TakeoffController::class, 'create']);
+    Route::post('/takeoffs', [TakeoffController::class, 'store']);
+    Route::get('/takeoffs/{id}', [TakeoffController::class, 'show']);
+    Route::post('/takeoffs/{id}/measurements', [TakeoffController::class, 'addMeasurement']);
+    Route::post('/takeoffs/{id}/measurements/{measurementId}/delete', [TakeoffController::class, 'deleteMeasurement']);
+    Route::post('/takeoffs/{id}/calibrate', [TakeoffController::class, 'calibrate']);
+    Route::post('/takeoffs/{id}/convert', [TakeoffController::class, 'convertToEstimate']);
+    Route::post('/takeoffs/{id}/delete', [TakeoffController::class, 'destroy']);
 });
 
 /*

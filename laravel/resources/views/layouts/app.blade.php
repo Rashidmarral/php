@@ -52,6 +52,15 @@
         </form>
       </div>
     </div>
+    @if (session('impersonator_admin_id'))
+      <div style="background:#3d2b0a;color:#f5d78e;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span>🕵️ {{ t('side.impersonation_banner') }}</span>
+        <form method="post" action="/app/end-impersonation" style="margin:0;">
+          @csrf
+          <button type="submit" class="btn btn-sm" style="background:#f5d78e;color:#3d2b0a;border:none;">{{ t('side.return_to_admin') }}</button>
+        </form>
+      </div>
+    @endif
     <div class="content">
       @if (session('flash.error'))
         @foreach ((array) session('flash.error') as $m)
