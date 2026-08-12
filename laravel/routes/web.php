@@ -24,6 +24,8 @@ use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\App\InvoiceController;
 use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
+use App\Http\Controllers\App\ScheduleController;
+use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -103,9 +105,19 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
     Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
 
-    // Billing, business setup, schedule, team, leads, quick estimate, reports, takeoffs,
-    // consultations, integrations, materials, suppliers, documents, settings — ported
-    // module-by-module in the rest of this phase.
+    Route::get('/schedule', [ScheduleController::class, 'index']);
+    Route::post('/schedule', [ScheduleController::class, 'store']);
+    Route::post('/schedule/{id}/status', [ScheduleController::class, 'updateStatus']);
+    Route::post('/schedule/{id}/delete', [ScheduleController::class, 'destroy']);
+
+    Route::get('/team', [TeamController::class, 'index']);
+    Route::post('/team', [TeamController::class, 'store']);
+    Route::post('/team/{id}/role', [TeamController::class, 'updateRole']);
+    Route::post('/team/{id}/delete', [TeamController::class, 'destroy']);
+
+    // Billing, business setup, leads, quick estimate, reports, takeoffs, consultations,
+    // integrations, materials, suppliers, documents, settings — ported module-by-module
+    // in the rest of this phase.
 });
 
 /*

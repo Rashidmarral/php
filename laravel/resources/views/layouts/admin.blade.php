@@ -57,6 +57,7 @@
           <div class="alert alert-success">{{ $m }}</div>
         @endforeach
       @endif
+      <?php session()->forget(['flash.error', 'flash.success']); ?>
       @yield('content')
     </div>
   </div>
