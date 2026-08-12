@@ -96,4 +96,5 @@
     </div>
   </div>
 </section>
+@include('partials.custom-sections', ['page' => 'contact'])
 @endsection

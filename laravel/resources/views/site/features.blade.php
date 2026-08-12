@@ -27,4 +27,5 @@
     <a href="{{ url('/register') }}" class="btn btn-primary" style="margin-top:10px;">{{ t('cta.button') }}</a>
   </div>
 </section>
+@include('partials.custom-sections', ['page' => 'features'])
 @endsection

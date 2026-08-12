@@ -20,10 +20,10 @@
       <span id="cycle-label-yearly" style="color:var(--muted);">{{ t('pricing.yearly') }}</span>
     </div>
 
-    <div class="grid grid-3">
+    <div class="grid grid-3 reveal-stagger">
       @foreach ($plans as $plan)
         @php($features = (app()->getLocale() === 'ar' && !empty($plan['features_ar'])) ? (json_decode($plan['features_ar'], true) ?: []) : (json_decode($plan['features'], true) ?: []))
-        <div class="card pricing-card {{ $plan['slug'] === $featured ? 'featured' : '' }}">
+        <div class="card pricing-card reveal {{ $plan['slug'] === $featured ? 'featured' : '' }}">
           @if($plan['slug'] === $featured)<span class="badge-featured">{{ t('pricing.most_popular') }}</span>@endif
           <h3>{{ (app()->getLocale() === 'ar' && !empty($plan['name_ar'])) ? $plan['name_ar'] : $plan['name'] }}</h3>
           <p style="color:var(--muted);font-size:13.5px;min-height:36px;">{{ (app()->getLocale() === 'ar' && !empty($plan['tagline_ar'])) ? $plan['tagline_ar'] : $plan['tagline'] }}</p>
@@ -80,7 +80,7 @@
       <div class="eyebrow">{{ t('pricing.compare_eyebrow') }}</div>
       <h2>{{ t('pricing.compare_title') }}</h2>
     </div>
-    <div class="compare-table-wrap">
+    <div class="compare-table-wrap reveal-section reveal">
       <table class="compare-table">
         <thead>
           <tr>
@@ -113,4 +113,5 @@
     </div>
   </div>
 </section>
+@include('partials.custom-sections', ['page' => 'pricing'])
 @endsection

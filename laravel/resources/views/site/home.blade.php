@@ -15,15 +15,15 @@
     </div>
     <div class="hero-visual">
       <div class="kpi-grid" style="grid-template-columns:1fr 1fr;margin-bottom:0;">
-        <div class="kpi"><div class="label">Active Projects</div><div class="value">18</div><div class="delta">+3 this month</div></div>
-        <div class="kpi"><div class="label">Est. Accuracy</div><div class="value">96%</div><div class="delta">+4% vs manual</div></div>
-        <div class="kpi"><div class="label">Outstanding</div><div class="value">SAR 128K</div></div>
-        <div class="kpi"><div class="label">Paid this month</div><div class="value">SAR 412K</div></div>
+        <div class="kpi"><div class="label">Active Projects</div><div class="value count-up">18</div><div class="delta">+3 this month</div></div>
+        <div class="kpi"><div class="label">Est. Accuracy</div><div class="value count-up">96%</div><div class="delta">+4% vs manual</div></div>
+        <div class="kpi"><div class="label">Outstanding</div><div class="value count-up">SAR 128K</div></div>
+        <div class="kpi"><div class="label">Paid this month</div><div class="value count-up">SAR 412K</div></div>
       </div>
       <div class="stat-row">
-        <div><strong>2,400+</strong><span>{{ t('hero.stat1') }}</span></div>
-        <div><strong>15,000+</strong><span>{{ t('hero.stat2') }}</span></div>
-        <div><strong>6 hrs/wk</strong><span>{{ t('hero.stat3') }}</span></div>
+        <div><strong class="count-up">2,400+</strong><span>{{ t('hero.stat1') }}</span></div>
+        <div><strong class="count-up">15,000+</strong><span>{{ t('hero.stat2') }}</span></div>
+        <div><strong class="count-up">6 hrs/wk</strong><span>{{ t('hero.stat3') }}</span></div>
       </div>
     </div>
   </div>
@@ -169,4 +169,5 @@
     <a href="{{ url('/register') }}" class="btn btn-primary" style="margin-top:10px;">{{ t('cta.button') }}</a>
   </div>
 </section>
+@include('partials.custom-sections', ['page' => 'home'])
 @endsection

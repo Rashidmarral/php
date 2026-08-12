@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\EstimateTemplateAdminController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\PageSectionController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
@@ -332,6 +333,10 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/content', [ContentController::class, 'index']);
     Route::get('/content/{page}', [ContentController::class, 'edit']);
 
+    Route::get('/sections', [PageSectionController::class, 'index']);
+    Route::get('/sections/create', [PageSectionController::class, 'create']);
+    Route::get('/sections/{id}/edit', [PageSectionController::class, 'edit']);
+
     Route::get('/companies', [CompanyController::class, 'index']);
     Route::get('/companies/export.csv', [CompanyController::class, 'exportCsv']);
     Route::get('/companies/{id}', [CompanyController::class, 'show']);
@@ -414,6 +419,10 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/media/{id}/delete', [MediaController::class, 'destroy']);
 
         Route::post('/content/{page}', [ContentController::class, 'update']);
+
+        Route::post('/sections', [PageSectionController::class, 'store']);
+        Route::post('/sections/{id}', [PageSectionController::class, 'update']);
+        Route::post('/sections/{id}/delete', [PageSectionController::class, 'destroy']);
     });
 });
 

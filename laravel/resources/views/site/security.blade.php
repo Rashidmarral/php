@@ -39,4 +39,5 @@
     </div>
   </div>
 </section>
+@include('partials.custom-sections', ['page' => 'security'])
 @endsection
