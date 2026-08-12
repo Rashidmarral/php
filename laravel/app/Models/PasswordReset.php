@@ -19,4 +19,12 @@ class PasswordReset extends Model
             'used_at' => 'datetime',
         ];
     }
+
+    public static function findValid(string $token): ?self
+    {
+        return static::where('token', $token)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->first();
+    }
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ t('auth.login_title') ?? 'Log in' }} · BuildXact Saudi</title>
+<title>Reset your password · BuildXact Saudi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
@@ -11,10 +11,8 @@
 </head>
 <body class="auth-body">
   <div class="auth-card card" style="max-width:420px;margin:80px auto;">
-    <h1 style="font-size:20px;">BuildXact Saudi</h1>
-    @if ($errors->any())
-      <div class="alert alert-error">{{ $errors->first() }}</div>
-    @endif
+    <h1 style="font-size:20px;">Reset your password</h1>
+    <p class="help-text" style="margin-bottom:20px;">Enter the email address on your account and we'll send you a link to reset your password.</p>
     @if (session('flash.error'))
       @foreach ((array) session('flash.error') as $m)
         <div class="alert alert-error">{{ $m }}</div>
@@ -25,26 +23,16 @@
         <div class="alert alert-success">{{ $m }}</div>
       @endforeach
     @endif
-    <form method="post" action="{{ url('/login') }}">
+    <form method="post" action="{{ url('/forgot-password') }}">
       @csrf
       <div class="form-group">
-        <label>{{ t('common.email') }}</label>
-        <input type="email" name="email" value="{{ old('email') }}" required autofocus>
+        <label>{{ t('auth.email') }}</label>
+        <input type="email" name="email" required autofocus>
       </div>
-      <div class="form-group">
-        <label>{{ t('common.password') }}</label>
-        <div class="password-field">
-          <input type="password" name="password" required>
-          {!! passwordToggle() !!}
-        </div>
-      </div>
-      <p style="margin:-6px 0 14px;text-align:end;font-size:13.5px;">
-        <a href="{{ url('/forgot-password') }}">{{ t('auth.forgot_password') }}</a>
-      </p>
-      <button type="submit" class="btn btn-primary btn-block">{{ t('common.submit') }}</button>
+      <button type="submit" class="btn btn-primary btn-block">Send reset link</button>
     </form>
     <p class="help-text" style="margin-top:14px;">
-      <a href="{{ url('/register') }}">Create an account</a>
+      <a href="{{ url('/login') }}">← Back to login</a>
     </p>
   </div>
   <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>

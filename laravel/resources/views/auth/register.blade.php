@@ -26,7 +26,13 @@
       <div class="form-group"><label>Company name</label><input type="text" name="company_name" value="{{ old('company_name') }}" required></div>
       <div class="form-group"><label>Your name</label><input type="text" name="name" value="{{ old('name') }}" required></div>
       <div class="form-group"><label>{{ t('common.email') }}</label><input type="email" name="email" value="{{ old('email') }}" required></div>
-      <div class="form-group"><label>{{ t('common.password') }}</label><input type="password" name="password" required minlength="8"></div>
+      <div class="form-group">
+        <label>{{ t('common.password') }}</label>
+        <div class="password-field">
+          <input type="password" name="password" required minlength="8">
+          {!! passwordToggle() !!}
+        </div>
+      </div>
       <div class="form-group">
         <label>{{ t('common.plan') }}</label>
         <select name="plan" required>
@@ -39,5 +45,6 @@
     </form>
     <p class="help-text" style="margin-top:14px;"><a href="{{ url('/login') }}">Already have an account? Log in</a></p>
   </div>
+  <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
 </body>
 </html>

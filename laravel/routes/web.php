@@ -88,6 +88,10 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::get('/forgot-password', [AuthController::class, 'showForgotPassword']);
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink']);
+Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword']);
+Route::post('/reset-password/{token}', [AuthController::class, 'resetPassword']);
 
 /*
 |--------------------------------------------------------------------------

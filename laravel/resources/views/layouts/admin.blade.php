@@ -65,5 +65,6 @@
     </div>
   </div>
 </div>
+<script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
 </body>
 </html>
