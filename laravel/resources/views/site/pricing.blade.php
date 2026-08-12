@@ -73,7 +73,7 @@
     </script>
 
     <p style="text-align:center;color:var(--muted);margin-top:36px;font-size:13.5px;">
-      All plans include a 14-day free trial. Prices exclude 15% Saudi VAT. Need a custom plan for a large enterprise? <a href="{{ url('/contact') }}">Talk to sales</a>.
+      {{ t('pricing.footnote') }} <a href="{{ url('/contact') }}">{{ t('pricing.talk_to_sales') }}</a>
     </p>
 
     <div class="section-head" style="margin-top:56px;">
