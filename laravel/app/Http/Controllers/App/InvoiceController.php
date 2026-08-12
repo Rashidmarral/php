@@ -10,7 +10,9 @@ use App\Models\InvoiceItem;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Support\WhatsApp;
+use App\Support\Zatca\ApiClient;
 use App\Support\Zatca\Phase1Qr;
+use App\Support\Zatca\UblInvoice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,6 +22,8 @@ use Illuminate\View\View;
 
 class InvoiceController extends Controller
 {
+    private const ZATCA_GENESIS_HASH = 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==';
+
     public function index(): View
     {
         $invoices = DB::table('invoices as i')
@@ -111,8 +115,57 @@ class InvoiceController extends Controller
             InvoiceItem::create(['invoice_id' => $invoice->id, ...$item]);
         }
 
+        $company = Company::find($companyId);
+        $client = $request->input('client_id') ? Client::find((int) $request->input('client_id')) : null;
+        $this->chainZatca($invoice->fresh(), $company, $client, $items);
+
         $this->flash('success', 'Invoice created.');
         return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    /** Populates the ZATCA UUID/ICV/hash-chain fields for a newly created invoice (Phase 2 groundwork). */
+    private function chainZatca(Invoice $invoice, ?Company $company, ?Client $client, array $items): void
+    {
+        if (!$company) {
+            return;
+        }
+        $uuid = self::uuidV4();
+        $icv = (int) ($company->zatca_last_icv ?? 0) + 1;
+        $previousHash = $company->zatca_last_invoice_hash ?: self::ZATCA_GENESIS_HASH;
+
+        $xml = UblInvoice::build($invoice->toArray(), $company->toArray(), $client?->toArray(), $items, $uuid, $icv, $previousHash);
+        $hash = UblInvoice::hash($xml);
+
+        $invoice->update([
+            'zatca_uuid' => $uuid,
+            'zatca_icv' => $icv,
+            'zatca_hash' => $hash,
+            'zatca_previous_hash' => $previousHash,
+        ]);
+        $company->update([
+            'zatca_last_icv' => $icv,
+            'zatca_last_invoice_hash' => $hash,
+        ]);
+    }
+
+    private static function uuidV4(): string
+    {
+        $data = random_bytes(16);
+        $data[6] = chr((ord($data[6]) & 0x0f) | 0x40);
+        $data[8] = chr((ord($data[8]) & 0x3f) | 0x80);
+        $hex = bin2hex($data);
+        return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-' . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20, 12);
+    }
+
+    /** @return array<int, array{description:string,qty:float,unit_price:float,total:float}> */
+    private function itemsForXml(\Illuminate\Support\Collection $invoiceItems): array
+    {
+        return $invoiceItems->map(fn ($i) => [
+            'description' => $i->description,
+            'qty' => $i->qty,
+            'unit_price' => $i->unit_price,
+            'total' => $i->total,
+        ])->all();
     }
 
     public function show(int $id): View
@@ -249,16 +302,87 @@ class InvoiceController extends Controller
         ], $invoice->invoice_number . '.pdf');
     }
 
-    public function xml(int $id): RedirectResponse
+    public function xml(int $id): Response|RedirectResponse
     {
         $invoice = $this->findOwned($id);
-        return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'ZATCA UBL/XML export lands in a later phase of this conversion.');
+        if (empty($invoice->zatca_uuid)) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no ZATCA chain data (it may predate ZATCA integration).');
+        }
+        $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
+        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $company = Company::find($invoice->company_id);
+
+        $xmlContent = UblInvoice::build(
+            $invoice->toArray(),
+            $company->toArray(),
+            $client?->toArray(),
+            $this->itemsForXml($items),
+            (string) $invoice->zatca_uuid,
+            (int) $invoice->zatca_icv,
+            (string) $invoice->zatca_previous_hash
+        );
+
+        return response($xmlContent, 200, [
+            'Content-Type' => 'application/xml; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $invoice->invoice_number . '.xml"',
+        ]);
     }
 
     public function submitZatca(int $id): RedirectResponse
     {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireFeature('zatca_phase2')) {
+            return $redirect;
+        }
         $invoice = $this->findOwned($id);
-        return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'ZATCA Phase 2 submission lands in a later phase of this conversion.');
+        $company = Company::find($invoice->company_id);
+
+        if (($company->zatca_status ?? '') !== 'active') {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', "ZATCA Phase 2 isn't activated for your company yet. Ask your platform administrator to complete onboarding.");
+        }
+        if (empty($invoice->zatca_uuid)) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no ZATCA chain data.');
+        }
+
+        $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
+        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $xmlContent = UblInvoice::build(
+            $invoice->toArray(),
+            $company->toArray(),
+            $client?->toArray(),
+            $this->itemsForXml($items),
+            (string) $invoice->zatca_uuid,
+            (int) $invoice->zatca_icv,
+            (string) $invoice->zatca_previous_hash
+        );
+
+        $apiClient = new ApiClient($company->zatca_environment ?: 'sandbox');
+        $result = $apiClient->reportInvoice(
+            base64_encode($xmlContent),
+            (string) $invoice->zatca_uuid,
+            (string) $invoice->zatca_hash,
+            (string) $company->zatca_production_csid,
+            (string) $company->zatca_production_secret
+        );
+
+        if (!empty($result['ok'])) {
+            $invoice->update([
+                'zatca_status' => 'reported',
+                'zatca_submitted_at' => now(),
+                'zatca_response' => json_encode($result['data'] ?? $result),
+            ]);
+            $this->flash('success', 'Invoice reported to ZATCA.');
+        } else {
+            $error = $result['error'] ?? json_encode($result['data'] ?? $result);
+            $invoice->update([
+                'zatca_status' => 'failed',
+                'zatca_response' => (string) $error,
+            ]);
+            $this->flash('error', 'ZATCA rejected the invoice: ' . $error);
+        }
+        return redirect('/app/invoices/' . $invoice->id);
     }
 
     /** Renders the ZATCA Phase 1 QR (SVG data URI) for an invoice, or null if the company has no VAT number set. */
