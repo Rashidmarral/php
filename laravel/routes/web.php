@@ -18,8 +18,10 @@ use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\BillingController;
+use App\Http\Controllers\App\BusinessSetupController;
 use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\ClientController;
+use App\Http\Controllers\App\ComplianceController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\App\InvoiceController;
@@ -127,9 +129,29 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/settings', [SettingsController::class, 'update']);
     Route::post('/settings/password', [SettingsController::class, 'updatePassword']);
 
-    // Business setup, leads, quick estimate, reports, takeoffs, consultations,
-    // integrations, materials, suppliers, documents — ported module-by-module
-    // in the rest of this phase.
+    Route::get('/business-setup', [BusinessSetupController::class, 'index']);
+    Route::get('/business-setup/units-of-measure', [BusinessSetupController::class, 'units']);
+    Route::post('/business-setup/units-of-measure', [BusinessSetupController::class, 'storeUnit']);
+    Route::post('/business-setup/units-of-measure/load-defaults', [BusinessSetupController::class, 'loadDefaultUnits']);
+    Route::post('/business-setup/units-of-measure/{id}', [BusinessSetupController::class, 'updateUnit']);
+    Route::post('/business-setup/units-of-measure/{id}/delete', [BusinessSetupController::class, 'destroyUnit']);
+    Route::get('/business-setup/tax-rates', [BusinessSetupController::class, 'taxRates']);
+    Route::post('/business-setup/tax-rates', [BusinessSetupController::class, 'storeTaxRate']);
+    Route::post('/business-setup/tax-rates/{id}', [BusinessSetupController::class, 'updateTaxRate']);
+    Route::post('/business-setup/tax-rates/{id}/delete', [BusinessSetupController::class, 'destroyTaxRate']);
+    Route::get('/business-setup/compliance', [ComplianceController::class, 'index']);
+    Route::post('/business-setup/compliance', [ComplianceController::class, 'store']);
+    Route::post('/business-setup/compliance/{id}', [ComplianceController::class, 'update']);
+    Route::post('/business-setup/compliance/{id}/delete', [ComplianceController::class, 'destroy']);
+    Route::get('/business-setup/{type}', [BusinessSetupController::class, 'simple']);
+    Route::post('/business-setup/{type}', [BusinessSetupController::class, 'storeSimple']);
+    Route::post('/business-setup/{type}/load-defaults', [BusinessSetupController::class, 'loadDefaultsSimple']);
+    Route::post('/business-setup/{type}/{id}', [BusinessSetupController::class, 'updateSimple']);
+    Route::post('/business-setup/{type}/{id}/delete', [BusinessSetupController::class, 'destroySimple']);
+
+    // Leads, quick estimate, reports, takeoffs, consultations, integrations,
+    // materials, suppliers, documents — ported module-by-module in the rest
+    // of this phase.
 });
 
 /*

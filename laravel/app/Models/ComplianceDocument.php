@@ -7,6 +7,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ComplianceDocument extends Model
 {
+    public const TYPES = [
+        'cr' => 'Commercial Registration (CR)',
+        'vat' => 'VAT Certificate',
+        'zakat' => 'Zakat Certificate',
+        'gosi' => 'GOSI Certificate of Good Standing',
+        'chamber' => 'Chamber of Commerce Membership',
+        'nitaqat' => 'Nitaqat (Saudization) Certificate',
+        'classification' => 'Contractor Classification Certificate',
+        'other' => 'Other',
+    ];
+
     public $timestamps = true;
     const UPDATED_AT = null;
 
