@@ -14,7 +14,7 @@ if (!function_exists('local')) {
     /** Picks the Arabic value of a field when browsing in Arabic and it's non-empty, else the English value. */
     function local(array|object $row, string $enKey, ?string $arKey = null): string
     {
-        $row = (array) $row;
+        $row = is_object($row) && method_exists($row, 'toArray') ? $row->toArray() : (array) $row;
         $arKey = $arKey ?? $enKey . '_ar';
         if (app()->getLocale() === 'ar' && !empty($row[$arKey])) {
             return (string) $row[$arKey];

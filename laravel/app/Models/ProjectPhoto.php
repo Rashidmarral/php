@@ -14,7 +14,7 @@ class ProjectPhoto extends Model
 
     protected function casts(): array
     {
-        return ['taken_on' => 'date'];
+        return ['taken_on' => 'date:Y-m-d'];
     }
 
     public function project(): BelongsTo

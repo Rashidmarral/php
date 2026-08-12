@@ -17,7 +17,11 @@ use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\UsageController;
+use App\Http\Controllers\App\ChangeOrderController;
+use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\DashboardController;
+use App\Http\Controllers\App\ProjectController;
+use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,9 +54,31 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
 
-    // Projects, clients, estimates, invoices, billing, business setup, schedule, team,
-    // leads, quick estimate, reports, takeoffs, consultations, integrations, materials,
-    // suppliers, documents, settings — ported module-by-module in the next phase.
+    Route::get('/projects', [ProjectController::class, 'index']);
+    Route::get('/projects/create', [ProjectController::class, 'create']);
+    Route::post('/projects', [ProjectController::class, 'store']);
+    Route::get('/projects/{id}', [ProjectController::class, 'show']);
+    Route::get('/projects/{id}/edit', [ProjectController::class, 'edit']);
+    Route::post('/projects/{id}', [ProjectController::class, 'update']);
+    Route::post('/projects/{id}/delete', [ProjectController::class, 'destroy']);
+    Route::post('/projects/{id}/change-orders', [ChangeOrderController::class, 'store']);
+    Route::post('/change-orders/{id}/status', [ChangeOrderController::class, 'updateStatus']);
+    Route::post('/change-orders/{id}/delete', [ChangeOrderController::class, 'destroy']);
+    Route::post('/projects/{id}/photos', [ProjectPhotoController::class, 'store']);
+    Route::post('/project-photos/{id}/delete', [ProjectPhotoController::class, 'destroy']);
+
+    Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/clients/create', [ClientController::class, 'create']);
+    Route::post('/clients', [ClientController::class, 'store']);
+    Route::get('/clients/{id}/edit', [ClientController::class, 'edit']);
+    Route::post('/clients/{id}', [ClientController::class, 'update']);
+    Route::post('/clients/{id}/delete', [ClientController::class, 'destroy']);
+    Route::post('/clients/{id}/enable-portal', [ClientController::class, 'enablePortal']);
+    Route::post('/clients/{id}/disable-portal', [ClientController::class, 'disablePortal']);
+
+    // Estimates, invoices, billing, business setup, schedule, team, leads, quick estimate,
+    // reports, takeoffs, consultations, integrations, materials, suppliers, documents,
+    // settings — ported module-by-module in the rest of this phase.
 });
 
 /*

@@ -15,7 +15,7 @@ class ComplianceDocument extends Model
     protected function casts(): array
     {
         return [
-            'expiry_date' => 'date',
+            'expiry_date' => 'date:Y-m-d',
             'reminder_sent_at' => 'datetime',
         ];
     }
@@ -23,5 +23,16 @@ class ComplianceDocument extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public static function expiringWithin(int $companyId, int $days): \Illuminate\Support\Collection
+    {
+        $cutoff = now()->addDays($days)->format('Y-m-d');
+        return static::query()
+            ->where('company_id', $companyId)
+            ->whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', $cutoff)
+            ->orderBy('expiry_date')
+            ->get();
     }
 }
