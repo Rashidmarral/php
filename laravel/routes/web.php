@@ -134,6 +134,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
     Route::get('/estimates/{id}', [EstimateController::class, 'show']);
     Route::post('/estimates/{id}/status', [EstimateController::class, 'updateStatus']);
+    Route::post('/estimates/{id}/totals', [EstimateController::class, 'updateTotals']);
     Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);
 
     Route::get('/invoices', [InvoiceController::class, 'index']);

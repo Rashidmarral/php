@@ -11,7 +11,10 @@ use App\Models\EstimateItem;
 use App\Models\EstimateTemplate;
 use App\Models\EstimateTemplateItem;
 use App\Models\Project;
+use App\Models\TaxRate;
+use App\Models\UnitOfMeasure;
 use App\Support\AiEstimateGenerator;
+use App\Support\EstimateCalc;
 use App\Support\WhatsApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -108,6 +111,9 @@ class EstimateController extends Controller
             ];
         }
 
+        [$markupPercent, $taxRateId, $taxPercent] = $this->defaultMarkupAndTax($companyId);
+        $calc = EstimateCalc::compute($total, $markupPercent, $taxPercent);
+
         $estimate = Estimate::create([
             'company_id' => $companyId,
             'project_id' => null,
@@ -115,7 +121,13 @@ class EstimateController extends Controller
             'title' => trim((string) $request->input('title')) ?: $template->name_en,
             'title_ar' => trim((string) $request->input('title_ar', '')) ?: ($template->name_ar ?? ''),
             'status' => 'draft',
-            'total' => $total,
+            'subtotal' => $total,
+            'markup_percent' => $markupPercent,
+            'markup_amount' => $calc['markup_amount'],
+            'tax_rate_id' => $taxRateId,
+            'tax_percent' => $taxPercent,
+            'tax_amount' => $calc['tax_amount'],
+            'total' => $calc['total'],
             'share_token' => bin2hex(random_bytes(20)),
             'building_type' => trim((string) $request->input('building_type', '')),
             'job_address' => trim((string) $request->input('job_address', '')),
@@ -129,6 +141,14 @@ class EstimateController extends Controller
 
         $this->flash('success', 'Estimate created from "' . $template->name_en . '".');
         return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    /** @return array{0: float, 1: ?int, 2: float} [markup_percent, tax_rate_id, tax_percent] */
+    private function defaultMarkupAndTax(int $companyId): array
+    {
+        $markupPercent = (float) (Company::find($companyId)?->default_markup_percent ?? 0);
+        $defaultTax = TaxRate::where('company_id', $companyId)->where('is_default', true)->first();
+        return [$markupPercent, $defaultTax?->id, (float) ($defaultTax->rate_percent ?? 0)];
     }
 
     public function aiGenerator(): View|RedirectResponse
@@ -174,13 +194,22 @@ class EstimateController extends Controller
             ];
         }
 
+        [$markupPercent, $taxRateId, $taxPercent] = $this->defaultMarkupAndTax($companyId);
+        $calc = EstimateCalc::compute($total, $markupPercent, $taxPercent);
+
         $estimate = Estimate::create([
             'company_id' => $companyId,
             'project_id' => null,
             'client_id' => null,
             'title' => $result['title'],
             'status' => 'draft',
-            'total' => $total,
+            'subtotal' => $total,
+            'markup_percent' => $markupPercent,
+            'markup_amount' => $calc['markup_amount'],
+            'tax_rate_id' => $taxRateId,
+            'tax_percent' => $taxPercent,
+            'tax_amount' => $calc['tax_amount'],
+            'total' => $calc['total'],
             'share_token' => bin2hex(random_bytes(20)),
             'source' => 'ai',
         ]);
@@ -209,10 +238,16 @@ class EstimateController extends Controller
             ->map(fn ($r) => (array) $r)
             ->all();
 
+        [$markupPercent, $taxRateId] = $this->defaultMarkupAndTax($companyId);
+
         return view('app.estimates.form', [
             'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
             'projects' => Project::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
             'materials' => $materials,
+            'units' => UnitOfMeasure::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
+            'taxRates' => TaxRate::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
+            'defaultMarkupPercent' => $markupPercent,
+            'defaultTaxRateId' => $taxRateId,
         ]);
     }
 
@@ -228,24 +263,46 @@ class EstimateController extends Controller
             return $this->redirectWithFlash('/app/estimates/create', 'error', 'Estimate title is required.');
         }
 
+        $sections = $request->input('item_section', []);
         $descriptions = $request->input('item_description', []);
         $descriptionsAr = $request->input('item_description_ar', []);
+        $types = $request->input('item_type', []);
         $qtys = $request->input('item_qty', []);
+        $uoms = $request->input('item_uom', []);
         $costs = $request->input('item_cost', []);
 
-        $total = 0;
+        $subtotal = 0;
         $items = [];
+        $lastSection = null;
         foreach ($descriptions as $i => $desc) {
             $desc = trim((string) $desc);
             if ($desc === '') {
                 continue;
             }
+            $section = trim((string) ($sections[$i] ?? ''));
+            if ($section !== '') {
+                $lastSection = $section;
+            }
             $qty = (float) ($qtys[$i] ?? 1);
             $cost = (float) ($costs[$i] ?? 0);
             $lineTotal = $qty * $cost;
-            $total += $lineTotal;
-            $items[] = ['description' => $desc, 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')), 'qty' => $qty, 'unit_cost' => $cost, 'total' => $lineTotal];
+            $subtotal += $lineTotal;
+            $items[] = [
+                'description' => $desc,
+                'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
+                'section_title' => $lastSection,
+                'item_type' => in_array($types[$i] ?? '', ['labor', 'material', 'equipment', 'subcontractor', 'other'], true) ? $types[$i] : 'material',
+                'qty' => $qty,
+                'uom' => trim((string) ($uoms[$i] ?? '')) ?: 'each',
+                'unit_cost' => $cost,
+                'total' => $lineTotal,
+            ];
         }
+
+        $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
+        $taxRateId = $request->input('tax_rate_id') ?: null;
+        $taxPercent = $taxRateId ? (float) (TaxRate::find($taxRateId)?->rate_percent ?? 0) : 0;
+        $calc = EstimateCalc::compute($subtotal, $markupPercent, $taxPercent);
 
         $estimate = Estimate::create([
             'company_id' => $companyId,
@@ -254,7 +311,13 @@ class EstimateController extends Controller
             'title' => $title,
             'title_ar' => trim((string) $request->input('title_ar', '')),
             'status' => 'draft',
-            'total' => $total,
+            'subtotal' => $subtotal,
+            'markup_percent' => $markupPercent,
+            'markup_amount' => $calc['markup_amount'],
+            'tax_rate_id' => $taxRateId,
+            'tax_percent' => $taxPercent,
+            'tax_amount' => $calc['tax_amount'],
+            'total' => $calc['total'],
             'share_token' => bin2hex(random_bytes(20)),
         ]);
 
@@ -263,6 +326,30 @@ class EstimateController extends Controller
         }
 
         $this->flash('success', 'Estimate created.');
+        return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    public function updateTotals(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
+        $taxRateId = $request->input('tax_rate_id') ?: null;
+        $taxPercent = $taxRateId ? (float) (TaxRate::find($taxRateId)?->rate_percent ?? 0) : 0;
+        $calc = EstimateCalc::compute((float) $estimate->subtotal, $markupPercent, $taxPercent);
+
+        $estimate->update([
+            'markup_percent' => $markupPercent,
+            'markup_amount' => $calc['markup_amount'],
+            'tax_rate_id' => $taxRateId,
+            'tax_percent' => $taxPercent,
+            'tax_amount' => $calc['tax_amount'],
+            'total' => $calc['total'],
+        ]);
+
+        $this->flash('success', 'Markup and tax updated.');
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -292,6 +379,7 @@ class EstimateController extends Controller
             'project' => $project,
             'whatsappLink' => $whatsappLink,
             'shareUrl' => $shareUrl,
+            'taxRates' => TaxRate::where('company_id', $estimate->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
         ]);
     }
 
@@ -343,9 +431,11 @@ class EstimateController extends Controller
             'companyLogo' => !empty($company->logo_path) ? ('file://' . public_path($company->logo_path)) : null,
             'billTo' => $client ? ['name' => ($lang === 'ar' && !empty($client->name_ar)) ? $client->name_ar : $client->name, 'meta' => array_filter([$client->email ?? null, $client->phone ?? null, $client->address ?? null])] : null,
             'items' => $items->map(fn ($i) => ['description' => ($lang === 'ar' && !empty($i->description_ar)) ? $i->description_ar : $i->description, 'qty' => $i->qty, 'unit_price' => $i->unit_cost, 'total' => $i->total])->all(),
-            'subtotal' => (float) $estimate->total,
+            'subtotal' => (float) $estimate->subtotal + (float) $estimate->markup_amount,
             'discountPercent' => 0,
             'discountAmount' => 0,
+            'vatRate' => (float) $estimate->tax_percent,
+            'vatAmount' => (float) $estimate->tax_amount,
             'total' => (float) $estimate->total,
             'footerNote' => $lang === 'ar' ? 'تم إنشاؤه بواسطة BuildXact Saudi' : 'Generated by BuildXact Saudi',
         ], 'Estimate-' . $estimate->id . '.pdf');

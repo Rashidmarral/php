@@ -24,7 +24,13 @@
       </select>
     </div>
   </div>
-  <div class="form-group"><label><?= t('common.unit') ?></label><input type="text" name="unit" value="<?= e($material['unit'] ?? 'unit') ?>" placeholder="e.g. m², ton, bag, unit"></div>
+  <div class="form-group">
+    <label><?= t('common.unit') ?></label>
+    <input type="text" name="unit" list="uom-options" value="<?= e($material['unit'] ?? 'unit') ?>" placeholder="e.g. m², ton, bag, unit">
+    <datalist id="uom-options">
+      <?php foreach ($units as $u): ?><option value="<?= e($u['code']) ?>"><?= e($u['name']) ?></option><?php endforeach; ?>
+    </datalist>
+  </div>
 
   <div class="form-row">
     <div class="form-group"><label><?= t('user.materials.material_cost') ?></label><input type="number" step="0.01" id="material-cost" name="material_cost" value="<?= e((string)($material['material_cost'] ?? 0)) ?>"></div>

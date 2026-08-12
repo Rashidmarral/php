@@ -164,12 +164,18 @@ class QuickEstimateController extends Controller
         $lang = $estimate->lang === 'ar' ? 'ar' : 'en';
         $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang);
 
+        $taxPercent = (float) $estimate->subtotal > 0 ? round((float) $estimate->vat_amount / (float) $estimate->subtotal * 100, 2) : 0;
         $newEstimate = Estimate::create([
             'company_id' => Auth::user()->company_id,
             'project_id' => null,
             'client_id' => $estimate->client_id,
             'title' => $estimate->project_name ?: ('Quick Estimate #' . $estimate->id),
             'status' => 'draft',
+            'subtotal' => $estimate->subtotal,
+            'markup_percent' => 0,
+            'markup_amount' => 0,
+            'tax_percent' => $taxPercent,
+            'tax_amount' => $estimate->vat_amount,
             'total' => $estimate->total,
         ]);
         foreach ($items as $item) {

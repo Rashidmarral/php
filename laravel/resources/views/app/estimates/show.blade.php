@@ -39,24 +39,52 @@
 
 <div class="card" style="max-width:820px;">
   <table class="data">
-    <thead><tr><th><?= t('common.description') ?></th><?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><th><?= t('common.type') ?></th><?php endif; ?><th><?= t('common.qty') ?></th><?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><th>UOM</th><?php endif; ?><th><?= t('common.unit_cost') ?></th><th><?= t('common.total') ?></th></tr></thead>
+    <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.type') ?></th><th><?= t('common.qty') ?></th><th>UOM</th><th><?= t('common.unit_cost') ?></th><th><?= t('common.total') ?></th></tr></thead>
     <tbody>
       <?php $lastSection = null; foreach ($items as $it): ?>
         <?php if (!empty($it['section_title']) && $it['section_title'] !== $lastSection): $lastSection = $it['section_title']; ?>
-          <tr style="background:#fafcfb;"><td colspan="5"><strong><?= e(local($it, 'section_title')) ?></strong></td></tr>
+          <tr style="background:#fafcfb;"><td colspan="6"><strong><?= e(local($it, 'section_title')) ?></strong></td></tr>
         <?php endif; ?>
         <tr>
           <td><?= e(local($it, 'description')) ?></td>
-          <?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><td><span class="badge badge-<?= $it['item_type']==='labor'?'yellow':'gray' ?>"><?= e(ucfirst($it['item_type'])) ?></span></td><?php endif; ?>
+          <td><span class="badge badge-<?= $it['item_type']==='labor'?'yellow':'gray' ?>"><?= e(ucfirst($it['item_type'])) ?></span></td>
           <td><?= e($it['qty']) ?></td>
-          <?php if (!empty($estimate['source']) && in_array($estimate['source'], ['template','ai'], true)): ?><td><?= e($it['uom']) ?></td><?php endif; ?>
+          <td><?= e($it['uom']) ?></td>
           <td><?= money((float)$it['unit_cost']) ?></td>
           <td><?= money((float)$it['total']) ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
-  <div class="total-row" style="margin-top:14px;"><?= t('common.total') ?>: <?= money((float)$estimate['total']) ?></div>
+  <div class="breakdown" style="margin-top:14px;max-width:320px;margin-inline-start:auto;font-size:14px;">
+    <div><span>Cost subtotal</span><span><?= money((float)$estimate['subtotal']) ?></span></div>
+    <div><span>Margin (<?= e($estimate['markup_percent']) ?>%)</span><span><?= money((float)$estimate['markup_amount']) ?></span></div>
+    <?php if ((float)$estimate['tax_amount'] > 0 || $estimate['tax_rate_id']): ?>
+      <div><span>Tax (<?= e($estimate['tax_percent']) ?>%)</span><span><?= money((float)$estimate['tax_amount']) ?></span></div>
+    <?php endif; ?>
+  </div>
+  <div class="total-row" style="margin-top:8px;"><?= t('common.total') ?>: <?= money((float)$estimate['total']) ?></div>
+</div>
+
+<div class="card" style="max-width:820px;margin-top:20px;">
+  <h3>Profit margin &amp; tax</h3>
+  <form method="post" action="/app/estimates/<?= $estimate['id'] ?>/totals" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;">
+      <label>Profit margin %</label>
+      <input type="number" step="0.01" min="0" max="100" name="markup_percent" value="<?= e($estimate['markup_percent']) ?>" style="width:110px;">
+    </div>
+    <div class="form-group" style="margin:0;">
+      <label>Tax rate</label>
+      <select name="tax_rate_id">
+        <option value="">No tax</option>
+        <?php foreach ($taxRates as $tr): ?>
+          <option value="<?= $tr['id'] ?>" <?= (string)$estimate['tax_rate_id'] === (string)$tr['id'] ? 'selected' : '' ?>><?= e($tr['name']) ?> (<?= e($tr['rate_percent']) ?>%)</option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary"><?= t('common.update') ?></button>
+  </form>
 </div>
 
 <div class="card" style="max-width:820px;margin-top:20px;">

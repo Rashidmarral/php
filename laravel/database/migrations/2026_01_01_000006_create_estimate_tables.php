@@ -47,6 +47,12 @@ return new class extends Migration
             $table->string('title', 150);
             $table->string('title_ar', 150)->nullable();
             $table->string('status', 20)->default('draft');
+            $table->decimal('subtotal', 12, 2)->default(0);
+            $table->decimal('markup_percent', 5, 2)->default(0);
+            $table->decimal('markup_amount', 12, 2)->default(0);
+            $table->unsignedBigInteger('tax_rate_id')->nullable();
+            $table->decimal('tax_percent', 5, 2)->default(0);
+            $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('total', 12, 2)->default(0);
             $table->string('building_type', 100)->nullable();
             $table->string('job_address', 255)->nullable();

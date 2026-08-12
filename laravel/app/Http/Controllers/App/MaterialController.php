@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Material;
 use App\Models\Supplier;
+use App\Models\UnitOfMeasure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,7 @@ class MaterialController extends Controller
         return view('app.materials.form', [
             'material' => null,
             'suppliers' => Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get()->toArray(),
+            'units' => UnitOfMeasure::where('company_id', Auth::user()->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
         ]);
     }
 
@@ -71,6 +73,7 @@ class MaterialController extends Controller
         return view('app.materials.form', [
             'material' => $this->findOwned($id)->toArray(),
             'suppliers' => Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get()->toArray(),
+            'units' => UnitOfMeasure::where('company_id', Auth::user()->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
         ]);
     }
 
