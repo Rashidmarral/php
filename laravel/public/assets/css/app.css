@@ -25,7 +25,7 @@ body {
   line-height: 1.55;
   font-size: 15px;
 }
-html[dir="rtl"] body { font-family: "Segoe UI", "Tahoma", "Arial", sans-serif; }
+html[dir="rtl"] body { font-family: "Cairo", "Segoe UI", "Tahoma", "Arial", sans-serif; }
 a { color: var(--brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
 img { max-width: 100%; }
