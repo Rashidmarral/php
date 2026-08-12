@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Consultation extends Model
 {
+    public const TYPES = ['chat' => 'Online chat/video call', 'in_person' => 'In-person site visit'];
     public const STATUSES = ['requested', 'scheduled', 'completed', 'cancelled'];
 
     public $timestamps = true;
@@ -17,7 +17,7 @@ class Consultation extends Model
     protected function casts(): array
     {
         return [
-            'preferred_date' => 'date',
+            'preferred_date' => 'date:Y-m-d',
             'scheduled_at' => 'datetime',
         ];
     }
@@ -30,5 +30,14 @@ class Consultation extends Model
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
+    }
+
+    /** Consultations counted against this month's quota (anything not cancelled). */
+    public static function usedThisMonth(int $companyId): int
+    {
+        return static::where('company_id', $companyId)
+            ->where('status', '!=', 'cancelled')
+            ->where('created_at', '>=', now()->startOfMonth())
+            ->count();
     }
 }

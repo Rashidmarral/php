@@ -22,6 +22,9 @@ use App\Http\Controllers\App\BusinessSetupController;
 use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\ComplianceController;
+use App\Http\Controllers\App\ConsultationController;
+use App\Http\Controllers\App\DocumentController;
+use App\Http\Controllers\App\IntegrationController;
 use App\Http\Controllers\App\LeadController;
 use App\Http\Controllers\App\MaterialController;
 use App\Http\Controllers\App\DashboardController;
@@ -177,8 +180,20 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/materials/{id}', [MaterialController::class, 'update']);
     Route::post('/materials/{id}/delete', [MaterialController::class, 'destroy']);
 
-    // Quick estimate, reports, takeoffs, consultations, integrations, documents
-    // — ported module-by-module in the rest of this phase.
+    Route::get('/documents', [DocumentController::class, 'index']);
+    Route::post('/documents', [DocumentController::class, 'store']);
+    Route::post('/documents/{id}/delete', [DocumentController::class, 'destroy']);
+
+    Route::get('/integrations', [IntegrationController::class, 'index']);
+    Route::post('/integrations/google-sheets', [IntegrationController::class, 'updateGoogleSheets']);
+    Route::post('/integrations/client-payments', [IntegrationController::class, 'updateClientPayments']);
+
+    Route::get('/consultations', [ConsultationController::class, 'index']);
+    Route::post('/consultations', [ConsultationController::class, 'store']);
+    Route::post('/consultations/{id}/cancel', [ConsultationController::class, 'cancel']);
+
+    // Quick estimate, reports, takeoffs — ported module-by-module in the
+    // rest of this phase.
 });
 
 /*
