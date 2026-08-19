@@ -78,6 +78,33 @@ try {
         <a class="btn btn-primary btn-sm" href="{{ url('/register') }}">{{ t('nav.start_trial') }}</a>
       @endauth
     </div>
+    <button type="button" class="nav-burger" id="nav-burger" aria-label="{{ t('nav.menu') }}" aria-expanded="false" aria-controls="mobile-nav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-nav" id="mobile-nav">
+    <nav class="mobile-nav-links">
+      <a href="{{ url('/features') }}">{{ t('nav.features') }}</a>
+      <a href="{{ url('/pricing') }}">{{ t('nav.pricing') }}</a>
+      <a href="{{ url('/about') }}">{{ t('nav.about') }}</a>
+      <a href="{{ url('/support') }}">{{ t('nav.support') }}</a>
+      <a href="{{ url('/contact') }}">{{ t('nav.contact') }}</a>
+      @foreach ($navPages as $np)
+        <a href="{{ url('/p/' . $np->slug) }}">{{ $isAr ? ($np->nav_label_ar ?: $np->title_ar) : ($np->nav_label_en ?: $np->title_en) }}</a>
+      @endforeach
+    </nav>
+    <div class="mobile-nav-actions">
+      @if($headerPhone)
+        <a class="lang-switch" href="tel:{{ preg_replace('/\s+/', '', $headerPhone) }}" style="direction:ltr;">📞 {{ $headerPhone }}</a>
+      @endif
+      <a class="lang-switch" href="?lang={{ $otherLang }}">{{ $otherLangLabel === 'AR' ? 'العربية' : 'English' }}</a>
+      @auth
+        <a class="btn btn-outline btn-block" href="{{ auth()->user()->isSuperAdmin() ? url('/admin') : url('/app') }}">{{ t('nav.dashboard') }}</a>
+      @else
+        <a class="btn btn-light btn-block" href="{{ url('/login') }}">{{ t('nav.login') }}</a>
+        <a class="btn btn-primary btn-block" href="{{ url('/register') }}">{{ t('nav.start_trial') }}</a>
+      @endauth
+    </div>
   </div>
 </header>
 

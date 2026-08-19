@@ -7,9 +7,10 @@ class QuickEstimateCalc
 {
     /**
      * @param array<int, array<string, mixed>> $addonRows
-     * @return array{addons_payload: array<int, array{id:int,name_en:string,name_ar:string,cost:float}>, subtotal: float, discount_amount: float, vat_amount: float, total: float}
+     * @param array<int, float> $addonQuantities Manual quantities keyed by addon id, used for addons whose qty_mode isn't 'area'.
+     * @return array{addons_payload: array<int, array{id:int,name_en:string,name_ar:string,cost:float,qty:float,unit_type:string}>, subtotal: float, discount_amount: float, vat_amount: float, total: float}
      */
-    public static function compute(array $region, array $foundation, array $addonRows, float $totalArea, float $discountPercent, float $vatRate): array
+    public static function compute(array $region, array $foundation, array $addonRows, float $totalArea, float $discountPercent, float $vatRate, array $addonQuantities = []): array
     {
         $baseCost = $totalArea * (float) $region['price_per_sqm'];
         $foundationCost = $totalArea * (float) $foundation['price_per_sqm'];
@@ -17,9 +18,20 @@ class QuickEstimateCalc
         $addonCost = 0.0;
         $addonsPayload = [];
         foreach ($addonRows as $addon) {
-            $cost = (float) $addon['unit_price'] * $totalArea;
+            // Area-priced add-ons (e.g. SAR/m²) scale automatically with the total area.
+            // Everything else (ton, unit, linear m, m³...) uses the quantity the user entered for that add-on.
+            $isAreaBased = ($addon['qty_mode'] ?? 'area') === 'area';
+            $qty = $isAreaBased ? $totalArea : max(0, (float) ($addonQuantities[(int) $addon['id']] ?? 1));
+            $cost = (float) $addon['unit_price'] * $qty;
             $addonCost += $cost;
-            $addonsPayload[] = ['id' => (int) $addon['id'], 'name_en' => $addon['name_en'], 'name_ar' => $addon['name_ar'], 'cost' => $cost];
+            $addonsPayload[] = [
+                'id' => (int) $addon['id'],
+                'name_en' => $addon['name_en'],
+                'name_ar' => $addon['name_ar'],
+                'cost' => $cost,
+                'qty' => $qty,
+                'unit_type' => (string) ($addon['unit_type'] ?? ''),
+            ];
         }
 
         $multiplier = (float) ($region['multiplier'] ?? 1.0) ?: 1.0;
@@ -61,10 +73,11 @@ class QuickEstimateCalc
             ];
         }
         foreach ($addons as $addon) {
+            $qty = (float) ($addon['qty'] ?? $estimate['total_area']);
             $items[] = [
                 'description' => $addon[$nameKey] ?? $addon['name_en'],
-                'qty' => $estimate['total_area'],
-                'unit_price' => (float) $addon['cost'] / max(1, $estimate['total_area']),
+                'qty' => $qty,
+                'unit_price' => (float) $addon['cost'] / max(0.0001, $qty),
                 'total' => $addon['cost'],
             ];
         }

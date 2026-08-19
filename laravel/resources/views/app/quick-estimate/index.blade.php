@@ -103,14 +103,20 @@
         <h3>🔧 <?= t('qe.addons') ?></h3>
         <p class="help-text" style="margin-top:-8px;"><?= t('qe.addons_hint') ?></p>
         <div class="qe-addon-grid" id="qe-addons">
-          <?php foreach ($addons as $a): $name = app()->getLocale() === 'ar' ? $a['name_ar'] : $a['name_en']; $desc = app()->getLocale() === 'ar' ? $a['description_ar'] : $a['description_en']; ?>
-            <label class="qe-addon-card" data-id="<?= $a['id'] ?>" data-price="<?= $a['unit_price'] ?>">
+          <?php foreach ($addons as $a): $name = app()->getLocale() === 'ar' ? $a['name_ar'] : $a['name_en']; $desc = app()->getLocale() === 'ar' ? $a['description_ar'] : $a['description_en']; $manual = ($a['qty_mode'] ?? 'area') === 'manual'; ?>
+            <label class="qe-addon-card" for="qe-addon-<?= $a['id'] ?>" data-id="<?= $a['id'] ?>" data-price="<?= $a['unit_price'] ?>" data-mode="<?= $manual ? 'manual' : 'area' ?>">
               <div>
                 <div class="name"><?= e($name) ?><?php if ($a['is_pro']): ?><span class="qe-pro-tag">PRO</span><?php endif; ?></div>
                 <div class="desc"><?= e($desc) ?></div>
                 <div class="price">SAR/<?= e($a['unit_type']) ?> <?= number_format((float)$a['unit_price'],2) ?></div>
+                <?php if ($manual): ?>
+                  <div class="qe-addon-qty">
+                    <span><?= t('qe.qty') ?> (<?= e($a['unit_type']) ?>)</span>
+                    <input type="number" class="qe-qty-input" name="addon_qty[<?= $a['id'] ?>]" min="0" step="0.01" value="1" onclick="event.stopPropagation()">
+                  </div>
+                <?php endif; ?>
               </div>
-              <input type="checkbox" name="addons[]" value="<?= $a['id'] ?>">
+              <input type="checkbox" id="qe-addon-<?= $a['id'] ?>" name="addons[]" value="<?= $a['id'] ?>">
             </label>
           <?php endforeach; ?>
         </div>
@@ -176,16 +182,24 @@
   });
 
   document.querySelectorAll('#qe-addons .qe-addon-card').forEach(card => {
-    const checkbox = card.querySelector('input');
+    const checkbox = card.querySelector('input[type="checkbox"]');
+    const qtyInput = card.querySelector('.qe-qty-input');
+    const mode = card.dataset.mode || 'area';
+
+    function syncAddon() {
+      if (!checkbox.checked) { selectedAddons.delete(card.dataset.id); return; }
+      const qty = mode === 'manual' ? (parseFloat(qtyInput ? qtyInput.value : 1) || 0) : null;
+      selectedAddons.set(card.dataset.id, { price: parseFloat(card.dataset.price), mode: mode, qty: qty });
+    }
+
     checkbox.addEventListener('change', () => {
       card.classList.toggle('selected', checkbox.checked);
-      if (checkbox.checked) {
-        selectedAddons.set(card.dataset.id, parseFloat(card.dataset.price));
-      } else {
-        selectedAddons.delete(card.dataset.id);
-      }
+      syncAddon();
       recalc();
     });
+    if (qtyInput) {
+      qtyInput.addEventListener('input', () => { syncAddon(); recalc(); });
+    }
   });
 
   areaInput.addEventListener('input', recalc);
@@ -198,7 +212,7 @@
     const base = selectedRegion ? area * selectedRegion.price : 0;
     const foundation = selectedFoundation ? area * selectedFoundation.price : 0;
     let addonsTotal = 0;
-    selectedAddons.forEach(price => addonsTotal += price * area);
+    selectedAddons.forEach(a => addonsTotal += a.price * (a.mode === 'manual' ? a.qty : area));
 
     const mult = selectedRegion ? selectedRegion.mult : 1;
     const subtotal = (base + foundation + addonsTotal) * mult;

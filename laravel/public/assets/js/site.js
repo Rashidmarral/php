@@ -103,3 +103,25 @@
   }, { threshold: 0.4 });
   els.forEach(function (el) { counterObserver.observe(el); });
 })();
+
+/* ---------- Mobile nav burger toggle ---------- */
+(function () {
+  var burger = document.getElementById('nav-burger');
+  var panel = document.getElementById('mobile-nav');
+  if (!burger || !panel) return;
+
+  function close() {
+    burger.setAttribute('aria-expanded', 'false');
+    panel.classList.remove('open');
+  }
+  function toggle() {
+    var open = burger.getAttribute('aria-expanded') === 'true';
+    burger.setAttribute('aria-expanded', open ? 'false' : 'true');
+    panel.classList.toggle('open', !open);
+  }
+
+  burger.addEventListener('click', toggle);
+  panel.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 900) close(); });
+})();

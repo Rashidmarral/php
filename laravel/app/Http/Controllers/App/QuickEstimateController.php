@@ -70,8 +70,9 @@ class QuickEstimateController extends Controller
         $addonRows = empty($selectedAddonIds)
             ? []
             : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->toArray();
+        $addonQuantities = array_map('floatval', (array) $request->input('addon_qty', []));
 
-        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate);
+        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities);
 
         $clientId = $request->input('client_id') ?: null;
         $client = $clientId ? Client::find((int) $clientId) : null;
