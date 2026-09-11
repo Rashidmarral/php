@@ -45,6 +45,8 @@ class ProjectPhotoController extends Controller
             'caption' => trim((string) $request->input('caption', '')),
             'file_path' => "/uploads/project-photos/{$filename}",
             'taken_on' => $request->input('taken_on') ?: now()->format('Y-m-d'),
+            'latitude' => $this->coordinate($request->input('latitude'), 90),
+            'longitude' => $this->coordinate($request->input('longitude'), 180),
         ]);
 
         return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Photo added to site diary.');
@@ -63,6 +65,23 @@ class ProjectPhotoController extends Controller
         $projectId = $photo->project_id;
         $photo->delete();
         return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Photo removed.');
+    }
+
+    /**
+     * The device GPS field is populated by browser JS (navigator.geolocation) and is absent
+     * whenever geolocation is denied, unsupported, or unavailable — that must never block the
+     * upload, so an invalid/out-of-range value is silently dropped rather than rejected.
+     */
+    private function coordinate(mixed $value, float $max): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $value = (float) $value;
+        return abs($value) <= $max ? $value : null;
     }
 
     private function findOwnedProject(int $id): Project

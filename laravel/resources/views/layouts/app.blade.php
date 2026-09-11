@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}">
+<link rel="manifest" href="{{ asset('manifest.json') }}">
+<meta name="theme-color" content="#16233f">
+<link rel="apple-touch-icon" href="{{ asset('assets/icons/icon-192.png') }}">
 @include('partials.theme-vars')
 </head>
 <body>
@@ -84,5 +87,15 @@
   </div>
 </div>
 <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
+<script>
+  // Field supervisors work from a phone on site — installable + a safe static-asset cache
+  // makes the panel launchable like an app and keeps loading fast on a weak connection.
+  // This never caches authenticated page content — see public/sw.js.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () { /* installability is a bonus, never block the app */ });
+    });
+  }
+</script>
 </body>
 </html>

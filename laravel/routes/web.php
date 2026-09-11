@@ -44,7 +44,9 @@ use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\App\InvoiceController;
 use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
+use App\Http\Controllers\App\PunchListController;
 use App\Http\Controllers\App\ScheduleController;
+use App\Http\Controllers\App\SiteLogController;
 use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\SupportTicketController;
@@ -134,6 +136,11 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/bank-guarantees', [BankGuaranteeController::class, 'store']);
     Route::post('/bank-guarantees/{id}', [BankGuaranteeController::class, 'update']);
     Route::post('/bank-guarantees/{id}/delete', [BankGuaranteeController::class, 'destroy']);
+    Route::get('/projects/{id}/site-log', [SiteLogController::class, 'index']);
+    Route::post('/projects/{id}/site-log', [SiteLogController::class, 'store']);
+    Route::post('/projects/{id}/punch-list', [PunchListController::class, 'store']);
+    Route::post('/punch-list/{id}', [PunchListController::class, 'update']);
+    Route::post('/punch-list/{id}/delete', [PunchListController::class, 'destroy']);
 
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/create', [ClientController::class, 'create']);

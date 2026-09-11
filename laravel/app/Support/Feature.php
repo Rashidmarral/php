@@ -29,6 +29,8 @@ class Feature
         'change_orders' => 'Change Orders',
         'bank_guarantees' => 'Bank Guarantees & Bonds',
         'project_photos' => 'Project Photo Gallery',
+        'site_logs' => 'Daily Site Log',
+        'punch_list' => 'Punch List / Snag Tracking',
         'quick_estimate' => 'Quick Estimate Tool',
         'ai_estimate_generator' => 'AI Estimate Generator',
         'estimate_templates' => 'Estimate Template Library',

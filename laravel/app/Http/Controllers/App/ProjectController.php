@@ -10,8 +10,11 @@ use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
+use App\Models\PunchListItem;
 use App\Models\ScheduleTask;
+use App\Models\SiteLog;
 use App\Models\Supplier;
+use App\Models\User;
 use App\Models\VendorBill;
 use App\Support\Feature;
 use Illuminate\Http\RedirectResponse;
@@ -98,6 +101,19 @@ class ProjectController extends Controller
             ->orderByRaw('expiry_date IS NULL')
             ->orderBy('expiry_date')
             ->get();
+        $siteLogs = SiteLog::where('project_id', $project->id)
+            ->orderByDesc('log_date')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+        $siteLogCount = SiteLog::where('project_id', $project->id)->count();
+        $punchListItems = PunchListItem::where('project_id', $project->id)
+            ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END")
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->orderByDesc('created_at')
+            ->get();
+        $teamMembers = User::where('company_id', $project->company_id)->orderBy('name')->get();
         $actualCostTotal = (float) $vendorBills->sum('amount');
         $revisedBudget = (float) $project->budget + $approvedTotal;
 
@@ -114,6 +130,12 @@ class ProjectController extends Controller
             'suppliers' => $suppliers->toArray(),
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
+            'siteLogs' => $siteLogs->toArray(),
+            'siteLogCount' => $siteLogCount,
+            'punchListItems' => $punchListItems->toArray(),
+            'punchListStatuses' => PunchListItem::STATUSES,
+            'punchListPriorities' => PunchListItem::PRIORITIES,
+            'teamMembers' => $teamMembers->toArray(),
             'actualCostTotal' => $actualCostTotal,
             'revisedBudget' => $revisedBudget,
             'budgetVariance' => $revisedBudget - $actualCostTotal,

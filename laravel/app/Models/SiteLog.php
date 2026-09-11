@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProjectPhoto extends Model
+class SiteLog extends Model
 {
     public $timestamps = true;
     const UPDATED_AT = null;
@@ -13,11 +13,7 @@ class ProjectPhoto extends Model
 
     protected function casts(): array
     {
-        return [
-            'taken_on' => 'date:Y-m-d',
-            'latitude' => 'decimal:7',
-            'longitude' => 'decimal:7',
-        ];
+        return ['log_date' => 'date:Y-m-d'];
     }
 
     public function project(): BelongsTo
@@ -30,8 +26,8 @@ class ProjectPhoto extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function uploader(): BelongsTo
+    public function loggedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'uploaded_by');
+        return $this->belongsTo(User::class, 'logged_by');
     }
 }

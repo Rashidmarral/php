@@ -47,7 +47,7 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
     <?php
       $featureGroups = [
         t('admin.plan.group_estimating') => ['ai_estimate_generator', 'estimate_templates', 'quick_estimate', 'leads'],
-        t('admin.plan.group_delivery') => ['takeoff', 'change_orders', 'project_photos', 'documents'],
+        t('admin.plan.group_delivery') => ['takeoff', 'change_orders', 'project_photos', 'site_logs', 'punch_list', 'documents'],
         t('admin.plan.group_money') => ['online_invoice_payments', 'zatca_phase2', 'reports'],
         t('admin.plan.group_vendors') => ['suppliers', 'materials'],
         t('admin.plan.group_compliance') => ['compliance', 'client_portal'],

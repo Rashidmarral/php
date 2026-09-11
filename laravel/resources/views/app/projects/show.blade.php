@@ -215,16 +215,145 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.site_log.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.site_log.card_hint') ?></p>
+
+  <?php if (empty($siteLogs)): ?>
+    <p class="help-text"><?= t('user.site_log.no_entries_hint') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th><?= t('common.date') ?></th><th><?= t('user.site_log.weather') ?></th><th><?= t('user.site_log.workers_on_site') ?></th><th><?= t('user.site_log.notes') ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($siteLogs as $log): ?>
+        <tr>
+          <td><?= e($log['log_date']) ?></td>
+          <td><?= e($log['weather'] ?: '—') ?></td>
+          <td><?= $log['workers_on_site'] !== null ? e((string)$log['workers_on_site']) : '—' ?></td>
+          <td><?= e(\Illuminate\Support\Str::limit((string)$log['notes'], 80)) ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+  <a href="/app/projects/<?= $project['id'] ?>/site-log" class="btn btn-outline">
+    <?= $siteLogCount > 0 ? t('user.site_log.view_all', ['count' => $siteLogCount]) : t('user.site_log.add_entry') ?>
+  </a>
+</div>
+
+<div class="card" style="margin-top:24px;">
+  <h3><?= t('user.punch_list.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.punch_list.hint') ?></p>
+
+  <?php if (!empty($punchListItems)): ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th><?= t('common.title') ?></th><th><?= t('user.punch_list.location') ?></th><th><?= t('user.punch_list.priority') ?></th><th><?= t('user.punch_list.assigned_to') ?></th><th><?= t('user.punch_list.due_date') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($punchListItems as $item):
+        $priorityBadge = ['low' => 'gray', 'medium' => 'yellow', 'high' => 'red'][$item['priority']] ?? 'gray';
+        $statusBadge = ['open' => 'red', 'in_progress' => 'yellow', 'resolved' => 'green'][$item['status']] ?? 'gray';
+        $overdue = $item['due_date'] && $item['status'] !== 'resolved' && $item['due_date'] < date('Y-m-d');
+      ?>
+        <tr>
+          <td>
+            <?= e($item['title']) ?>
+            <?php if ($item['description']): ?><br><span class="help-text"><?= e($item['description']) ?></span><?php endif; ?>
+            <?php if ($item['photo_path']): ?><br><a href="<?= e($item['photo_path']) ?>" target="_blank"><?= t('user.punch_list.view_photo') ?></a><?php endif; ?>
+          </td>
+          <td><?= e($item['location'] ?: '—') ?></td>
+          <td><span class="badge badge-<?= $priorityBadge ?>"><?= e($punchListPriorities[$item['priority']] ?? ucfirst($item['priority'])) ?></span></td>
+          <td>
+            <form method="post" action="/app/punch-list/<?= $item['id'] ?>" style="display:inline;">
+              <?= csrf_field() ?>
+              <select name="assigned_to" onchange="this.form.submit()" style="padding:4px 6px;">
+                <option value=""><?= t('user.punch_list.unassigned') ?></option>
+                <?php foreach ($teamMembers as $member): ?>
+                  <option value="<?= $member['id'] ?>" <?= (int)($item['assigned_to'] ?? 0) === (int)$member['id'] ? 'selected' : '' ?>><?= e($member['name']) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </form>
+          </td>
+          <td><?= e($item['due_date'] ?: '—') ?><?php if ($overdue): ?> <span class="badge badge-red"><?= t('user.punch_list.overdue') ?></span><?php endif; ?></td>
+          <td>
+            <form method="post" action="/app/punch-list/<?= $item['id'] ?>" style="display:inline;">
+              <?= csrf_field() ?>
+              <select name="status" onchange="this.form.submit()" class="badge badge-<?= $statusBadge ?>" style="border:none;padding:4px 8px;">
+                <?php foreach ($punchListStatuses as $key => $label): ?>
+                  <option value="<?= $key ?>" <?= $item['status'] === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="/app/punch-list/<?= $item['id'] ?>/delete" onsubmit="return confirm('<?= t('user.punch_list.remove_confirm') ?>');">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/punch-list" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label><?= t('common.title') ?></label><input type="text" name="title" placeholder="e.g. Chipped tile, lobby floor" required></div>
+    <div class="form-group" style="margin:0;width:160px;"><label><?= t('user.punch_list.location') ?></label><input type="text" name="location" placeholder="e.g. 2nd floor, unit 204"></div>
+    <div class="form-group" style="margin:0;width:130px;"><label><?= t('user.punch_list.priority') ?></label>
+      <select name="priority">
+        <?php foreach ($punchListPriorities as $key => $label): ?><option value="<?= $key ?>" <?= $key==='medium'?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:170px;"><label><?= t('user.punch_list.assigned_to') ?></label>
+      <select name="assigned_to">
+        <option value=""><?= t('user.punch_list.unassigned') ?></option>
+        <?php foreach ($teamMembers as $member): ?><option value="<?= $member['id'] ?>"><?= e($member['name']) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.punch_list.due_date') ?></label><input type="date" name="due_date"></div>
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label><?= t('common.description_en') ?></label><input type="text" name="description"></div>
+    <div class="form-group" style="margin:0;min-width:170px;"><label><?= t('user.punch_list.photo_optional') ?></label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.punch_list.add_item') ?></button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.projects.site_photo_diary') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.site_photo_hint') ?></p>
 
-  <form method="post" action="/app/projects/<?= $project['id'] ?>/photos" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px;">
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/photos" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:16px;" id="photo-upload-form">
     <?= csrf_field() ?>
     <div class="form-group" style="margin:0;"><label><?= t('user.projects.photo') ?></label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></div>
     <div class="form-group" style="margin:0;"><label><?= t('common.date') ?></label><input type="date" name="taken_on" value="<?= date('Y-m-d') ?>"></div>
     <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label><?= t('user.projects.caption') ?></label><input type="text" name="caption" placeholder="e.g. Foundation poured, north wing"></div>
+    <input type="hidden" name="latitude" id="photo-latitude">
+    <input type="hidden" name="longitude" id="photo-longitude">
     <button type="submit" class="btn btn-outline"><?= t('user.projects.add_photo') ?></button>
   </form>
+  <script>
+  (function() {
+    // Silently attaches the device GPS fix (when the browser/device grants it) to a photo
+    // upload — never blocks the upload if geolocation is denied, unsupported, slow, or absent.
+    var form = document.getElementById('photo-upload-form');
+    if (!form || !('geolocation' in navigator)) { return; }
+    form.addEventListener('submit', function(e) {
+      if (form.dataset.geoAttempted === '1') { return; }
+      e.preventDefault();
+      form.dataset.geoAttempted = '1';
+      var done = false;
+      var proceed = function() { if (done) { return; } done = true; form.submit(); };
+      var timeout = setTimeout(proceed, 4000);
+      try {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          clearTimeout(timeout);
+          document.getElementById('photo-latitude').value = pos.coords.latitude;
+          document.getElementById('photo-longitude').value = pos.coords.longitude;
+          proceed();
+        }, function() { clearTimeout(timeout); proceed(); }, { timeout: 3500, maximumAge: 60000 });
+      } catch (err) { clearTimeout(timeout); proceed(); }
+    });
+  })();
+  </script>
 
   <?php if (empty($photos)): ?>
     <p class="help-text"><?= t('user.projects.no_photos_yet') ?></p>
@@ -237,6 +366,9 @@
           </a>
           <p class="help-text" style="margin-top:4px;margin-bottom:0;"><?= e($photo['taken_on'] ?: '') ?></p>
           <?php if ($photo['caption']): ?><p style="font-size:12.5px;margin:2px 0 4px;"><?= e($photo['caption']) ?></p><?php endif; ?>
+          <?php if ($photo['latitude'] !== null && $photo['longitude'] !== null): ?>
+            <p style="font-size:11.5px;margin:0 0 4px;"><a href="https://www.google.com/maps?q=<?= e((string)$photo['latitude']) ?>,<?= e((string)$photo['longitude']) ?>" target="_blank">📍 <?= e(number_format((float)$photo['latitude'], 4)) ?>, <?= e(number_format((float)$photo['longitude'], 4)) ?></a></p>
+          <?php endif; ?>
           <form method="post" action="/app/project-photos/<?= $photo['id'] ?>/delete" onsubmit="return confirm('<?= t('user.projects.remove_photo_confirm') ?>');">
             <?= csrf_field() ?>
             <button type="submit" class="btn btn-sm btn-light" style="width:100%;"><?= t('common.remove') ?></button>

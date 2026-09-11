@@ -4,8 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProjectPhoto extends Model
+class PunchListItem extends Model
 {
+    public const STATUSES = [
+        'open' => 'Open',
+        'in_progress' => 'In Progress',
+        'resolved' => 'Resolved',
+    ];
+
+    public const PRIORITIES = [
+        'low' => 'Low',
+        'medium' => 'Medium',
+        'high' => 'High',
+    ];
+
     public $timestamps = true;
     const UPDATED_AT = null;
 
@@ -14,9 +26,8 @@ class ProjectPhoto extends Model
     protected function casts(): array
     {
         return [
-            'taken_on' => 'date:Y-m-d',
-            'latitude' => 'decimal:7',
-            'longitude' => 'decimal:7',
+            'due_date' => 'date:Y-m-d',
+            'resolved_at' => 'datetime',
         ];
     }
 
@@ -30,8 +41,8 @@ class ProjectPhoto extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function uploader(): BelongsTo
+    public function assignee(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'uploaded_by');
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 }
