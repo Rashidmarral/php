@@ -40,6 +40,7 @@
       <a href="{{ url('/admin/admins') }}" class="{{ request()->is('admin/admins*') ? 'active' : '' }}">🛡️ {{ t('aside.admins') }}</a>
       <a href="{{ url('/admin/settings') }}" class="{{ request()->is('admin/settings') ? 'active' : '' }}">⚙️ {{ t('aside.settings') }}</a>
       <a href="{{ url('/admin/profile') }}" class="{{ request()->is('admin/profile*') ? 'active' : '' }}">👤 {{ t('aside.my_profile') }}</a>
+      <a href="{{ url('/admin/security') }}" class="{{ request()->is('admin/security*') ? 'active' : '' }}">🔒 {{ t('aside.security') }}</a>
     </nav>
     <div class="foot">
       <a href="{{ url('/') }}" style="color:#a9c4bd">← {{ t('side.back_site') }}</a>

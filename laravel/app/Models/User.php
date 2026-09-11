@@ -40,7 +40,7 @@ class User extends Authenticatable
         'basic_salary', 'housing_allowance', 'other_earnings',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
 
     protected function casts(): array
     {
@@ -49,6 +49,11 @@ class User extends Authenticatable
             'basic_salary' => 'decimal:2',
             'housing_allowance' => 'decimal:2',
             'other_earnings' => 'decimal:2',
+            // Encrypted at rest — a TOTP secret or recovery codes leaking from a DB dump/backup
+            // would otherwise be as good as a permanently-compromised second factor.
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
@@ -76,6 +81,20 @@ class User extends Authenticatable
     public function isCompanyOwner(): bool
     {
         return $this->role === 'owner';
+    }
+
+    /**
+     * True only once two-factor setup has actually been confirmed with a
+     * valid code (two_factor_confirmed_at set) — a secret that was
+     * generated (e.g. an abandoned setup attempt) but never confirmed
+     * does not enable 2FA on the account. Deliberately not in $fillable:
+     * two_factor_secret/two_factor_recovery_codes/two_factor_confirmed_at
+     * must only ever be written via forceFill() from the auth/2FA setup
+     * flow, never through generic mass-assigned request input.
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_confirmed_at !== null;
     }
 
     public function roleLabel(): string

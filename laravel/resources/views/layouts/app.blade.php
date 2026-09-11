@@ -47,6 +47,7 @@
       <a href="{{ url('/app/integrations') }}" class="{{ request()->is('app/integrations*') ? 'active' : '' }}">🔌 {{ t('side.integrations') }}</a>
       <a href="{{ url('/app/business-setup') }}" class="{{ request()->is('app/business-setup*') ? 'active' : '' }}">🧩 {{ t('side.business_setup') }}</a>
       <a href="{{ url('/app/settings') }}" class="{{ request()->is('app/settings*') ? 'active' : '' }}">⚙️ {{ t('side.settings') }}</a>
+      <a href="{{ url('/app/security') }}" class="{{ request()->is('app/security*') ? 'active' : '' }}">🔒 {{ t('side.security') }}</a>
     </nav>
     <div class="foot">
       <a href="{{ url('/') }}" style="color:#a9c4bd">← {{ t('side.back_site') }}</a>

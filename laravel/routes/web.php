@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PageSectionController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
+use App\Http\Controllers\Admin\SecurityController as AdminSecurityController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\TenderAdminController;
@@ -49,6 +50,7 @@ use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\PunchListController;
 use App\Http\Controllers\App\ScheduleController;
+use App\Http\Controllers\App\SecurityController;
 use App\Http\Controllers\App\SiteLogController;
 use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
@@ -106,6 +108,8 @@ Route::get('/i/{token}/pay/callback', [ShareController::class, 'invoicePaymentCa
 */
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/login/2fa', [AuthController::class, 'showTwoFactorChallenge']);
+Route::post('/login/2fa', [AuthController::class, 'verifyTwoFactorChallenge']);
 Route::get('/register', [AuthController::class, 'showRegister']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -230,6 +234,11 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/settings', [SettingsController::class, 'update']);
     Route::post('/settings/password', [SettingsController::class, 'updatePassword']);
 
+    Route::get('/security', [SecurityController::class, 'index']);
+    Route::post('/security/enable', [SecurityController::class, 'confirmEnable']);
+    Route::post('/security/disable', [SecurityController::class, 'disable']);
+    Route::post('/security/recovery-codes', [SecurityController::class, 'regenerateRecoveryCodes']);
+
     Route::get('/business-setup', [BusinessSetupController::class, 'index']);
     Route::get('/business-setup/units-of-measure', [BusinessSetupController::class, 'units']);
     Route::post('/business-setup/units-of-measure', [BusinessSetupController::class, 'storeUnit']);
@@ -345,6 +354,11 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 
     Route::get('/profile', [AdminProfileController::class, 'index']);
     Route::post('/profile', [AdminProfileController::class, 'update']);
+
+    Route::get('/security', [AdminSecurityController::class, 'index']);
+    Route::post('/security/enable', [AdminSecurityController::class, 'confirmEnable']);
+    Route::post('/security/disable', [AdminSecurityController::class, 'disable']);
+    Route::post('/security/recovery-codes', [AdminSecurityController::class, 'regenerateRecoveryCodes']);
 
     Route::get('/admins', [AdminUserController::class, 'index']);
 

@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\Mailer;
+use App\Support\Totp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,12 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    /** Session key holding the id of a user who passed their password but still owes a 2FA code. Deliberately
+     *  distinct from Auth's own session state — nothing about this key makes Auth::check() true. */
+    private const PENDING_2FA_SESSION_KEY = '2fa_user_id';
+    private const PENDING_2FA_ATTEMPTS_KEY = '2fa_attempts';
+    private const MAX_2FA_ATTEMPTS = 5;
+
     public function showLogin(): View
     {
         return view('auth.login');
@@ -38,10 +45,92 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
         }
 
+        if ($user->hasTwoFactorEnabled()) {
+            // Password verified, but the account isn't authenticated yet — Auth::login() is
+            // deliberately NOT called here. The pending state lives under its own session key
+            // (never touched by the EnsureCompanyUser/EnsureAdminPanelAccess middleware, which
+            // only ever check Auth::check()), so a session stuck at this stage cannot reach
+            // /app or /admin — it is exactly as unauthenticated as no session at all.
+            $request->session()->regenerate();
+            $request->session()->put(self::PENDING_2FA_SESSION_KEY, $user->id);
+            $request->session()->forget(self::PENDING_2FA_ATTEMPTS_KEY);
+
+            return redirect('/login/2fa');
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
 
         return redirect($user->isAdminStaff() ? '/admin' : '/app');
+    }
+
+    public function showTwoFactorChallenge(Request $request): View|RedirectResponse
+    {
+        if (!$request->session()->has(self::PENDING_2FA_SESSION_KEY)) {
+            return redirect('/login');
+        }
+        return view('auth.two-factor-challenge');
+    }
+
+    public function verifyTwoFactorChallenge(Request $request): RedirectResponse
+    {
+        $userId = $request->session()->get(self::PENDING_2FA_SESSION_KEY);
+        if (!$userId) {
+            return redirect('/login');
+        }
+
+        $user = User::find($userId);
+        if (!$user || !$user->hasTwoFactorEnabled() || $user->status !== 'active') {
+            $this->clearPendingTwoFactor($request);
+            return redirect('/login')->withErrors(['email' => 'Invalid email or password.']);
+        }
+
+        $code = trim((string) $request->input('code'));
+        $verified = (preg_match('/^\d{6}$/', $code) && Totp::verify($user->two_factor_secret, $code))
+            || $this->consumeRecoveryCode($user, $code);
+
+        if (!$verified) {
+            $attempts = (int) $request->session()->get(self::PENDING_2FA_ATTEMPTS_KEY, 0) + 1;
+
+            if ($attempts >= self::MAX_2FA_ATTEMPTS) {
+                $this->clearPendingTwoFactor($request);
+                return redirect('/login')->withErrors(['email' => 'Too many failed two-factor attempts. Please log in again.']);
+            }
+
+            $request->session()->put(self::PENDING_2FA_ATTEMPTS_KEY, $attempts);
+            $remaining = self::MAX_2FA_ATTEMPTS - $attempts;
+            return back()->withErrors(['code' => "Invalid code. {$remaining} " . ($remaining === 1 ? 'attempt' : 'attempts') . ' remaining.']);
+        }
+
+        $this->clearPendingTwoFactor($request);
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect($user->isAdminStaff() ? '/admin' : '/app');
+    }
+
+    private function clearPendingTwoFactor(Request $request): void
+    {
+        $request->session()->forget([self::PENDING_2FA_SESSION_KEY, self::PENDING_2FA_ATTEMPTS_KEY]);
+    }
+
+    /** Checks $code against the user's unused recovery codes and marks the matching one used (single-use). */
+    private function consumeRecoveryCode(User $user, string $code): bool
+    {
+        if ($code === '') {
+            return false;
+        }
+        $code = strtoupper($code);
+
+        $hashedCodes = $user->two_factor_recovery_codes ?? [];
+        foreach ($hashedCodes as $index => $hashedCode) {
+            if (Hash::check($code, $hashedCode)) {
+                unset($hashedCodes[$index]);
+                $user->forceFill(['two_factor_recovery_codes' => array_values($hashedCodes)])->save();
+                return true;
+            }
+        }
+        return false;
     }
 
     public function showRegister(): View
