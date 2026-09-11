@@ -19,7 +19,7 @@
     <tbody>
     <?php foreach ($clients as $c): ?>
       <tr>
-        <td><?= e(local($c, 'name')) ?></td>
+        <td><?= e(local($c, 'name')) ?> <?php if (!empty($c['is_b2b'])): ?><span class="badge badge-blue" title="<?= e(t('user.clients.b2b_hint')) ?>"><?= t('user.clients.b2b_badge') ?></span><?php endif; ?></td>
         <td><?= e($c['email']) ?></td>
         <td><?= e($c['phone']) ?></td>
         <td>

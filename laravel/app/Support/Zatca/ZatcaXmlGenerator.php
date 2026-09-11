@@ -18,26 +18,75 @@ use DOMDocument;
  * scheme, etc.) documents a real ZATCA validator rejection Daftri's
  * implementation was debugged against and is preserved verbatim; only the
  * data plumbing was adapted to BuildXact's own Invoice/Company/Client/
- * InvoiceItem schema, which differs from Daftri's in three structural
- * ways documented inline:
+ * InvoiceItem schema, which differs from Daftri's in two remaining
+ * structural ways documented inline:
  *
- *  1. BuildXact's Client has no vat_number/CR/address-breakdown/
- *     additional-ID fields (it's a lightweight CRM contact, not a
- *     registered B2B counterparty) — the buyer party section only ever
- *     emits what BuildXact actually has (name + a single free-text
- *     address line), which is schema-valid (every buyer field below the
- *     name is optional) but means BuildXact cannot yet produce a fully
- *     populated standard/B2B buyer party. See ZatcaSyncService for the
- *     consequence: real submissions are always simplified (B2C).
- *  2. BuildXact's InvoiceItem carries no per-line VAT rate/amount or tax
+ *  1. BuildXact's InvoiceItem carries no per-line VAT rate/amount or tax
  *     category — only Invoice::vat_rate/vat_amount are known, so each
  *     line's VAT is derived proportionally from that single header rate
  *     rather than read from a per-line TaxRate relation.
- *  3. There is no CreditNote/DebitNote model in BuildXact, so
+ *  2. There is no CreditNote/DebitNote model in BuildXact, so
  *     generateForCreditNote()/generateForDebitNote() were not ported.
+ *
+ * BuildXact's Client originally had no vat_number/CR/address-breakdown
+ * fields at all — every real invoice was forced through the simplified/
+ * B2C profile regardless of who the buyer actually was, because there was
+ * no data to populate a standard/B2B buyer party with. A migration
+ * (2026_09_11_000001_add_zatca_b2b_fields_to_clients_table) gave Client
+ * the same vat_number/cr_number/structured-address columns Company
+ * already had, and isB2bEligible() below is now the single choke point
+ * (also used by ZatcaSyncService) that decides, per invoice, whether
+ * enough of that data exists to emit a real cac:AccountingCustomerParty
+ * and submit as standard/B2B instead of simplified/B2C. A client with
+ * neither field set still falls back to exactly the old simplified
+ * buyer-party shape (name + free-text address line only) — no regression
+ * for existing clients.
  */
 class ZatcaXmlGenerator
 {
+    /**
+     * ZATCA's Saudi VAT registration number format: exactly 15 digits,
+     * the first and last of which are always '3' (the fixed group
+     * prefix/suffix ZATCA assigns every KSA VAT number). No existing
+     * regex/validation constant for this was found anywhere else in the
+     * codebase to reuse — Company::vat_number has never had format
+     * validation (SettingsController/CompanyController just trim() and
+     * save it) — so this is a new, single-source-of-truth constant used
+     * both by isB2bEligible() below and by ClientController's own input
+     * validation, so the two can't drift apart.
+     */
+    public const VAT_NUMBER_PATTERN = '/^3\d{13}3$/';
+
+    /**
+     * Minimum bar for treating a client as a genuine standard/B2B
+     * counterparty rather than a walk-in/simplified buyer: a
+     * ZATCA-format-valid VAT registration number AND a CR number, since
+     * those are the two identifiers ZatcaXmlGenerator's party() helper
+     * actually renders into the buyer's PartyIdentification (schemeID
+     * CRN) and PartyTaxScheme/CompanyID elements — the fields ZATCA's
+     * validator consults to confirm the buyer is a real registered
+     * taxable person. A structured address is deliberately NOT required:
+     * party()'s $hasAddress check already treats PostalAddress as
+     * optional (every buyer field below the party name is optional per
+     * UBL's PartyType), and a real ZATCA-cleared invoice with a
+     * VAT+CR-only buyer and no address on file is still schema-valid — so
+     * requiring one here would just push otherwise-eligible clients back
+     * onto the simplified path for no compliance benefit. Address fields
+     * ARE still populated into the buyer party whenever they happen to be
+     * on file (see generate()).
+     */
+    public function isB2bEligible(?Client $client): bool
+    {
+        if (! $client) {
+            return false;
+        }
+
+        $vatNumber = trim((string) ($client->vat_number ?? ''));
+        $crNumber = trim((string) ($client->cr_number ?? ''));
+
+        return $crNumber !== '' && preg_match(self::VAT_NUMBER_PATTERN, $vatNumber) === 1;
+    }
+
     /**
      * @param  array<int, array{description?: string, qty: float|string, unit_price: float|string, total?: float|string}>  $items
      *                                                                                                                     Plain associative arrays (matching what
@@ -86,20 +135,39 @@ class ZatcaXmlGenerator
             'postal_code' => $company->postal_code,
         ]));
 
-        // BuildXact's Client model has no vat_number/CR/address-breakdown
-        // fields (see class docblock) — only name and a single free-text
-        // address line are ever available for the buyer party.
-        $root->appendChild($this->party($doc, 'cac:AccountingCustomerParty', [
-            'name' => $client->name ?? __('Walk-in customer'),
-            'vat_number' => null,
-            'id_scheme' => null,
-            'id_value' => null,
-            'street' => $client->address ?? null,
-            'building_number' => null,
-            'district' => null,
-            'city' => null,
-            'postal_code' => null,
-        ]));
+        if ($this->isB2bEligible($client)) {
+            // Standard/B2B buyer party — see isB2bEligible()'s docblock for
+            // exactly why VAT+CR (not address) is the eligibility bar.
+            // Element order/scheme mirror the seller party above verbatim
+            // (party() renders both the same way).
+            $root->appendChild($this->party($doc, 'cac:AccountingCustomerParty', [
+                'name' => $client->name,
+                'vat_number' => $client->vat_number,
+                'id_scheme' => 'CRN',
+                'id_value' => $client->cr_number,
+                'street' => $client->street_name ?: $client->address,
+                'building_number' => $client->building_number,
+                'district' => $client->district,
+                'city' => $client->city,
+                'postal_code' => $client->postal_code,
+            ]));
+        } else {
+            // No vat_number/cr_number on file for this client (or it
+            // fails ZATCA's VAT format) — only name and a single
+            // free-text address line are available, so this stays exactly
+            // the pre-existing simplified/B2C buyer-party shape.
+            $root->appendChild($this->party($doc, 'cac:AccountingCustomerParty', [
+                'name' => $client->name ?? __('Walk-in customer'),
+                'vat_number' => null,
+                'id_scheme' => null,
+                'id_value' => null,
+                'street' => $client->address ?? null,
+                'building_number' => null,
+                'district' => null,
+                'city' => null,
+                'postal_code' => null,
+            ]));
+        }
 
         // KSA-5 "supply date" — ZATCA requires standard tax invoices to
         // state the actual delivery/supply date (BR-KSA-15).

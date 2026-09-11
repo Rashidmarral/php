@@ -97,6 +97,7 @@
   $zatcaStatusLabels = [
     'not_submitted' => [t('user.invoices.zatca_not_submitted'), 'gray'],
     'reported' => [t('user.invoices.zatca_reported'), 'green'],
+    'cleared' => [t('user.invoices.zatca_cleared'), 'green'],
     'failed' => [t('user.invoices.zatca_failed'), 'red'],
   ];
   $zStatus = $invoice['zatca_status'] ?: 'not_submitted';
@@ -111,7 +112,7 @@
     </p>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <a href="/app/invoices/<?= $invoice['id'] ?>/xml" class="btn btn-outline">⬇ <?= t('user.invoices.download_ubl_xml') ?></a>
-      <?php if (\App\Support\Feature::allows('zatca_phase2') && $companyLive && $zStatus !== 'reported'): ?>
+      <?php if (\App\Support\Feature::allows('zatca_phase2') && $companyLive && !in_array($zStatus, ['reported', 'cleared'], true)): ?>
         <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/submit-zatca" onsubmit="return confirm('<?= t('user.invoices.submit_zatca_confirm') ?>');">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-primary"><?= t('user.invoices.submit_to_zatca') ?></button>

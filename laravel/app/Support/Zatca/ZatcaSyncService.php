@@ -29,12 +29,13 @@ use Illuminate\Support\Str;
  *    zatca_last_invoice_hash), so this writes there instead of a log
  *    table, preserving BuildXact's existing storage shape rather than
  *    introducing Daftri's.
- *  - BuildXact always submits as a simplified (B2C) invoice — see
- *    ZatcaXmlGenerator's docblock on why (Client has no VAT/CR data to
- *    populate a standard/B2B buyer party) — so this only ever calls
- *    ZatcaApiClient::reportInvoice(), never clearInvoice(). The clearance
- *    method is still fully ported on ZatcaApiClient for when BuildXact's
- *    Client model grows the fields a real B2B buyer party needs.
+ *
+ * BuildXact submits as standard (B2B, ZatcaApiClient::clearInvoice()) or
+ * simplified (B2C, ZatcaApiClient::reportInvoice()) per invoice, decided
+ * once by ZatcaXmlGenerator::isB2bEligible() and used consistently for
+ * both the invoice-type-code passed into buildUnsignedXml() and the
+ * submission method chosen in submitInvoice() — see that method's
+ * docblock for exactly why VAT+CR is the eligibility bar.
  */
 class ZatcaSyncService
 {
@@ -64,7 +65,8 @@ class ZatcaSyncService
      */
     public function buildUnsignedXml(Invoice $invoice, Company $company, ?Client $client, array $items, string $uuid, int $icv, string $previousHash): array
     {
-        $unsignedXml = $this->xml->generate($invoice, $company, $client, $items, self::SIMPLIFIED_PROFILE, $previousHash, $uuid, $icv);
+        $profile = $this->xml->isB2bEligible($client) ? self::STANDARD_PROFILE : self::SIMPLIFIED_PROFILE;
+        $unsignedXml = $this->xml->generate($invoice, $company, $client, $items, $profile, $previousHash, $uuid, $icv);
         $hash = $this->signer->contentHash($unsignedXml);
 
         return [$unsignedXml, $hash];
@@ -154,11 +156,24 @@ class ZatcaSyncService
 
         $xmlBase64 = base64_encode($xmlToSubmit);
 
+        // Same eligibility check buildUnsignedXml() used to pick the
+        // invoice-type-code above must pick the submission method here —
+        // a standard-profile XML submitted via reportInvoice() (or vice
+        // versa) is rejected by ZATCA, so both decisions go through the
+        // one isB2bEligible() choke point rather than being decided twice.
+        $isB2b = $this->xml->isB2bEligible($client);
+        $successStatus = $isB2b ? 'cleared' : 'reported';
+
         try {
-            $response = $this->api->reportInvoice(
-                $company->zatca_environment, (string) $csid, (string) $secret,
-                $xmlBase64, (string) $invoice->zatca_hash, (string) $invoice->zatca_uuid,
-            );
+            $response = $isB2b
+                ? $this->api->clearInvoice(
+                    $company->zatca_environment, (string) $csid, (string) $secret,
+                    $xmlBase64, (string) $invoice->zatca_hash, (string) $invoice->zatca_uuid,
+                )
+                : $this->api->reportInvoice(
+                    $company->zatca_environment, (string) $csid, (string) $secret,
+                    $xmlBase64, (string) $invoice->zatca_hash, (string) $invoice->zatca_uuid,
+                );
         } catch (\Throwable $e) {
             $invoice->update(['zatca_status' => 'failed', 'zatca_response' => Str::limit($e->getMessage(), 2000)]);
 
@@ -167,13 +182,13 @@ class ZatcaSyncService
 
         if ($response->successful()) {
             $invoice->update([
-                'zatca_status' => 'reported',
+                'zatca_status' => $successStatus,
                 'zatca_submitted_at' => now(),
                 'zatca_response' => $response->body(),
             ]);
             $company->update(['zatca_last_invoice_hash' => $invoice->zatca_hash, 'zatca_last_sync_at' => now()]);
 
-            return ['ok' => true, 'status' => 'reported', 'message' => __('Invoice reported to ZATCA.')];
+            return ['ok' => true, 'status' => $successStatus, 'message' => $isB2b ? __('Invoice cleared by ZATCA.') : __('Invoice reported to ZATCA.')];
         }
 
         $errorMessage = Str::limit('HTTP '.$response->status().': '.$response->body(), 2000);
