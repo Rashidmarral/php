@@ -26,6 +26,7 @@ class Feature
         'zatca_phase2' => 'ZATCA Phase 2 e-invoicing',
         'leads' => 'Leads & CRM',
         'compliance' => 'Compliance Document Tracker',
+        'zakat' => 'Zakat Estimator',
         'change_orders' => 'Change Orders',
         'bank_guarantees' => 'Bank Guarantees & Bonds',
         'purchase_orders' => 'Purchase Orders',

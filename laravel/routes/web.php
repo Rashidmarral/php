@@ -58,6 +58,7 @@ use App\Http\Controllers\App\SupportTicketController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\App\TeamMemberDocumentController;
 use App\Http\Controllers\App\TenderController;
+use App\Http\Controllers\App\ZakatController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalController;
@@ -319,6 +320,13 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/reports/profit', [ReportController::class, 'profit']);
     Route::get('/reports/tax', [ReportController::class, 'tax']);
     Route::get('/reports/retention', [ReportController::class, 'retention']);
+
+    Route::get('/zakat', [ZakatController::class, 'index']);
+    Route::get('/zakat/create', [ZakatController::class, 'create']);
+    Route::post('/zakat', [ZakatController::class, 'store']);
+    Route::get('/zakat/{id}', [ZakatController::class, 'show']);
+    Route::post('/zakat/{id}/delete', [ZakatController::class, 'destroy']);
+    Route::get('/zakat/{id}/pdf', [ZakatController::class, 'pdf']);
 
     Route::get('/quick-estimate', [QuickEstimateController::class, 'index']);
     Route::post('/quick-estimate', [QuickEstimateController::class, 'store']);
