@@ -3,10 +3,21 @@
 @section('content')
 <div class="page-head">
   <h1><?= t('user.team.title') ?></h1>
-  <?php if ($userLimit !== null && $userLimit < 999): ?>
-    <span class="badge badge-<?= $withinUserLimit ? 'gray' : 'red' ?>"><?= count($members) ?> / <?= $userLimit ?> <?= t('user.team.members_suffix') ?></span>
-  <?php endif; ?>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <?php if ($userLimit !== null && $userLimit < 999): ?>
+      <span class="badge badge-<?= $withinUserLimit ? 'gray' : 'red' ?>"><?= count($members) ?> / <?= $userLimit ?> <?= t('user.team.members_suffix') ?></span>
+    <?php endif; ?>
+    <?php if (auth()->user()->can('manage_team')): ?>
+      <a href="/app/team/export-wps.csv" class="btn btn-light">⬇ <?= t('user.team.export_wps') ?></a>
+    <?php endif; ?>
+  </div>
 </div>
+
+<?php if (auth()->user()->can('manage_team')): ?>
+  <p class="help-text" style="margin-top:-14px;margin-bottom:20px;">
+    <?= t('user.team.payroll_ready', ['ready' => $payrollReadyCount, 'total' => count($members)]) ?>
+  </p>
+<?php endif; ?>
 
 <?php if (auth()->user()->can('manage_team')): ?>
 <div class="card" style="margin-bottom:24px;">
@@ -58,6 +69,9 @@
       </td>
       <td><span class="badge badge-green"><?= e($m['status']) ?></span></td>
       <td style="display:flex;gap:8px;">
+        <?php if (auth()->user()->can('manage_team')): ?>
+        <a href="/app/team/<?= $m['id'] ?>/payroll" class="btn btn-sm btn-light"><?= t('user.team_payroll.nav_link') ?></a>
+        <?php endif; ?>
         <a href="/app/team/<?= $m['id'] ?>/documents" class="btn btn-sm btn-light"><?= t('user.team_docs.nav_link') ?></a>
         <?php if (auth()->user()->can('manage_team') && (int)$m['id'] !== (int)auth()->id() && $m['role'] !== 'owner'): ?>
         <form method="post" action="/app/team/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.team.remove_member_confirm') ?>');">

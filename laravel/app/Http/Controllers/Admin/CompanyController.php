@@ -85,6 +85,7 @@ class CompanyController extends Controller
             'address' => $request->input('address', ''),
             'cr_number' => $request->input('cr_number', ''),
             'vat_number' => $request->input('vat_number', ''),
+            'mol_establishment_number' => trim((string) $request->input('mol_establishment_number', '')),
             'building_number' => trim((string) $request->input('building_number', '')),
             'street_name' => trim((string) $request->input('street_name', '')),
             'district' => trim((string) $request->input('district', '')),

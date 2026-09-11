@@ -66,6 +66,10 @@
       <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($company['cr_number']) ?>"></div>
       <div class="form-group"><label><?= t('admin.company.vat_number') ?></label><input type="text" name="vat_number" value="<?= e($company['vat_number']) ?>"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label><?= t('admin.company.mol_establishment_number') ?></label><input type="text" name="mol_establishment_number" value="<?= e($company['mol_establishment_number'] ?? '') ?>"></div>
+      <div></div>
+    </div>
 
     <h3 style="font-size:13px;margin-top:16px;"><?= t('admin.company.classification') ?></h3>
     <div class="form-row">

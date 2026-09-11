@@ -36,13 +36,20 @@ class User extends Authenticatable
 
     protected $fillable = [
         'company_id', 'name', 'email', 'password', 'role', 'status',
+        'national_id', 'nationality', 'bank_iban', 'bank_name',
+        'basic_salary', 'housing_allowance', 'other_earnings',
     ];
 
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
-        return ['password' => 'hashed'];
+        return [
+            'password' => 'hashed',
+            'basic_salary' => 'decimal:2',
+            'housing_allowance' => 'decimal:2',
+            'other_earnings' => 'decimal:2',
+        ];
     }
 
     public function company(): BelongsTo
@@ -79,5 +86,17 @@ class User extends Authenticatable
     public function roleShortLabel(): string
     {
         return self::ROLE_SHORT_LABELS[$this->role] ?? ucfirst((string) $this->role);
+    }
+
+    /** A WPS export needs at least a basic salary to produce a real (non-zero) row for this member. */
+    public function hasPayrollData(): bool
+    {
+        return $this->basic_salary !== null;
+    }
+
+    /** Basic wage + housing allowance + other earnings — the gross wage a WPS salary file reports before deductions. */
+    public function grossWage(): float
+    {
+        return (float) $this->basic_salary + (float) $this->housing_allowance + (float) $this->other_earnings;
     }
 }

@@ -175,8 +175,11 @@ Route::prefix('app')->middleware('company.user')->group(function () {
 
     Route::get('/team', [TeamController::class, 'index']);
     Route::post('/team', [TeamController::class, 'store']);
+    Route::get('/team/export-wps.csv', [TeamController::class, 'exportWps']);
     Route::post('/team/{id}/role', [TeamController::class, 'updateRole']);
     Route::post('/team/{id}/delete', [TeamController::class, 'destroy']);
+    Route::get('/team/{id}/payroll', [TeamController::class, 'editPayroll']);
+    Route::post('/team/{id}/payroll', [TeamController::class, 'updatePayroll']);
     Route::get('/team/{userId}/documents', [TeamMemberDocumentController::class, 'index']);
     Route::post('/team/{userId}/documents', [TeamMemberDocumentController::class, 'store']);
     Route::post('/team/{userId}/documents/{id}', [TeamMemberDocumentController::class, 'update']);
