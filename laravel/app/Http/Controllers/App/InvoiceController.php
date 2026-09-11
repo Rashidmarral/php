@@ -5,6 +5,8 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\CreditNote;
+use App\Models\DebitNote;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Project;
@@ -191,6 +193,9 @@ class InvoiceController extends Controller
             $whatsappLink = WhatsApp::shareLink($client->phone, $message);
         }
 
+        $creditNotes = CreditNote::where('invoice_id', $invoice->id)->orderByDesc('id')->get()->toArray();
+        $debitNotes = DebitNote::where('invoice_id', $invoice->id)->orderByDesc('id')->get()->toArray();
+
         return view('app.invoices.show', [
             'invoice' => $invoice->toArray(),
             'items' => $items,
@@ -201,6 +206,9 @@ class InvoiceController extends Controller
             'whatsappLink' => $whatsappLink,
             'whatsappApiConfigured' => WhatsApp::isConfigured(),
             'shareUrl' => $shareUrl,
+            'creditNotes' => $creditNotes,
+            'debitNotes' => $debitNotes,
+            'remainingCreditable' => $invoice->remainingCreditableTotal(),
         ]);
     }
 
@@ -270,6 +278,9 @@ class InvoiceController extends Controller
             return $redirect;
         }
         $invoice = $this->findOwned($id);
+        if ($invoice->isZatcaLocked()) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has been cleared/reported to ZATCA and is now part of an immutable tax record — it can no longer be deleted. Issue a Credit Note instead to correct it.');
+        }
         InvoiceItem::where('invoice_id', $invoice->id)->delete();
         $invoice->delete();
         $this->flash('success', 'Invoice deleted.');

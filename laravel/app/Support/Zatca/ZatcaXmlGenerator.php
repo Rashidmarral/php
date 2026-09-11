@@ -4,6 +4,8 @@ namespace App\Support\Zatca;
 
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\CreditNote;
+use App\Models\DebitNote;
 use App\Models\Invoice;
 use DOMDocument;
 
@@ -25,8 +27,11 @@ use DOMDocument;
  *     category — only Invoice::vat_rate/vat_amount are known, so each
  *     line's VAT is derived proportionally from that single header rate
  *     rather than read from a per-line TaxRate relation.
- *  2. There is no CreditNote/DebitNote model in BuildXact, so
- *     generateForCreditNote()/generateForDebitNote() were not ported.
+ *  2. generateForCreditNote()/generateForDebitNote() below ARE now
+ *     ported (BuildXact's CreditNote/DebitNote models are the same
+ *     simple, single-header-VAT-rate shape as Invoice/InvoiceItem — see
+ *     those models' docblocks), adapted from Daftri's equivalent methods
+ *     the same way generate() above already is.
  *
  * BuildXact's Client originally had no vat_number/CR/address-breakdown
  * fields at all — every real invoice was forced through the simplified/
@@ -199,6 +204,164 @@ class ZatcaXmlGenerator
         $this->appendAmount($doc, $monetaryTotal, 'cbc:AllowanceTotalAmount', 0.0);
         $this->appendAmount($doc, $monetaryTotal, 'cbc:PrepaidAmount', 0.0);
         $this->appendAmount($doc, $monetaryTotal, 'cbc:PayableAmount', (float) $invoice->total);
+        $root->appendChild($monetaryTotal);
+
+        foreach ($items as $index => $item) {
+            $root->appendChild($this->invoiceLine($doc, $index, $item, $vatRate));
+        }
+
+        return $doc->saveXML();
+    }
+
+    /**
+     * Credit notes use the same UBL Invoice-2 schema as tax invoices —
+     * differentiated only by InvoiceTypeCode 381 and by carrying a
+     * cac:BillingReference back to the invoice they correct, plus a
+     * KSA-10 "reason" (cbc:InstructionNote nested under cac:PaymentMeans,
+     * a sibling of PaymentMeansCode per UBL's PaymentMeansType — not a
+     * top-level document child). They are never issued standalone: they
+     * must continue the exact same company-wide ICV/PIH chain as regular
+     * invoices (see ZatcaSyncService::submitCreditNote()).
+     *
+     * @param  array<int, array{description?: string, qty: float|string, unit_price: float|string, total?: float|string}>  $items
+     */
+    public function generateForCreditNote(CreditNote $creditNote, Company $company, ?Client $client, array $items, Invoice $originalInvoice, string $invoiceTypeName, ?string $previousInvoiceHash, string $uuid, int $icv = 1): string
+    {
+        return $this->generateNote($creditNote, $company, $client, $items, $originalInvoice, '381', $creditNote->reason ?: 'Sales return / correction', $invoiceTypeName, $previousInvoiceHash, $uuid, $icv);
+    }
+
+    /**
+     * Debit notes use the same UBL Invoice-2 schema as credit notes — only
+     * InvoiceTypeCode differs (383 instead of 381). They raise what the
+     * customer owes rather than reducing it, but still carry the same
+     * mandatory BillingReference back to the original invoice (BR-KSA-56)
+     * and continue the same company-wide ICV/PIH chain.
+     *
+     * @param  array<int, array{description?: string, qty: float|string, unit_price: float|string, total?: float|string}>  $items
+     */
+    public function generateForDebitNote(DebitNote $debitNote, Company $company, ?Client $client, array $items, Invoice $originalInvoice, string $invoiceTypeName, ?string $previousInvoiceHash, string $uuid, int $icv = 1): string
+    {
+        return $this->generateNote($debitNote, $company, $client, $items, $originalInvoice, '383', $debitNote->reason ?: 'Additional charge / correction', $invoiceTypeName, $previousInvoiceHash, $uuid, $icv);
+    }
+
+    /**
+     * Shared body for generateForCreditNote()/generateForDebitNote() —
+     * both models carry the identical note_number/issue_date/vat_rate/
+     * vat_amount/total shape (see their class docblocks), so only the
+     * InvoiceTypeCode and default reason text actually differ between
+     * them. Structure otherwise mirrors generate() above exactly (same
+     * party()/appendDualTaxTotal()/invoiceLine()/documentAllowanceCharge()
+     * helpers), with a cac:BillingReference inserted before the ICV/PIH
+     * AdditionalDocumentReference — UBL's InvoiceType element sequence
+     * places BillingReference first, so it must be emitted before those,
+     * not after (a real ZATCA validator rejection Daftri's implementation
+     * was debugged against — see its own docblock history).
+     *
+     * @param  array<int, array{description?: string, qty: float|string, unit_price: float|string, total?: float|string}>  $items
+     */
+    private function generateNote(CreditNote|DebitNote $note, Company $company, ?Client $client, array $items, Invoice $originalInvoice, string $typeCodeValue, string $reason, string $invoiceTypeName, ?string $previousInvoiceHash, string $uuid, int $icv): string
+    {
+        $doc = new DOMDocument('1.0', 'UTF-8');
+        $doc->formatOutput = false;
+
+        $root = $doc->createElementNS('urn:oasis:names:specification:ubl:schema:xsd:Invoice-2', 'Invoice');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+        $doc->appendChild($root);
+
+        $issuedAt = $note->created_at ?? now();
+
+        $this->append($doc, $root, 'cbc:ProfileID', 'reporting:1.0');
+        $this->append($doc, $root, 'cbc:ID', (string) $note->note_number);
+        $this->append($doc, $root, 'cbc:UUID', $uuid);
+        $this->append($doc, $root, 'cbc:IssueDate', $issuedAt->format('Y-m-d'));
+        $this->append($doc, $root, 'cbc:IssueTime', $issuedAt->format('H:i:s'));
+
+        $typeCode = $this->append($doc, $root, 'cbc:InvoiceTypeCode', $typeCodeValue);
+        $typeCode->setAttribute('name', $invoiceTypeName);
+
+        $this->append($doc, $root, 'cbc:DocumentCurrencyCode', 'SAR');
+        $this->append($doc, $root, 'cbc:TaxCurrencyCode', 'SAR');
+
+        $billingReference = $doc->createElement('cac:BillingReference');
+        $docRef = $doc->createElement('cac:InvoiceDocumentReference');
+        $this->append($doc, $docRef, 'cbc:ID', (string) $originalInvoice->invoice_number);
+        if (! empty($originalInvoice->zatca_uuid)) {
+            $this->append($doc, $docRef, 'cbc:UUID', (string) $originalInvoice->zatca_uuid);
+        }
+        $billingReference->appendChild($docRef);
+        $root->appendChild($billingReference);
+
+        $root->appendChild($this->icvReference($doc, $icv));
+
+        if ($previousInvoiceHash) {
+            $root->appendChild($this->pihReference($doc, $previousInvoiceHash));
+        }
+
+        $root->appendChild($this->party($doc, 'cac:AccountingSupplierParty', [
+            'name' => $company->name,
+            'vat_number' => $company->vat_number,
+            'id_scheme' => 'CRN',
+            'id_value' => $company->cr_number,
+            'street' => $company->street_name ?: $company->address,
+            'building_number' => $company->building_number,
+            'district' => $company->district,
+            'city' => $company->city,
+            'postal_code' => $company->postal_code,
+        ]));
+
+        if ($this->isB2bEligible($client)) {
+            $root->appendChild($this->party($doc, 'cac:AccountingCustomerParty', [
+                'name' => $client->name,
+                'vat_number' => $client->vat_number,
+                'id_scheme' => 'CRN',
+                'id_value' => $client->cr_number,
+                'street' => $client->street_name ?: $client->address,
+                'building_number' => $client->building_number,
+                'district' => $client->district,
+                'city' => $client->city,
+                'postal_code' => $client->postal_code,
+            ]));
+        } else {
+            $root->appendChild($this->party($doc, 'cac:AccountingCustomerParty', [
+                'name' => $client->name ?? __('Walk-in customer'),
+                'vat_number' => null,
+                'id_scheme' => null,
+                'id_value' => null,
+                'street' => $client->address ?? null,
+                'building_number' => null,
+                'district' => null,
+                'city' => null,
+                'postal_code' => null,
+            ]));
+        }
+
+        $delivery = $doc->createElement('cac:Delivery');
+        $this->append($doc, $delivery, 'cbc:ActualDeliveryDate', $issuedAt->format('Y-m-d'));
+        $root->appendChild($delivery);
+
+        // KSA-10 "Reason for issuing a Credit/Debit Note" (BR-KSA-17).
+        $paymentMeans = $doc->createElement('cac:PaymentMeans');
+        $this->append($doc, $paymentMeans, 'cbc:PaymentMeansCode', '1');
+        $this->append($doc, $paymentMeans, 'cbc:InstructionNote', $reason);
+        $root->appendChild($paymentMeans);
+
+        $vatAmount = (float) $note->vat_amount;
+        $vatRate = (float) $note->vat_rate;
+
+        $root->appendChild($this->documentAllowanceCharge($doc, 0.0, $vatRate));
+
+        $this->appendDualTaxTotal($doc, $root, $vatAmount, $items, $vatRate);
+
+        $subtotal = (float) $note->total - $vatAmount;
+
+        $monetaryTotal = $doc->createElement('cac:LegalMonetaryTotal');
+        $this->appendAmount($doc, $monetaryTotal, 'cbc:LineExtensionAmount', $subtotal);
+        $this->appendAmount($doc, $monetaryTotal, 'cbc:TaxExclusiveAmount', $subtotal);
+        $this->appendAmount($doc, $monetaryTotal, 'cbc:TaxInclusiveAmount', (float) $note->total);
+        $this->appendAmount($doc, $monetaryTotal, 'cbc:AllowanceTotalAmount', 0.0);
+        $this->appendAmount($doc, $monetaryTotal, 'cbc:PrepaidAmount', 0.0);
+        $this->appendAmount($doc, $monetaryTotal, 'cbc:PayableAmount', (float) $note->total);
         $root->appendChild($monetaryTotal);
 
         foreach ($items as $index => $item) {

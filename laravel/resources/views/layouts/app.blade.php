@@ -23,6 +23,8 @@
       <a href="{{ url('/app/quick-estimate') }}" class="{{ request()->is('app/quick-estimate*') ? 'active' : '' }}">⚡ {{ t('side.quick_estimate') }}</a>
       <a href="{{ url('/app/estimates') }}" class="{{ request()->is('app/estimates*') ? 'active' : '' }}">🧾 {{ t('side.estimates') }}</a>
       <a href="{{ url('/app/invoices') }}" class="{{ request()->is('app/invoices*') ? 'active' : '' }}">💳 {{ t('side.invoices') }}</a>
+      <a href="{{ url('/app/credit-notes') }}" class="{{ request()->is('app/credit-notes*') ? 'active' : '' }}">↩️ {{ t('side.credit_notes') }}</a>
+      <a href="{{ url('/app/debit-notes') }}" class="{{ request()->is('app/debit-notes*') ? 'active' : '' }}">➕ {{ t('side.debit_notes') }}</a>
       <a href="{{ url('/app/clients') }}" class="{{ request()->is('app/clients*') ? 'active' : '' }}">👥 {{ t('side.clients') }}</a>
       <a href="{{ url('/app/schedule') }}" class="{{ request()->is('app/schedule*') ? 'active' : '' }}">📅 {{ t('side.schedule') }}</a>
       <a href="{{ url('/app/takeoffs') }}" class="{{ request()->is('app/takeoffs*') ? 'active' : '' }}">📐 {{ t('side.takeoffs') }}</a>

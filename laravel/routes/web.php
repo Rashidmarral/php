@@ -31,6 +31,8 @@ use App\Http\Controllers\App\VendorBillController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\ComplianceController;
 use App\Http\Controllers\App\ConsultationController;
+use App\Http\Controllers\App\CreditNoteController;
+use App\Http\Controllers\App\DebitNoteController;
 use App\Http\Controllers\App\DocumentController;
 use App\Http\Controllers\App\ImpersonationController;
 use App\Http\Controllers\App\IntegrationController;
@@ -176,6 +178,24 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
     Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
     Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
+
+    Route::get('/credit-notes', [CreditNoteController::class, 'index']);
+    Route::get('/credit-notes/create', [CreditNoteController::class, 'create']);
+    Route::post('/credit-notes', [CreditNoteController::class, 'store']);
+    Route::get('/credit-notes/{id}/pdf', [CreditNoteController::class, 'pdf']);
+    Route::get('/credit-notes/{id}/xml', [CreditNoteController::class, 'xml']);
+    Route::get('/credit-notes/{id}', [CreditNoteController::class, 'show']);
+    Route::post('/credit-notes/{id}/submit-zatca', [CreditNoteController::class, 'submitZatca']);
+    Route::post('/credit-notes/{id}/void', [CreditNoteController::class, 'void']);
+
+    Route::get('/debit-notes', [DebitNoteController::class, 'index']);
+    Route::get('/debit-notes/create', [DebitNoteController::class, 'create']);
+    Route::post('/debit-notes', [DebitNoteController::class, 'store']);
+    Route::get('/debit-notes/{id}/pdf', [DebitNoteController::class, 'pdf']);
+    Route::get('/debit-notes/{id}/xml', [DebitNoteController::class, 'xml']);
+    Route::get('/debit-notes/{id}', [DebitNoteController::class, 'show']);
+    Route::post('/debit-notes/{id}/submit-zatca', [DebitNoteController::class, 'submitZatca']);
+    Route::post('/debit-notes/{id}/void', [DebitNoteController::class, 'void']);
 
     Route::get('/schedule', [ScheduleController::class, 'index']);
     Route::post('/schedule', [ScheduleController::class, 'store']);

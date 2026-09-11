@@ -49,4 +49,42 @@ class Invoice extends Model
     {
         return $this->hasMany(InvoicePayment::class);
     }
+
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class);
+    }
+
+    public function debitNotes(): HasMany
+    {
+        return $this->hasMany(DebitNote::class);
+    }
+
+    public function creditedTotal(): float
+    {
+        return (float) $this->creditNotes()->where('status', 'issued')->sum('total');
+    }
+
+    public function debitedTotal(): float
+    {
+        return (float) $this->debitNotes()->where('status', 'issued')->sum('total');
+    }
+
+    /** How much of this invoice's total can still be covered by a new Credit Note — prevents over-crediting across multiple partial credit notes. */
+    public function remainingCreditableTotal(): float
+    {
+        return round((float) $this->total - $this->creditedTotal(), 2);
+    }
+
+    /**
+     * True once ZATCA has cleared (B2B) or reported (B2C) this invoice —
+     * at that point the document is part of an immutable tax record and
+     * can no longer be edited or deleted. The only compliant way to
+     * correct a locked invoice is a Credit Note (or a Debit Note, for an
+     * under-billed charge) referencing it.
+     */
+    public function isZatcaLocked(): bool
+    {
+        return in_array($this->zatca_status, ['cleared', 'reported'], true);
+    }
 }

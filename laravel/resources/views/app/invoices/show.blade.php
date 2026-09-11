@@ -134,6 +134,30 @@
   </div>
 </div>
 
+<?php if ($invoice['zatca_status'] && in_array($invoice['zatca_status'], ['cleared', 'reported'], true)): ?>
+  <div class="card" style="max-width:820px;margin-top:20px;">
+    <h3><?= t('credit_note.corrections_title') ?></h3>
+    <p class="help-text"><?= t('credit_note.remaining_creditable') ?>: <strong><?= money((float)$remainingCreditable) ?></strong></p>
+    <div style="display:flex;gap:10px;margin:10px 0;flex-wrap:wrap;">
+      <a href="/app/credit-notes/create?invoice_id=<?= $invoice['id'] ?>" class="btn btn-outline"><?= t('credit_note.issue') ?></a>
+      <a href="/app/debit-notes/create?invoice_id=<?= $invoice['id'] ?>" class="btn btn-outline"><?= t('debit_note.issue') ?></a>
+    </div>
+    <?php if (!empty($creditNotes) || !empty($debitNotes)): ?>
+      <table class="data">
+        <thead><tr><th>#</th><th><?= t('common.status') ?></th><th><?= t('common.total') ?></th><th><?= t('user.invoices.zatca_phase2') ?></th></tr></thead>
+        <tbody>
+          <?php foreach ($creditNotes as $n): ?>
+            <tr><td><a href="/app/credit-notes/<?= $n['id'] ?>"><?= e($n['note_number']) ?></a> (<?= t('credit_note.title') ?>)</td><td><?= e($n['status']) ?></td><td><?= money((float)$n['total']) ?></td><td><?= e($n['zatca_status'] ?: 'not_submitted') ?></td></tr>
+          <?php endforeach; ?>
+          <?php foreach ($debitNotes as $n): ?>
+            <tr><td><a href="/app/debit-notes/<?= $n['id'] ?>"><?= e($n['note_number']) ?></a> (<?= t('debit_note.title') ?>)</td><td><?= e($n['status']) ?></td><td><?= money((float)$n['total']) ?></td><td><?= e($n['zatca_status'] ?: 'not_submitted') ?></td></tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
 <div class="card" style="max-width:820px;margin-top:20px;">
   <h3><?= t('common.update_status') ?></h3>
   <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/status" style="display:flex;gap:10px;align-items:end;">

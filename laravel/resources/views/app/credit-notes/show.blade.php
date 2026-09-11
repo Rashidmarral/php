@@ -1,0 +1,94 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="page-head">
+  <div>
+    <h1><?= e($creditNote['note_number']) ?></h1>
+    <p class="help-text" style="margin-top:4px;">
+      <?= t('credit_note.against_invoice') ?> <a href="/app/invoices/<?= $invoice->id ?>"><?= e($invoice->invoice_number) ?></a>
+      · <?= t('common.client') ?>: <?= e($client ? local($client, 'name') : '—') ?>
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span class="badge badge-<?= $creditNote['status'] === 'void' ? 'red' : 'green' ?>" style="font-size:13px;padding:6px 14px;"><?= e($creditNote['status']) ?></span>
+    <?php if ($creditNote['status'] !== 'void'): ?>
+      <form method="post" action="/app/credit-notes/<?= $creditNote['id'] ?>/void" onsubmit="return confirm('<?= t('credit_note.void_confirm') ?>');">
+        <?= csrf_field() ?>
+        <button type="submit" class="btn btn-danger"><?= t('credit_note.void') ?></button>
+      </form>
+    <?php endif; ?>
+  </div>
+</div>
+
+<?php if (!empty($creditNote['reason'])): ?>
+  <p class="help-text" style="max-width:820px;"><?= t('credit_note.reason') ?>: <?= e($creditNote['reason']) ?></p>
+<?php endif; ?>
+
+<form method="get" action="/app/credit-notes/<?= $creditNote['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;">
+  <div class="form-group" style="margin:0;">
+    <label><?= t('common.pdf_template') ?></label>
+    <select name="template">
+      <option value="modern">Modern</option>
+      <option value="classic">Classic</option>
+      <option value="minimal">Minimal</option>
+      <option value="bold">Bold</option>
+      <option value="elegant">Elegant</option>
+      <option value="saudi">Saudi (ZATCA bilingual)</option>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0;">
+    <label><?= t('common.language') ?></label>
+    <select name="lang"><option value="en"><?= t('common.english') ?></option><option value="ar"><?= t('common.arabic') ?></option></select>
+  </div>
+  <button type="submit" class="btn btn-outline">⬇ <?= t('common.download_pdf') ?></button>
+</form>
+
+<div class="card" style="max-width:820px;">
+  <table class="data">
+    <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.unit_price') ?></th><th><?= t('common.total') ?></th></tr></thead>
+    <tbody>
+      <?php foreach ($items as $it): ?>
+        <tr><td><?= e(local($it, 'description')) ?></td><td><?= e($it['qty']) ?></td><td><?= money((float)$it['unit_price']) ?></td><td><?= money((float)$it['total']) ?></td></tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+  <div style="text-align:right;font-size:14px;color:var(--muted);margin-top:14px;">
+    <?= t('common.subtotal') ?>: <?= money((float)$creditNote['subtotal']) ?><br>
+    <?= t('common.vat') ?> (<?= e((string)$creditNote['vat_rate']) ?>%): <?= money((float)$creditNote['vat_amount']) ?>
+  </div>
+  <div class="total-row" style="margin-top:6px;"><?= t('common.total') ?>: <?= money((float)$creditNote['total']) ?></div>
+</div>
+
+<?php if (!empty($creditNote['zatca_uuid'])):
+  $zatcaStatusLabels = [
+    'not_submitted' => [t('user.invoices.zatca_not_submitted'), 'gray'],
+    'reported' => [t('user.invoices.zatca_reported'), 'green'],
+    'cleared' => [t('user.invoices.zatca_cleared'), 'green'],
+    'failed' => [t('user.invoices.zatca_failed'), 'red'],
+  ];
+  $zStatus = $creditNote['zatca_status'] ?: 'not_submitted';
+  [$zLabel, $zColor] = $zatcaStatusLabels[$zStatus] ?? [$zStatus, 'gray'];
+  $company = \App\Models\Company::find($creditNote['company_id']);
+  $companyLive = $company && $company->isZatcaOnboarded();
+?>
+  <div class="card" style="max-width:820px;margin-top:20px;">
+    <h3><?= t('user.invoices.zatca_phase2') ?></h3>
+    <p class="help-text" style="margin-bottom:10px;">
+      <?= t('common.status') ?>: <span class="badge badge-<?= $zColor ?>"><?= e($zLabel) ?></span>
+      · ICV #<?= (int) $creditNote['zatca_icv'] ?>
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <a href="/app/credit-notes/<?= $creditNote['id'] ?>/xml" class="btn btn-outline">⬇ <?= t('user.invoices.download_ubl_xml') ?></a>
+      <?php if (\App\Support\Feature::allows('zatca_phase2') && $companyLive && !in_array($zStatus, ['reported', 'cleared'], true)): ?>
+        <form method="post" action="/app/credit-notes/<?= $creditNote['id'] ?>/submit-zatca" onsubmit="return confirm('<?= t('user.invoices.submit_zatca_confirm') ?>');">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-primary"><?= t('user.invoices.submit_to_zatca') ?></button>
+        </form>
+      <?php elseif (!$companyLive): ?>
+        <span class="help-text"><?= t('user.invoices.zatca_not_activated') ?></span>
+      <?php endif; ?>
+    </div>
+  </div>
+<?php endif; ?>
+
+@endsection

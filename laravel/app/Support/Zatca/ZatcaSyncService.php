@@ -4,6 +4,8 @@ namespace App\Support\Zatca;
 
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\CreditNote;
+use App\Models\DebitNote;
 use App\Models\Invoice;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -14,14 +16,10 @@ use Illuminate\Support\Str;
  * (XAdES + QR embedding) once the company is fully onboarded, submit it,
  * and record the outcome back onto the invoice/company.
  *
- * Adapted from Daftri's App\Services\Zatca\ZatcaSyncService. Two scope
- * reductions from the original, both driven by what BuildXact's schema
- * actually has (see ZatcaXmlGenerator's class docblock for the same
- * reasoning):
+ * Adapted from Daftri's App\Services\Zatca\ZatcaSyncService. One scope
+ * reduction from the original, driven by what BuildXact's schema actually
+ * has (see ZatcaXmlGenerator's class docblock for the same reasoning):
  *
- *  - No CreditNote/DebitNote support (no such models here) — only
- *    submitInvoice()/buildSignedPayload() were ported, not
- *    submitCreditNote()/submitDebitNote().
  *  - No dedicated zatca_invoice_logs table — BuildXact already tracks
  *    hash-chain/submission state directly on the invoice/company rows
  *    (zatca_uuid/zatca_icv/zatca_hash/zatca_previous_hash/zatca_status/
@@ -193,6 +191,168 @@ class ZatcaSyncService
 
         $errorMessage = Str::limit('HTTP '.$response->status().': '.$response->body(), 2000);
         $invoice->update(['zatca_status' => 'failed', 'zatca_response' => $errorMessage]);
+
+        return ['ok' => false, 'status' => 'failed', 'message' => $errorMessage];
+    }
+
+    /**
+     * Same eager-chaining shape as buildUnsignedXml() above, for a Credit
+     * Note. A credit note is not a separate chain — it's the next link in
+     * the SAME company-wide ICV/PIH sequence as regular invoices, so the
+     * caller (CreditNoteController::chainZatcaCreditNote()) must pass in
+     * whichever invoice/credit-note/debit-note was submitted most
+     * recently for this company, exactly like InvoiceController::
+     * chainZatca() already does for invoices.
+     *
+     * @return array{0: string, 1: string} [unsignedXml, hashBase64]
+     */
+    public function buildUnsignedCreditNoteXml(CreditNote $creditNote, Company $company, ?Client $client, array $items, Invoice $originalInvoice, string $uuid, int $icv, string $previousHash): array
+    {
+        $profile = $this->xml->isB2bEligible($client) ? self::STANDARD_PROFILE : self::SIMPLIFIED_PROFILE;
+        $unsignedXml = $this->xml->generateForCreditNote($creditNote, $company, $client, $items, $originalInvoice, $profile, $previousHash, $uuid, $icv);
+        $hash = $this->signer->contentHash($unsignedXml);
+
+        return [$unsignedXml, $hash];
+    }
+
+    /** Debit Note equivalent of buildUnsignedCreditNoteXml() above. */
+    public function buildUnsignedDebitNoteXml(DebitNote $debitNote, Company $company, ?Client $client, array $items, Invoice $originalInvoice, string $uuid, int $icv, string $previousHash): array
+    {
+        $profile = $this->xml->isB2bEligible($client) ? self::STANDARD_PROFILE : self::SIMPLIFIED_PROFILE;
+        $unsignedXml = $this->xml->generateForDebitNote($debitNote, $company, $client, $items, $originalInvoice, $profile, $previousHash, $uuid, $icv);
+        $hash = $this->signer->contentHash($unsignedXml);
+
+        return [$unsignedXml, $hash];
+    }
+
+    /**
+     * Submits a credit note's already-computed hash-chain data (set by
+     * CreditNoteController::chainZatcaCreditNote() at creation) to
+     * ZATCA's clearance/reporting endpoint — same pattern as
+     * submitInvoice() above, writing the outcome back onto the credit
+     * note (and, on success, the company's zatca_last_invoice_hash, so
+     * whatever gets submitted next — invoice, credit note, or debit
+     * note — continues from here).
+     *
+     * @return array{ok: bool, status: string, message: string}
+     */
+    public function submitCreditNote(CreditNote $creditNote, Company $company, ?Client $client, array $items, Invoice $originalInvoice): array
+    {
+        if (! $company->isZatcaOnboarded()) {
+            return ['ok' => false, 'status' => 'failed', 'message' => __('ZATCA Phase 2 onboarding is not complete for this company yet.')];
+        }
+        if (empty($creditNote->zatca_uuid) || empty($creditNote->zatca_hash)) {
+            return ['ok' => false, 'status' => 'failed', 'message' => __('This credit note has no ZATCA chain data.')];
+        }
+
+        [$unsignedXml] = $this->buildUnsignedCreditNoteXml(
+            $creditNote, $company, $client, $items, $originalInvoice,
+            (string) $creditNote->zatca_uuid, (int) $creditNote->zatca_icv, (string) $creditNote->zatca_previous_hash,
+        );
+
+        $csid = $company->zatcaCsidFor();
+        $secret = $company->zatcaSecretFor();
+
+        [$xmlToSubmit] = $this->buildSignedPayload(
+            $company, $unsignedXml, (string) $creditNote->zatca_hash, (string) $csid,
+            $creditNote->created_at ?? now(), (float) $creditNote->total, (float) $creditNote->vat_amount,
+        );
+
+        $xmlBase64 = base64_encode($xmlToSubmit);
+
+        $isB2b = $this->xml->isB2bEligible($client);
+        $successStatus = $isB2b ? 'cleared' : 'reported';
+
+        try {
+            $response = $isB2b
+                ? $this->api->clearInvoice(
+                    $company->zatca_environment, (string) $csid, (string) $secret,
+                    $xmlBase64, (string) $creditNote->zatca_hash, (string) $creditNote->zatca_uuid,
+                )
+                : $this->api->reportInvoice(
+                    $company->zatca_environment, (string) $csid, (string) $secret,
+                    $xmlBase64, (string) $creditNote->zatca_hash, (string) $creditNote->zatca_uuid,
+                );
+        } catch (\Throwable $e) {
+            $creditNote->update(['zatca_status' => 'failed', 'zatca_response' => Str::limit($e->getMessage(), 2000)]);
+
+            return ['ok' => false, 'status' => 'failed', 'message' => $e->getMessage()];
+        }
+
+        if ($response->successful()) {
+            $creditNote->update([
+                'zatca_status' => $successStatus,
+                'zatca_submitted_at' => now(),
+                'zatca_response' => $response->body(),
+            ]);
+            $company->update(['zatca_last_invoice_hash' => $creditNote->zatca_hash, 'zatca_last_sync_at' => now()]);
+
+            return ['ok' => true, 'status' => $successStatus, 'message' => $isB2b ? __('Credit note cleared by ZATCA.') : __('Credit note reported to ZATCA.')];
+        }
+
+        $errorMessage = Str::limit('HTTP '.$response->status().': '.$response->body(), 2000);
+        $creditNote->update(['zatca_status' => 'failed', 'zatca_response' => $errorMessage]);
+
+        return ['ok' => false, 'status' => 'failed', 'message' => $errorMessage];
+    }
+
+    /** Debit Note equivalent of submitCreditNote() above. */
+    public function submitDebitNote(DebitNote $debitNote, Company $company, ?Client $client, array $items, Invoice $originalInvoice): array
+    {
+        if (! $company->isZatcaOnboarded()) {
+            return ['ok' => false, 'status' => 'failed', 'message' => __('ZATCA Phase 2 onboarding is not complete for this company yet.')];
+        }
+        if (empty($debitNote->zatca_uuid) || empty($debitNote->zatca_hash)) {
+            return ['ok' => false, 'status' => 'failed', 'message' => __('This debit note has no ZATCA chain data.')];
+        }
+
+        [$unsignedXml] = $this->buildUnsignedDebitNoteXml(
+            $debitNote, $company, $client, $items, $originalInvoice,
+            (string) $debitNote->zatca_uuid, (int) $debitNote->zatca_icv, (string) $debitNote->zatca_previous_hash,
+        );
+
+        $csid = $company->zatcaCsidFor();
+        $secret = $company->zatcaSecretFor();
+
+        [$xmlToSubmit] = $this->buildSignedPayload(
+            $company, $unsignedXml, (string) $debitNote->zatca_hash, (string) $csid,
+            $debitNote->created_at ?? now(), (float) $debitNote->total, (float) $debitNote->vat_amount,
+        );
+
+        $xmlBase64 = base64_encode($xmlToSubmit);
+
+        $isB2b = $this->xml->isB2bEligible($client);
+        $successStatus = $isB2b ? 'cleared' : 'reported';
+
+        try {
+            $response = $isB2b
+                ? $this->api->clearInvoice(
+                    $company->zatca_environment, (string) $csid, (string) $secret,
+                    $xmlBase64, (string) $debitNote->zatca_hash, (string) $debitNote->zatca_uuid,
+                )
+                : $this->api->reportInvoice(
+                    $company->zatca_environment, (string) $csid, (string) $secret,
+                    $xmlBase64, (string) $debitNote->zatca_hash, (string) $debitNote->zatca_uuid,
+                );
+        } catch (\Throwable $e) {
+            $debitNote->update(['zatca_status' => 'failed', 'zatca_response' => Str::limit($e->getMessage(), 2000)]);
+
+            return ['ok' => false, 'status' => 'failed', 'message' => $e->getMessage()];
+        }
+
+        if ($response->successful()) {
+            $debitNote->update([
+                'zatca_status' => $successStatus,
+                'zatca_submitted_at' => now(),
+                'zatca_response' => $response->body(),
+            ]);
+            $company->update(['zatca_last_invoice_hash' => $debitNote->zatca_hash, 'zatca_last_sync_at' => now()]);
+
+            return ['ok' => true, 'status' => $successStatus, 'message' => $isB2b ? __('Debit note cleared by ZATCA.') : __('Debit note reported to ZATCA.')];
+        }
+
+        $errorMessage = Str::limit('HTTP '.$response->status().': '.$response->body(), 2000);
+        $debitNote->update(['zatca_status' => 'failed', 'zatca_response' => $errorMessage]);
 
         return ['ok' => false, 'status' => 'failed', 'message' => $errorMessage];
     }
