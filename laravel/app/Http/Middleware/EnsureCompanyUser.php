@@ -11,9 +11,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Entry gate for the whole /app (company) panel. Platform admins are bounced to /admin.
- * A company whose trial has ended or whose auto-renewal has failed repeatedly (past_due) is
- * redirected to Billing on every page except Billing/logout, since nothing else in the app
- * checks subscription state.
+ * A company whose trial has ended, whose auto-renewal has failed repeatedly (past_due), or
+ * that an admin has suspended/cancelled is redirected to Billing on every page except
+ * Billing/logout, since nothing else in the app checks subscription/account state.
  */
 class EnsureCompanyUser
 {
@@ -54,6 +54,11 @@ class EnsureCompanyUser
 
         if ($company->status === 'past_due') {
             $request->session()->flash('flash.error', ["We couldn't renew your subscription. Please update your payment method to continue."]);
+            return redirect('/app/billing');
+        }
+
+        if (in_array($company->status, ['suspended', 'cancelled'], true)) {
+            $request->session()->flash('flash.error', ['Your account has been ' . $company->status . '. Contact support if you believe this is a mistake.']);
             return redirect('/app/billing');
         }
 

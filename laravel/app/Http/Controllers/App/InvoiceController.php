@@ -97,10 +97,13 @@ class InvoiceController extends Controller
         $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', 0)));
         $retentionAmount = $subtotal * $retentionPercent / 100;
 
+        $client = $this->ownedClient($request->input('client_id') ?: null, $companyId);
+        $project = $this->ownedProject($request->input('project_id') ?: null, $companyId);
+
         $invoice = Invoice::create([
             'company_id' => $companyId,
-            'project_id' => $request->input('project_id') ?: null,
-            'client_id' => $request->input('client_id') ?: null,
+            'project_id' => $project?->id,
+            'client_id' => $client?->id,
             'invoice_number' => trim((string) $request->input('invoice_number')) ?: ('INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1)),
             'status' => 'unpaid',
             'total' => $total,
@@ -117,7 +120,6 @@ class InvoiceController extends Controller
         }
 
         $company = Company::find($companyId);
-        $client = $request->input('client_id') ? Client::find((int) $request->input('client_id')) : null;
         $this->chainZatca($invoice->fresh(), $company, $client, $items);
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
 
@@ -174,8 +176,8 @@ class InvoiceController extends Controller
     {
         $invoice = $this->findOwned($id);
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get()->toArray();
-        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
-        $project = $invoice->project_id ? Project::find($invoice->project_id) : null;
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
+        $project = $this->ownedProject($invoice->project_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
 
         if (empty($invoice->share_token)) {
@@ -208,7 +210,7 @@ class InvoiceController extends Controller
             return $redirect;
         }
         $invoice = $this->findOwned($id);
-        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
 
         if (!$client || empty($client->phone)) {
@@ -278,7 +280,7 @@ class InvoiceController extends Controller
     {
         $invoice = $this->findOwned($id);
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
-        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
         $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
@@ -315,7 +317,7 @@ class InvoiceController extends Controller
             return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no ZATCA chain data (it may predate ZATCA integration).');
         }
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
-        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
 
         $xmlContent = UblInvoice::build(
@@ -353,7 +355,7 @@ class InvoiceController extends Controller
         }
 
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
-        $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $xmlContent = UblInvoice::build(
             $invoice->toArray(),
             $company->toArray(),
@@ -413,5 +415,24 @@ class InvoiceController extends Controller
         $invoice = Invoice::find($id);
         abort_if(!$invoice || $invoice->company_id !== Auth::user()->company_id, 404, 'Invoice not found.');
         return $invoice;
+    }
+
+    /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */
+    private function ownedClient(?int $id, int $companyId): ?Client
+    {
+        if (!$id) {
+            return null;
+        }
+        $client = Client::find($id);
+        return ($client && $client->company_id === $companyId) ? $client : null;
+    }
+
+    private function ownedProject(?int $id, int $companyId): ?Project
+    {
+        if (!$id) {
+            return null;
+        }
+        $project = Project::find($id);
+        return ($project && $project->company_id === $companyId) ? $project : null;
     }
 }

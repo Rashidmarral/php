@@ -75,11 +75,11 @@ class QuickEstimateController extends Controller
         $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities);
 
         $clientId = $request->input('client_id') ?: null;
-        $client = $clientId ? Client::find((int) $clientId) : null;
+        $client = $this->ownedClient($clientId, $companyId);
 
         $estimate = QuickEstimate::create([
             'company_id' => $companyId,
-            'client_id' => $clientId,
+            'client_id' => $client?->id,
             'project_name' => trim((string) $request->input('project_name')) ?: null,
             'region_id' => $region->id,
             'foundation_id' => $foundation->id,
@@ -109,7 +109,7 @@ class QuickEstimateController extends Controller
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
-        $client = $estimate->client_id ? Client::find($estimate->client_id) : null;
+        $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
 
         return view('app.quick-estimate.show', [
             'estimate' => $estimate->toArray(),
@@ -208,5 +208,15 @@ class QuickEstimateController extends Controller
         $estimate = QuickEstimate::find($id);
         abort_if(!$estimate || $estimate->company_id !== Auth::user()->company_id, 404, 'Quick estimate not found.');
         return $estimate;
+    }
+
+    /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */
+    private function ownedClient(?int $id, int $companyId): ?Client
+    {
+        if (!$id) {
+            return null;
+        }
+        $client = Client::find($id);
+        return ($client && $client->company_id === $companyId) ? $client : null;
     }
 }

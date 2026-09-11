@@ -119,7 +119,7 @@ class EstimateController extends Controller
         $estimate = Estimate::create([
             'company_id' => $companyId,
             'project_id' => null,
-            'client_id' => $request->input('client_id') ?: null,
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
             'title' => trim((string) $request->input('title')) ?: $template->name_en,
             'title_ar' => trim((string) $request->input('title_ar', '')) ?: ($template->name_ar ?? ''),
             'status' => 'draft',
@@ -304,21 +304,21 @@ class EstimateController extends Controller
         }
 
         $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
-        $taxRateId = $request->input('tax_rate_id') ?: null;
-        $taxPercent = $taxRateId ? (float) (TaxRate::find($taxRateId)?->rate_percent ?? 0) : 0;
+        $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $companyId);
+        $taxPercent = (float) ($taxRate->rate_percent ?? 0);
         $calc = EstimateCalc::compute($subtotal, $markupPercent, $taxPercent);
 
         $estimate = Estimate::create([
             'company_id' => $companyId,
-            'project_id' => $request->input('project_id') ?: null,
-            'client_id' => $request->input('client_id') ?: null,
+            'project_id' => $this->ownedProject($request->input('project_id') ?: null, $companyId)?->id,
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
             'title' => $title,
             'title_ar' => trim((string) $request->input('title_ar', '')),
             'status' => 'draft',
             'subtotal' => $subtotal,
             'markup_percent' => $markupPercent,
             'markup_amount' => $calc['markup_amount'],
-            'tax_rate_id' => $taxRateId,
+            'tax_rate_id' => $taxRate?->id,
             'tax_percent' => $taxPercent,
             'tax_amount' => $calc['tax_amount'],
             'total' => $calc['total'],
@@ -341,14 +341,14 @@ class EstimateController extends Controller
         }
         $estimate = $this->findOwned($id);
         $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
-        $taxRateId = $request->input('tax_rate_id') ?: null;
-        $taxPercent = $taxRateId ? (float) (TaxRate::find($taxRateId)?->rate_percent ?? 0) : 0;
+        $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $estimate->company_id);
+        $taxPercent = (float) ($taxRate->rate_percent ?? 0);
         $calc = EstimateCalc::compute((float) $estimate->subtotal, $markupPercent, $taxPercent);
 
         $estimate->update([
             'markup_percent' => $markupPercent,
             'markup_amount' => $calc['markup_amount'],
-            'tax_rate_id' => $taxRateId,
+            'tax_rate_id' => $taxRate?->id,
             'tax_percent' => $taxPercent,
             'tax_amount' => $calc['tax_amount'],
             'total' => $calc['total'],
@@ -362,8 +362,8 @@ class EstimateController extends Controller
     {
         $estimate = $this->findOwned($id);
         $items = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get()->toArray();
-        $client = $estimate->client_id ? Client::find($estimate->client_id) : null;
-        $project = $estimate->project_id ? Project::find($estimate->project_id) : null;
+        $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
+        $project = $this->ownedProject($estimate->project_id, $estimate->company_id);
 
         if (empty($estimate->share_token)) {
             $estimate->update(['share_token' => bin2hex(random_bytes(20))]);
@@ -418,7 +418,7 @@ class EstimateController extends Controller
     {
         $estimate = $this->findOwned($id);
         $items = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get();
-        $client = $estimate->client_id ? Client::find($estimate->client_id) : null;
+        $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
         $company = Company::find($estimate->company_id);
         $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
@@ -451,5 +451,33 @@ class EstimateController extends Controller
         $estimate = Estimate::find($id);
         abort_if(!$estimate || $estimate->company_id !== Auth::user()->company_id, 404, 'Estimate not found.');
         return $estimate;
+    }
+
+    /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */
+    private function ownedClient(?int $id, int $companyId): ?Client
+    {
+        if (!$id) {
+            return null;
+        }
+        $client = Client::find($id);
+        return ($client && $client->company_id === $companyId) ? $client : null;
+    }
+
+    private function ownedProject(?int $id, int $companyId): ?Project
+    {
+        if (!$id) {
+            return null;
+        }
+        $project = Project::find($id);
+        return ($project && $project->company_id === $companyId) ? $project : null;
+    }
+
+    private function ownedTaxRate(?int $id, int $companyId): ?TaxRate
+    {
+        if (!$id) {
+            return null;
+        }
+        $taxRate = TaxRate::find($id);
+        return ($taxRate && $taxRate->company_id === $companyId) ? $taxRate : null;
     }
 }

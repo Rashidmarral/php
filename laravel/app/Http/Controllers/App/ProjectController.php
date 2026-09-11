@@ -66,7 +66,7 @@ class ProjectController extends Controller
 
         $project = Project::create([
             'company_id' => $companyId,
-            'client_id' => $request->input('client_id') ?: null,
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
             'name' => $name,
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'description' => $request->input('description', ''),
@@ -84,7 +84,7 @@ class ProjectController extends Controller
     public function show(int $id): View
     {
         $project = $this->findOwned($id);
-        $client = $project->client_id ? Client::find($project->client_id) : null;
+        $client = $this->ownedClient($project->client_id, $project->company_id);
         $estimates = Estimate::where('project_id', $project->id)->get();
         $invoices = Invoice::where('project_id', $project->id)->get();
         $tasks = ScheduleTask::where('project_id', $project->id)->orderBy('start_date')->get();
@@ -129,7 +129,7 @@ class ProjectController extends Controller
         $project = $this->findOwned($id);
 
         $project->update([
-            'client_id' => $request->input('client_id') ?: null,
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $project->company_id)?->id,
             'name' => trim((string) $request->input('name')),
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'description' => $request->input('description', ''),
@@ -159,5 +159,15 @@ class ProjectController extends Controller
         $project = Project::find($id);
         abort_if(!$project || $project->company_id !== Auth::user()->company_id, 404, 'Project not found.');
         return $project;
+    }
+
+    /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */
+    private function ownedClient(?int $id, int $companyId): ?Client
+    {
+        if (!$id) {
+            return null;
+        }
+        $client = Client::find($id);
+        return ($client && $client->company_id === $companyId) ? $client : null;
     }
 }
