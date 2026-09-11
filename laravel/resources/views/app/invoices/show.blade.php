@@ -101,7 +101,7 @@
   ];
   $zStatus = $invoice['zatca_status'] ?: 'not_submitted';
   [$zLabel, $zColor] = $zatcaStatusLabels[$zStatus] ?? [$zStatus, 'gray'];
-  $companyLive = ($company['zatca_status'] ?? '') === 'active';
+  $companyLive = ($company['zatca_status'] ?? '') === 'onboarded';
 ?>
   <div class="card" style="max-width:820px;margin-top:20px;">
     <h3><?= t('user.invoices.zatca_phase2') ?></h3>

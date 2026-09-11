@@ -86,8 +86,8 @@
       <tbody>
         <tr><td><?= t('admin.reports.zatca_not_started') ?></td><td><?= $zatcaMap['not_started'] ?></td></tr>
         <tr><td><?= t('admin.reports.zatca_csr_generated') ?></td><td><?= $zatcaMap['csr_generated'] ?></td></tr>
-        <tr><td><?= t('admin.reports.zatca_compliance_issued') ?></td><td><?= $zatcaMap['compliance_csid'] ?></td></tr>
-        <tr><td><?= t('admin.reports.zatca_live') ?></td><td><span class="badge badge-green"><?= $zatcaMap['active'] ?></span></td></tr>
+        <tr><td><?= t('admin.reports.zatca_compliance_issued') ?></td><td><?= $zatcaMap['compliance_pending'] + $zatcaMap['compliance_verified'] ?></td></tr>
+        <tr><td><?= t('admin.reports.zatca_live') ?></td><td><span class="badge badge-green"><?= $zatcaMap['onboarded'] ?></span></td></tr>
         <tr><td><?= t('admin.reports.zatca_error') ?></td><td><span class="badge badge-red"><?= $zatcaMap['error'] ?></span></td></tr>
       </tbody>
     </table>

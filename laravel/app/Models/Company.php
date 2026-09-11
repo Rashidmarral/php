@@ -23,7 +23,39 @@ class Company extends Model
             'default_markup_percent' => 'decimal:2',
             'default_retention_percent' => 'decimal:2',
             'zatca_last_icv' => 'integer',
+            'zatca_sync_b2b' => 'boolean',
+            'zatca_sync_b2c' => 'boolean',
+            'zatca_linked_at' => 'datetime',
+            'zatca_last_sync_at' => 'datetime',
         ];
+    }
+
+    /**
+     * True only once ZATCA has actually issued a production CSID for this
+     * company — not just when zatca_status says 'onboarded'. Every sync
+     * path (InvoiceController::submitZatca, ZatcaSyncService) goes through
+     * this single choke point, mirroring Daftri's Company::isZatcaOnboarded().
+     */
+    public function isZatcaOnboarded(): bool
+    {
+        return $this->zatca_status === 'onboarded' && (bool) $this->zatca_production_csid;
+    }
+
+    /**
+     * The credential clearance/reporting submissions must authenticate
+     * with. ZATCA requires the production-CSID exchange in every
+     * environment (developer, simulation, production) — the compliance
+     * CSID from onboarding is only valid for the compliance-check call
+     * itself and is rejected (401) if used for clearance/reporting.
+     */
+    public function zatcaCsidFor(): ?string
+    {
+        return $this->zatca_production_csid;
+    }
+
+    public function zatcaSecretFor(): ?string
+    {
+        return $this->zatca_production_secret;
     }
 
     public function plan(): BelongsTo

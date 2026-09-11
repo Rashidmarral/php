@@ -15,7 +15,7 @@ use App\Support\Moyasar;
 use App\Support\Notifications;
 use App\Support\Feature;
 use App\Support\WebhookDispatcher;
-use App\Support\Zatca\Phase1Qr;
+use App\Support\Zatca\QrGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -224,13 +224,13 @@ class ShareController extends Controller
         if ($vatNumber === '') {
             return null;
         }
-        $payload = Phase1Qr::payload(
+        $payload = QrGenerator::payload(
             $company->name ?? '',
             $vatNumber,
             $invoice->created_at->toAtomString(),
             number_format((float) $invoice->total, 2, '.', ''),
             number_format((float) $invoice->vat_amount, 2, '.', '')
         );
-        return Phase1Qr::renderSvgDataUri($payload);
+        return QrGenerator::renderSvgDataUri($payload);
     }
 }

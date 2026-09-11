@@ -353,10 +353,13 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/companies/{id}/impersonate', [CompanyController::class, 'impersonate']);
         Route::post('/companies/{id}/hard-delete', [CompanyController::class, 'hardDelete']);
 
-        Route::post('/companies/{id}/zatca/environment', [CompanyZatcaController::class, 'updateEnvironment']);
+        Route::post('/companies/{id}/zatca/settings', [CompanyZatcaController::class, 'updateSettings']);
         Route::post('/companies/{id}/zatca/csr', [CompanyZatcaController::class, 'generateCsr']);
         Route::post('/companies/{id}/zatca/compliance-csid', [CompanyZatcaController::class, 'requestComplianceCsid']);
+        Route::post('/companies/{id}/zatca/compliance-check', [CompanyZatcaController::class, 'runComplianceCheck']);
         Route::post('/companies/{id}/zatca/production-csid', [CompanyZatcaController::class, 'requestProductionCsid']);
+        Route::post('/companies/{id}/zatca/test-connection', [CompanyZatcaController::class, 'testConnection']);
+        Route::post('/companies/{id}/zatca/reset', [CompanyZatcaController::class, 'resetOnboarding']);
 
         Route::post('/payments/{id}/update', [PaymentController::class, 'update']);
         Route::post('/payments/{id}/apply-plan', [PaymentController::class, 'applyPlan']);

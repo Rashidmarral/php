@@ -26,7 +26,7 @@ class AdminReportController extends Controller
             ->map(fn ($r) => (array) $r);
 
         $zatcaCounts = DB::table('companies')->select('zatca_status', DB::raw('COUNT(*) AS c'))->groupBy('zatca_status')->get();
-        $zatcaMap = ['not_started' => 0, 'csr_generated' => 0, 'compliance_csid' => 0, 'active' => 0, 'error' => 0];
+        $zatcaMap = ['not_started' => 0, 'csr_generated' => 0, 'compliance_pending' => 0, 'compliance_verified' => 0, 'onboarded' => 0, 'error' => 0];
         foreach ($zatcaCounts as $row) {
             $key = $row->zatca_status ?: 'not_started';
             $zatcaMap[$key] = ($zatcaMap[$key] ?? 0) + (int) $row->c;

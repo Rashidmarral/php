@@ -79,13 +79,13 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:start;">
       <h3><?= t('user.integrations.zatca_title') ?></h3>
-      <span class="badge badge-<?= ($company['zatca_status'] ?? 'not_started') === 'active' ? 'green' : 'yellow' ?>">
-        <?= ($company['zatca_status'] ?? 'not_started') === 'active' ? t('user.integrations.phase2_live') : t('user.integrations.phase1_only') ?>
+      <span class="badge badge-<?= ($company['zatca_status'] ?? 'not_started') === 'onboarded' ? 'green' : 'yellow' ?>">
+        <?= ($company['zatca_status'] ?? 'not_started') === 'onboarded' ? t('user.integrations.phase2_live') : t('user.integrations.phase1_only') ?>
       </span>
     </div>
     <p class="help-text">
       Every invoice already carries a compliant ZATCA Phase 1 QR code automatically.
-      <?= ($company['zatca_status'] ?? 'not_started') === 'active'
+      <?= ($company['zatca_status'] ?? 'not_started') === 'onboarded'
         ? 'Phase 2 (Fatoora reporting) is active — invoices can be submitted directly to ZATCA from the invoice page.'
         : 'Phase 2 (Fatoora reporting) requires onboarding with a one-time code from your ZATCA account — ask your platform administrator to complete it.' ?>
     </p>

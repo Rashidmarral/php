@@ -49,7 +49,7 @@ class AdminDashboardController extends Controller
             ->get();
         $maxPlanCount = max(1, $planCounts->max('company_count'));
 
-        $zatcaActive = Company::where('zatca_status', 'active')->count();
+        $zatcaActive = Company::where('zatca_status', 'onboarded')->count();
 
         $recentCompanies = Company::orderByDesc('created_at')->limit(6)->get(['id', 'name', 'status', 'created_at']);
         $recentPayments = DB::table('payments as pm')
