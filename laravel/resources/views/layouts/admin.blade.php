@@ -23,6 +23,7 @@
       <a href="{{ url('/admin/integrations') }}" class="{{ request()->is('admin/integrations*') ? 'active' : '' }}">🔌 {{ t('aside.integrations') }}</a>
       <a href="{{ url('/admin/quick-estimate') }}" class="{{ request()->is('admin/quick-estimate*') ? 'active' : '' }}">🧮 {{ t('aside.quick_estimate') }}</a>
       <a href="{{ url('/admin/estimate-templates') }}" class="{{ request()->is('admin/estimate-templates*') ? 'active' : '' }}">📐 {{ t('aside.estimate_templates') }}</a>
+      <a href="{{ url('/admin/tenders') }}" class="{{ request()->is('admin/tenders*') ? 'active' : '' }}">📋 {{ t('aside.tenders') }}</a>
       <div class="nav-section">{{ t('aside.section_website') }}</div>
       <a href="{{ url('/admin/pages') }}" class="{{ request()->is('admin/pages*') ? 'active' : '' }}">📄 {{ t('aside.pages') }}</a>
       <a href="{{ url('/admin/settings/header') }}" class="{{ request()->is('admin/settings/header*') ? 'active' : '' }}">🖼️ {{ t('aside.header_footer') }}</a>

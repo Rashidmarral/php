@@ -36,6 +36,7 @@
 
       <div class="nav-section">{{ t('side.section_company') }}</div>
       <a href="{{ url('/app/leads') }}" class="{{ request()->is('app/leads*') ? 'active' : '' }}">🎯 {{ t('side.leads') }}</a>
+      <a href="{{ url('/app/tenders') }}" class="{{ request()->is('app/tenders*') ? 'active' : '' }}">📋 {{ t('side.tenders') }}</a>
       <a href="{{ url('/app/team') }}" class="{{ request()->is('app/team*') ? 'active' : '' }}">🧑‍💼 {{ t('side.team') }}</a>
       <a href="{{ url('/app/billing') }}" class="{{ request()->is('app/billing*') ? 'active' : '' }}">💰 {{ t('side.billing') }}</a>
       <a href="{{ url('/app/integrations') }}" class="{{ request()->is('app/integrations*') ? 'active' : '' }}">🔌 {{ t('side.integrations') }}</a>

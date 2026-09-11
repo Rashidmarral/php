@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
+use App\Http\Controllers\Admin\TenderAdminController;
 use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
@@ -49,6 +50,7 @@ use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\SupportTicketController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\App\TeamMemberDocumentController;
+use App\Http\Controllers\App\TenderController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalController;
@@ -224,6 +226,9 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/leads/{id}/convert', [LeadController::class, 'convertToClient']);
     Route::post('/leads/{id}/delete', [LeadController::class, 'destroy']);
 
+    Route::get('/tenders', [TenderController::class, 'index']);
+    Route::get('/tenders/{id}', [TenderController::class, 'show']);
+
     Route::get('/suppliers', [SupplierController::class, 'index']);
     Route::get('/suppliers/create', [SupplierController::class, 'create']);
     Route::post('/suppliers', [SupplierController::class, 'store']);
@@ -335,6 +340,10 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/estimate-templates', [EstimateTemplateAdminController::class, 'index']);
     Route::get('/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'items']);
 
+    Route::get('/tenders', [TenderAdminController::class, 'index']);
+    Route::get('/tenders/create', [TenderAdminController::class, 'create']);
+    Route::get('/tenders/{id}/edit', [TenderAdminController::class, 'edit']);
+
     Route::get('/consultations', [ConsultationAdminController::class, 'index']);
 
     Route::get('/support', [AdminSupportTicketController::class, 'index']);
@@ -397,6 +406,10 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'storeItem']);
         Route::post('/estimate-templates/{id}/items/{itemId}', [EstimateTemplateAdminController::class, 'updateItem']);
         Route::post('/estimate-templates/{id}/items/{itemId}/delete', [EstimateTemplateAdminController::class, 'destroyItem']);
+
+        Route::post('/tenders', [TenderAdminController::class, 'store']);
+        Route::post('/tenders/{id}', [TenderAdminController::class, 'update']);
+        Route::post('/tenders/{id}/delete', [TenderAdminController::class, 'destroy']);
 
         Route::post('/consultations/{id}/update', [ConsultationAdminController::class, 'update']);
 

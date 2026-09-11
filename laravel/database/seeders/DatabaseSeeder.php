@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             QuickEstimateSeeder::class,
             EstimateTemplateSeeder::class,
+            TenderSeeder::class,
             AdminUserSeeder::class,
             DemoCompanySeeder::class,
         ]);
