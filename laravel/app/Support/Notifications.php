@@ -135,6 +135,21 @@ class Notifications
         );
     }
 
+    public static function bankGuaranteeExpiring(Company $company, \App\Models\BankGuarantee $guarantee): void
+    {
+        $owner = self::companyOwner($company->id);
+        if (!$owner) {
+            return;
+        }
+        $typeLabel = \App\Models\BankGuarantee::TYPES[$guarantee->type] ?? 'bank guarantee';
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "{$typeLabel} expires soon",
+            "Hi {$owner->name},\n\nThe \"{$typeLabel}\"" . ($guarantee->bank_name ? " from {$guarantee->bank_name}" : '') . " is due to expire on {$guarantee->expiry_date?->format('Y-m-d')}. Renew it with the bank before it lapses, or it will no longer satisfy the client's contract requirement.\n\nView the project: " . rtrim((string) config('app.url'), '/') . "/app/projects/{$guarantee->project_id}"
+        );
+    }
+
     private static function companyOwner(int $companyId): ?User
     {
         return User::where('company_id', $companyId)->where('role', 'owner')->first();

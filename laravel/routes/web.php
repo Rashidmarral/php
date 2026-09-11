@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketCont
 use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
+use App\Http\Controllers\App\BankGuaranteeController;
 use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\VendorBillController;
 use App\Http\Controllers\App\ClientController;
@@ -128,6 +129,9 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/vendor-bills/{id}/delete', [VendorBillController::class, 'destroy']);
     Route::post('/projects/{id}/photos', [ProjectPhotoController::class, 'store']);
     Route::post('/project-photos/{id}/delete', [ProjectPhotoController::class, 'destroy']);
+    Route::post('/projects/{id}/bank-guarantees', [BankGuaranteeController::class, 'store']);
+    Route::post('/bank-guarantees/{id}', [BankGuaranteeController::class, 'update']);
+    Route::post('/bank-guarantees/{id}/delete', [BankGuaranteeController::class, 'destroy']);
 
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/create', [ClientController::class, 'create']);

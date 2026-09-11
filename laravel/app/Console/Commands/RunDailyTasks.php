@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\BankGuarantee;
 use App\Models\Company;
 use App\Models\ComplianceDocument;
 use App\Models\Payment;
@@ -15,8 +16,9 @@ use Illuminate\Console\Command;
 
 /**
  * Daily background jobs — subscription auto-renewal, trial-ending reminders,
- * compliance-document expiry reminders, and team-member-document (iqama, health
- * certificate, etc.) expiry reminders. Scheduled once a day (see routes/console.php).
+ * compliance-document expiry reminders, team-member-document (iqama, health
+ * certificate, etc.) expiry reminders, and bank-guarantee/bond expiry reminders.
+ * Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
  * (a subscription already renewed today won't be charged again, a reminder already sent
@@ -144,6 +146,27 @@ class RunDailyTasks extends Command
             $memberDocReminders++;
         }
         $this->info("Team member document reminders sent: {$memberDocReminders}.");
+
+        // ---- 5. Remind companies about active bank guarantees/bonds expiring within 30 days
+        //         (once per guarantee) — released, claimed, or already-expired ones don't need renewing ----
+        $guaranteeCutoff = now()->addDays(30)->format('Y-m-d');
+        $expiringGuarantees = BankGuarantee::where('status', 'active')
+            ->whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', $guaranteeCutoff)
+            ->whereNull('reminder_sent_at')
+            ->get();
+
+        $guaranteeReminders = 0;
+        foreach ($expiringGuarantees as $guarantee) {
+            $company = Company::find($guarantee->company_id);
+            if (!$company) {
+                continue;
+            }
+            Notifications::bankGuaranteeExpiring($company, $guarantee);
+            $guarantee->update(['reminder_sent_at' => now()]);
+            $guaranteeReminders++;
+        }
+        $this->info("Bank guarantee reminders sent: {$guaranteeReminders}.");
 
         $this->info('Daily tasks complete.');
         return self::SUCCESS;

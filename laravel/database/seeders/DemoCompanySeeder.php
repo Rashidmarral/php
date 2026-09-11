@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\BankGuarantee;
 use App\Models\BuildingType;
 use App\Models\ChangeOrder;
 use App\Models\Client;
@@ -281,6 +282,20 @@ class DemoCompanySeeder extends Seeder
             'company_id' => $company->id, 'project_id' => $project->id, 'uploaded_by' => $owner->id,
             'caption' => 'Electrical conduit rough-in, ground floor', 'file_path' => '/assets/img/demo/site-photo-2.jpg',
             'taken_on' => now()->subDay(),
+        ]);
+
+        // ---------------- Bank guarantees & bonds ----------------
+        BankGuarantee::create([
+            'company_id' => $company->id, 'project_id' => $project->id,
+            'type' => 'performance_bond', 'bank_name' => 'Al Rajhi Bank', 'guarantee_number' => 'PB-2024-5521',
+            'amount' => 17500, 'issue_date' => now()->subDays(10)->format('Y-m-d'),
+            'expiry_date' => now()->addDays(20)->format('Y-m-d'), 'status' => 'active',
+        ]);
+        BankGuarantee::create([
+            'company_id' => $company->id, 'project_id' => $project->id,
+            'type' => 'advance_payment', 'bank_name' => 'Riyad Bank', 'guarantee_number' => 'APG-2024-1187',
+            'amount' => 35000, 'issue_date' => now()->subDays(10)->format('Y-m-d'),
+            'expiry_date' => now()->addDays(150)->format('Y-m-d'), 'status' => 'active',
         ]);
 
         // ---------------- Suppliers & materials ----------------

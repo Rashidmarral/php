@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankGuarantee;
 use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Estimate;
@@ -93,6 +94,10 @@ class ProjectController extends Controller
         $photos = ProjectPhoto::where('project_id', $project->id)->orderByDesc('taken_on')->orderByDesc('created_at')->get();
         $vendorBills = VendorBill::where('project_id', $project->id)->orderByDesc('bill_date')->orderByDesc('id')->get();
         $suppliers = Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get();
+        $bankGuarantees = BankGuarantee::where('project_id', $project->id)
+            ->orderByRaw('expiry_date IS NULL')
+            ->orderBy('expiry_date')
+            ->get();
         $actualCostTotal = (float) $vendorBills->sum('amount');
         $revisedBudget = (float) $project->budget + $approvedTotal;
 
@@ -107,6 +112,8 @@ class ProjectController extends Controller
             'photos' => $photos->toArray(),
             'vendorBills' => $vendorBills->toArray(),
             'suppliers' => $suppliers->toArray(),
+            'bankGuarantees' => $bankGuarantees->toArray(),
+            'bankGuaranteeTypes' => BankGuarantee::TYPES,
             'actualCostTotal' => $actualCostTotal,
             'revisedBudget' => $revisedBudget,
             'budgetVariance' => $revisedBudget - $actualCostTotal,

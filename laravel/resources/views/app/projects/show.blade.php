@@ -92,6 +92,69 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.projects.bank_guarantees') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.bank_guarantees_hint') ?></p>
+
+  <?php if (!empty($bankGuarantees)): ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th><?= t('common.type') ?></th><th><?= t('user.projects.bank_name') ?></th><th><?= t('common.amount') ?></th><th><?= t('common.expiry') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($bankGuarantees as $bg):
+        $daysLeft = $bg['expiry_date'] ? (int) ceil((strtotime($bg['expiry_date']) - strtotime(date('Y-m-d'))) / 86400) : null;
+        if ($bg['status'] !== 'active') { $expiryBadge = 'gray'; $expiryLabel = $bg['expiry_date'] ?: '—'; }
+        elseif ($daysLeft === null) { $expiryBadge = 'gray'; $expiryLabel = t('user.business_setup.no_expiry_set'); }
+        elseif ($daysLeft < 0) { $expiryBadge = 'red'; $expiryLabel = t('user.business_setup.expired'); }
+        elseif ($daysLeft <= 30) { $expiryBadge = 'red'; $expiryLabel = t('user.business_setup.days_left', ['days' => $daysLeft]); }
+        elseif ($daysLeft <= 60) { $expiryBadge = 'yellow'; $expiryLabel = t('user.business_setup.days_left', ['days' => $daysLeft]); }
+        else { $expiryBadge = 'green'; $expiryLabel = t('user.business_setup.days_left', ['days' => $daysLeft]); }
+        $statusBadge = ['active' => 'blue', 'released' => 'green', 'claimed' => 'red', 'expired' => 'gray'][$bg['status']] ?? 'gray';
+      ?>
+        <tr>
+          <td><?= e($bankGuaranteeTypes[$bg['type']] ?? ucfirst($bg['type'])) ?><?php if ($bg['guarantee_number']): ?><br><span class="help-text">#<?= e($bg['guarantee_number']) ?></span><?php endif; ?></td>
+          <td><?= e($bg['bank_name'] ?: '—') ?><?php if ($bg['file_path']): ?> · <a href="<?= e($bg['file_path']) ?>" target="_blank"><?= t('user.business_setup.file_link') ?></a><?php endif; ?></td>
+          <td><?= money((float)$bg['amount']) ?></td>
+          <td><span class="badge badge-<?= $expiryBadge ?>"><?= e($expiryLabel) ?></span></td>
+          <td><span class="badge badge-<?= $statusBadge ?>"><?= e(ucfirst($bg['status'])) ?></span></td>
+          <td style="display:flex;gap:6px;">
+            <?php if ($bg['status'] === 'active'): ?>
+              <form method="post" action="/app/bank-guarantees/<?= $bg['id'] ?>" style="display:inline;">
+                <?= csrf_field() ?><input type="hidden" name="status" value="released">
+                <button type="submit" class="btn btn-sm btn-primary"><?= t('user.projects.mark_released') ?></button>
+              </form>
+              <form method="post" action="/app/bank-guarantees/<?= $bg['id'] ?>" style="display:inline;">
+                <?= csrf_field() ?><input type="hidden" name="status" value="claimed">
+                <button type="submit" class="btn btn-sm btn-light"><?= t('user.projects.mark_claimed') ?></button>
+              </form>
+            <?php endif; ?>
+            <form method="post" action="/app/bank-guarantees/<?= $bg['id'] ?>/delete" onsubmit="return confirm('<?= t('user.projects.remove_guarantee_confirm') ?>');" style="display:inline;">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/bank-guarantees" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;width:190px;"><label><?= t('user.projects.guarantee_type') ?></label>
+      <select name="type">
+        <?php foreach ($bankGuaranteeTypes as $key => $label): ?><option value="<?= $key ?>"><?= e($label) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;flex:1;min-width:160px;"><label><?= t('user.projects.bank_name') ?></label><input type="text" name="bank_name" placeholder="e.g. Al Rajhi Bank" required></div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.projects.guarantee_number') ?></label><input type="text" name="guarantee_number"></div>
+    <div class="form-group" style="margin:0;width:140px;"><label><?= t('user.projects.amount_sar') ?></label><input type="number" step="0.01" min="0.01" name="amount" required></div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.projects.issue_date') ?></label><input type="date" name="issue_date"></div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.business_setup.expiry_date') ?></label><input type="date" name="expiry_date"></div>
+    <div class="form-group" style="margin:0;min-width:180px;"><label><?= t('user.business_setup.upload_optional') ?></label><input type="file" name="file" accept="application/pdf,image/jpeg,image/png"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.projects.add_guarantee') ?></button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3>Budget vs. Actual</h3>
   <p class="help-text" style="margin-top:-6px;">Real costs recorded against vendor bills, compared to the revised budget (original + approved change orders).</p>
 
