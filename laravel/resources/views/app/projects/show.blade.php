@@ -92,6 +92,57 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.purchase_orders.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.purchase_orders.hint') ?></p>
+
+  <?php if (!empty($purchaseOrders)): ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th><?= t('common.status') ?></th><th>#</th><th><?= t('common.supplier') ?></th><th><?= t('user.projects.issue_date') ?></th><th><?= t('common.total') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($purchaseOrders as $po):
+        $poSupplier = collect($suppliers)->firstWhere('id', $po['supplier_id']);
+        $poStatusBadge = ['draft' => 'gray', 'issued' => 'blue', 'received' => 'green', 'cancelled' => 'red'][$po['status']] ?? 'gray';
+      ?>
+        <tr>
+          <td><span class="badge badge-<?= $poStatusBadge ?>"><?= e($purchaseOrderStatuses[$po['status']] ?? ucfirst($po['status'])) ?></span></td>
+          <td><?= e($po['po_number']) ?></td>
+          <td><?= e($poSupplier['name'] ?? '—') ?></td>
+          <td><?= e($po['issue_date'] ?: '—') ?></td>
+          <td><?= money((float)$po['total']) ?></td>
+          <td style="display:flex;gap:6px;">
+            <a href="/app/purchase-orders/<?= $po['id'] ?>/pdf" class="btn btn-sm btn-light" target="_blank">⬇ <?= t('common.download_pdf') ?></a>
+            <?php if ($po['status'] === 'draft'): ?>
+              <form method="post" action="/app/purchase-orders/<?= $po['id'] ?>/status" style="display:inline;">
+                <?= csrf_field() ?><input type="hidden" name="status" value="issued">
+                <button type="submit" class="btn btn-sm btn-primary"><?= t('user.purchase_orders.issue') ?></button>
+              </form>
+              <form method="post" action="/app/purchase-orders/<?= $po['id'] ?>/delete" onsubmit="return confirm('<?= t('user.purchase_orders.remove_confirm') ?>');" style="display:inline;">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
+              </form>
+            <?php elseif ($po['status'] === 'issued'): ?>
+              <form method="post" action="/app/purchase-orders/<?= $po['id'] ?>/status" style="display:inline;">
+                <?= csrf_field() ?><input type="hidden" name="status" value="received">
+                <button type="submit" class="btn btn-sm btn-primary"><?= t('user.purchase_orders.mark_received') ?></button>
+              </form>
+              <form method="post" action="/app/purchase-orders/<?= $po['id'] ?>/status" style="display:inline;">
+                <?= csrf_field() ?><input type="hidden" name="status" value="cancelled">
+                <button type="submit" class="btn btn-sm btn-light"><?= t('common.cancel') ?></button>
+              </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php else: ?>
+    <p class="help-text"><?= t('user.purchase_orders.none_yet') ?></p>
+  <?php endif; ?>
+
+  <a href="/app/projects/<?= $project['id'] ?>/purchase-orders/create" class="btn btn-outline"><?= t('user.purchase_orders.add_po') ?></a>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.projects.bank_guarantees') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.bank_guarantees_hint') ?></p>
 
@@ -156,25 +207,31 @@
 
 <div class="card" style="margin-top:24px;">
   <h3>Budget vs. Actual</h3>
-  <p class="help-text" style="margin-top:-6px;">Real costs recorded against vendor bills, compared to the revised budget (original + approved change orders).</p>
+  <p class="help-text" style="margin-top:-6px;">Real costs recorded against vendor bills, open purchase order commitments not yet billed, compared to the revised budget (original + approved change orders).</p>
 
-  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-top:12px;">
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-top:12px;">
     <div class="kpi"><div class="label">Revised budget</div><div class="value" style="font-size:20px;"><?= money($revisedBudget) ?></div></div>
+    <div class="kpi"><div class="label"><?= t('user.purchase_orders.committed') ?></div><div class="value" style="font-size:20px;"><?= money($committedTotal) ?></div></div>
     <div class="kpi"><div class="label">Actual spent</div><div class="value" style="font-size:20px;"><?= money($actualCostTotal) ?></div></div>
-    <div class="kpi"><div class="label"><?= $budgetVariance >= 0 ? 'Remaining' : 'Over budget' ?></div><div class="value" style="font-size:20px;color:<?= $budgetVariance < 0 ? 'var(--danger)' : 'var(--brand-dark)' ?>;"><?= money(abs($budgetVariance)) ?></div></div>
+    <div class="kpi"><div class="label"><?= $availableBudget >= 0 ? t('user.purchase_orders.available') : t('user.purchase_orders.over_budget') ?></div><div class="value" style="font-size:20px;color:<?= $availableBudget < 0 ? 'var(--danger)' : 'var(--brand-dark)' ?>;"><?= money(abs($availableBudget)) ?></div></div>
   </div>
   <div style="background:var(--bg);border-radius:8px;height:10px;overflow:hidden;margin:14px 0 6px;">
-    <div style="background:<?= $budgetUsedPercent > 100 ? 'var(--danger)' : 'linear-gradient(90deg,var(--brand),var(--brand-dark))' ?>;height:100%;width:<?= min(100, $budgetUsedPercent) ?>%;"></div>
+    <div style="background:<?= $availableBudget < 0 ? 'var(--danger)' : 'linear-gradient(90deg,var(--brand),var(--brand-dark))' ?>;height:100%;width:<?= min(100, $budgetUsedPercent) ?>%;"></div>
   </div>
-  <p class="help-text"><?= $budgetUsedPercent ?>% of revised budget spent</p>
+  <p class="help-text"><?= $budgetUsedPercent ?>% of revised budget already billed<?php if ($committedTotal > 0): ?> — plus <?= money($committedTotal) ?> committed on open purchase orders<?php endif; ?></p>
+  <?php if ($availableBudget < 0): ?>
+    <p class="help-text" style="color:var(--danger);font-weight:600;">⚠ This project is over budget once open purchase order commitments are counted, even though actual billed spend may still look fine.</p>
+  <?php endif; ?>
 
   <?php if (!empty($vendorBills)): ?>
     <table class="data" style="margin:16px 0;">
       <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
       <tbody>
-      <?php foreach ($vendorBills as $vb): ?>
+      <?php foreach ($vendorBills as $vb):
+        $vbPo = $vb['purchase_order_id'] ? collect($purchaseOrders)->firstWhere('id', $vb['purchase_order_id']) : null;
+      ?>
         <tr>
-          <td><?= e($vb['description']) ?><?php if ($vb['reference']): ?><br><span class="help-text"><?= e($vb['reference']) ?></span><?php endif; ?></td>
+          <td><?= e($vb['description']) ?><?php if ($vb['reference']): ?><br><span class="help-text"><?= e($vb['reference']) ?></span><?php endif; ?><?php if ($vbPo): ?><br><span class="help-text"><?= t('user.purchase_orders.linked_po') ?>: <?= e($vbPo['po_number']) ?></span><?php endif; ?></td>
           <td><span class="badge badge-gray"><?= e(ucfirst($vb['category'])) ?></span></td>
           <td><?= e($vb['bill_date']) ?></td>
           <td><?= money((float)$vb['amount']) ?></td>
@@ -204,6 +261,14 @@
       <select name="supplier_id">
         <option value="">—</option>
         <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:160px;"><label><?= t('user.purchase_orders.linked_po') ?></label>
+      <select name="purchase_order_id">
+        <option value="">—</option>
+        <?php foreach ($purchaseOrders as $po): if ($po['status'] !== 'issued') continue; ?>
+          <option value="<?= $po['id'] ?>"><?= e($po['po_number']) ?> (<?= money((float)$po['total']) ?>)</option>
+        <?php endforeach; ?>
       </select>
     </div>
     <div class="form-group" style="margin:0;width:130px;"><label>Amount (SAR)</label><input type="number" step="0.01" min="0.01" name="amount" required></div>

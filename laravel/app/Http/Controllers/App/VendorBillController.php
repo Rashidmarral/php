@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Models\PurchaseOrder;
 use App\Models\VendorBill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,10 +40,13 @@ class VendorBillController extends Controller
             $filePath = "/uploads/vendor-bills/{$companyId}/{$storedName}";
         }
 
+        $purchaseOrder = $this->ownedPurchaseOrder($request->input('purchase_order_id') ?: null, $project->id);
+
         VendorBill::create([
             'company_id' => Auth::user()->company_id,
             'project_id' => $project->id,
             'supplier_id' => $request->input('supplier_id') ?: null,
+            'purchase_order_id' => $purchaseOrder?->id,
             'category' => in_array($request->input('category'), array_keys(VendorBill::CATEGORIES), true) ? $request->input('category') : 'material',
             'description' => $description,
             'amount' => $amount,
@@ -51,6 +55,12 @@ class VendorBillController extends Controller
             'status' => in_array($request->input('status'), ['unpaid', 'paid'], true) ? $request->input('status') : 'unpaid',
             'file_path' => $filePath,
         ]);
+
+        // A bill arriving against a PO is the natural signal the goods/services showed up — flip it to
+        // received (it stays visible with its new status, never hidden or deleted just because it billed).
+        if ($purchaseOrder && $purchaseOrder->status !== 'received') {
+            $purchaseOrder->update(['status' => 'received']);
+        }
 
         return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Vendor bill recorded.');
     }
@@ -84,5 +94,15 @@ class VendorBillController extends Controller
         $project = Project::find($id);
         abort_if(!$project || $project->company_id !== Auth::user()->company_id, 404, 'Project not found.');
         return $project;
+    }
+
+    /** Only returns the PO if it belongs to this project — never trust a raw purchase_order_id from the request. */
+    private function ownedPurchaseOrder(?int $id, int $projectId): ?PurchaseOrder
+    {
+        if (!$id) {
+            return null;
+        }
+        $purchaseOrder = PurchaseOrder::find($id);
+        return ($purchaseOrder && $purchaseOrder->project_id === $projectId) ? $purchaseOrder : null;
     }
 }

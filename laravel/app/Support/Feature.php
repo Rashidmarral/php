@@ -28,6 +28,7 @@ class Feature
         'compliance' => 'Compliance Document Tracker',
         'change_orders' => 'Change Orders',
         'bank_guarantees' => 'Bank Guarantees & Bonds',
+        'purchase_orders' => 'Purchase Orders',
         'project_photos' => 'Project Photo Gallery',
         'site_logs' => 'Daily Site Log',
         'punch_list' => 'Punch List / Snag Tracking',

@@ -35,4 +35,9 @@ class VendorBill extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
+
+    public function purchaseOrder(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseOrder::class);
+    }
 }

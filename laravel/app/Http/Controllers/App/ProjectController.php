@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
 use App\Models\PunchListItem;
+use App\Models\PurchaseOrder;
 use App\Models\ScheduleTask;
 use App\Models\SiteLog;
 use App\Models\Supplier;
@@ -97,6 +98,7 @@ class ProjectController extends Controller
         $photos = ProjectPhoto::where('project_id', $project->id)->orderByDesc('taken_on')->orderByDesc('created_at')->get();
         $vendorBills = VendorBill::where('project_id', $project->id)->orderByDesc('bill_date')->orderByDesc('id')->get();
         $suppliers = Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get();
+        $purchaseOrders = PurchaseOrder::where('project_id', $project->id)->orderByDesc('created_at')->get();
         $bankGuarantees = BankGuarantee::where('project_id', $project->id)
             ->orderByRaw('expiry_date IS NULL')
             ->orderBy('expiry_date')
@@ -116,6 +118,11 @@ class ProjectController extends Controller
         $teamMembers = User::where('company_id', $project->company_id)->orderBy('name')->get();
         $actualCostTotal = (float) $vendorBills->sum('amount');
         $revisedBudget = (float) $project->budget + $approvedTotal;
+        // Only 'issued' POs are real open commitments: a 'draft' PO isn't sent to the supplier yet, and a
+        // 'received' one has already become a vendor bill counted in actualCostTotal above — counting it
+        // here too would double-count the same money.
+        $committedTotal = (float) $purchaseOrders->where('status', 'issued')->sum('total');
+        $availableBudget = $revisedBudget - $actualCostTotal - $committedTotal;
 
         return view('app.projects.show', [
             'project' => $project->toArray(),
@@ -128,6 +135,8 @@ class ProjectController extends Controller
             'photos' => $photos->toArray(),
             'vendorBills' => $vendorBills->toArray(),
             'suppliers' => $suppliers->toArray(),
+            'purchaseOrders' => $purchaseOrders->toArray(),
+            'purchaseOrderStatuses' => PurchaseOrder::STATUSES,
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
             'siteLogs' => $siteLogs->toArray(),
@@ -138,6 +147,8 @@ class ProjectController extends Controller
             'teamMembers' => $teamMembers->toArray(),
             'actualCostTotal' => $actualCostTotal,
             'revisedBudget' => $revisedBudget,
+            'committedTotal' => $committedTotal,
+            'availableBudget' => $availableBudget,
             'budgetVariance' => $revisedBudget - $actualCostTotal,
             'budgetUsedPercent' => $revisedBudget > 0 ? min(999, round($actualCostTotal / $revisedBudget * 100)) : 0,
         ]);
