@@ -5,9 +5,12 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
+use App\Models\Material;
 use App\Models\Project;
+use App\Models\Setting;
 use App\Models\Takeoff;
 use App\Models\TakeoffMeasurement;
+use App\Support\AiTakeoffAnalyzer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -118,6 +121,7 @@ class TakeoffController extends Controller
             'measurements' => $measurements,
             'totalCost' => $totalCost,
             'materials' => $materials,
+            'aiConfigured' => AiTakeoffAnalyzer::isConfigured(),
         ]);
     }
 
@@ -176,6 +180,89 @@ class TakeoffController extends Controller
         ]);
 
         return response()->json(['ok' => true, 'id' => $measurement->id]);
+    }
+
+    /**
+     * Runs the plan image through Claude's vision support and creates a first-pass
+     * TakeoffMeasurement row for each item it identifies — plain "length"/"area"/"count"
+     * rows, indistinguishable from manually-drawn ones, so the contractor reviews and
+     * edits them with the same tools used in show.blade.php.
+     */
+    public function aiAnalyze(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('takeoff')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $takeoff = $this->findOwned($id);
+
+        if (!$takeoff->plan_image_path) {
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'Upload a plan image before running AI analysis.');
+        }
+        if (!AiTakeoffAnalyzer::isConfigured()) {
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'AI analysis isn\'t configured yet. Ask your platform admin to enable it under Admin > Platform Settings > AI Generator.');
+        }
+
+        $items = AiTakeoffAnalyzer::analyzeTakeoffPlan($takeoff->plan_image_path);
+
+        if ($items === null) {
+            $lastError = Setting::get('ai_last_error') ?: 'The AI provider did not return a usable response.';
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'AI analysis failed: ' . $lastError);
+        }
+        if (empty($items)) {
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'AI analysis did not identify any measurements on this plan — try measuring manually instead.');
+        }
+
+        $materials = Material::where('company_id', $takeoff->company_id)->get(['name', 'category', 'unit_cost']);
+
+        $count = 0;
+        foreach ($items as $item) {
+            $type = $item['type'];
+            $unit = $type === 'length' ? $takeoff->scale_unit : ($type === 'area' ? $takeoff->scale_unit . '²' : 'ea');
+            $label = $item['label'];
+            if ($item['note'] !== '') {
+                $label .= ' (AI: ' . $item['note'] . ')';
+            }
+            $label = mb_substr($label, 0, 150);
+            $unitCost = $this->suggestUnitCost($item['label'], $materials);
+
+            TakeoffMeasurement::create([
+                'takeoff_id' => $takeoff->id,
+                'type' => $type,
+                'label' => $label,
+                'points_json' => '[]',
+                'value' => $item['value'],
+                'unit' => $unit,
+                'unit_cost' => $unitCost,
+                'total_cost' => $item['value'] * $unitCost,
+            ]);
+            $count++;
+        }
+
+        $this->flash('success', "{$count} measurement(s) suggested by AI — review and adjust before converting to an estimate.");
+        return redirect('/app/takeoffs/' . $takeoff->id);
+    }
+
+    /** Cheap case-insensitive substring match between the AI's label and the company's material library — 0 when nothing matches, so the user fills it in themselves. */
+    private function suggestUnitCost(string $label, $materials): float
+    {
+        $needle = strtolower(trim($label));
+        if ($needle === '') {
+            return 0.0;
+        }
+        foreach ($materials as $m) {
+            $name = strtolower((string) $m->name);
+            $category = strtolower((string) $m->category);
+            if ($name !== '' && (str_contains($needle, $name) || str_contains($name, $needle))) {
+                return (float) $m->unit_cost;
+            }
+            if ($category !== '' && str_contains($needle, $category)) {
+                return (float) $m->unit_cost;
+            }
+        }
+        return 0.0;
     }
 
     public function deleteMeasurement(int $id, int $measurementId): RedirectResponse

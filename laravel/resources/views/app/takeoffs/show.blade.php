@@ -9,6 +9,16 @@
     </p>
   </div>
   <div style="display:flex;gap:8px;">
+    <?php
+      $canAiAnalyze = $aiConfigured && !empty($takeoff['plan_image_path']);
+      $aiTooltip = !$aiConfigured
+        ? t('user.takeoffs.ai_not_configured')
+        : (empty($takeoff['plan_image_path']) ? t('user.takeoffs.ai_needs_plan_image') : '');
+    ?>
+    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/ai-analyze" id="ai-analyze-form" title="<?= e($aiTooltip) ?>">
+      <?= csrf_field() ?>
+      <button type="submit" class="btn btn-outline" id="ai-analyze-btn" <?= $canAiAnalyze ? '' : 'disabled' ?> title="<?= e($aiTooltip) ?>">✨ <?= t('user.takeoffs.ai_analyze') ?></button>
+    </form>
     <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/convert" onsubmit="return confirm('<?= t('user.takeoffs.convert_confirm') ?>');">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-outline"><?= t('user.takeoffs.convert_to_estimate') ?></button>
@@ -92,6 +102,22 @@
 @include('app.partials.library-picker')
 
 <script>
+(function() {
+  const aiForm = document.getElementById('ai-analyze-form');
+  if (aiForm) {
+    aiForm.addEventListener('submit', (e) => {
+      if (!confirm(<?= json_encode(t('user.takeoffs.ai_analyze_confirm')) ?>)) {
+        e.preventDefault();
+        return;
+      }
+      const btn = document.getElementById('ai-analyze-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = <?= json_encode(t('user.takeoffs.ai_analyzing')) ?>;
+      }
+    });
+  }
+})();
 (function() {
   document.addEventListener('library-item-picked', (e) => {
     const labelEl = document.getElementById('pending-label');
