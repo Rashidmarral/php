@@ -35,7 +35,11 @@
   <?php if ($whatsappLink): ?>
     <a href="<?= e($whatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('common.send_whatsapp') ?></a>
   <?php endif; ?>
+  <?php if ($smsApiConfigured && $client && !empty($client['phone'])): ?>
+    <button type="button" onclick="document.getElementById('sms-auto-form').submit();" class="btn btn-outline">📱 <?= t('user.estimates.send_sms') ?></button>
+  <?php endif; ?>
 </form>
+<form id="sms-auto-form" method="post" action="/app/estimates/<?= $estimate['id'] ?>/send-sms" style="display:none;"><?= csrf_field() ?></form>
 
 <div class="card" style="max-width:820px;">
   <table class="data">

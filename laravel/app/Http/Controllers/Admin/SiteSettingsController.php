@@ -179,6 +179,13 @@ class SiteSettingsController extends Controller
             Setting::set('whatsapp_access_token', $token);
         }
 
+        Setting::set('sms_enabled', $request->boolean('sms_enabled') ? '1' : '0');
+        Setting::set('sms_sender_id', trim((string) $request->input('sms_sender_id', '')));
+        $appSid = trim((string) $request->input('sms_app_sid', ''));
+        if ($appSid !== '') {
+            Setting::set('sms_app_sid', $appSid);
+        }
+
         return $this->redirectWithFlash('/admin/settings/notifications', 'success', 'Notification settings updated.');
     }
 

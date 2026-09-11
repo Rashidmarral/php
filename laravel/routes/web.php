@@ -176,6 +176,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/estimates/{id}/status', [EstimateController::class, 'updateStatus']);
     Route::post('/estimates/{id}/totals', [EstimateController::class, 'updateTotals']);
     Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);
+    Route::post('/estimates/{id}/send-sms', [EstimateController::class, 'sendSms']);
 
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/create', [InvoiceController::class, 'create']);
@@ -188,6 +189,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
     Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
     Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
+    Route::post('/invoices/{id}/send-sms', [InvoiceController::class, 'sendSms']);
 
     Route::get('/credit-notes', [CreditNoteController::class, 'index']);
     Route::get('/credit-notes/create', [CreditNoteController::class, 'create']);

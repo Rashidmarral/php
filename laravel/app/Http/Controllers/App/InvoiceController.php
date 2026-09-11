@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Support\Sms;
 use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
 use App\Support\Zatca\QrGenerator;
@@ -205,6 +206,7 @@ class InvoiceController extends Controller
             'zatcaQr' => $this->zatcaQrDataUri($invoice, $company),
             'whatsappLink' => $whatsappLink,
             'whatsappApiConfigured' => WhatsApp::isConfigured(),
+            'smsApiConfigured' => Sms::isConfigured(),
             'shareUrl' => $shareUrl,
             'creditNotes' => $creditNotes,
             'debitNotes' => $debitNotes,
@@ -237,6 +239,35 @@ class InvoiceController extends Controller
             $this->flash('success', 'WhatsApp notification sent.');
         } else {
             $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    public function sendSms(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
+        $company = Company::find($invoice->company_id);
+
+        if (!$client || empty($client->phone)) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
+        }
+        if (empty($invoice->share_token)) {
+            $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
+        }
+        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+
+        $message = "Hi {$client->name}, your invoice {$invoice->invoice_number} from {$company->name} for "
+            . number_format((float) $invoice->total, 2) . " SAR is ready: {$shareUrl}";
+        $result = Sms::sendMessage($client->phone, $message);
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'SMS notification sent.');
+        } else {
+            $this->flash('error', 'Could not send SMS notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }

@@ -16,6 +16,7 @@ use App\Models\TaxRate;
 use App\Models\UnitOfMeasure;
 use App\Support\AiEstimateGenerator;
 use App\Support\EstimateCalc;
+use App\Support\Sms;
 use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
 use Illuminate\Http\RedirectResponse;
@@ -383,9 +384,38 @@ class EstimateController extends Controller
             'client' => $client,
             'project' => $project,
             'whatsappLink' => $whatsappLink,
+            'smsApiConfigured' => Sms::isConfigured(),
             'shareUrl' => $shareUrl,
             'taxRates' => TaxRate::where('company_id', $estimate->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
         ]);
+    }
+
+    public function sendSms(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
+        $company = Company::find($estimate->company_id);
+
+        if (!$client || empty($client->phone)) {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate has no client phone number on file.');
+        }
+        if (empty($estimate->share_token)) {
+            $estimate->update(['share_token' => bin2hex(random_bytes(20))]);
+        }
+        $shareUrl = rtrim((string) config('app.url'), '/') . '/e/' . $estimate->share_token;
+
+        $message = "Hi {$client->name}, here's your estimate \"{$estimate->title}\" from {$company->name} — please review and sign: {$shareUrl}";
+        $result = Sms::sendMessage($client->phone, $message);
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'SMS notification sent.');
+        } else {
+            $this->flash('error', 'Could not send SMS notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/estimates/' . $estimate->id);
     }
 
     public function updateStatus(Request $request, int $id): RedirectResponse

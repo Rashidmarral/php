@@ -38,8 +38,12 @@
   <?php if ($whatsappApiConfigured && $client && !empty($client['phone'])): ?>
     <button type="button" onclick="document.getElementById('whatsapp-auto-form').submit();" class="btn btn-outline">🤖 <?= t('user.invoices.auto_notify_whatsapp') ?></button>
   <?php endif; ?>
+  <?php if ($smsApiConfigured && $client && !empty($client['phone'])): ?>
+    <button type="button" onclick="document.getElementById('sms-auto-form').submit();" class="btn btn-outline">📱 <?= t('user.invoices.send_sms') ?></button>
+  <?php endif; ?>
 </form>
 <form id="whatsapp-auto-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-whatsapp" style="display:none;"><?= csrf_field() ?></form>
+<form id="sms-auto-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-sms" style="display:none;"><?= csrf_field() ?></form>
 
 <div class="card" style="max-width:820px;">
   <table class="data">

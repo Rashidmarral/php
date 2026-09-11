@@ -54,4 +54,35 @@
   <button type="submit" class="btn btn-primary"><?= t('common.save') ?></button>
 </form>
 
+<div class="card" style="max-width:680px;margin-top:20px;margin-bottom:20px;">
+  <h3 style="font-size:14px;">📱 SMS — real-API-call only, no free fallback</h3>
+  <p class="help-text">
+    Unlike WhatsApp, SMS has no free "share link" option — every SMS goes through a real gateway
+    account. This integration targets
+    <a href="https://docs.unifonic.com/reference/messaging-1" target="_blank" rel="noopener">Unifonic's REST SMS API</a>,
+    one of the most widely used SMS gateways for Saudi/GCC businesses. You'll need an <code>AppSid</code>
+    credential and an approved alphanumeric <code>SenderID</code> from your Unifonic account.
+  </p>
+</div>
+
+<form method="post" action="/admin/settings/notifications" class="card" style="max-width:680px;">
+  <?= csrf_field() ?>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="margin:0;">🤖 <?= t('admin.settings.automated_sms') ?></h3>
+    <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="sms_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['sms_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
+  </div>
+  <div class="form-group">
+    <label><?= t('admin.settings.sms_sender_id') ?></label>
+    <input type="text" name="sms_sender_id" value="<?= e($settings['sms_sender_id'] ?? '') ?>" placeholder="e.g. BuildXact">
+  </div>
+  <div class="form-group">
+    <label><?= t('admin.settings.sms_app_sid') ?></label>
+    <div class="password-field">
+      <input type="password" name="sms_app_sid" placeholder="<?= !empty($settings['sms_app_sid']) ? '••••••••••••••••  (leave blank to keep current)' : 'e.g. 9dyO1nT7...' ?>">
+      <?= passwordToggle() ?>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary"><?= t('common.save') ?></button>
+</form>
+
 @endsection

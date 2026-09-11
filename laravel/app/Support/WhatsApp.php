@@ -25,7 +25,7 @@ class WhatsApp
     /** A wa.me link that opens WhatsApp (app or web) with the message pre-filled — no API/config needed. */
     public static function shareLink(string $phone, string $message): ?string
     {
-        $normalized = self::normalizePhone($phone);
+        $normalized = PhoneNumber::normalizeSaudi($phone);
         if ($normalized === null) {
             return null;
         }
@@ -35,7 +35,7 @@ class WhatsApp
     /** Sends a free-form text message via the WhatsApp Business Cloud API. Requires real Meta credentials. */
     public static function sendMessage(string $phone, string $message): array
     {
-        $normalized = self::normalizePhone($phone);
+        $normalized = PhoneNumber::normalizeSaudi($phone);
         if ($normalized === null) {
             return ['ok' => false, 'error' => 'No valid phone number on file.'];
         }
@@ -69,23 +69,5 @@ class WhatsApp
         }
         $data = json_decode((string) $response, true);
         return ['ok' => $httpCode >= 200 && $httpCode < 300, 'http_code' => $httpCode, 'data' => $data];
-    }
-
-    /** Strips everything but digits and ensures a Saudi country code prefix if a local 05... number was entered. */
-    private static function normalizePhone(string $phone): ?string
-    {
-        $digits = preg_replace('/\D+/', '', $phone);
-        if ($digits === '' || $digits === null) {
-            return null;
-        }
-        if (str_starts_with($digits, '00')) {
-            $digits = substr($digits, 2);
-        }
-        if (str_starts_with($digits, '0')) {
-            $digits = '966' . substr($digits, 1);
-        } elseif (!str_starts_with($digits, '966') && strlen($digits) <= 10) {
-            $digits = '966' . $digits;
-        }
-        return strlen($digits) >= 10 ? $digits : null;
     }
 }
