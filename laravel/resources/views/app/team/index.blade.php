@@ -57,7 +57,8 @@
         <?php endif; ?>
       </td>
       <td><span class="badge badge-green"><?= e($m['status']) ?></span></td>
-      <td>
+      <td style="display:flex;gap:8px;">
+        <a href="/app/team/<?= $m['id'] ?>/documents" class="btn btn-sm btn-light"><?= t('user.team_docs.nav_link') ?></a>
         <?php if (auth()->user()->can('manage_team') && (int)$m['id'] !== (int)auth()->id() && $m['role'] !== 'owner'): ?>
         <form method="post" action="/app/team/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.team.remove_member_confirm') ?>');">
           <?= csrf_field() ?>

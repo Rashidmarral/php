@@ -7,13 +7,16 @@ use App\Models\ComplianceDocument;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\TeamMemberDocument;
+use App\Models\User;
 use App\Support\Moyasar;
 use App\Support\Notifications;
 use Illuminate\Console\Command;
 
 /**
- * Daily background jobs — subscription auto-renewal, trial-ending reminders, and
- * compliance-document expiry reminders. Scheduled once a day (see routes/console.php).
+ * Daily background jobs — subscription auto-renewal, trial-ending reminders,
+ * compliance-document expiry reminders, and team-member-document (iqama, health
+ * certificate, etc.) expiry reminders. Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
  * (a subscription already renewed today won't be charged again, a reminder already sent
@@ -120,6 +123,27 @@ class RunDailyTasks extends Command
             $docReminders++;
         }
         $this->info("Compliance document reminders sent: {$docReminders}.");
+
+        // ---- 4. Remind companies about team-member documents (iqama, health certificate, etc.)
+        //         expiring within 30 days (once per document) ----
+        $memberDocCutoff = now()->addDays(30)->format('Y-m-d');
+        $expiringMemberDocs = TeamMemberDocument::whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', $memberDocCutoff)
+            ->whereNull('reminder_sent_at')
+            ->get();
+
+        $memberDocReminders = 0;
+        foreach ($expiringMemberDocs as $doc) {
+            $company = Company::find($doc->company_id);
+            $member = User::find($doc->user_id);
+            if (!$company || !$member) {
+                continue;
+            }
+            Notifications::teamMemberDocumentExpiring($company, $member, $doc);
+            $doc->update(['reminder_sent_at' => now()]);
+            $memberDocReminders++;
+        }
+        $this->info("Team member document reminders sent: {$memberDocReminders}.");
 
         $this->info('Daily tasks complete.');
         return self::SUCCESS;

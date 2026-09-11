@@ -47,6 +47,7 @@ use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\SupportTicketController;
 use App\Http\Controllers\App\TeamController;
+use App\Http\Controllers\App\TeamMemberDocumentController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalController;
@@ -172,6 +173,10 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/team', [TeamController::class, 'store']);
     Route::post('/team/{id}/role', [TeamController::class, 'updateRole']);
     Route::post('/team/{id}/delete', [TeamController::class, 'destroy']);
+    Route::get('/team/{userId}/documents', [TeamMemberDocumentController::class, 'index']);
+    Route::post('/team/{userId}/documents', [TeamMemberDocumentController::class, 'store']);
+    Route::post('/team/{userId}/documents/{id}', [TeamMemberDocumentController::class, 'update']);
+    Route::post('/team/{userId}/documents/{id}/delete', [TeamMemberDocumentController::class, 'destroy']);
 
     Route::get('/billing', [BillingController::class, 'index']);
     Route::post('/billing/upgrade', [BillingController::class, 'upgrade']);

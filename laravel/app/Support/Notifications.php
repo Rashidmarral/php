@@ -121,6 +121,20 @@ class Notifications
         );
     }
 
+    public static function teamMemberDocumentExpiring(Company $company, User $member, \App\Models\TeamMemberDocument $document): void
+    {
+        $owner = self::companyOwner($company->id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "{$member->name}'s {$document->name} expires soon",
+            "Hi {$owner->name},\n\n{$member->name}'s \"{$document->name}\" is due to expire on {$document->expiry_date?->format('Y-m-d')}. Renew it soon — an expired iqama, work permit, or health certificate can mean fines and the worker being unable to keep working.\n\nManage team documents: " . rtrim((string) config('app.url'), '/') . "/app/team/{$member->id}/documents"
+        );
+    }
+
     private static function companyOwner(int $companyId): ?User
     {
         return User::where('company_id', $companyId)->where('role', 'owner')->first();
