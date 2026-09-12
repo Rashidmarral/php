@@ -38,6 +38,21 @@
   </div>
   <p class="help-text"><?= t('user.materials.combined_rate') ?> <strong id="combined-rate"><?= number_format((float)($material['material_cost'] ?? 0) + (float)($material['labor_cost'] ?? 0), 2) ?></strong> SAR per unit</p>
 
+  <div class="form-row">
+    <?php if ($material): ?>
+      <div class="form-group">
+        <label><?= t('user.materials.qty_on_hand') ?></label>
+        <input type="text" value="<?= e(number_format((float)($material['qty_on_hand'] ?? 0), 2)) ?> <?= e($material['unit'] ?? '') ?>" readonly disabled>
+        <p class="help-text"><?= t('user.materials.qty_on_hand_hint') ?> <a href="/app/materials/<?= $material['id'] ?>/stock"><?= t('user.materials.manage_stock') ?></a>.</p>
+      </div>
+    <?php endif; ?>
+    <div class="form-group">
+      <label><?= t('user.materials.reorder_level') ?></label>
+      <input type="number" step="0.01" min="0" name="reorder_level" value="<?= e($material['reorder_level'] ?? '') ?>" placeholder="<?= t('user.materials.reorder_level_placeholder') ?>">
+      <p class="help-text"><?= t('user.materials.reorder_level_hint') ?></p>
+    </div>
+  </div>
+
   <div class="form-group"><label><?= t('common.notes') ?></label><textarea name="notes"><?= e($material['notes'] ?? '') ?></textarea></div>
   <button type="submit" class="btn btn-primary"><?= $material ? t('common.save_changes') : t('user.materials.add_material') ?></button>
 </form>

@@ -263,6 +263,10 @@ class MaterialController extends Controller
             'material_cost' => $materialCost,
             'labor_cost' => $laborCost,
             'unit_cost' => $materialCost + $laborCost,
+            // qty_on_hand is deliberately not settable here — it only ever changes via a
+            // recorded stock movement (see MaterialStockController), so it always has a
+            // paper trail. reorder_level has no such requirement since it's just a threshold.
+            'reorder_level' => $request->filled('reorder_level') ? (float) $request->input('reorder_level') : null,
             'notes' => $request->input('notes', ''),
             'updated_at' => now(),
         ];

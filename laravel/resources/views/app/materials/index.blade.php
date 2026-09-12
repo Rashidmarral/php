@@ -69,9 +69,13 @@ $avgRate = count($materials) > 0 ? $totalRate / count($materials) : 0;
   </div>
 
   <table class="data" id="materials-table">
-    <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.category') ?></th><th><?= t('common.unit') ?></th><th><?= t('user.materials.material_col') ?></th><th><?= t('user.materials.labor_col') ?></th><th><?= t('common.rate') ?></th><th><?= t('user.materials.supplier_col') ?></th><th></th></tr></thead>
+    <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.category') ?></th><th><?= t('common.unit') ?></th><th><?= t('user.materials.material_col') ?></th><th><?= t('user.materials.labor_col') ?></th><th><?= t('common.rate') ?></th><th><?= t('user.materials.supplier_col') ?></th><th><?= t('user.materials.stock_col') ?></th><th></th></tr></thead>
     <tbody>
-    <?php foreach ($materials as $m): ?>
+    <?php foreach ($materials as $m):
+      $reorderLevel = $m['reorder_level'] ?? null;
+      $qtyOnHand = (float) ($m['qty_on_hand'] ?? 0);
+      $lowStock = $reorderLevel !== null && $qtyOnHand <= (float) $reorderLevel;
+    ?>
       <tr data-category="<?= e(strtolower($m['category'] ?: 'other')) ?>" data-search="<?= e(strtolower($m['name'] . ' ' . ($m['supplier_name'] ?? ''))) ?>">
         <td><?= e(local($m, 'name')) ?><?php if ($m['sku']): ?><br><span class="help-text"><?= e($m['sku']) ?></span><?php endif; ?></td>
         <td><?php if ($m['category']): ?><span class="badge badge-gray"><?= e($m['category']) ?></span><?php endif; ?></td>
@@ -80,7 +84,12 @@ $avgRate = count($materials) > 0 ? $totalRate / count($materials) : 0;
         <td><?= money((float)($m['labor_cost'] ?? 0)) ?></td>
         <td><strong><?= money((float)$m['unit_cost']) ?></strong>/<?= e($m['unit']) ?></td>
         <td><?= e($m['supplier_name'] ? local($m, 'supplier_name') : '—') ?></td>
+        <td>
+          <a href="/app/materials/<?= $m['id'] ?>/stock"><?= number_format($qtyOnHand, 2) ?> <?= e($m['unit']) ?></a>
+          <?php if ($lowStock): ?><br><span class="badge badge-red"><?= t('user.materials.low_stock') ?></span><?php endif; ?>
+        </td>
         <td style="display:flex;gap:8px;">
+          <a href="/app/materials/<?= $m['id'] ?>/stock" class="btn btn-sm btn-outline"><?= t('user.materials.manage_stock') ?></a>
           <a href="/app/materials/<?= $m['id'] ?>/edit" class="btn btn-sm btn-light"><?= t('common.edit') ?></a>
           <form method="post" action="/app/materials/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.materials.remove_confirm') ?>');">
             <?= csrf_field() ?>

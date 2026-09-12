@@ -40,6 +40,7 @@ use App\Http\Controllers\App\ImpersonationController;
 use App\Http\Controllers\App\IntegrationController;
 use App\Http\Controllers\App\LeadController;
 use App\Http\Controllers\App\MaterialController;
+use App\Http\Controllers\App\MaterialStockController;
 use App\Http\Controllers\App\QuickEstimateController;
 use App\Http\Controllers\App\ReportController;
 use App\Http\Controllers\App\TakeoffController;
@@ -289,6 +290,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/materials/{id}/edit', [MaterialController::class, 'edit']);
     Route::post('/materials/{id}', [MaterialController::class, 'update']);
     Route::post('/materials/{id}/delete', [MaterialController::class, 'destroy']);
+    Route::get('/materials/{id}/stock', [MaterialStockController::class, 'show']);
+    Route::post('/materials/{id}/stock/movements', [MaterialStockController::class, 'recordMovement']);
 
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);
