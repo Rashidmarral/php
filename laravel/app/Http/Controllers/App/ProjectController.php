@@ -281,6 +281,78 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function duplicateForm(int $id): View
+    {
+        $source = $this->findOwned($id);
+        $clients = Client::where('company_id', $source->company_id)->orderBy('name')->get();
+        return view('app.projects.duplicate', [
+            'project' => $source->toArray(),
+            'clients' => $clients,
+        ]);
+    }
+
+    public function duplicateProject(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $source = $this->findOwned($id);
+        $companyId = $source->company_id;
+
+        $name = trim((string) $request->input('name'));
+        $newStartDate = $request->input('start_date') ?: null;
+
+        // Preserve the source project's own overall duration (end - start) onto the new start
+        // date, same span shifted forward — but only when the source actually has both dates to
+        // compute a span from; guessing one from a partial pair would be worse than leaving it null.
+        $newEndDate = null;
+        if ($newStartDate && $source->start_date && $source->end_date) {
+            $spanDays = $source->start_date->diffInDays($source->end_date);
+            $newEndDate = date('Y-m-d', strtotime($newStartDate . " +{$spanDays} days"));
+        }
+
+        $project = Project::create([
+            'company_id' => $companyId,
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id ?? $source->client_id,
+            'name' => $name !== '' ? $name : ($source->name . ' (Copy)'),
+            'name_ar' => trim((string) $request->input('name_ar', '')) ?: $source->name_ar,
+            'description' => $source->description,
+            'description_ar' => $source->description_ar,
+            // A duplicate is a brand-new job, regardless of how far along the source project was.
+            'status' => 'planning',
+            'budget' => $source->budget,
+            'start_date' => $newStartDate,
+            'end_date' => $newEndDate,
+        ]);
+
+        // Shift every schedule task by the same number of days the project's own start date
+        // moved, so a standard build sequence slides forward onto the new timeline intact. If the
+        // source project never had a start_date, there's no reference point for an offset — copy
+        // the task dates unshifted rather than errorring or guessing one.
+        $offsetDays = ($newStartDate && $source->start_date)
+            ? $source->start_date->diffInDays($newStartDate, false)
+            : 0;
+
+        foreach (ScheduleTask::where('project_id', $source->id)->get() as $task) {
+            ScheduleTask::create([
+                'company_id' => $companyId,
+                'project_id' => $project->id,
+                'title' => $task->title,
+                'title_ar' => $task->title_ar,
+                'start_date' => $task->start_date ? $task->start_date->copy()->addDays($offsetDays)->format('Y-m-d') : null,
+                'end_date' => $task->end_date ? $task->end_date->copy()->addDays($offsetDays)->format('Y-m-d') : null,
+                // Every duplicated task starts fresh: not done yet, and not assigned to whoever
+                // happened to be on the source project — same reasoning as Estimate::duplicate()
+                // not copying its own "already happened" signature state.
+                'status' => 'pending',
+                'assigned_to' => null,
+            ]);
+        }
+
+        $this->flash('success', 'Project duplicated — schedule shifted to the new start date.');
+        return redirect('/app/projects/' . $project->id);
+    }
+
     public function edit(int $id): View
     {
         $project = $this->findOwned($id);

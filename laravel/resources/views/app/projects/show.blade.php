@@ -8,6 +8,7 @@
   </div>
   <div style="display:flex;gap:8px;">
     <a href="/app/projects/<?= $project['id'] ?>/edit" class="btn btn-light"><?= t('common.edit') ?></a>
+    <a href="/app/projects/<?= $project['id'] ?>/duplicate" class="btn btn-outline"><?= t('common.duplicate') ?></a>
     <?php $hasFinancialHistory = (count($invoices) + count($vendorBills)) > 0; ?>
     <form method="post" action="/app/projects/<?= $project['id'] ?>/delete" onsubmit="return confirm('<?= $hasFinancialHistory ? t('user.projects.delete_blocked_financial', ['invoices' => count($invoices), 'bills' => count($vendorBills)]) : t('user.projects.delete_confirm') ?>');">
       <?= csrf_field() ?>
