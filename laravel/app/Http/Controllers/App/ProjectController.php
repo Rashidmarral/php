@@ -7,11 +7,13 @@ use App\Models\BankGuarantee;
 use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Estimate;
+use App\Models\EstimateItem;
 use App\Models\Invoice;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
 use App\Models\PunchListItem;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Models\ScheduleTask;
 use App\Models\SiteLog;
 use App\Models\Supplier;
@@ -21,27 +23,152 @@ use App\Support\Feature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ProjectController extends Controller
 {
-    public function index(): View
+    private const STATUSES = ['planning', 'in_progress', 'on_hold', 'completed'];
+
+    public function index(Request $request): View
     {
         $companyId = Auth::user()->company_id;
-        $projects = \Illuminate\Support\Facades\DB::table('projects as p')
+        $status = (string) $request->input('status', '');
+        $q = trim((string) $request->input('q', ''));
+
+        $query = DB::table('projects as p')
             ->leftJoin('clients as c', 'c.id', '=', 'p.client_id')
-            ->where('p.company_id', $companyId)
-            ->orderByDesc('p.created_at')
+            ->where('p.company_id', $companyId);
+
+        if (in_array($status, self::STATUSES, true)) {
+            $query->where('p.status', $status);
+        }
+        if ($q !== '') {
+            $query->where(function ($w) use ($q) {
+                $w->where('p.name', 'like', "%{$q}%")
+                    ->orWhere('p.name_ar', 'like', "%{$q}%")
+                    ->orWhere('c.name', 'like', "%{$q}%")
+                    ->orWhere('c.name_ar', 'like', "%{$q}%");
+            });
+        }
+
+        $budgetHealth = $this->budgetHealthByProject($companyId);
+        $today = now()->format('Y-m-d');
+
+        $projects = $query->orderByDesc('p.created_at')
             ->select('p.*', 'c.name as client_name', 'c.name_ar as client_name_ar')
             ->get()
             ->map(fn ($r) => (array) $r)
+            ->map(function ($row) use ($budgetHealth, $today) {
+                $health = $budgetHealth[$row['id']] ?? ['availableBudget' => (float) $row['budget']];
+                $row['isOverBudget'] = $health['availableBudget'] < 0;
+                $row['isBehindSchedule'] = !empty($row['end_date']) && $row['end_date'] < $today && $row['status'] !== 'completed';
+                return $row;
+            })
             ->all();
 
         return view('app.projects.index', [
             'projects' => $projects,
+            'statusFilter' => $status,
+            'statuses' => self::STATUSES,
+            'q' => $q,
+            'counts' => $this->statusCounts($companyId),
+            'stats' => $this->portfolioStats($companyId, $budgetHealth),
             'projectLimit' => Feature::projectLimit(),
             'withinProjectLimit' => Feature::withinProjectLimit(),
         ]);
+    }
+
+    /** Per-status counts across the whole company (not narrowed by the current filter/search) for the filter toolbar — same pattern as EstimateController::statusCounts(). */
+    private function statusCounts(int $companyId): array
+    {
+        $rows = DB::table('projects')->where('company_id', $companyId)->select('status', DB::raw('COUNT(*) as c'))->groupBy('status')->get();
+        $counts = array_fill_keys(self::STATUSES, 0);
+        foreach ($rows as $row) {
+            if (isset($counts[$row->status])) {
+                $counts[$row->status] = (int) $row->c;
+            }
+        }
+        return $counts;
+    }
+
+    /**
+     * Per-project budget health, computed with the exact same formula show() uses for a single
+     * project — revisedBudget = budget + approved change orders; availableBudget = revisedBudget
+     * - actual vendor bills - committed (issued) purchase orders. One grouped-sum query per
+     * related table keeps this at a fixed query count regardless of project count (no N+1); the
+     * small amount of arithmetic is duplicated here rather than shared with show(), matching this
+     * app's existing precedent of duplicating a formula this small rather than inventing a
+     * divergent shortcut (see show()'s own inline comment on committedTotal above).
+     *
+     * @return array<int, array{revisedBudget: float, availableBudget: float}>
+     */
+    private function budgetHealthByProject(int $companyId): array
+    {
+        $actualByProject = VendorBill::where('company_id', $companyId)
+            ->select('project_id', DB::raw('SUM(amount) as total'))
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+        $committedByProject = PurchaseOrder::where('company_id', $companyId)
+            ->where('status', 'issued')
+            ->select('project_id', DB::raw('SUM(total) as total'))
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+        $approvedCoByProject = ChangeOrder::where('company_id', $companyId)
+            ->where('status', 'approved')
+            ->select('project_id', DB::raw('SUM(amount) as total'))
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+
+        $health = [];
+        foreach (Project::where('company_id', $companyId)->get(['id', 'budget']) as $project) {
+            $revisedBudget = (float) $project->budget + (float) ($approvedCoByProject[$project->id] ?? 0);
+            $availableBudget = $revisedBudget - (float) ($actualByProject[$project->id] ?? 0) - (float) ($committedByProject[$project->id] ?? 0);
+            $health[$project->id] = [
+                'revisedBudget' => $revisedBudget,
+                'availableBudget' => $availableBudget,
+            ];
+        }
+        return $health;
+    }
+
+    /**
+     * Portfolio-level KPIs shown above the project list: active project count, total revised
+     * budget under management across active projects, and counts of projects currently over
+     * budget / behind schedule — computed across the whole company regardless of the current
+     * filter/search, same as EstimateController::pipelineStats().
+     */
+    private function portfolioStats(int $companyId, array $budgetHealth): array
+    {
+        $activeStatuses = ['planning', 'in_progress', 'on_hold'];
+        $projects = Project::where('company_id', $companyId)->get(['id', 'status', 'end_date']);
+        $today = now()->format('Y-m-d');
+
+        $activeCount = 0;
+        $activeBudget = 0.0;
+        $overBudgetCount = 0;
+        $behindScheduleCount = 0;
+        foreach ($projects as $project) {
+            $isActive = in_array($project->status, $activeStatuses, true);
+            $health = $budgetHealth[$project->id] ?? ['revisedBudget' => 0.0, 'availableBudget' => 0.0];
+            if ($isActive) {
+                $activeCount++;
+                $activeBudget += $health['revisedBudget'];
+            }
+            if ($health['availableBudget'] < 0) {
+                $overBudgetCount++;
+            }
+            if ($project->end_date && $project->end_date->format('Y-m-d') < $today && $project->status !== 'completed') {
+                $behindScheduleCount++;
+            }
+        }
+
+        return [
+            'activeCount' => $activeCount,
+            'activeBudget' => $activeBudget,
+            'overBudgetCount' => $overBudgetCount,
+            'behindScheduleCount' => $behindScheduleCount,
+        ];
     }
 
     public function create(): View|RedirectResponse
@@ -190,8 +317,73 @@ class ProjectController extends Controller
             return $redirect;
         }
         $project = $this->findOwned($id);
-        $project->delete();
-        return $this->redirectWithFlash('/app/projects', 'success', 'Project deleted.');
+
+        // Real financial history (an invoice or a vendor bill) makes a project part of the
+        // company's books — deleting it would silently erase that record. Mark it Completed
+        // instead; there's no DB-level FK protecting against this anywhere in this schema, so
+        // this check is the only thing standing between a click and permanently lost financials.
+        $invoiceCount = Invoice::where('project_id', $project->id)->count();
+        $vendorBillCount = VendorBill::where('project_id', $project->id)->count();
+        if ($invoiceCount > 0 || $vendorBillCount > 0) {
+            $this->flash('error', t('user.projects.delete_blocked_financial', [
+                'invoices' => $invoiceCount,
+                'bills' => $vendorBillCount,
+            ]));
+            return redirect('/app/projects/' . $project->id);
+        }
+
+        // No invoices means no estimate from this project was ever converted to one either —
+        // convertToInvoice() always stamps the new invoice with the source estimate's own
+        // project_id, so zero invoices on the project guarantees zero converted estimates too.
+        DB::transaction(function () use ($project) {
+            $estimateIds = Estimate::where('project_id', $project->id)->pluck('id');
+            EstimateItem::whereIn('estimate_id', $estimateIds)->delete();
+            Estimate::where('project_id', $project->id)->delete();
+
+            ChangeOrder::where('project_id', $project->id)->delete();
+
+            $purchaseOrderIds = PurchaseOrder::where('project_id', $project->id)->pluck('id');
+            PurchaseOrderItem::whereIn('purchase_order_id', $purchaseOrderIds)->delete();
+            PurchaseOrder::where('project_id', $project->id)->delete();
+
+            foreach (BankGuarantee::where('project_id', $project->id)->get() as $guarantee) {
+                if ($guarantee->file_path) {
+                    $file = public_path($guarantee->file_path);
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+            BankGuarantee::where('project_id', $project->id)->delete();
+
+            SiteLog::where('project_id', $project->id)->delete();
+
+            foreach (PunchListItem::where('project_id', $project->id)->get() as $item) {
+                if ($item->photo_path) {
+                    $file = public_path($item->photo_path);
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+            PunchListItem::where('project_id', $project->id)->delete();
+
+            foreach (ProjectPhoto::where('project_id', $project->id)->get() as $photo) {
+                if ($photo->file_path) {
+                    $file = public_path($photo->file_path);
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+            ProjectPhoto::where('project_id', $project->id)->delete();
+
+            ScheduleTask::where('project_id', $project->id)->delete();
+
+            $project->delete();
+        });
+
+        return $this->redirectWithFlash('/app/projects', 'success', 'Project and all its records deleted.');
     }
 
     private function findOwned(int $id): Project
