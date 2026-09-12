@@ -35,6 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('manage_team', fn (User $user) => in_array($user->role, ['owner', 'admin'], true));
         Gate::define('manage_company_settings', fn (User $user) => in_array($user->role, ['owner', 'admin'], true));
         Gate::define('manage_business_setup', fn (User $user) => in_array($user->role, ['owner', 'admin'], true));
+        Gate::define('approve_documents', fn (User $user) => in_array($user->role, ['owner', 'admin'], true));
 
         Gate::define('write', fn (User $user) => in_array($user->role, ['owner', 'admin', 'estimator', 'accountant'], true));
     }

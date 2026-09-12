@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Feature;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -20,6 +21,8 @@ class Company extends Model
             'trial_reminder_sent_at' => 'datetime',
             'client_portal_enabled' => 'boolean',
             'moyasar_enabled' => 'boolean',
+            'require_estimate_approval' => 'boolean',
+            'require_invoice_approval' => 'boolean',
             'default_markup_percent' => 'decimal:2',
             'default_retention_percent' => 'decimal:2',
             'zatca_last_icv' => 'integer',
@@ -56,6 +59,21 @@ class Company extends Model
     public function zatcaSecretFor(): ?string
     {
         return $this->zatca_production_secret;
+    }
+
+    /**
+     * True only when this company has both opted in (require_estimate_approval)
+     * and its plan still includes the approval_workflow feature — a downgraded
+     * plan can't leave a stale toggle silently enforcing the workflow.
+     */
+    public function requiresEstimateApproval(): bool
+    {
+        return (bool) $this->require_estimate_approval && Feature::allowsForCompany('approval_workflow', $this);
+    }
+
+    public function requiresInvoiceApproval(): bool
+    {
+        return (bool) $this->require_invoice_approval && Feature::allowsForCompany('approval_workflow', $this);
     }
 
     public function plan(): BelongsTo

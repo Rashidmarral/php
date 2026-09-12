@@ -54,4 +54,15 @@ class Estimate extends Model
     {
         return $this->belongsTo(TaxRate::class);
     }
+
+    /**
+     * True while an internal approval (opt-in per company) is outstanding or
+     * was refused — the estimate must not reach the client in either state.
+     * 'not_required' (companies that never opted in) and 'approved' are the
+     * only states that may be sent/viewed publicly.
+     */
+    public function isApprovalBlocked(): bool
+    {
+        return in_array($this->approval_status, ['pending', 'rejected'], true);
+    }
 }

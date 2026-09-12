@@ -48,6 +48,16 @@ class SettingsController extends Controller
             'client_portal_enabled' => $request->boolean('client_portal_enabled'),
         ];
 
+        // Approval-workflow toggles are only ever persisted when the plan still
+        // includes the feature — a company on a plan without it can't flip
+        // these on from a stale form, and downgraded plans stop enforcing
+        // (Company::requiresEstimateApproval()/requiresInvoiceApproval() also
+        // re-check the feature at use time).
+        if (\App\Support\Feature::allows('approval_workflow')) {
+            $data['require_estimate_approval'] = $request->boolean('require_estimate_approval');
+            $data['require_invoice_approval'] = $request->boolean('require_invoice_approval');
+        }
+
         $logo = $request->file('logo');
         if ($logo && $logo->isValid()) {
             $mime = $logo->getMimeType();

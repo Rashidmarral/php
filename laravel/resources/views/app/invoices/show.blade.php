@@ -15,7 +15,36 @@
   </div>
 </div>
 
-<form method="get" action="/app/invoices/<?= $invoice['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;">
+<?php if ($invoice['approval_status'] === 'pending'): ?>
+  <div class="alert" style="max-width:820px;background:#fdf3e0;color:var(--warning);border:1px solid #e8c76b;">
+    <strong><?= t('user.invoices.approval_pending') ?></strong>
+    <p class="help-text" style="margin-top:4px;color:inherit;"><?= t('user.invoices.approval_pending_hint') ?></p>
+    <?php if (auth()->user()->can('approve_documents')): ?>
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:12px;">
+        <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/approve">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-primary"><?= t('user.invoices.approve') ?></button>
+        </form>
+        <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/reject" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+          <?= csrf_field() ?>
+          <div class="form-group" style="margin:0;">
+            <input type="text" name="reason" placeholder="<?= t('user.invoices.rejection_reason_placeholder') ?>" style="min-width:220px;">
+          </div>
+          <button type="submit" class="btn btn-danger"><?= t('user.invoices.reject') ?></button>
+        </form>
+      </div>
+    <?php endif; ?>
+  </div>
+<?php elseif ($invoice['approval_status'] === 'rejected'): ?>
+  <div class="alert alert-error" style="max-width:820px;">
+    <strong><?= t('user.invoices.approval_rejected') ?></strong>
+    <?php if (!empty($invoice['rejection_reason'])): ?>
+      <p class="help-text" style="margin-top:4px;color:inherit;"><?= t('common.reason') ?>: <?= e($invoice['rejection_reason']) ?></p>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
+<form method="get" action="/app/invoices/<?= $invoice['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;flex-wrap:wrap;">
   <div class="form-group" style="margin:0;">
     <label><?= t('common.pdf_template') ?></label>
     <select name="template">
@@ -32,14 +61,18 @@
     <select name="lang"><option value="en"><?= t('common.english') ?></option><option value="ar"><?= t('common.arabic') ?></option></select>
   </div>
   <button type="submit" class="btn btn-outline">⬇ <?= t('common.download_pdf') ?></button>
-  <?php if ($whatsappLink): ?>
-    <a href="<?= e($whatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('common.send_whatsapp') ?></a>
-  <?php endif; ?>
-  <?php if ($whatsappApiConfigured && $client && !empty($client['phone'])): ?>
-    <button type="button" onclick="document.getElementById('whatsapp-auto-form').submit();" class="btn btn-outline">🤖 <?= t('user.invoices.auto_notify_whatsapp') ?></button>
-  <?php endif; ?>
-  <?php if ($smsApiConfigured && $client && !empty($client['phone'])): ?>
-    <button type="button" onclick="document.getElementById('sms-auto-form').submit();" class="btn btn-outline">📱 <?= t('user.invoices.send_sms') ?></button>
+  <?php if ($approvalBlocked): ?>
+    <span class="help-text"><?= t('user.invoices.send_blocked_hint') ?></span>
+  <?php else: ?>
+    <?php if ($whatsappLink): ?>
+      <a href="<?= e($whatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('common.send_whatsapp') ?></a>
+    <?php endif; ?>
+    <?php if ($whatsappApiConfigured && $client && !empty($client['phone'])): ?>
+      <button type="button" onclick="document.getElementById('whatsapp-auto-form').submit();" class="btn btn-outline">🤖 <?= t('user.invoices.auto_notify_whatsapp') ?></button>
+    <?php endif; ?>
+    <?php if ($smsApiConfigured && $client && !empty($client['phone'])): ?>
+      <button type="button" onclick="document.getElementById('sms-auto-form').submit();" class="btn btn-outline">📱 <?= t('user.invoices.send_sms') ?></button>
+    <?php endif; ?>
   <?php endif; ?>
 </form>
 <form id="whatsapp-auto-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-whatsapp" style="display:none;"><?= csrf_field() ?></form>

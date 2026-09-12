@@ -15,21 +15,21 @@ class PlanSeeder extends Seeder
                 'client_portal' => false, 'integrations' => false, 'zatca_phase2' => false, 'leads' => true,
                 'compliance' => true, 'change_orders' => false, 'bank_guarantees' => false, 'purchase_orders' => false, 'recurring_invoices' => false, 'project_photos' => true, 'quick_estimate' => true,
                 'ai_estimate_generator' => false, 'estimate_templates' => true, 'online_invoice_payments' => false,
-                'priority_support' => false, 'site_logs' => true, 'punch_list' => true, 'zakat' => false,
+                'priority_support' => false, 'site_logs' => true, 'punch_list' => true, 'zakat' => false, 'approval_workflow' => false,
             ],
             'professional' => [
                 'takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true,
                 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true, 'leads' => true,
                 'compliance' => true, 'change_orders' => true, 'bank_guarantees' => true, 'purchase_orders' => true, 'recurring_invoices' => true, 'project_photos' => true, 'quick_estimate' => true,
                 'ai_estimate_generator' => true, 'estimate_templates' => true, 'online_invoice_payments' => true,
-                'priority_support' => true, 'site_logs' => true, 'punch_list' => true, 'zakat' => true,
+                'priority_support' => true, 'site_logs' => true, 'punch_list' => true, 'zakat' => true, 'approval_workflow' => true,
             ],
             'enterprise' => [
                 'takeoff' => true, 'suppliers' => true, 'materials' => true, 'documents' => true, 'reports' => true,
                 'client_portal' => true, 'integrations' => true, 'zatca_phase2' => true, 'leads' => true,
                 'compliance' => true, 'change_orders' => true, 'bank_guarantees' => true, 'purchase_orders' => true, 'recurring_invoices' => true, 'project_photos' => true, 'quick_estimate' => true,
                 'ai_estimate_generator' => true, 'estimate_templates' => true, 'online_invoice_payments' => true,
-                'priority_support' => true, 'site_logs' => true, 'punch_list' => true, 'zakat' => true,
+                'priority_support' => true, 'site_logs' => true, 'punch_list' => true, 'zakat' => true, 'approval_workflow' => true,
             ],
         ];
 

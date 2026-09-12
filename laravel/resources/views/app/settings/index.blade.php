@@ -100,6 +100,21 @@
     </div>
   </div>
 
+  <?php if (\App\Support\Feature::allows('approval_workflow')): ?>
+    <div class="form-row">
+      <div class="form-group">
+        <label><input type="checkbox" name="require_estimate_approval" value="1" style="width:auto;display:inline-block;" <?= !empty($company['require_estimate_approval']) ? 'checked' : '' ?> <?= $ro ?>> <?= t('user.settings.require_estimate_approval') ?></label>
+        <p class="help-text"><?= t('user.settings.require_estimate_approval_hint') ?></p>
+      </div>
+      <div class="form-group">
+        <label><input type="checkbox" name="require_invoice_approval" value="1" style="width:auto;display:inline-block;" <?= !empty($company['require_invoice_approval']) ? 'checked' : '' ?> <?= $ro ?>> <?= t('user.settings.require_invoice_approval') ?></label>
+        <p class="help-text"><?= t('user.settings.require_invoice_approval_hint') ?></p>
+      </div>
+    </div>
+  <?php else: ?>
+    <p class="help-text"><?= t('user.settings.approval_workflow_upsell') ?> <a href="/app/billing"><?= t('user.team.upgrade_plan') ?></a></p>
+  <?php endif; ?>
+
   <?php if (auth()->user()->isCompanyOwner()): ?>
     <button type="submit" class="btn btn-primary"><?= t('common.save_changes') ?></button>
   <?php else: ?>

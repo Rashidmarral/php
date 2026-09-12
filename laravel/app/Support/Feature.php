@@ -31,6 +31,7 @@ class Feature
         'bank_guarantees' => 'Bank Guarantees & Bonds',
         'purchase_orders' => 'Purchase Orders',
         'recurring_invoices' => 'Recurring Invoices',
+        'approval_workflow' => 'Approval Workflow',
         'project_photos' => 'Project Photo Gallery',
         'site_logs' => 'Daily Site Log',
         'punch_list' => 'Punch List / Snag Tracking',

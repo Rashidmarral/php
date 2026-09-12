@@ -180,6 +180,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/estimates/{id}/totals', [EstimateController::class, 'updateTotals']);
     Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);
     Route::post('/estimates/{id}/send-sms', [EstimateController::class, 'sendSms']);
+    Route::post('/estimates/{id}/approve', [EstimateController::class, 'approve']);
+    Route::post('/estimates/{id}/reject', [EstimateController::class, 'reject']);
 
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/create', [InvoiceController::class, 'create']);
@@ -193,6 +195,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
     Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
     Route::post('/invoices/{id}/send-sms', [InvoiceController::class, 'sendSms']);
+    Route::post('/invoices/{id}/approve', [InvoiceController::class, 'approve']);
+    Route::post('/invoices/{id}/reject', [InvoiceController::class, 'reject']);
 
     Route::get('/recurring-invoices', [RecurringInvoiceController::class, 'index']);
     Route::get('/recurring-invoices/create', [RecurringInvoiceController::class, 'create']);

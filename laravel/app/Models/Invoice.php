@@ -87,4 +87,16 @@ class Invoice extends Model
     {
         return in_array($this->zatca_status, ['cleared', 'reported'], true);
     }
+
+    /**
+     * True while an internal approval (opt-in per company) is outstanding or
+     * was refused — the invoice must not reach the client in either state.
+     * 'not_required' (companies that never opted in) and 'approved' are the
+     * only states that may be sent/viewed publicly. Never affects ZATCA
+     * chaining, which happens at creation time regardless of this flag.
+     */
+    public function isApprovalBlocked(): bool
+    {
+        return in_array($this->approval_status, ['pending', 'rejected'], true);
+    }
 }

@@ -33,6 +33,9 @@ class ShareController extends Controller
     {
         $estimate = Estimate::where('share_token', $token)->first();
         abort_if(!$estimate, 404, 'This link is invalid or has expired.');
+        if ($estimate->isApprovalBlocked()) {
+            return view('site.document-not-available');
+        }
         $items = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get()->toArray();
         $client = $estimate->client_id ? Client::find($estimate->client_id) : null;
         $company = Company::find($estimate->company_id);
@@ -50,6 +53,7 @@ class ShareController extends Controller
     {
         $estimate = Estimate::where('share_token', $token)->first();
         abort_if(!$estimate, 404, 'This link is invalid or has expired.');
+        abort_if($estimate->isApprovalBlocked(), 404, 'This estimate is not yet available.');
         if (in_array($estimate->status, ['accepted', 'declined'], true)) {
             return redirect('/e/' . $token);
         }
@@ -82,6 +86,7 @@ class ShareController extends Controller
     {
         $estimate = Estimate::where('share_token', $token)->first();
         abort_if(!$estimate, 404, 'This link is invalid or has expired.');
+        abort_if($estimate->isApprovalBlocked(), 404, 'This estimate is not yet available.');
         $items = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get();
         $client = $estimate->client_id ? Client::find($estimate->client_id) : null;
         $company = Company::find($estimate->company_id);
@@ -114,6 +119,9 @@ class ShareController extends Controller
     {
         $invoice = Invoice::where('share_token', $token)->first();
         abort_if(!$invoice, 404, 'This link is invalid or has expired.');
+        if ($invoice->isApprovalBlocked()) {
+            return view('site.document-not-available');
+        }
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get()->toArray();
         $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
         $company = Company::find($invoice->company_id);
@@ -132,6 +140,7 @@ class ShareController extends Controller
     {
         $invoice = Invoice::where('share_token', $token)->first();
         abort_if(!$invoice, 404, 'This link is invalid or has expired.');
+        abort_if($invoice->isApprovalBlocked(), 404, 'This invoice is not yet available.');
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
         $client = $invoice->client_id ? Client::find($invoice->client_id) : null;
         $company = Company::find($invoice->company_id);

@@ -113,6 +113,7 @@ class InvoiceController extends Controller
             'retention_percent' => $retentionPercent,
             'retention_amount' => $retentionAmount,
             'share_token' => bin2hex(random_bytes(20)),
+            ...$this->approvalFieldsForNewInvoice($companyId),
         ]);
 
         foreach ($items as $item) {
@@ -139,6 +140,26 @@ class InvoiceController extends Controller
         \App\Support\Zatca\InvoiceChainer::chain($invoice, $company, $client, $items, $zatcaSync);
     }
 
+    /**
+     * When the company has opted into requiring internal approval for
+     * invoices, a newly created one starts out pending instead of the
+     * column's 'not_required' default — otherwise this returns [] and the
+     * invoice behaves exactly as it did before this feature existed. Never
+     * touches ZATCA chaining, which always runs via chainZatca() above.
+     */
+    private function approvalFieldsForNewInvoice(int $companyId): array
+    {
+        $company = Company::find($companyId);
+        if (!$company || !$company->requiresInvoiceApproval()) {
+            return [];
+        }
+        return [
+            'approval_status' => 'pending',
+            'approval_requested_by' => Auth::id(),
+            'approval_requested_at' => now(),
+        ];
+    }
+
     /** @return array<int, array{description:string,qty:float,unit_price:float,total:float}> */
     private function itemsForXml(\Illuminate\Support\Collection $invoiceItems): array
     {
@@ -162,9 +183,10 @@ class InvoiceController extends Controller
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
         }
         $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+        $approvalBlocked = $invoice->isApprovalBlocked();
 
         $whatsappLink = null;
-        if ($client && !empty($client->phone)) {
+        if (!$approvalBlocked && $client && !empty($client->phone)) {
             $message = "Hi {$client->name}, your invoice {$invoice->invoice_number} from {$company->name} is ready: {$shareUrl}";
             $whatsappLink = WhatsApp::shareLink($client->phone, $message);
         }
@@ -183,6 +205,7 @@ class InvoiceController extends Controller
             'whatsappApiConfigured' => WhatsApp::isConfigured(),
             'smsApiConfigured' => Sms::isConfigured(),
             'shareUrl' => $shareUrl,
+            'approvalBlocked' => $approvalBlocked,
             'creditNotes' => $creditNotes,
             'debitNotes' => $debitNotes,
             'remainingCreditable' => $invoice->remainingCreditableTotal(),
@@ -198,6 +221,9 @@ class InvoiceController extends Controller
         $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
 
+        if ($invoice->isApprovalBlocked()) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is awaiting internal approval before it can be sent.');
+        }
         if (!$client || empty($client->phone)) {
             return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
         }
@@ -227,6 +253,9 @@ class InvoiceController extends Controller
         $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
 
+        if ($invoice->isApprovalBlocked()) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is awaiting internal approval before it can be sent.');
+        }
         if (!$client || empty($client->phone)) {
             return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
         }
@@ -262,6 +291,42 @@ class InvoiceController extends Controller
             }
             $this->flash('success', 'Invoice status updated.');
         }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    /** Owner/admin sign-off that clears a pending invoice to reach the client. A non-pending invoice is left untouched. */
+    public function approve(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('approve_documents')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        if ($invoice->approval_status !== 'pending') {
+            $this->flash('error', 'This invoice is not awaiting approval.');
+            return redirect('/app/invoices/' . $invoice->id);
+        }
+        $invoice->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+        $this->flash('success', 'Invoice approved — it can now be sent to the client.');
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    public function reject(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('approve_documents')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        if ($invoice->approval_status !== 'pending') {
+            $this->flash('error', 'This invoice is not awaiting approval.');
+            return redirect('/app/invoices/' . $invoice->id);
+        }
+        $invoice->update([
+            'approval_status' => 'rejected',
+            'rejection_reason' => trim((string) $request->input('reason', '')) ?: null,
+            'approved_by' => null,
+            'approved_at' => null,
+        ]);
+        $this->flash('success', 'Invoice rejected.');
         return redirect('/app/invoices/' . $invoice->id);
     }
 
