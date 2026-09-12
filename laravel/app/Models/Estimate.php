@@ -65,4 +65,29 @@ class Estimate extends Model
     {
         return in_array($this->approval_status, ['pending', 'rejected'], true);
     }
+
+    /**
+     * True once the quote's validity window has passed with the client
+     * still undecided — an already-accepted or already-declined estimate is
+     * never "expired" regardless of the date, since its outcome is already
+     * settled and the date only ever governed whether it could still be
+     * signed.
+     */
+    public function isExpired(): bool
+    {
+        return self::isExpiredRow(['valid_until' => $this->valid_until, 'status' => $this->status]);
+    }
+
+    /**
+     * Same rule as isExpired() above, usable against a plain row array (e.g.
+     * the raw query-builder rows the estimates list renders) rather than a
+     * hydrated model — avoids re-querying/hydrating each row just to check
+     * its expiry for a list badge.
+     */
+    public static function isExpiredRow(array $row): bool
+    {
+        return !empty($row['valid_until'])
+            && \Illuminate\Support\Carbon::parse($row['valid_until'])->endOfDay()->isPast()
+            && !in_array($row['status'] ?? null, ['accepted', 'declined'], true);
+    }
 }

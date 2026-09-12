@@ -11,6 +11,7 @@
   <div class="form-row">
     <div class="form-group"><label>{{ t('user.estimates.title_en') }}</label><input type="text" name="title" required value="{{ $estimate['title'] }}" placeholder="e.g. Villa Renovation Estimate"></div>
     <div class="form-group"><label>{{ t('user.estimates.title_ar') }}</label><input type="text" name="title_ar" dir="rtl" value="{{ $estimate['title_ar'] }}" placeholder="عنوان التسعيرة بالعربية"></div>
+    <div class="form-group"><label>{{ t('user.estimates.valid_until') }}</label><input type="date" name="valid_until" value="{{ $estimate['valid_until'] }}"></div>
   </div>
   <div class="form-row">
     <div class="form-group">

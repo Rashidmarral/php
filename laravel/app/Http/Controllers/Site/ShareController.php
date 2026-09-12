@@ -30,13 +30,26 @@ use Illuminate\View\View;
  */
 class ShareController extends Controller
 {
-    public function estimate(string $token): View
+    public function estimate(Request $request, string $token): View
     {
         $estimate = Estimate::where('share_token', $token)->first();
         abort_if(!$estimate, 404, 'This link is invalid or has expired.');
         if ($estimate->isApprovalBlocked()) {
             return view('site.document-not-available');
         }
+
+        // Track the client actually opening this link — regardless of whether
+        // the quote has since expired, the contractor still wants to know a
+        // client tried to open it. The internal team's own "Preview" link on
+        // the estimate's show page appends ?preview=1 so it is never counted.
+        if (!$request->boolean('preview')) {
+            $estimate->update([
+                'first_viewed_at' => $estimate->first_viewed_at ?? now(),
+                'last_viewed_at' => now(),
+                'view_count' => $estimate->view_count + 1,
+            ]);
+        }
+
         $client = $estimate->client_id ? Client::find($estimate->client_id) : null;
         $company = Company::find($estimate->company_id);
 
@@ -76,6 +89,7 @@ class ShareController extends Controller
             'client' => $client,
             'company' => $company,
             'companyLogoUrl' => $company->logo_path ?: null,
+            'isExpired' => $estimate->isExpired(),
         ]);
     }
 
@@ -86,6 +100,9 @@ class ShareController extends Controller
         abort_if($estimate->isApprovalBlocked(), 404, 'This estimate is not yet available.');
         if (in_array($estimate->status, ['accepted', 'declined'], true)) {
             return redirect('/e/' . $token);
+        }
+        if ($estimate->isExpired()) {
+            return $this->redirectWithFlash('/e/' . $token, 'error', 'This estimate has expired — please contact the contractor for an updated quote.');
         }
 
         $decision = $request->input('decision');
@@ -136,6 +153,7 @@ class ShareController extends Controller
             'docType' => 'Estimate',
             'docNumber' => (string) $estimate->id,
             'docDate' => $estimate->created_at,
+            'validUntil' => $estimate->valid_until ? \Illuminate\Support\Carbon::parse($estimate->valid_until)->format('d M Y') : null,
             'status' => ucfirst($estimate->status),
             'issuer' => ['name' => $company->name ?? '', 'meta' => array_filter([$company->phone ?? null, ($company->vat_number ?? null) ? 'VAT: ' . $company->vat_number : null, ($company->cr_number ?? null) ? 'CR: ' . $company->cr_number : null])],
             'companyNameAr' => $company->name_ar ?? '',

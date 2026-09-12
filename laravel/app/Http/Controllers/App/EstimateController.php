@@ -60,6 +60,7 @@ class EstimateController extends Controller
             ->select('e.*', 'c.name as client_name', 'c.name_ar as client_name_ar')
             ->get()
             ->map(fn ($r) => (array) $r)
+            ->map(fn ($row) => [...$row, 'isExpired' => Estimate::isExpiredRow($row)])
             ->all();
 
         return view('app.estimates.index', [
@@ -199,6 +200,7 @@ class EstimateController extends Controller
             'job_address' => trim((string) $request->input('job_address', '')),
             'template_id' => $template->id,
             'source' => 'template',
+            'valid_until' => now()->addDays(30)->toDateString(),
             ...$this->approvalFieldsForNewEstimate($companyId),
         ]);
 
@@ -299,6 +301,7 @@ class EstimateController extends Controller
             'total' => $calc['total'],
             'share_token' => bin2hex(random_bytes(20)),
             'source' => 'ai',
+            'valid_until' => now()->addDays(30)->toDateString(),
             ...$this->approvalFieldsForNewEstimate($companyId),
         ]);
 
@@ -408,6 +411,7 @@ class EstimateController extends Controller
             'tax_amount' => $calc['tax_amount'],
             'total' => $calc['total'],
             'share_token' => bin2hex(random_bytes(20)),
+            'valid_until' => trim((string) $request->input('valid_until', '')) ?: now()->addDays(30)->toDateString(),
             ...$this->approvalFieldsForNewEstimate($companyId),
         ]);
 
@@ -550,6 +554,7 @@ class EstimateController extends Controller
             'tax_percent' => $taxPercent,
             'tax_amount' => $calc['tax_amount'],
             'total' => $calc['total'],
+            'valid_until' => trim((string) $request->input('valid_until', '')) ?: now()->addDays(30)->toDateString(),
         ]);
 
         $this->flash('success', 'Estimate updated.');
@@ -583,6 +588,10 @@ class EstimateController extends Controller
             'job_address' => $source->job_address,
             'source' => $source->source,
             'share_token' => bin2hex(random_bytes(20)),
+            // A duplicate is a fresh quote with its own clock and its own
+            // client — never inherit the source's validity window or view
+            // history, same reasoning as the signature fields above.
+            'valid_until' => now()->addDays(30)->toDateString(),
             ...$this->approvalFieldsForNewEstimate($companyId),
         ]);
 
@@ -761,6 +770,7 @@ class EstimateController extends Controller
             'smsApiConfigured' => Sms::isConfigured(),
             'shareUrl' => $shareUrl,
             'approvalBlocked' => $approvalBlocked,
+            'isExpired' => $estimate->isExpired(),
             'taxRates' => TaxRate::where('company_id', $estimate->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
             'convertedInvoice' => Invoice::where('source_estimate_id', $estimate->id)->first()?->toArray(),
         ]);
@@ -892,6 +902,7 @@ class EstimateController extends Controller
             'docType' => $lang === 'ar' ? 'تسعيرة' : 'Estimate',
             'docNumber' => (string) $estimate->id,
             'docDate' => $estimate->created_at,
+            'validUntil' => $estimate->valid_until ? \Illuminate\Support\Carbon::parse($estimate->valid_until)->format('d M Y') : null,
             'status' => ucfirst($estimate->status),
             'issuer' => ['name' => $company->name ?? '', 'meta' => array_filter([$company->phone ?? null, $company->vat_number ? 'VAT: ' . $company->vat_number : null, $company->cr_number ? 'CR: ' . $company->cr_number : null])],
             'companyNameAr' => $company->name_ar ?? '',

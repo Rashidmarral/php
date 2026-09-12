@@ -28,7 +28,11 @@
             <p class="help-text">Prepared for {{ $client['name'] ?? 'you' }} · {{ $estimate['created_at'] }}</p>
           </div>
         </div>
-        <span class="badge badge-{{ $estimate['status']==='accepted'?'green':($estimate['status']==='declined'?'red':'yellow') }}" style="font-size:13px;padding:6px 14px;">{{ ucfirst($estimate['status']) }}</span>
+        @if($isExpired)
+          <span class="badge badge-red" style="font-size:13px;padding:6px 14px;">Expired</span>
+        @else
+          <span class="badge badge-{{ $estimate['status']==='accepted'?'green':($estimate['status']==='declined'?'red':'yellow') }}" style="font-size:13px;padding:6px 14px;">{{ ucfirst($estimate['status']) }}</span>
+        @endif
       </div>
 
       <table class="data" style="margin-top:24px;">
@@ -68,6 +72,12 @@
         <h3>Declined</h3>
         <p class="help-text">This estimate was declined. Contact {{ $company['name'] ?? 'the contractor' }} if this was a mistake.</p>
       </div>
+    @elseif($isExpired)
+      <div class="card" style="margin-top:20px;padding:32px;text-align:center;">
+        <div style="font-size:36px;">⏰</div>
+        <h3>This estimate has expired</h3>
+        <p class="help-text">Its validity period has passed and it can no longer be signed. Contact {{ $company['name'] ?? 'the contractor' }} for an updated quote.</p>
+      </div>
     @else
       <div class="card" style="margin-top:20px;padding:32px;">
         <h3>Review &amp; sign</h3>
@@ -101,7 +111,7 @@
   </div>
 </section>
 
-@if(!in_array($estimate['status'], ['accepted', 'declined'], true))
+@if(!in_array($estimate['status'], ['accepted', 'declined'], true) && !$isExpired)
 <script>
 (function() {
   const canvas = document.getElementById('sig-pad');

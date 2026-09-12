@@ -53,7 +53,13 @@
       <tr>
         <td><a href="/app/estimates/<?= $e['id'] ?>"><?= e(local($e, 'title')) ?></a></td>
         <td><?= e($e['client_name'] ? local($e, 'client_name') : '—') ?></td>
-        <td><span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$e['status']] ?? 'gray' ?>"><?= e($e['status']) ?></span></td>
+        <td>
+          <?php if ($e['isExpired']): ?>
+            <span class="badge badge-red"><?= t('user.estimates.status_expired') ?></span>
+          <?php else: ?>
+            <span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$e['status']] ?? 'gray' ?>"><?= e($e['status']) ?></span>
+          <?php endif; ?>
+        </td>
         <td><?= money((float)$e['total']) ?></td>
       </tr>
     <?php endforeach; ?>

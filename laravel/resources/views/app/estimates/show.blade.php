@@ -7,7 +7,11 @@
     <p class="help-text" style="margin-top:4px;"><?= t('common.client') ?>: <?= e($client ? local($client, 'name') : '—') ?><?php if ($project): ?> · <?= t('common.project') ?>: <a href="/app/projects/<?= $project['id'] ?>"><?= e(local($project, 'name')) ?></a><?php endif; ?><?php if (!empty($estimate['building_type'])): ?> · <?= e($estimate['building_type']) ?><?php endif; ?><?php if (!empty($estimate['job_address'])): ?> · <?= e($estimate['job_address']) ?><?php endif; ?></p>
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
-    <span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$estimate['status']] ?? 'gray' ?>" style="font-size:13px;padding:6px 14px;"><?= e($estimate['status']) ?></span>
+    <?php if ($isExpired): ?>
+      <span class="badge badge-red" style="font-size:13px;padding:6px 14px;"><?= t('user.estimates.status_expired') ?></span>
+    <?php else: ?>
+      <span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$estimate['status']] ?? 'gray' ?>" style="font-size:13px;padding:6px 14px;"><?= e($estimate['status']) ?></span>
+    <?php endif; ?>
     <?php if ($estimate['status'] !== 'accepted'): ?>
       <a href="/app/estimates/<?= $estimate['id'] ?>/edit" class="btn btn-outline"><?= t('common.edit') ?></a>
     <?php endif; ?>
@@ -156,8 +160,15 @@
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;">
     <input type="text" readonly value="<?= e($shareUrl) ?>" style="flex:1;min-width:260px;" onclick="this.select();">
     <button type="button" class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('<?= e($shareUrl) ?>'); this.textContent='<?= t('common.copied') ?>';"><?= t('common.copy_link') ?></button>
-    <a href="<?= e($shareUrl) ?>" target="_blank" class="btn btn-sm btn-outline"><?= t('common.preview') ?></a>
+    <a href="<?= e($shareUrl) ?>?preview=1" target="_blank" class="btn btn-sm btn-outline"><?= t('common.preview') ?></a>
   </div>
+  <p class="help-text" style="margin-top:8px;">
+    <?php if ((int) $estimate['view_count'] === 0): ?>
+      <?= t('user.estimates.not_viewed') ?>
+    <?php else: ?>
+      <?= t('user.estimates.viewed_summary', ['count' => $estimate['view_count'], 'first' => $estimate['first_viewed_at'], 'last' => $estimate['last_viewed_at']]) ?>
+    <?php endif; ?>
+  </p>
 </div>
 
 <div class="card" style="max-width:820px;margin-top:20px;">
