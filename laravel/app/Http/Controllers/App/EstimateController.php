@@ -10,6 +10,8 @@ use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\EstimateTemplate;
 use App\Models\EstimateTemplateItem;
+use App\Models\Invoice;
+use App\Models\InvoiceItem;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\TaxRate;
@@ -19,6 +21,8 @@ use App\Support\EstimateCalc;
 use App\Support\Sms;
 use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
+use App\Support\Zatca\InvoiceChainer;
+use App\Support\Zatca\ZatcaSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -357,12 +361,300 @@ class EstimateController extends Controller
         return redirect('/app/estimates/' . $estimate->id);
     }
 
+    public function edit(int $id): View|RedirectResponse
+    {
+        $estimate = $this->findOwned($id);
+        if ($redirect = $this->assertEditable($estimate)) {
+            return $redirect;
+        }
+        $companyId = $estimate->company_id;
+        $materials = DB::table('materials as m')
+            ->leftJoin('suppliers as s', 's.id', '=', 'm.supplier_id')
+            ->where('m.company_id', $companyId)
+            ->orderBy('m.category')->orderBy('m.name')
+            ->select('m.*', 's.name as supplier_name')
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->all();
+
+        return view('app.estimates.edit', [
+            'estimate' => $estimate->toArray(),
+            'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'projects' => Project::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'materials' => $materials,
+            'units' => UnitOfMeasure::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
+            'taxRates' => TaxRate::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
+            'prefillItems' => $this->prefillItemRows($estimate),
+        ]);
+    }
+
+    /**
+     * Rebuilds the item_section[]-style rows a browser would have submitted for
+     * this estimate's current items, so edit() can prefill the same line-items
+     * table store()/update() parse back out of the request — a section name is
+     * only carried on the row where it first appears, blank on the rest of that
+     * section's rows, exactly mirroring store()'s $lastSection logic.
+     */
+    private function prefillItemRows(Estimate $estimate): array
+    {
+        $lastSection = null;
+        $rows = [];
+        foreach (EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get() as $item) {
+            $isNewSection = $item->section_title !== $lastSection;
+            if ($isNewSection) {
+                $lastSection = $item->section_title;
+            }
+            $rows[] = [
+                'item_section' => $isNewSection ? (string) $item->section_title : '',
+                'description' => $item->description,
+                'description_ar' => $item->description_ar,
+                'item_type' => $item->item_type,
+                'qty' => (float) $item->qty,
+                'uom' => $item->uom,
+                'unit_cost' => (float) $item->unit_cost,
+            ];
+        }
+        return $rows;
+    }
+
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        if ($redirect = $this->assertEditable($estimate)) {
+            return $redirect;
+        }
+        $companyId = $estimate->company_id;
+        $title = trim((string) $request->input('title'));
+
+        if ($title === '') {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', 'Estimate title is required.');
+        }
+
+        $sections = $request->input('item_section', []);
+        $descriptions = $request->input('item_description', []);
+        $descriptionsAr = $request->input('item_description_ar', []);
+        $types = $request->input('item_type', []);
+        $qtys = $request->input('item_qty', []);
+        $uoms = $request->input('item_uom', []);
+        $costs = $request->input('item_cost', []);
+
+        $subtotal = 0;
+        $items = [];
+        $lastSection = null;
+        foreach ($descriptions as $i => $desc) {
+            $desc = trim((string) $desc);
+            if ($desc === '') {
+                continue;
+            }
+            $section = trim((string) ($sections[$i] ?? ''));
+            if ($section !== '') {
+                $lastSection = $section;
+            }
+            $qty = (float) ($qtys[$i] ?? 1);
+            $cost = (float) ($costs[$i] ?? 0);
+            $lineTotal = $qty * $cost;
+            $subtotal += $lineTotal;
+            $items[] = [
+                'description' => $desc,
+                'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
+                'section_title' => $lastSection,
+                'item_type' => in_array($types[$i] ?? '', ['labor', 'material', 'equipment', 'subcontractor', 'other'], true) ? $types[$i] : 'material',
+                'qty' => $qty,
+                'uom' => trim((string) ($uoms[$i] ?? '')) ?: 'each',
+                'unit_cost' => $cost,
+                'total' => $lineTotal,
+            ];
+        }
+
+        $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
+        $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $companyId);
+        $taxPercent = (float) ($taxRate->rate_percent ?? 0);
+        $calc = EstimateCalc::compute($subtotal, $markupPercent, $taxPercent);
+
+        EstimateItem::where('estimate_id', $estimate->id)->delete();
+        foreach ($items as $item) {
+            EstimateItem::create(['estimate_id' => $estimate->id, ...$item]);
+        }
+
+        $estimate->update([
+            'title' => $title,
+            'title_ar' => trim((string) $request->input('title_ar', '')),
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
+            'project_id' => $this->ownedProject($request->input('project_id') ?: null, $companyId)?->id,
+            'subtotal' => $subtotal,
+            'markup_percent' => $markupPercent,
+            'markup_amount' => $calc['markup_amount'],
+            'tax_rate_id' => $taxRate?->id,
+            'tax_percent' => $taxPercent,
+            'tax_amount' => $calc['tax_amount'],
+            'total' => $calc['total'],
+        ]);
+
+        $this->flash('success', 'Estimate updated.');
+        return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    public function duplicate(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $source = $this->findOwned($id);
+        $companyId = $source->company_id;
+
+        $estimate = Estimate::create([
+            'company_id' => $companyId,
+            'project_id' => $source->project_id,
+            'client_id' => $source->client_id,
+            'template_id' => $source->template_id,
+            'title' => $source->title . ' (Copy)',
+            'title_ar' => !empty($source->title_ar) ? ($source->title_ar . ' (نسخة)') : $source->title_ar,
+            'status' => 'draft',
+            'subtotal' => $source->subtotal,
+            'markup_percent' => $source->markup_percent,
+            'markup_amount' => $source->markup_amount,
+            'tax_rate_id' => $source->tax_rate_id,
+            'tax_percent' => $source->tax_percent,
+            'tax_amount' => $source->tax_amount,
+            'total' => $source->total,
+            'building_type' => $source->building_type,
+            'job_address' => $source->job_address,
+            'source' => $source->source,
+            'share_token' => bin2hex(random_bytes(20)),
+            ...$this->approvalFieldsForNewEstimate($companyId),
+        ]);
+
+        foreach (EstimateItem::where('estimate_id', $source->id)->orderBy('id')->get() as $item) {
+            EstimateItem::create([
+                'estimate_id' => $estimate->id,
+                'description' => $item->description,
+                'description_ar' => $item->description_ar,
+                'qty' => $item->qty,
+                'unit_cost' => $item->unit_cost,
+                'total' => $item->total,
+                'item_type' => $item->item_type,
+                'uom' => $item->uom,
+                'section_title' => $item->section_title,
+                'section_title_ar' => $item->section_title_ar,
+            ]);
+        }
+        WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
+
+        $this->flash('success', 'Estimate duplicated — review and send.');
+        return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    /**
+     * Bills the client the sell price an accepted estimate already promised
+     * them, not the internal cost — the invoice this creates must reconcile
+     * line-by-line with the estimate's subtotal+markup. Only allowed once,
+     * from an accepted estimate; see convertToInvoice()'s guards.
+     */
+    public function convertToInvoice(int $id, ZatcaSyncService $zatcaSync): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+
+        if ($estimate->status !== 'accepted') {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'Only a signed/accepted estimate can be converted to an invoice.');
+        }
+        if (Invoice::where('source_estimate_id', $estimate->id)->exists()) {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate has already been converted to an invoice.');
+        }
+
+        $companyId = $estimate->company_id;
+        $company = Company::find($companyId);
+        $client = $this->ownedClient($estimate->client_id, $companyId);
+        $project = $this->ownedProject($estimate->project_id, $companyId);
+
+        $items = $this->sellPricedItems($estimate);
+        $subtotal = array_sum(array_column($items, 'total'));
+        $vatRate = (float) $estimate->tax_percent;
+        $vatAmount = round($subtotal * $vatRate / 100, 2);
+        $retentionPercent = (float) ($company->default_retention_percent ?? 0);
+        $retentionAmount = round($subtotal * $retentionPercent / 100, 2);
+
+        $invoice = Invoice::create([
+            'company_id' => $companyId,
+            'project_id' => $project?->id,
+            'client_id' => $client?->id,
+            'source_estimate_id' => $estimate->id,
+            'invoice_number' => 'INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1),
+            'status' => 'unpaid',
+            'total' => round($subtotal + $vatAmount, 2),
+            'vat_rate' => $vatRate,
+            'vat_amount' => $vatAmount,
+            'due_date' => null,
+            'retention_percent' => $retentionPercent,
+            'retention_amount' => $retentionAmount,
+            'share_token' => bin2hex(random_bytes(20)),
+            ...$this->approvalFieldsForNewInvoice($companyId),
+        ]);
+
+        foreach ($items as $item) {
+            InvoiceItem::create(['invoice_id' => $invoice->id, ...$item]);
+        }
+
+        InvoiceChainer::chain($invoice->fresh(), $company, $client, $items, $zatcaSync);
+        WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
+
+        $this->flash('success', 'Invoice #' . $invoice->invoice_number . ' created from this estimate.');
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    /**
+     * When the company has opted into requiring internal approval for
+     * invoices, a newly created one starts out pending instead of the
+     * column's 'not_required' default. Exact analogue of
+     * InvoiceController::approvalFieldsForNewInvoice() — duplicated rather
+     * than shared since it's 8 lines and each controller already keeps its
+     * own approvalFieldsForNew*() copy (see approvalFieldsForNewEstimate()
+     * above), matching this app's existing precedent for this exact helper.
+     */
+    private function approvalFieldsForNewInvoice(int $companyId): array
+    {
+        $company = Company::find($companyId);
+        if (!$company || !$company->requiresInvoiceApproval()) {
+            return [];
+        }
+        return [
+            'approval_status' => 'pending',
+            'approval_requested_by' => Auth::id(),
+            'approval_requested_at' => now(),
+        ];
+    }
+
+    /**
+     * Once a client has actually signed (status=accepted), the estimate's
+     * numbers must not silently change under a signature that's already
+     * been given — duplicate() is the intended way to revise it instead.
+     * 'declined' is deliberately NOT locked: a contractor must be able to
+     * revise and resend a declined quote. Same ?RedirectResponse-return
+     * convention as requireAbility()/requireFeature(): null means OK, a
+     * redirect means blocked.
+     */
+    private function assertEditable(Estimate $estimate): ?RedirectResponse
+    {
+        if ($estimate->status !== 'accepted') {
+            return null;
+        }
+        return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate has already been signed and can no longer be edited — duplicate it to send a revised version.');
+    }
+
     public function updateTotals(Request $request, int $id): RedirectResponse
     {
         if ($redirect = $this->requireAbility('write')) {
             return $redirect;
         }
         $estimate = $this->findOwned($id);
+        if ($redirect = $this->assertEditable($estimate)) {
+            return $redirect;
+        }
         $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
         $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $estimate->company_id);
         $taxPercent = (float) ($taxRate->rate_percent ?? 0);
@@ -411,6 +703,7 @@ class EstimateController extends Controller
             'shareUrl' => $shareUrl,
             'approvalBlocked' => $approvalBlocked,
             'taxRates' => TaxRate::where('company_id', $estimate->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
+            'convertedInvoice' => Invoice::where('source_estimate_id', $estimate->id)->first()?->toArray(),
         ]);
     }
 
@@ -547,6 +840,27 @@ class EstimateController extends Controller
         $estimate = Estimate::find($id);
         abort_if(!$estimate || $estimate->company_id !== Auth::user()->company_id, 404, 'Estimate not found.');
         return $estimate;
+    }
+
+    /**
+     * Each item's cost scaled by the estimate's markup, rounded to 2dp — this is
+     * what the client is actually paying per line, needed anywhere a client-facing
+     * total must reconcile line-by-line with subtotal+markup (e.g. an invoice
+     * generated from this estimate via convertToInvoice() above). NOTE: pdf() and
+     * Site\ShareController's estimate methods currently display raw unit_cost
+     * instead of this — a known, separately-tracked display bug, not fixed here.
+     */
+    private function sellPricedItems(Estimate $estimate): array
+    {
+        $factor = 1 + ((float) $estimate->markup_percent / 100);
+        return EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get()
+            ->map(fn ($i) => [
+                'description' => $i->description,
+                'description_ar' => $i->description_ar,
+                'qty' => (float) $i->qty,
+                'unit_price' => round((float) $i->unit_cost * $factor, 2),
+                'total' => round((float) $i->qty * $i->unit_cost * $factor, 2),
+            ])->all();
     }
 
     /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */

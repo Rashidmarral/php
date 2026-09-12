@@ -8,6 +8,23 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;">
     <span class="badge badge-<?= ['accepted'=>'green','declined'=>'red','sent'=>'blue'][$estimate['status']] ?? 'gray' ?>" style="font-size:13px;padding:6px 14px;"><?= e($estimate['status']) ?></span>
+    <?php if ($estimate['status'] !== 'accepted'): ?>
+      <a href="/app/estimates/<?= $estimate['id'] ?>/edit" class="btn btn-outline"><?= t('common.edit') ?></a>
+    <?php endif; ?>
+    <form method="post" action="/app/estimates/<?= $estimate['id'] ?>/duplicate">
+      <?= csrf_field() ?>
+      <button type="submit" class="btn btn-outline"><?= t('common.duplicate') ?></button>
+    </form>
+    <?php if ($estimate['status'] === 'accepted'): ?>
+      <?php if ($convertedInvoice): ?>
+        <a href="/app/invoices/<?= $convertedInvoice['id'] ?>" class="btn btn-primary"><?= t('user.estimates.view_invoice', ['number' => $convertedInvoice['invoice_number']]) ?></a>
+      <?php else: ?>
+        <form method="post" action="/app/estimates/<?= $estimate['id'] ?>/convert-to-invoice">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-primary"><?= t('user.estimates.convert_to_invoice') ?></button>
+        </form>
+      <?php endif; ?>
+    <?php endif; ?>
     <form method="post" action="/app/estimates/<?= $estimate['id'] ?>/delete" onsubmit="return confirm('<?= t('user.estimates.delete_confirm') ?>');">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-danger"><?= t('common.delete') ?></button>

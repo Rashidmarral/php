@@ -176,12 +176,16 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/estimates/ai/generate', [EstimateController::class, 'aiGenerate']);
     Route::get('/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
     Route::get('/estimates/{id}', [EstimateController::class, 'show']);
+    Route::get('/estimates/{id}/edit', [EstimateController::class, 'edit']);
+    Route::post('/estimates/{id}/update', [EstimateController::class, 'update']);
     Route::post('/estimates/{id}/status', [EstimateController::class, 'updateStatus']);
     Route::post('/estimates/{id}/totals', [EstimateController::class, 'updateTotals']);
     Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);
     Route::post('/estimates/{id}/send-sms', [EstimateController::class, 'sendSms']);
     Route::post('/estimates/{id}/approve', [EstimateController::class, 'approve']);
     Route::post('/estimates/{id}/reject', [EstimateController::class, 'reject']);
+    Route::post('/estimates/{id}/duplicate', [EstimateController::class, 'duplicate']);
+    Route::post('/estimates/{id}/convert-to-invoice', [EstimateController::class, 'convertToInvoice']);
 
     Route::get('/invoices', [InvoiceController::class, 'index']);
     Route::get('/invoices/create', [InvoiceController::class, 'create']);
