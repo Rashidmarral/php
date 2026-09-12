@@ -362,6 +362,7 @@ class EstimateController extends Controller
         $qtys = $request->input('item_qty', []);
         $uoms = $request->input('item_uom', []);
         $costs = $request->input('item_cost', []);
+        $optionals = $request->input('item_optional', []);
 
         $subtotal = 0;
         $items = [];
@@ -378,7 +379,13 @@ class EstimateController extends Controller
             $qty = (float) ($qtys[$i] ?? 1);
             $cost = (float) ($costs[$i] ?? 0);
             $lineTotal = $qty * $cost;
-            $subtotal += $lineTotal;
+            $isOptional = !empty($optionals[$i]);
+            // Optional add-ons still get their own real line total, but they
+            // must never inflate the estimate's own quoted subtotal/total —
+            // those stay the "base quote" of required items only.
+            if (!$isOptional) {
+                $subtotal += $lineTotal;
+            }
             $items[] = [
                 'description' => $desc,
                 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
@@ -388,6 +395,7 @@ class EstimateController extends Controller
                 'uom' => trim((string) ($uoms[$i] ?? '')) ?: 'each',
                 'unit_cost' => $cost,
                 'total' => $lineTotal,
+                'is_optional' => $isOptional,
             ];
         }
 
@@ -475,6 +483,7 @@ class EstimateController extends Controller
                 'qty' => (float) $item->qty,
                 'uom' => $item->uom,
                 'unit_cost' => (float) $item->unit_cost,
+                'is_optional' => (bool) $item->is_optional,
             ];
         }
         return $rows;
@@ -503,6 +512,7 @@ class EstimateController extends Controller
         $qtys = $request->input('item_qty', []);
         $uoms = $request->input('item_uom', []);
         $costs = $request->input('item_cost', []);
+        $optionals = $request->input('item_optional', []);
 
         $subtotal = 0;
         $items = [];
@@ -519,7 +529,12 @@ class EstimateController extends Controller
             $qty = (float) ($qtys[$i] ?? 1);
             $cost = (float) ($costs[$i] ?? 0);
             $lineTotal = $qty * $cost;
-            $subtotal += $lineTotal;
+            $isOptional = !empty($optionals[$i]);
+            // Same rule as store(): optional add-ons never inflate the
+            // estimate's own quoted subtotal/total.
+            if (!$isOptional) {
+                $subtotal += $lineTotal;
+            }
             $items[] = [
                 'description' => $desc,
                 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
@@ -529,6 +544,7 @@ class EstimateController extends Controller
                 'uom' => trim((string) ($uoms[$i] ?? '')) ?: 'each',
                 'unit_cost' => $cost,
                 'total' => $lineTotal,
+                'is_optional' => $isOptional,
             ];
         }
 
@@ -607,6 +623,12 @@ class EstimateController extends Controller
                 'uom' => $item->uom,
                 'section_title' => $item->section_title,
                 'section_title_ar' => $item->section_title_ar,
+                // is_optional is a property of the line item itself, so it
+                // carries over — but client_selected is a decision made by a
+                // specific signer and is deliberately NOT copied: a duplicate
+                // is unsigned, so it defaults to the column's null ("not yet
+                // decided"), same reasoning as the signed_* fields above.
+                'is_optional' => $item->is_optional,
             ]);
         }
         WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
@@ -640,7 +662,16 @@ class EstimateController extends Controller
         $client = $this->ownedClient($estimate->client_id, $companyId);
         $project = $this->ownedProject($estimate->project_id, $companyId);
 
-        $items = self::sellPricedItems($estimate);
+        // Bill only what the client actually agreed to: required items plus
+        // any optional add-on they selected when they signed — never an
+        // optional item they were offered but didn't choose.
+        $items = array_map(fn ($i) => [
+            'description' => $i['description'],
+            'description_ar' => $i['description_ar'],
+            'qty' => $i['qty'],
+            'unit_price' => $i['unit_price'],
+            'total' => $i['total'],
+        ], self::billableItems($estimate));
         $subtotal = array_sum(array_column($items, 'total'));
         $vatRate = (float) $estimate->tax_percent;
         $vatAmount = round($subtotal * $vatRate / 100, 2);
@@ -745,6 +776,11 @@ class EstimateController extends Controller
     {
         $estimate = $this->findOwned($id);
         $items = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get()->toArray();
+        // Optional add-ons are shown separately from the required-items table,
+        // at their client-facing sell price (not raw cost) — see
+        // sellPricedItems() and the "how to change sellPricedItems()'s callers
+        // safely" design this feature follows.
+        $optionalItems = array_values(array_filter(self::sellPricedItems($estimate), fn ($i) => !empty($i['is_optional'])));
         $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
         $project = $this->ownedProject($estimate->project_id, $estimate->company_id);
 
@@ -764,6 +800,7 @@ class EstimateController extends Controller
         return view('app.estimates.show', [
             'estimate' => $estimate->toArray(),
             'items' => $items,
+            'optionalItems' => $optionalItems,
             'client' => $client,
             'project' => $project,
             'whatsappLink' => $whatsappLink,
@@ -883,8 +920,15 @@ class EstimateController extends Controller
         // Client-facing figures must reconcile: line items are the sell price
         // (cost scaled by markup), and subtotal/VAT/total are derived from those
         // same lines rather than the estimate's stored cost-based subtotal — see
-        // sellPricedItems() above.
-        $sellItems = self::sellPricedItems($estimate);
+        // sellPricedItems() above. Only REQUIRED items drive the PDF — the shared
+        // document.blade.php template has no notion of a line item that's
+        // excluded from the printed Subtotal, and listing optional add-ons
+        // alongside required ones would make the item list visually sum to more
+        // than the Subtotal/Total shown (exactly the reconciliation bug the
+        // prior two commits fixed), so optional items are omitted from the PDF
+        // for this v1 — they're only shown, with their own toggle, on the web
+        // share page and the internal show page.
+        $sellItems = self::requiredItems(self::sellPricedItems($estimate));
         $items = array_map(fn ($i) => [
             'description' => ($lang === 'ar' && !empty($i['description_ar'])) ? $i['description_ar'] : $i['description'],
             'qty' => $i['qty'],
@@ -940,12 +984,41 @@ class EstimateController extends Controller
         $factor = 1 + ((float) $estimate->markup_percent / 100);
         return EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get()
             ->map(fn ($i) => [
+                'id' => $i->id,
                 'description' => $i->description,
                 'description_ar' => $i->description_ar,
                 'qty' => (float) $i->qty,
                 'unit_price' => round((float) $i->unit_cost * $factor, 2),
                 'total' => round((float) $i->qty * $i->unit_cost * $factor, 2),
+                'is_optional' => (bool) $i->is_optional,
+                'client_selected' => $i->client_selected === null ? null : (bool) $i->client_selected,
             ])->all();
+    }
+
+    /**
+     * Keeps only the non-optional rows of a sellPricedItems() result — the
+     * "base quote" that drives the headline Subtotal/VAT/Total everywhere a
+     * client sees this estimate before they've chosen any add-ons. On an
+     * estimate with zero optional items this is a no-op: it returns the
+     * exact same array, so every existing reconciliation invariant holds.
+     */
+    public static function requiredItems(array $sellPricedItems): array
+    {
+        return array_values(array_filter($sellPricedItems, fn ($i) => empty($i['is_optional'])));
+    }
+
+    /**
+     * What an accepted estimate should actually be billed for: every
+     * required item plus any optional add-on the client selected when they
+     * signed. Used only by convertToInvoice() — never by the client-facing
+     * PDF/web totals, which must show required-only until a decision exists.
+     */
+    public static function billableItems(Estimate $estimate): array
+    {
+        return array_values(array_filter(
+            self::sellPricedItems($estimate),
+            fn ($i) => empty($i['is_optional']) || !empty($i['client_selected'])
+        ));
     }
 
     /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */

@@ -16,6 +16,8 @@ class EstimateItem extends Model
             'qty' => 'decimal:2',
             'unit_cost' => 'decimal:2',
             'total' => 'decimal:2',
+            'is_optional' => 'boolean',
+            'client_selected' => 'boolean',
         ];
     }
 

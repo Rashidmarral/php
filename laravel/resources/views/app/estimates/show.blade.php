@@ -99,7 +99,7 @@
   <table class="data">
     <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.type') ?></th><th><?= t('common.qty') ?></th><th>UOM</th><th><?= t('common.unit_cost') ?></th><th><?= t('common.total') ?></th></tr></thead>
     <tbody>
-      <?php $lastSection = null; foreach ($items as $it): ?>
+      <?php $lastSection = null; foreach ($items as $it): if (!empty($it['is_optional'])) continue; ?>
         <?php if (!empty($it['section_title']) && $it['section_title'] !== $lastSection): $lastSection = $it['section_title']; ?>
           <tr style="background:#fafcfb;"><td colspan="6"><strong><?= e(local($it, 'section_title')) ?></strong></td></tr>
         <?php endif; ?>
@@ -122,6 +122,36 @@
     <?php endif; ?>
   </div>
   <div class="total-row" style="margin-top:8px;"><?= t('common.total') ?>: <?= money((float)$estimate['total']) ?></div>
+
+  <?php if (!empty($optionalItems)): ?>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <h4 style="margin:0 0 8px;"><?= t('user.estimates.optional_addons_heading') ?></h4>
+      <table class="data">
+        <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.total') ?></th><th><?= t('common.status') ?></th></tr></thead>
+        <tbody>
+          <?php foreach ($optionalItems as $it): ?>
+            <tr>
+              <td><?= e(local($it, 'description')) ?></td>
+              <td><?= e($it['qty']) ?></td>
+              <td><?= money((float)$it['total']) ?></td>
+              <td>
+                <?php if ($it['client_selected'] === null): ?>
+                  <span class="badge badge-gray"><?= t('user.estimates.addon_pending') ?></span>
+                <?php elseif ($it['client_selected']): ?>
+                  <span class="badge badge-green"><?= t('user.estimates.addon_selected') ?></span>
+                <?php else: ?>
+                  <span class="badge badge-red"><?= t('user.estimates.addon_declined') ?></span>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+      <?php if ($estimate['status'] === 'accepted' && $estimate['accepted_total'] !== null && (float)$estimate['accepted_total'] !== (float)$estimate['total']): ?>
+        <div class="total-row" style="margin-top:8px;"><?= t('user.estimates.accepted_total') ?>: <?= money((float)$estimate['accepted_total']) ?></div>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 </div>
 
 <div class="card" style="max-width:820px;margin-top:20px;">

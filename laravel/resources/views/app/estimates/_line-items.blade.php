@@ -13,6 +13,7 @@
       'qty' => 1,
       'uom' => '',
       'unit_cost' => 0,
+      'is_optional' => false,
   ]];
   $itemTypes = ['material' => 'Material', 'labor' => 'Labor', 'equipment' => 'Equipment', 'subcontractor' => 'Subcontractor', 'other' => 'Other'];
 @endphp
@@ -30,6 +31,7 @@
     <th style="width:9%">UOM</th>
     <th style="width:10%">{{ t('common.unit_cost') }} (SAR)</th>
     <th style="width:10%">{{ t('user.invoices.line_total') }}</th>
+    <th style="width:9%">{{ t('user.estimates.optional_addon') }}</th>
     <th></th>
   </tr></thead>
   <tbody id="items-body">
@@ -54,12 +56,23 @@
       </td>
       <td><input type="number" step="0.01" name="item_cost[]" value="{{ $row['unit_cost'] ?? 0 }}" class="cost"></td>
       <td class="line-total">0.00</td>
+      {{-- An unchecked checkbox is simply omitted from the POST body, which
+           would desync item_optional[]'s index from every other item_*[]
+           array (always present, one entry per row) once any earlier row is
+           left unchecked. The hidden field is always submitted and the
+           checkbox only overwrites it via JS, keeping exactly one entry per
+           row in the same order as the other fields. --}}
+      <td style="text-align:center;">
+        <input type="hidden" name="item_optional[]" value="{{ !empty($row['is_optional']) ? '1' : '0' }}" class="optional-flag">
+        <input type="checkbox" class="optional-checkbox" {{ !empty($row['is_optional']) ? 'checked' : '' }} title="{{ t('user.estimates.optional_addon_hint') }}">
+      </td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
     </tr>
     @endforeach
   </tbody>
 </table>
 </div>
+<p class="help-text" style="margin-top:6px;">{{ t('user.estimates.optional_addon_hint') }}</p>
 <div style="display:flex;gap:8px;margin-top:8px;">
   <button type="button" id="add-row" class="btn btn-sm btn-outline">{{ t('user.invoices.add_line_item') }}</button>
   <button type="button" id="open-library-picker" class="btn btn-sm btn-outline">{{ t('user.invoices.pull_from_library') }}</button>
@@ -99,6 +112,7 @@
   const markupInput = document.getElementById('markup-percent');
   const taxSelect = document.getElementById('tax-rate-select');
   const unitOptions = {!! json_encode(array_column($units, 'code')) !!};
+  const optionalHint = {!! json_encode(t('user.estimates.optional_addon_hint')) !!};
 
   function rowTemplate() {
     const tr = document.createElement('tr');
@@ -120,18 +134,30 @@
       <td><select name="item_uom[]">${unitOpts}</select></td>
       <td><input type="number" step="0.01" name="item_cost[]" value="0" class="cost"></td>
       <td class="line-total">0.00</td>
+      <td style="text-align:center;">
+        <input type="hidden" name="item_optional[]" value="0" class="optional-flag">
+        <input type="checkbox" class="optional-checkbox" title="${optionalHint}">
+      </td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;
   }
 
   function recalc() {
+    // Optional add-ons keep their own real line total but never inflate the
+    // mini-calculator's Cost subtotal — mirrors store()/update()'s server-side
+    // rule so this preview never diverges from what gets saved.
     let subtotal = 0;
     body.querySelectorAll('tr').forEach(tr => {
       const qty = parseFloat(tr.querySelector('.qty').value) || 0;
       const cost = parseFloat(tr.querySelector('.cost').value) || 0;
       const lineTotal = qty * cost;
       tr.querySelector('.line-total').textContent = lineTotal.toFixed(2);
-      subtotal += lineTotal;
+      const checkbox = tr.querySelector('.optional-checkbox');
+      const flag = tr.querySelector('.optional-flag');
+      flag.value = checkbox.checked ? '1' : '0';
+      if (!checkbox.checked) {
+        subtotal += lineTotal;
+      }
     });
     const markupPercent = parseFloat(markupInput.value) || 0;
     const markupAmount = subtotal * markupPercent / 100;
@@ -149,6 +175,7 @@
 
   addBtn.addEventListener('click', () => { body.appendChild(rowTemplate()); recalc(); });
   body.addEventListener('input', recalc);
+  body.addEventListener('change', recalc);
   markupInput.addEventListener('input', recalc);
   taxSelect.addEventListener('change', recalc);
   body.addEventListener('click', (e) => {

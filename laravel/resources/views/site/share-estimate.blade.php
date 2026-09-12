@@ -88,6 +88,41 @@
           <input type="hidden" name="decision" id="decision-input" value="accept">
           <input type="hidden" name="signature_data" id="signature-data-input">
 
+          @if(count($optionalItems))
+            <div class="card" style="background:var(--bg);margin-bottom:20px;">
+              <h4 style="margin-top:0;">{{ t('user.estimates.optional_addons_heading') }}</h4>
+              <p class="help-text">{{ t('user.estimates.optional_addons_intro') }}</p>
+              @foreach ($optionalItems as $it)
+                <label style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+                  <span style="display:flex;gap:10px;align-items:center;">
+                    <input type="checkbox" class="optional-item-checkbox" name="selected_optional_items[]" value="{{ $it['id'] }}" data-total="{{ $it['total'] }}">
+                    {{ $it['description'] }}
+                  </span>
+                  <strong>{!! money((float)$it['total']) !!}</strong>
+                </label>
+              @endforeach
+              <div class="total-row" style="margin-top:10px;">{{ t('user.estimates.total_if_selected') }}: <span id="optional-preview-total">{!! money($total) !!}</span></div>
+            </div>
+            <script>
+            (function() {
+              // Client-side convenience only — a live running total as boxes are
+              // toggled. The real number is always computed server-side at sign
+              // time from the database, never trusted from this preview.
+              const requiredSubtotal = {{ $subtotal }};
+              const vatRate = {{ $vatRate }};
+              const boxes = document.querySelectorAll('.optional-item-checkbox');
+              const out = document.getElementById('optional-preview-total');
+              function updatePreview() {
+                let subtotal = requiredSubtotal;
+                boxes.forEach(b => { if (b.checked) subtotal += parseFloat(b.dataset.total) || 0; });
+                const total = subtotal + (subtotal * vatRate / 100);
+                out.textContent = total.toFixed(2) + ' SAR';
+              }
+              boxes.forEach(b => b.addEventListener('change', updatePreview));
+            })();
+            </script>
+          @endif
+
           <div class="form-group">
             <label>Your full name</label>
             <input type="text" name="signed_by_name" required placeholder="Type your name">

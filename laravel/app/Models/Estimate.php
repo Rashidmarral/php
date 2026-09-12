@@ -21,6 +21,7 @@ class Estimate extends Model
             'tax_percent' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'accepted_total' => 'decimal:2',
             'signed_at' => 'datetime:Y-m-d H:i:s',
         ];
     }

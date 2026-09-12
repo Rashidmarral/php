@@ -59,9 +59,18 @@ class ShareController extends Controller
         // id order purely to carry each row's section_title into the merge below.
         $rawItems = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get();
         $sellItems = EstimateController::sellPricedItems($estimate);
+        // Required items build the main table + drive the headline
+        // Subtotal/VAT/Total, exactly as before this feature existed. Optional
+        // add-ons are rendered in their own section below and are never
+        // counted into those figures until the client actually selects them.
         $items = [];
+        $optionalItems = [];
         $lastSection = null;
         foreach ($rawItems as $i => $raw) {
+            if (!empty($sellItems[$i]['is_optional'])) {
+                $optionalItems[] = $sellItems[$i];
+                continue;
+            }
             $sectionTitle = local($raw, 'section_title');
             $items[] = [
                 ...$sellItems[$i],
@@ -73,7 +82,7 @@ class ShareController extends Controller
             }
         }
 
-        $subtotal = array_sum(array_column($sellItems, 'total'));
+        $subtotal = array_sum(array_column($items, 'total'));
         $vatRate = (float) $estimate->tax_percent;
         $vatAmount = round($subtotal * $vatRate / 100, 2);
         $total = round($subtotal + $vatAmount, 2);
@@ -82,6 +91,7 @@ class ShareController extends Controller
             'pageTitle' => $estimate->title,
             'estimate' => $estimate->toArray(),
             'items' => $items,
+            'optionalItems' => $optionalItems,
             'subtotal' => $subtotal,
             'vatRate' => $vatRate,
             'vatAmount' => $vatAmount,
@@ -112,12 +122,36 @@ class ShareController extends Controller
             if ($signedByName === '' || !str_starts_with($signatureData, 'data:image/')) {
                 return $this->redirectWithFlash('/e/' . $token, 'error', 'Please type your name and draw your signature before submitting.');
             }
+            // Never trust client-submitted item IDs blindly — filter the
+            // submitted selection down to optional items that actually belong
+            // to THIS estimate before applying anything, closing the door on
+            // a tampered ID from another estimate (same company or a
+            // different one entirely) or a non-optional item on this one.
+            $submittedIds = array_map('intval', (array) $request->input('selected_optional_items', []));
+            $optionalItemIds = EstimateItem::where('estimate_id', $estimate->id)->where('is_optional', true)->pluck('id');
+            $selectedIds = $optionalItemIds->filter(fn ($optId) => in_array($optId, $submittedIds, true))->values();
+
+            EstimateItem::where('estimate_id', $estimate->id)->where('is_optional', true)
+                ->whereIn('id', $selectedIds)->update(['client_selected' => true]);
+            EstimateItem::where('estimate_id', $estimate->id)->where('is_optional', true)
+                ->whereNotIn('id', $selectedIds)->update(['client_selected' => false]);
+
+            // accepted_total is the true final price once decided — required
+            // items plus whatever optional add-ons were just selected, VAT
+            // computed on the combined sum, entirely server-side from the DB
+            // rather than trusted from client input (same principle as
+            // ZakatController's own totals).
+            $billable = EstimateController::billableItems($estimate);
+            $billableSubtotal = array_sum(array_column($billable, 'total'));
+            $acceptedTotal = round($billableSubtotal + round($billableSubtotal * (float) $estimate->tax_percent / 100, 2), 2);
+
             $estimate->update([
                 'status' => 'accepted',
                 'signed_at' => now(),
                 'signed_by_name' => $signedByName,
                 'signature_data' => $signatureData,
                 'signed_ip' => $request->ip() ?? '',
+                'accepted_total' => $acceptedTotal,
             ]);
             Notifications::estimateSigned($estimate->id, $signedByName);
             WebhookDispatcher::dispatch($estimate->company_id, 'estimate.signed', $estimate->fresh()->toArray());
@@ -139,8 +173,11 @@ class ShareController extends Controller
         $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
 
         // Same reconciliation fix as EstimateController::pdf(): sell-priced lines,
-        // subtotal/VAT/total derived from those lines.
-        $sellItems = EstimateController::sellPricedItems($estimate);
+        // subtotal/VAT/total derived from those lines, required items only — see
+        // the judgment call documented in EstimateController::pdf() for why
+        // optional add-ons are omitted from the PDF rather than shown unpriced
+        // against the totals.
+        $sellItems = EstimateController::requiredItems(EstimateController::sellPricedItems($estimate));
         $items = array_map(fn ($i) => ['description' => $i['description'], 'qty' => $i['qty'], 'unit_price' => $i['unit_price'], 'total' => $i['total']], $sellItems);
         $subtotal = array_sum(array_column($sellItems, 'total'));
         $vatAmount = round($subtotal * (float) $estimate->tax_percent / 100, 2);
