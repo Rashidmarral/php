@@ -129,39 +129,14 @@ class InvoiceController extends Controller
 
     /**
      * Populates the ZATCA UUID/ICV/hash-chain fields for a newly created
-     * invoice. Chaining is eager (advanced at creation time, not only once
-     * an invoice is actually submitted to ZATCA) — this mirrors BuildXact's
-     * original (pre-port) behaviour rather than Daftri's own
-     * ZatcaSyncService (which only advances company.zatca_last_invoice_hash
-     * on a successful clearance/reporting call): BuildXact has no pending-
-     * submission queue/admin batch-sync screen, so every invoice is assumed
-     * to eventually be submitted in creation order. The hash itself now
-     * uses the cryptographically correct XAdES content hash
-     * (ZatcaXadesSigner::contentHash(), via ZatcaSyncService::buildUnsignedXml())
-     * instead of the old naive whole-XML hash, so a company that finishes
-     * onboarding later gets a chain ZATCA will actually accept.
+     * invoice, eagerly (see App\Support\Zatca\InvoiceChainer's docblock for
+     * why). Delegates to that shared helper so App\Models\RecurringInvoice's
+     * auto-generated invoices go through the exact same chain, on the same
+     * company-wide sequence, as a hand-entered one from this controller.
      */
     private function chainZatca(Invoice $invoice, ?Company $company, ?Client $client, array $items, ZatcaSyncService $zatcaSync): void
     {
-        if (!$company) {
-            return;
-        }
-        $uuid = (new \App\Support\Zatca\ZatcaXmlGenerator())->newUuid();
-        $icv = (int) ($company->zatca_last_icv ?? 0) + 1;
-        $previousHash = $company->zatca_last_invoice_hash ?: $zatcaSync->genesisHash();
-
-        [, $hash] = $zatcaSync->buildUnsignedXml($invoice, $company, $client, $items, $uuid, $icv, $previousHash);
-
-        $invoice->update([
-            'zatca_uuid' => $uuid,
-            'zatca_icv' => $icv,
-            'zatca_hash' => $hash,
-            'zatca_previous_hash' => $previousHash,
-        ]);
-        $company->update([
-            'zatca_last_icv' => $icv,
-            'zatca_last_invoice_hash' => $hash,
-        ]);
+        \App\Support\Zatca\InvoiceChainer::chain($invoice, $company, $client, $items, $zatcaSync);
     }
 
     /** @return array<int, array{description:string,qty:float,unit_price:float,total:float}> */

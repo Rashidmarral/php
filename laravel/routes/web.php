@@ -47,6 +47,7 @@ use App\Http\Controllers\App\TakeoffController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\App\InvoiceController;
+use App\Http\Controllers\App\RecurringInvoiceController;
 use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\PunchListController;
@@ -192,6 +193,15 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
     Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
     Route::post('/invoices/{id}/send-sms', [InvoiceController::class, 'sendSms']);
+
+    Route::get('/recurring-invoices', [RecurringInvoiceController::class, 'index']);
+    Route::get('/recurring-invoices/create', [RecurringInvoiceController::class, 'create']);
+    Route::post('/recurring-invoices', [RecurringInvoiceController::class, 'store']);
+    Route::get('/recurring-invoices/{id}/edit', [RecurringInvoiceController::class, 'edit']);
+    Route::post('/recurring-invoices/{id}', [RecurringInvoiceController::class, 'update']);
+    Route::get('/recurring-invoices/{id}', [RecurringInvoiceController::class, 'show']);
+    Route::post('/recurring-invoices/{id}/toggle-active', [RecurringInvoiceController::class, 'toggleActive']);
+    Route::post('/recurring-invoices/{id}/delete', [RecurringInvoiceController::class, 'destroy']);
 
     Route::get('/credit-notes', [CreditNoteController::class, 'index']);
     Route::get('/credit-notes/create', [CreditNoteController::class, 'create']);

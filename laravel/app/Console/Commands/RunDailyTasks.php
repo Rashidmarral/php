@@ -7,22 +7,27 @@ use App\Models\Company;
 use App\Models\ComplianceDocument;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\RecurringInvoice;
 use App\Models\Subscription;
 use App\Models\TeamMemberDocument;
 use App\Models\User;
 use App\Support\Moyasar;
 use App\Support\Notifications;
+use App\Support\WebhookDispatcher;
+use App\Support\Zatca\ZatcaSyncService;
 use Illuminate\Console\Command;
 
 /**
  * Daily background jobs — subscription auto-renewal, trial-ending reminders,
  * compliance-document expiry reminders, team-member-document (iqama, health
- * certificate, etc.) expiry reminders, and bank-guarantee/bond expiry reminders.
+ * certificate, etc.) expiry reminders, bank-guarantee/bond expiry reminders,
+ * and recurring invoice generation.
  * Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
  * (a subscription already renewed today won't be charged again, a reminder already sent
- * won't be re-sent), so an extra run just does nothing on the parts that are already done.
+ * won't be re-sent, a recurring invoice already generated today has had its next_run_date
+ * pushed past today), so an extra run just does nothing on the parts that are already done.
  */
 class RunDailyTasks extends Command
 {
@@ -167,6 +172,24 @@ class RunDailyTasks extends Command
             $guaranteeReminders++;
         }
         $this->info("Bank guarantee reminders sent: {$guaranteeReminders}.");
+
+        // ---- 6. Generate real invoices from active recurring invoice templates whose
+        //         next_run_date is due. Idempotent: generateInvoice() advances next_run_date
+        //         (by one frequency period) in the SAME DB transaction that creates the
+        //         invoice, so a template no longer matches this query the moment it commits
+        //         — running the command again the same day finds nothing left to do here. ----
+        $zatcaSync = app(ZatcaSyncService::class);
+        $dueRecurringInvoices = RecurringInvoice::where('is_active', true)
+            ->where('next_run_date', '<=', $today)
+            ->get();
+
+        $recurringGenerated = 0;
+        foreach ($dueRecurringInvoices as $recurringInvoice) {
+            $invoice = $recurringInvoice->generateInvoice($zatcaSync);
+            WebhookDispatcher::dispatch($recurringInvoice->company_id, 'invoice.created', $invoice->toArray());
+            $recurringGenerated++;
+        }
+        $this->info("Recurring invoices generated: {$recurringGenerated}.");
 
         $this->info('Daily tasks complete.');
         return self::SUCCESS;

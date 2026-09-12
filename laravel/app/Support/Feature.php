@@ -30,6 +30,7 @@ class Feature
         'change_orders' => 'Change Orders',
         'bank_guarantees' => 'Bank Guarantees & Bonds',
         'purchase_orders' => 'Purchase Orders',
+        'recurring_invoices' => 'Recurring Invoices',
         'project_photos' => 'Project Photo Gallery',
         'site_logs' => 'Daily Site Log',
         'punch_list' => 'Punch List / Snag Tracking',

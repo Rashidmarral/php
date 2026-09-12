@@ -23,6 +23,7 @@
       <a href="{{ url('/app/quick-estimate') }}" class="{{ request()->is('app/quick-estimate*') ? 'active' : '' }}">⚡ {{ t('side.quick_estimate') }}</a>
       <a href="{{ url('/app/estimates') }}" class="{{ request()->is('app/estimates*') ? 'active' : '' }}">🧾 {{ t('side.estimates') }}</a>
       <a href="{{ url('/app/invoices') }}" class="{{ request()->is('app/invoices*') ? 'active' : '' }}">💳 {{ t('side.invoices') }}</a>
+      <a href="{{ url('/app/recurring-invoices') }}" class="{{ request()->is('app/recurring-invoices*') ? 'active' : '' }}">🔁 {{ t('side.recurring_invoices') }}</a>
       <a href="{{ url('/app/credit-notes') }}" class="{{ request()->is('app/credit-notes*') ? 'active' : '' }}">↩️ {{ t('side.credit_notes') }}</a>
       <a href="{{ url('/app/debit-notes') }}" class="{{ request()->is('app/debit-notes*') ? 'active' : '' }}">➕ {{ t('side.debit_notes') }}</a>
       <a href="{{ url('/app/clients') }}" class="{{ request()->is('app/clients*') ? 'active' : '' }}">👥 {{ t('side.clients') }}</a>
