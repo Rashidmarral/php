@@ -18,23 +18,37 @@
 
     <div class="card" style="padding:32px;">
       <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;">
-        <div>
-          <div class="eyebrow">Estimate from {{ $company['name'] ?? '' }}</div>
-          <h1 style="margin-top:4px;">{{ $estimate['title'] }}</h1>
-          <p class="help-text">Prepared for {{ $client['name'] ?? 'you' }} · {{ $estimate['created_at'] }}</p>
+        <div style="display:flex;gap:14px;align-items:center;">
+          @if(!empty($companyLogoUrl))
+            <img src="{{ $companyLogoUrl }}" alt="{{ $company['name'] ?? '' }}" style="height:48px;width:auto;border-radius:6px;">
+          @endif
+          <div>
+            <div class="eyebrow">Estimate from {{ $company['name'] ?? '' }}</div>
+            <h1 style="margin-top:4px;">{{ $estimate['title'] }}</h1>
+            <p class="help-text">Prepared for {{ $client['name'] ?? 'you' }} · {{ $estimate['created_at'] }}</p>
+          </div>
         </div>
         <span class="badge badge-{{ $estimate['status']==='accepted'?'green':($estimate['status']==='declined'?'red':'yellow') }}" style="font-size:13px;padding:6px 14px;">{{ ucfirst($estimate['status']) }}</span>
       </div>
 
       <table class="data" style="margin-top:24px;">
-        <thead><tr><th>Description</th><th>Qty</th><th>Unit cost</th><th>Total</th></tr></thead>
+        <thead><tr><th>Description</th><th>Qty</th><th>Unit price</th><th>Total</th></tr></thead>
         <tbody>
           @foreach ($items as $it)
-            <tr><td>{{ $it['description'] }}</td><td>{{ $it['qty'] }}</td><td>{!! money((float)$it['unit_cost']) !!}</td><td>{!! money((float)$it['total']) !!}</td></tr>
+            @if($it['showSection'])
+              <tr style="background:#fafcfb;"><td colspan="4"><strong>{{ $it['sectionTitle'] }}</strong></td></tr>
+            @endif
+            <tr><td>{{ $it['description'] }}</td><td>{{ $it['qty'] }}</td><td>{!! money((float)$it['unit_price']) !!}</td><td>{!! money((float)$it['total']) !!}</td></tr>
           @endforeach
         </tbody>
       </table>
-      <div class="total-row" style="margin-top:10px;">Total: {!! money((float)$estimate['total']) !!}</div>
+      <div class="breakdown" style="margin-top:14px;max-width:320px;margin-inline-start:auto;font-size:14px;">
+        <div><span>Subtotal</span><span>{!! money($subtotal) !!}</span></div>
+        @if($vatAmount > 0 || !empty($estimate['tax_rate_id']))
+          <div><span>VAT ({{ $vatRate }}%)</span><span>{!! money($vatAmount) !!}</span></div>
+        @endif
+      </div>
+      <div class="total-row" style="margin-top:8px;">Total: {!! money($total) !!}</div>
 
       <a href="{{ url('/e/' . $estimate['share_token'] . '/pdf') }}" target="_blank" class="btn btn-outline" style="margin-top:16px;">⬇ Download PDF</a>
     </div>

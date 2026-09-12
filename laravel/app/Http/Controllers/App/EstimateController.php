@@ -32,18 +32,77 @@ use Illuminate\View\View;
 
 class EstimateController extends Controller
 {
-    public function index(): View
+    private const STATUSES = ['draft', 'sent', 'accepted', 'declined'];
+
+    public function index(Request $request): View
     {
-        $estimates = DB::table('estimates as e')
+        $companyId = Auth::user()->company_id;
+        $status = (string) $request->input('status', '');
+        $q = trim((string) $request->input('q', ''));
+
+        $query = DB::table('estimates as e')
             ->leftJoin('clients as c', 'c.id', '=', 'e.client_id')
-            ->where('e.company_id', Auth::user()->company_id)
-            ->orderByDesc('e.created_at')
-            ->select('e.*', 'c.name as client_name')
+            ->where('e.company_id', $companyId);
+
+        if (in_array($status, self::STATUSES, true)) {
+            $query->where('e.status', $status);
+        }
+        if ($q !== '') {
+            $query->where(function ($w) use ($q) {
+                $w->where('e.title', 'like', "%{$q}%")
+                    ->orWhere('e.title_ar', 'like', "%{$q}%")
+                    ->orWhere('c.name', 'like', "%{$q}%")
+                    ->orWhere('c.name_ar', 'like', "%{$q}%");
+            });
+        }
+
+        $estimates = $query->orderByDesc('e.created_at')
+            ->select('e.*', 'c.name as client_name', 'c.name_ar as client_name_ar')
             ->get()
             ->map(fn ($r) => (array) $r)
             ->all();
 
-        return view('app.estimates.index', ['estimates' => $estimates]);
+        return view('app.estimates.index', [
+            'estimates' => $estimates,
+            'statusFilter' => $status,
+            'statuses' => self::STATUSES,
+            'q' => $q,
+            'counts' => $this->statusCounts($companyId),
+            'stats' => $this->pipelineStats($companyId),
+        ]);
+    }
+
+    /** Per-status counts across the whole company (not narrowed by the current filter/search) for the filter toolbar — same pattern as LeadController::statusCounts(). */
+    private function statusCounts(int $companyId): array
+    {
+        $rows = DB::table('estimates')->where('company_id', $companyId)->select('status', DB::raw('COUNT(*) as c'))->groupBy('status')->get();
+        $counts = array_fill_keys(self::STATUSES, 0);
+        foreach ($rows as $row) {
+            if (isset($counts[$row->status])) {
+                $counts[$row->status] = (int) $row->c;
+            }
+        }
+        return $counts;
+    }
+
+    /**
+     * Sales-pipeline summary shown above the estimate list: total count, total
+     * pipeline value (everything not declined — a draft/sent/accepted estimate is
+     * still "in play"), and a win rate computed the same way as the estimate win
+     * rate on the Reports > Performance tab (accepted ÷ (accepted+declined)).
+     */
+    private function pipelineStats(int $companyId): array
+    {
+        $all = Estimate::where('company_id', $companyId)->get(['status', 'total']);
+        $accepted = $all->where('status', 'accepted')->count();
+        $declined = $all->where('status', 'declined')->count();
+        $decided = $accepted + $declined;
+
+        return [
+            'count' => $all->count(),
+            'pipelineValue' => (float) $all->where('status', '!=', 'declined')->sum('total'),
+            'winRate' => $decided > 0 ? round($accepted / $decided * 100) : null,
+        ];
     }
 
     /** Landing screen: blank estimate / default template / template gallery / AI generator. */
@@ -572,7 +631,7 @@ class EstimateController extends Controller
         $client = $this->ownedClient($estimate->client_id, $companyId);
         $project = $this->ownedProject($estimate->project_id, $companyId);
 
-        $items = $this->sellPricedItems($estimate);
+        $items = self::sellPricedItems($estimate);
         $subtotal = array_sum(array_column($items, 'total'));
         $vatRate = (float) $estimate->tax_percent;
         $vatAmount = round($subtotal * $vatRate / 100, 2);
@@ -806,11 +865,25 @@ class EstimateController extends Controller
     public function pdf(Request $request, int $id): Response
     {
         $estimate = $this->findOwned($id);
-        $items = EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get();
         $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
         $company = Company::find($estimate->company_id);
         $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+
+        // Client-facing figures must reconcile: line items are the sell price
+        // (cost scaled by markup), and subtotal/VAT/total are derived from those
+        // same lines rather than the estimate's stored cost-based subtotal — see
+        // sellPricedItems() above.
+        $sellItems = self::sellPricedItems($estimate);
+        $items = array_map(fn ($i) => [
+            'description' => ($lang === 'ar' && !empty($i['description_ar'])) ? $i['description_ar'] : $i['description'],
+            'qty' => $i['qty'],
+            'unit_price' => $i['unit_price'],
+            'total' => $i['total'],
+        ], $sellItems);
+        $subtotal = array_sum(array_column($sellItems, 'total'));
+        $vatAmount = round($subtotal * (float) $estimate->tax_percent / 100, 2);
+        $total = round($subtotal + $vatAmount, 2);
 
         return $this->streamPdf([
             'template' => $template,
@@ -824,13 +897,13 @@ class EstimateController extends Controller
             'companyNameAr' => $company->name_ar ?? '',
             'companyLogo' => !empty($company->logo_path) ? ('file://' . public_path($company->logo_path)) : null,
             'billTo' => $client ? ['name' => ($lang === 'ar' && !empty($client->name_ar)) ? $client->name_ar : $client->name, 'meta' => array_filter([$client->email ?? null, $client->phone ?? null, $client->address ?? null])] : null,
-            'items' => $items->map(fn ($i) => ['description' => ($lang === 'ar' && !empty($i->description_ar)) ? $i->description_ar : $i->description, 'qty' => $i->qty, 'unit_price' => $i->unit_cost, 'total' => $i->total])->all(),
-            'subtotal' => (float) $estimate->subtotal + (float) $estimate->markup_amount,
+            'items' => $items,
+            'subtotal' => $subtotal,
             'discountPercent' => 0,
             'discountAmount' => 0,
             'vatRate' => (float) $estimate->tax_percent,
-            'vatAmount' => (float) $estimate->tax_amount,
-            'total' => (float) $estimate->total,
+            'vatAmount' => $vatAmount,
+            'total' => $total,
             'footerNote' => $lang === 'ar' ? 'تم إنشاؤه بواسطة ' . Setting::siteName() : 'Generated by ' . Setting::siteName(),
         ], 'Estimate-' . $estimate->id . '.pdf');
     }
@@ -845,12 +918,13 @@ class EstimateController extends Controller
     /**
      * Each item's cost scaled by the estimate's markup, rounded to 2dp — this is
      * what the client is actually paying per line, needed anywhere a client-facing
-     * total must reconcile line-by-line with subtotal+markup (e.g. an invoice
-     * generated from this estimate via convertToInvoice() above). NOTE: pdf() and
-     * Site\ShareController's estimate methods currently display raw unit_cost
-     * instead of this — a known, separately-tracked display bug, not fixed here.
+     * total must reconcile line-by-line with subtotal+markup: an invoice generated
+     * from this estimate via convertToInvoice() above, this controller's own pdf(),
+     * and Site\ShareController's public estimate()/estimatePdf() (which call this
+     * directly — public static so it can be shared as the single source of truth
+     * for sell-price math instead of a second, divergent copy of the formula).
      */
-    private function sellPricedItems(Estimate $estimate): array
+    public static function sellPricedItems(Estimate $estimate): array
     {
         $factor = 1 + ((float) $estimate->markup_percent / 100);
         return EstimateItem::where('estimate_id', $estimate->id)->orderBy('id')->get()
