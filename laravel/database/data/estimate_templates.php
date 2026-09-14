@@ -259,4 +259,25 @@ return [
             ]],
         ],
     ],
+    [
+        'name_en' => 'Apartment Renovation', 'name_ar' => 'تجديد شقة',
+        'description_en' => 'Full interior refresh of an 85 sqm apartment — kitchen, bathroom, flooring and paint.', 'description_ar' => 'تجديد داخلي كامل لشقة بمساحة 85 متر مربع — مطبخ، دورة مياه، أرضيات ودهانات.',
+        'building_type' => 'Renovation', 'icon' => '🏢',
+        'sections' => [
+            ['no' => '1.0', 'title_en' => 'Demolition & Disposal', 'title_ar' => 'الهدم والتخلص من المخلفات', 'items' => [
+                ['no' => '1.1', 'en' => 'Strip out old flooring, fixtures and finishes', 'ar' => 'إزالة الأرضيات والتجهيزات والتشطيبات القديمة', 'type' => 'labor', 'qty' => 85, 'uom' => 'sqm', 'cost' => 25],
+                ['no' => '1.2', 'en' => 'Debris removal and disposal', 'ar' => 'إزالة والتخلص من الأنقاض', 'type' => 'labor', 'qty' => 1, 'uom' => 'lot', 'cost' => 1500],
+            ]],
+            ['no' => '2.0', 'title_en' => 'Kitchen & Bathroom Refresh', 'title_ar' => 'تجديد المطبخ ودورة المياه', 'items' => [
+                ['no' => '2.1', 'en' => 'Compact kitchen cabinets and countertop', 'ar' => 'خزائن مطبخ مدمجة وسطح عمل', 'type' => 'material', 'qty' => 6, 'uom' => 'lm', 'cost' => 1300],
+                ['no' => '2.2', 'en' => 'Bathroom suite: vanity, toilet and shower set', 'ar' => 'طقم دورة مياه: مغسلة ومرحاض ودش', 'type' => 'material', 'qty' => 1, 'uom' => 'lot', 'cost' => 4800],
+                ['no' => '2.3', 'en' => 'Wall and floor tiling, kitchen and bathroom', 'ar' => 'تبليط الجدران والأرضيات للمطبخ ودورة المياه', 'type' => 'material', 'qty' => 20, 'uom' => 'sqm', 'cost' => 150],
+            ]],
+            ['no' => '3.0', 'title_en' => 'Electrical, Flooring & Finishes', 'title_ar' => 'الكهرباء والأرضيات والتشطيبات', 'items' => [
+                ['no' => '3.1', 'en' => 'Electrical points and switchgear update', 'ar' => 'تحديث نقاط ومفاتيح الكهرباء', 'type' => 'labor', 'qty' => 18, 'uom' => 'point', 'cost' => 140],
+                ['no' => '3.2', 'en' => 'Laminate or porcelain flooring, living areas', 'ar' => 'أرضيات لامينيت أو بورسلين لمناطق المعيشة', 'type' => 'material', 'qty' => 65, 'uom' => 'sqm', 'cost' => 120],
+                ['no' => '3.3', 'en' => 'Wall painting, two coats, and ceiling touch-up', 'ar' => 'دهان الجدران طبقتين وتجديد السقف', 'type' => 'material', 'qty' => 85, 'uom' => 'sqm', 'cost' => 25],
+            ]],
+        ],
+    ],
 ];

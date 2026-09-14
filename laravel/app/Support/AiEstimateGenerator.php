@@ -30,6 +30,9 @@ class AiEstimateGenerator
             if ($result !== null) {
                 return $result;
             }
+            // AI was configured but the call itself failed — say so, don't claim
+            // there's no provider configured (the real reason is in ai_last_error).
+            return self::generateViaTemplateFallback($description, true);
         }
         return self::generateViaTemplateFallback($description);
     }
@@ -112,7 +115,14 @@ PROMPT;
         ];
     }
 
-    private static function generateViaTemplateFallback(string $description): array
+    /**
+     * @param bool $aiCallFailed True when this is being used because a configured
+     *   AI provider's call failed (bad key, rate limit, network error, unparseable
+     *   response — see generateViaAnthropic()), rather than because no provider is
+     *   configured at all. Changes the returned note so the user isn't told "no
+     *   provider configured" when one is configured but broken.
+     */
+    private static function generateViaTemplateFallback(string $description, bool $aiCallFailed = false): array
     {
         $templates = EstimateTemplate::where('is_active', true)->orderBy('sort_order')->get();
         $words = array_filter(preg_split('/[^a-z0-9]+/i', strtolower($description)) ?: []);
@@ -147,11 +157,15 @@ PROMPT;
             'unit_cost' => (float) $ti->unit_cost,
         ])->all();
 
+        $note = $aiCallFailed
+            ? 'AI generation failed (Admin > Platform Settings > AI Generator has the error: \'' . Setting::get('ai_last_error', 'unknown error') . '\') — this draft was suggested from the closest matching template instead. Review and adjust before sending.'
+            : 'No AI provider is configured yet (Admin > Platform Settings > AI Generator), so this draft was suggested from the closest matching template — "' . $bestTemplate->name_en . '". Review and adjust before sending.';
+
         return [
             'title' => $bestTemplate->name_en,
             'items' => $items,
             'source' => 'ai_fallback',
-            'note' => 'No AI provider is configured yet (Admin > Platform Settings > AI Generator), so this draft was suggested from the closest matching template — "' . $bestTemplate->name_en . '". Review and adjust before sending.',
+            'note' => $note,
         ];
     }
 }

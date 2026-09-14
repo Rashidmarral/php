@@ -165,9 +165,19 @@ class QuickEstimateController extends Controller
         $lang = $estimate->lang === 'ar' ? 'ar' : 'en';
         $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang);
 
+        $companyId = Auth::user()->company_id;
         $taxPercent = (float) $estimate->subtotal > 0 ? round((float) $estimate->vat_amount / (float) $estimate->subtotal * 100, 2) : 0;
+
+        // Mirrors EstimateController::approvalFieldsForNewEstimate() — a company that
+        // requires internal approval before estimates reach a client must not be able
+        // to bypass that gate just by routing a quick estimate through this conversion.
+        $company = Company::find($companyId);
+        $approvalFields = ($company && $company->requiresEstimateApproval())
+            ? ['approval_status' => 'pending', 'approval_requested_by' => Auth::id(), 'approval_requested_at' => now()]
+            : [];
+
         $newEstimate = Estimate::create([
-            'company_id' => Auth::user()->company_id,
+            'company_id' => $companyId,
             'project_id' => null,
             'client_id' => $estimate->client_id,
             'title' => $estimate->project_name ?: ('Quick Estimate #' . $estimate->id),
@@ -178,6 +188,9 @@ class QuickEstimateController extends Controller
             'tax_percent' => $taxPercent,
             'tax_amount' => $estimate->vat_amount,
             'total' => $estimate->total,
+            'share_token' => bin2hex(random_bytes(20)),
+            'valid_until' => now()->addDays(30)->toDateString(),
+            ...$approvalFields,
         ]);
         foreach ($items as $item) {
             EstimateItem::create([
