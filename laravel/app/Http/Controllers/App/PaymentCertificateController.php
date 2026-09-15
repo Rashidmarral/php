@@ -398,9 +398,12 @@ class PaymentCertificateController extends Controller
         $company = Company::find($project->company_id);
         $lines = PaymentCertificateLine::where('payment_certificate_id', $certificate->id)->orderBy('id')->get();
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
-        // Same 6-option whitelist InvoiceController::pdf() validates against, minus 'saudi' —
-        // see payment-certificate.blade.php's own comment for why that one doesn't apply here.
-        $template = in_array($request->input('template'), ['classic', 'minimal', 'bold', 'elegant'], true) ? $request->input('template') : 'modern';
+        // Same 6-option whitelist InvoiceController::pdf() validates against, NOW including
+        // 'saudi' too — see payment-certificate.blade.php's own comment for the bilingual
+        // layout that template renders for a certificate (a previous pass had excluded it here
+        // as a poor fit; it's since been built properly with its own wider cumulative-billing
+        // columns instead of being force-fit onto the invoice template's simpler shape).
+        $template = in_array($request->input('template'), ['classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
 
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
         // A certified certificate shows its real invoiced VAT/total; a draft one shows a live

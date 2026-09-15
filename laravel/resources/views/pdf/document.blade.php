@@ -36,33 +36,7 @@ table { width: 100%; border-collapse: collapse; }
 
 <?= \App\Support\Pdf\PdfTemplateStyles::variants($rtl) ?>
 
-/* ---- Saudi (ZATCA-standard bilingual) template ---- */
-.tpl-saudi body, .tpl-saudi { font-family: 'Cairo', 'DejaVu Sans', 'Noto Naskh Arabic', sans-serif; font-size: 11px; }
-.tpl-saudi .saudi-header { border: 1.5px solid #16211f; padding: 10px 14px; }
-.tpl-saudi .saudi-header td { vertical-align: middle; }
-.tpl-saudi .saudi-company-en { font-size: 13px; font-weight: 700; }
-.tpl-saudi .saudi-company-ar { font-size: 13px; font-weight: 700; direction: rtl; text-align: right; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
-.tpl-saudi .saudi-meta-en { font-size: 9px; color: #444; margin-top: 2px; }
-.tpl-saudi .saudi-meta-ar { font-size: 9px; color: #444; margin-top: 2px; direction: rtl; text-align: right; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
-.tpl-saudi .saudi-logo { text-align: center; }
-.tpl-saudi .saudi-title-bar { text-align: center; background: #16211f; color: #fff; border: 1.5px solid #16211f; border-top: none; padding: 7px; font-weight: 700; font-size: 13px; }
-.tpl-saudi .saudi-info-table { border: 1px solid #16211f; border-top: none; }
-.tpl-saudi .saudi-info-table td { border: 1px solid #16211f; padding: 5px 8px; font-size: 9.5px; }
-.tpl-saudi .saudi-info-table .en { text-align: left; }
-.tpl-saudi .saudi-info-table .ar { text-align: right; direction: rtl; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
-.tpl-saudi .saudi-items-table { margin-top: 0; border: 1px solid #16211f; }
-.tpl-saudi .saudi-items-table th { border: 1px solid #16211f; padding: 6px 8px; font-size: 9.5px; background: #eef1f0; text-align: center; }
-.tpl-saudi .saudi-items-table td { border: 1px solid #16211f; padding: 6px 8px; font-size: 10px; text-align: center; }
-.tpl-saudi .saudi-items-table .desc { text-align: <?= $rtl ? 'right' : 'left' ?>; }
-.tpl-saudi .saudi-totals-table { margin-top: 10px; }
-.tpl-saudi .saudi-totals-table td { border: 1px solid #16211f; padding: 6px 10px; font-size: 10.5px; }
-.tpl-saudi .saudi-totals-table .label { background: #eef1f0; font-weight: 700; }
-.tpl-saudi .saudi-totals-table .grand td { font-weight: 700; font-size: 12.5px; background: #f7f0dc; }
-.tpl-saudi .saudi-words { margin-top: 8px; border: 1px solid #16211f; background: #16211f; color: #fff; padding: 7px 10px; font-size: 10px; text-align: center; }
-.tpl-saudi .saudi-sign-table { margin-top: 22px; }
-.tpl-saudi .saudi-sign-table td { font-size: 9.5px; padding-top: 26px; border-top: 0.75px solid #999; }
-.tpl-saudi .saudi-qr-cell { width: 110px; vertical-align: top; }
-.tpl-saudi .saudi-footer { margin-top: 16px; text-align: center; font-size: 9px; color: #555; border-top: 1px solid #16211f; padding-top: 6px; }
+<?= \App\Support\Pdf\PdfTemplateStyles::saudiChrome($rtl) ?>
 </style>
 </head>
 <body class="tpl-<?= $tpl ?>">

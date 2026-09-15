@@ -34,6 +34,7 @@
       <option value="minimal">Minimal</option>
       <option value="bold">Bold</option>
       <option value="elegant">Elegant</option>
+      <option value="saudi">Saudi (ZATCA bilingual)</option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">
