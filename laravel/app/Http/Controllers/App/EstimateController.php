@@ -891,11 +891,18 @@ class EstimateController extends Controller
         $shareUrl = rtrim((string) config('app.url'), '/') . '/e/' . $estimate->share_token;
         $approvalBlocked = $estimate->isApprovalBlocked();
 
+        $company = Company::find($estimate->company_id);
         $whatsappLink = null;
         if (!$approvalBlocked && $client && !empty($client->phone)) {
-            $company = Company::find($estimate->company_id);
             $message = "Hi {$client->name}, here's your estimate \"{$estimate->title}\" from {$company->name} — please review and sign: {$shareUrl}";
             $whatsappLink = WhatsApp::shareLink($client->phone, $message);
+        }
+
+        // See InvoiceController::approverPingMessage()'s docblock for why this is sent to the
+        // company's own phone rather than a specific approver's — same convention, reused here.
+        $approverWhatsappLink = null;
+        if ($estimate->approval_status === 'pending' && (int) $estimate->approval_requested_by === (int) Auth::id() && !empty($company->phone)) {
+            $approverWhatsappLink = WhatsApp::shareLink($company->phone, $this->approverPingMessage($estimate, $company));
         }
 
         return view('app.estimates.show', [
@@ -905,6 +912,8 @@ class EstimateController extends Controller
             'client' => $client,
             'project' => $project,
             'whatsappLink' => $whatsappLink,
+            'approverWhatsappLink' => $approverWhatsappLink,
+            'whatsappApiConfigured' => WhatsApp::isConfigured(),
             'smsApiConfigured' => Sms::isConfigured(),
             'shareUrl' => $shareUrl,
             'approvalBlocked' => $approvalBlocked,
@@ -995,6 +1004,43 @@ class EstimateController extends Controller
             'approved_at' => null,
         ]);
         $this->flash('success', 'Estimate rejected.');
+        return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    /** Same "whoever can approve, on the company's own phone" convention as InvoiceController::approverPingMessage() — see its docblock. */
+    private function approverPingMessage(Estimate $estimate, ?Company $company): string
+    {
+        $requesterName = Auth::user()->name;
+        $link = rtrim((string) config('app.url'), '/') . '/app/estimates/' . $estimate->id;
+        return "Hi, {$requesterName} is waiting on your approval for estimate \"{$estimate->title}\" at " . ($company->name ?? '') . ". Please review: {$link}";
+    }
+
+    /** Lets the person who requested approval nudge their own approver — see approverPingMessage()'s docblock for how "the approver's phone" is determined. */
+    public function notifyApprover(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        $company = Company::find($estimate->company_id);
+
+        if ($estimate->approval_status !== 'pending') {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate is not awaiting approval.');
+        }
+        if ((int) $estimate->approval_requested_by !== (int) Auth::id()) {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'Only the person who requested approval can send this reminder.');
+        }
+        if (empty($company->phone)) {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'Your company has no contact phone number on file to notify the approver.');
+        }
+
+        $result = WhatsApp::sendMessage($company->phone, $this->approverPingMessage($estimate, $company));
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'Approval reminder sent via WhatsApp.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp reminder: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
         return redirect('/app/estimates/' . $estimate->id);
     }
 

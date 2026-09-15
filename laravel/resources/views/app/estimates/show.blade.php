@@ -55,6 +55,17 @@
         </form>
       </div>
     <?php endif; ?>
+    <?php if ((int)($estimate['approval_requested_by'] ?? 0) === (int) auth()->id()): ?>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;">
+        <?php if ($approverWhatsappLink): ?>
+          <a href="<?= e($approverWhatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('user.estimates.notify_approver_whatsapp') ?></a>
+        <?php endif; ?>
+        <?php if ($whatsappApiConfigured && $approverWhatsappLink): ?>
+          <button type="button" onclick="document.getElementById('whatsapp-approver-form').submit();" class="btn btn-sm btn-outline">🤖 <?= t('user.estimates.notify_approver_whatsapp') ?></button>
+        <?php endif; ?>
+      </div>
+      <form id="whatsapp-approver-form" method="post" action="/app/estimates/<?= $estimate['id'] ?>/notify-approver" style="display:none;"><?= csrf_field() ?></form>
+    <?php endif; ?>
   </div>
 <?php elseif ($estimate['approval_status'] === 'rejected'): ?>
   <div class="alert alert-error" style="max-width:820px;">

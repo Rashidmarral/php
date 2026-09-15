@@ -99,4 +99,22 @@ class Invoice extends Model
     {
         return in_array($this->approval_status, ['pending', 'rejected'], true);
     }
+
+    /**
+     * True for an invoice a contractor would actually consider overdue: either it's already
+     * been hand-flagged with the 'overdue' status (updateStatus() lets a user set that
+     * directly, with or without a due_date on file), or it's still sitting as 'unpaid' with a
+     * due_date that has already passed. A 'paid' invoice is never overdue regardless of its
+     * due_date — settling it is what the reminder exists to avoid needing in the first place.
+     */
+    public function isOverdue(): bool
+    {
+        if ($this->status === 'paid') {
+            return false;
+        }
+        if ($this->status === 'overdue') {
+            return true;
+        }
+        return $this->due_date !== null && $this->due_date->isPast();
+    }
 }

@@ -191,6 +191,19 @@ class InvoiceController extends Controller
             $whatsappLink = WhatsApp::shareLink($client->phone, $message);
         }
 
+        $reminderWhatsappLink = null;
+        if (!$approvalBlocked && $client && !empty($client->phone) && $invoice->status !== 'paid') {
+            $reminderWhatsappLink = WhatsApp::shareLink($client->phone, $this->paymentReminderMessage($invoice, $client, $company, $shareUrl));
+        }
+
+        // Only the person who actually requested this approval sees the nudge — anyone else
+        // can already see the pending banner and its approve/reject buttons if they have that
+        // ability, so a nudge button for them would be pointless.
+        $approverWhatsappLink = null;
+        if ($invoice->approval_status === 'pending' && (int) $invoice->approval_requested_by === (int) Auth::id() && !empty($company->phone)) {
+            $approverWhatsappLink = WhatsApp::shareLink($company->phone, $this->approverPingMessage($invoice, $company));
+        }
+
         $creditNotes = CreditNote::where('invoice_id', $invoice->id)->orderByDesc('id')->get()->toArray();
         $debitNotes = DebitNote::where('invoice_id', $invoice->id)->orderByDesc('id')->get()->toArray();
 
@@ -202,6 +215,9 @@ class InvoiceController extends Controller
             'company' => $company,
             'zatcaQr' => $this->zatcaQrDataUri($invoice, $company),
             'whatsappLink' => $whatsappLink,
+            'reminderWhatsappLink' => $reminderWhatsappLink,
+            'approverWhatsappLink' => $approverWhatsappLink,
+            'isOverdue' => $invoice->isOverdue(),
             'whatsappApiConfigured' => WhatsApp::isConfigured(),
             'smsApiConfigured' => Sms::isConfigured(),
             'shareUrl' => $shareUrl,
@@ -240,6 +256,99 @@ class InvoiceController extends Controller
             $this->flash('success', 'WhatsApp notification sent.');
         } else {
             $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    /** Overdue/unpaid-toned nudge, distinct wording from show()'s "your invoice is ready" first-notice message above. */
+    public function sendPaymentReminder(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
+        $company = Company::find($invoice->company_id);
+
+        if ($invoice->isApprovalBlocked()) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is awaiting internal approval before it can be sent.');
+        }
+        if ($invoice->status === 'paid') {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is already paid.');
+        }
+        if (!$client || empty($client->phone)) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
+        }
+        if (empty($invoice->share_token)) {
+            $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
+        }
+        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+
+        $result = WhatsApp::sendMessage($client->phone, $this->paymentReminderMessage($invoice, $client, $company, $shareUrl));
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'Payment reminder sent via WhatsApp.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp reminder: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/invoices/' . $invoice->id);
+    }
+
+    /** "Hi {client}, your invoice ... is ready" wording doesn't fit a document sitting unpaid — this is a firmer, overdue-toned message reused by both the wa.me link built in show() and the real API send above. */
+    private function paymentReminderMessage(Invoice $invoice, Client $client, ?Company $company, string $shareUrl): string
+    {
+        $amount = number_format((float) $invoice->total, 2) . ' SAR';
+        $companyName = $company->name ?? '';
+        if ($invoice->isOverdue()) {
+            $dueNote = $invoice->due_date ? " (due {$invoice->due_date->format('Y-m-d')})" : '';
+            return "Hi {$client->name}, this is a reminder that invoice {$invoice->invoice_number} from {$companyName} for {$amount}{$dueNote} is now overdue. Please arrange payment at your earliest convenience: {$shareUrl}";
+        }
+        return "Hi {$client->name}, a friendly reminder that invoice {$invoice->invoice_number} from {$companyName} for {$amount} is still outstanding: {$shareUrl}";
+    }
+
+    /**
+     * Pings whoever can approve pending documents at this company. There is no per-user phone
+     * column anywhere in this app (see App\Support\Notifications's own docblock on
+     * smsCompany() for the existing precedent) — every phone-based notification here already
+     * falls back to the company's own contact number, Company::phone, rather than a specific
+     * team member's. This reuses that exact same convention instead of inventing a new
+     * per-approver phone field: the message is addressed to "whoever can approve" generically
+     * and sent to the company's phone, which an owner/admin (the only roles the
+     * 'approve_documents' Gate grants) is expected to see.
+     */
+    private function approverPingMessage(Invoice $invoice, ?Company $company): string
+    {
+        $amount = number_format((float) $invoice->total, 2) . ' SAR';
+        $requesterName = Auth::user()->name;
+        $link = rtrim((string) config('app.url'), '/') . '/app/invoices/' . $invoice->id;
+        return "Hi, {$requesterName} is waiting on your approval for invoice {$invoice->invoice_number} ({$amount}) at " . ($company->name ?? '') . ". Please review: {$link}";
+    }
+
+    /** Lets the person who requested approval nudge their own approver — see approverPingMessage()'s docblock for how "the approver's phone" is determined. */
+    public function notifyApprover(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $invoice = $this->findOwned($id);
+        $company = Company::find($invoice->company_id);
+
+        if ($invoice->approval_status !== 'pending') {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is not awaiting approval.');
+        }
+        if ((int) $invoice->approval_requested_by !== (int) Auth::id()) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'Only the person who requested approval can send this reminder.');
+        }
+        if (empty($company->phone)) {
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'Your company has no contact phone number on file to notify the approver.');
+        }
+
+        $result = WhatsApp::sendMessage($company->phone, $this->approverPingMessage($invoice, $company));
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'Approval reminder sent via WhatsApp.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp reminder: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }

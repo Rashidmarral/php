@@ -47,6 +47,24 @@
   </div>
 </div>
 
+<?php if ($client && !empty($client['phone'])): ?>
+<div class="card" style="margin-top:24px;">
+  <h3><?= t('user.projects.whatsapp_update_title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.whatsapp_update_hint') ?></p>
+  <form style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:10px;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;flex:1;min-width:240px;">
+      <label><?= t('user.projects.whatsapp_update_note') ?></label>
+      <input type="text" name="note" placeholder="<?= t('user.projects.whatsapp_update_note_placeholder') ?>">
+    </div>
+    <button type="submit" formmethod="get" formaction="/app/projects/<?= $project['id'] ?>/share-progress" formtarget="_blank" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('common.send_whatsapp') ?></button>
+    <?php if ($whatsappApiConfigured): ?>
+      <button type="submit" formmethod="post" formaction="/app/projects/<?= $project['id'] ?>/send-whatsapp-progress" class="btn btn-outline">🤖 <?= t('user.projects.auto_notify_whatsapp') ?></button>
+    <?php endif; ?>
+  </form>
+</div>
+<?php endif; ?>
+
 <div class="card" style="margin-top:24px;">
   <h3><?= t('user.projects.change_orders') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.change_orders_hint') ?></p>
@@ -111,8 +129,17 @@
           <td><?= e($poSupplier['name'] ?? '—') ?></td>
           <td><?= e($po['issue_date'] ?: '—') ?></td>
           <td><?= money((float)$po['total']) ?></td>
-          <td style="display:flex;gap:6px;">
+          <td style="display:flex;gap:6px;flex-wrap:wrap;">
             <a href="/app/purchase-orders/<?= $po['id'] ?>/pdf" class="btn btn-sm btn-light" target="_blank">⬇ <?= t('common.download_pdf') ?></a>
+            <?php if (!empty($poWhatsappLinks[$po['id']] ?? null)): ?>
+              <a href="<?= e($poWhatsappLinks[$po['id']]) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('common.send_whatsapp') ?></a>
+              <?php if ($whatsappApiConfigured): ?>
+                <form method="post" action="/app/purchase-orders/<?= $po['id'] ?>/send-whatsapp" style="display:inline;">
+                  <?= csrf_field() ?>
+                  <button type="submit" class="btn btn-sm btn-outline">🤖 <?= t('user.purchase_orders.auto_notify_whatsapp') ?></button>
+                </form>
+              <?php endif; ?>
+            <?php endif; ?>
             <?php if ($po['status'] === 'draft'): ?>
               <form method="post" action="/app/purchase-orders/<?= $po['id'] ?>/status" style="display:inline;">
                 <?= csrf_field() ?><input type="hidden" name="status" value="issued">

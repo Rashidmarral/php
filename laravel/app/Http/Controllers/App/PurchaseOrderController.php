@@ -9,6 +9,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Setting;
 use App\Models\Supplier;
+use App\Support\WhatsApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -120,6 +121,50 @@ class PurchaseOrderController extends Controller
         $purchaseOrder->update(['status' => $status]);
 
         return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'success', 'Purchase order ' . $status . '.');
+    }
+
+    /**
+     * A draft PO is still just an internal plan — nothing's actually been committed to the
+     * supplier yet, so notifying them about it would be premature (and misleading, since
+     * updateStatus()'s ALLOWED_TRANSITIONS above still lets it be cancelled without a trace).
+     * 'issued' and 'received' are both fine to notify about: the supplier already has a real
+     * commitment either way, and a 'received' PO's supplier presumably already knows (they
+     * delivered it), but re-sending the confirmation on request is harmless.
+     */
+    public function sendWhatsApp(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('purchase_orders')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $purchaseOrder = $this->findOwned($id);
+
+        if ($purchaseOrder->status === 'draft') {
+            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', 'This purchase order is still a draft — issue it before notifying the supplier.');
+        }
+        $supplier = $purchaseOrder->supplier_id ? $this->ownedSupplier($purchaseOrder->supplier_id, $purchaseOrder->company_id) : null;
+        if (!$supplier || empty($supplier->phone)) {
+            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', 'This purchase order has no supplier phone number on file.');
+        }
+
+        $company = Company::find($purchaseOrder->company_id);
+        $result = WhatsApp::sendMessage($supplier->phone, self::supplierMessage($purchaseOrder, $supplier, $company));
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'WhatsApp notification sent to supplier.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/projects/' . $purchaseOrder->project_id);
+    }
+
+    /** Shared by the wa.me link built in ProjectController::show() and the real API send above — no public/share page exists for a PO, so this is plain text with no link. */
+    public static function supplierMessage(PurchaseOrder $purchaseOrder, Supplier $supplier, ?Company $company): string
+    {
+        $amount = number_format((float) $purchaseOrder->total, 2) . ' SAR';
+        return "Hi {$supplier->name}, purchase order {$purchaseOrder->po_number} for {$amount} has been issued by " . ($company->name ?? '') . '. Please confirm receipt.';
     }
 
     public function destroy(int $id): RedirectResponse

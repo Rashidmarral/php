@@ -144,6 +144,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/retention/release-all', [ProjectController::class, 'releaseAllRetention']);
     Route::get('/projects/{id}/duplicate', [ProjectController::class, 'duplicateForm']);
     Route::post('/projects/{id}/duplicate', [ProjectController::class, 'duplicateProject']);
+    Route::get('/projects/{id}/share-progress', [ProjectController::class, 'shareProgressWhatsApp']);
+    Route::post('/projects/{id}/send-whatsapp-progress', [ProjectController::class, 'sendWhatsAppProgress']);
     Route::post('/projects/{id}/change-orders', [ChangeOrderController::class, 'store']);
     Route::post('/change-orders/{id}/status', [ChangeOrderController::class, 'updateStatus']);
     Route::post('/change-orders/{id}/delete', [ChangeOrderController::class, 'destroy']);
@@ -154,6 +156,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/purchase-orders/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
     Route::post('/purchase-orders/{id}/delete', [PurchaseOrderController::class, 'destroy']);
     Route::get('/purchase-orders/{id}/pdf', [PurchaseOrderController::class, 'pdf']);
+    Route::post('/purchase-orders/{id}/send-whatsapp', [PurchaseOrderController::class, 'sendWhatsApp']);
     Route::post('/projects/{id}/photos', [ProjectPhotoController::class, 'store']);
     Route::post('/project-photos/{id}/delete', [ProjectPhotoController::class, 'destroy']);
     Route::post('/projects/{id}/bank-guarantees', [BankGuaranteeController::class, 'store']);
@@ -225,6 +228,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/estimates/{id}/totals', [EstimateController::class, 'updateTotals']);
     Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);
     Route::post('/estimates/{id}/send-sms', [EstimateController::class, 'sendSms']);
+    Route::post('/estimates/{id}/notify-approver', [EstimateController::class, 'notifyApprover']);
     Route::post('/estimates/{id}/approve', [EstimateController::class, 'approve']);
     Route::post('/estimates/{id}/reject', [EstimateController::class, 'reject']);
     Route::post('/estimates/{id}/duplicate', [EstimateController::class, 'duplicate']);
@@ -241,6 +245,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
     Route::post('/invoices/{id}/submit-zatca', [InvoiceController::class, 'submitZatca']);
     Route::post('/invoices/{id}/send-whatsapp', [InvoiceController::class, 'sendWhatsApp']);
+    Route::post('/invoices/{id}/send-payment-reminder', [InvoiceController::class, 'sendPaymentReminder']);
+    Route::post('/invoices/{id}/notify-approver', [InvoiceController::class, 'notifyApprover']);
     Route::post('/invoices/{id}/send-sms', [InvoiceController::class, 'sendSms']);
     Route::post('/invoices/{id}/approve', [InvoiceController::class, 'approve']);
     Route::post('/invoices/{id}/reject', [InvoiceController::class, 'reject']);

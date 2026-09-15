@@ -34,6 +34,17 @@
         </form>
       </div>
     <?php endif; ?>
+    <?php if ((int)($invoice['approval_requested_by'] ?? 0) === (int) auth()->id()): ?>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;">
+        <?php if ($approverWhatsappLink): ?>
+          <a href="<?= e($approverWhatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">💬 <?= t('user.invoices.notify_approver_whatsapp') ?></a>
+        <?php endif; ?>
+        <?php if ($whatsappApiConfigured && $approverWhatsappLink): ?>
+          <button type="button" onclick="document.getElementById('whatsapp-approver-form').submit();" class="btn btn-sm btn-outline">🤖 <?= t('user.invoices.notify_approver_whatsapp') ?></button>
+        <?php endif; ?>
+      </div>
+      <form id="whatsapp-approver-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/notify-approver" style="display:none;"><?= csrf_field() ?></form>
+    <?php endif; ?>
   </div>
 <?php elseif ($invoice['approval_status'] === 'rejected'): ?>
   <div class="alert alert-error" style="max-width:820px;">
@@ -73,10 +84,17 @@
     <?php if ($smsApiConfigured && $client && !empty($client['phone'])): ?>
       <button type="button" onclick="document.getElementById('sms-auto-form').submit();" class="btn btn-outline">📱 <?= t('user.invoices.send_sms') ?></button>
     <?php endif; ?>
+    <?php if ($isOverdue && $reminderWhatsappLink): ?>
+      <a href="<?= e($reminderWhatsappLink) ?>" target="_blank" rel="noopener" class="btn btn-light" style="background:#25D366;color:#fff;border-color:#25D366;">⏰ <?= t('user.invoices.send_payment_reminder') ?></a>
+    <?php endif; ?>
+    <?php if ($isOverdue && $whatsappApiConfigured && $reminderWhatsappLink): ?>
+      <button type="button" onclick="document.getElementById('whatsapp-reminder-form').submit();" class="btn btn-outline">🤖 <?= t('user.invoices.send_payment_reminder') ?></button>
+    <?php endif; ?>
   <?php endif; ?>
 </form>
 <form id="whatsapp-auto-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-whatsapp" style="display:none;"><?= csrf_field() ?></form>
 <form id="sms-auto-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-sms" style="display:none;"><?= csrf_field() ?></form>
+<form id="whatsapp-reminder-form" method="post" action="/app/invoices/<?= $invoice['id'] ?>/send-payment-reminder" style="display:none;"><?= csrf_field() ?></form>
 
 <div class="card" style="max-width:820px;">
   <table class="data">

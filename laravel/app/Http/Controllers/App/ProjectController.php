@@ -7,6 +7,7 @@ use App\Models\BankGuarantee;
 use App\Models\BoqItem;
 use App\Models\ChangeOrder;
 use App\Models\Client;
+use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\ExtensionOfTimeRequest;
@@ -24,6 +25,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Models\VendorBill;
 use App\Support\Feature;
+use App\Support\WhatsApp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -236,6 +238,19 @@ class ProjectController extends Controller
         $vendorBills = VendorBill::where('project_id', $project->id)->orderByDesc('bill_date')->orderByDesc('id')->get();
         $suppliers = Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get();
         $purchaseOrders = PurchaseOrder::where('project_id', $project->id)->orderByDesc('created_at')->get();
+        $company = Company::find($project->company_id);
+        // A draft PO isn't a real commitment to the supplier yet — see
+        // PurchaseOrderController::sendWhatsApp()'s own docblock for why only
+        // 'issued'/'received' POs get a wa.me link here.
+        $poWhatsappLinks = [];
+        foreach ($purchaseOrders as $po) {
+            if (in_array($po->status, ['issued', 'received'], true)) {
+                $poSupplier = $suppliers->firstWhere('id', $po->supplier_id);
+                if ($poSupplier && !empty($poSupplier->phone)) {
+                    $poWhatsappLinks[$po->id] = WhatsApp::shareLink($poSupplier->phone, PurchaseOrderController::supplierMessage($po, $poSupplier, $company));
+                }
+            }
+        }
         $boqItems = BoqItem::where('project_id', $project->id)->orderBy('sort_order')->orderBy('id')->get();
         $paymentCertificates = PaymentCertificate::where('project_id', $project->id)->orderByDesc('certificate_number')->limit(5)->get();
         $paymentCertificateCount = PaymentCertificate::where('project_id', $project->id)->count();
@@ -298,6 +313,9 @@ class ProjectController extends Controller
             'suppliers' => $suppliers->toArray(),
             'purchaseOrders' => $purchaseOrders->toArray(),
             'purchaseOrderStatuses' => PurchaseOrder::STATUSES,
+            'poWhatsappLinks' => $poWhatsappLinks,
+            'whatsappApiConfigured' => WhatsApp::isConfigured(),
+            'progressWhatsappLink' => $this->progressWhatsappLink($project, $client),
             'boqItems' => $boqItems->toArray(),
             'boqContractValue' => (float) $boqItems->sum('total'),
             'paymentCertificates' => $paymentCertificates->toArray(),
@@ -329,6 +347,74 @@ class ProjectController extends Controller
             'budgetVariance' => $revisedBudget - $actualCostTotal,
             'budgetUsedPercent' => $revisedBudget > 0 ? min(999, round($actualCostTotal / $revisedBudget * 100)) : 0,
         ]);
+    }
+
+    /**
+     * There's no client-facing project page (unlike estimates/invoices' share_token links), and
+     * no tracked physical-progress percentage on Project either — so this reuses the same
+     * budget-utilization number already surfaced on this page (see show()'s budgetUsedPercent)
+     * as the closest existing stand-in for "how far along is this project", labeled honestly as
+     * budget used rather than claimed as physical completion, plus $note: a short line the
+     * sender types themselves, same as a person would actually message a client, rather than
+     * inventing a new tracked-progress data model just for this message.
+     */
+    private function progressMessage(Project $project, Client $client, string $note = ''): string
+    {
+        $revisedBudget = $project->revisedBudget();
+        $actual = $project->actualCostTotal();
+        $percent = $revisedBudget > 0 ? min(999, round($actual / $revisedBudget * 100)) : 0;
+        $statusLabel = ucfirst(str_replace('_', ' ', (string) $project->status));
+        $message = "Hi {$client->name}, a quick update on \"{$project->name}\": status is {$statusLabel}, about {$percent}% of budget used so far.";
+        return $note !== '' ? "{$message} {$note}" : $message;
+    }
+
+    private function progressWhatsappLink(Project $project, ?Client $client): ?string
+    {
+        if (!$client || empty($client->phone)) {
+            return null;
+        }
+        return WhatsApp::shareLink($client->phone, $this->progressMessage($project, $client));
+    }
+
+    /** wa.me instant-link path with an optional sender-typed note — see progressMessage()'s docblock. */
+    public function shareProgressWhatsApp(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $project = $this->findOwned($id);
+        $client = $this->ownedClient($project->client_id, $project->company_id);
+        if (!$client || empty($client->phone)) {
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'This project has no client phone number on file.');
+        }
+        $note = trim((string) $request->input('note', ''));
+        $link = WhatsApp::shareLink($client->phone, $this->progressMessage($project, $client, $note));
+        if (!$link) {
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', "Could not build a WhatsApp link for this client's phone number.");
+        }
+        return redirect()->away($link);
+    }
+
+    /** Real WhatsApp Business API send counterpart to shareProgressWhatsApp() above. */
+    public function sendWhatsAppProgress(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $project = $this->findOwned($id);
+        $client = $this->ownedClient($project->client_id, $project->company_id);
+        if (!$client || empty($client->phone)) {
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'This project has no client phone number on file.');
+        }
+        $note = trim((string) $request->input('note', ''));
+        $result = WhatsApp::sendMessage($client->phone, $this->progressMessage($project, $client, $note));
+
+        if (!empty($result['ok'])) {
+            $this->flash('success', 'Progress update sent to client via WhatsApp.');
+        } else {
+            $this->flash('error', 'Could not send WhatsApp update: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+        }
+        return redirect('/app/projects/' . $project->id);
     }
 
     public function duplicateForm(int $id): View
