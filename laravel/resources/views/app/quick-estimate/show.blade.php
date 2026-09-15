@@ -6,10 +6,13 @@
     <h1><?= e($estimate['project_name'] ?: ('Quick Estimate #' . $estimate['id'])) ?></h1>
     <p class="help-text" style="margin-top:4px;"><?= t('common.client') ?>: <?= e($client['name'] ?? '—') ?> · <?= t('user.quick_estimate.generated') ?> <?= e($estimate['created_at']) ?></p>
   </div>
-  <form method="post" action="/app/quick-estimate/<?= $estimate['id'] ?>/delete" onsubmit="return confirm('<?= t('user.quick_estimate.delete_confirm') ?>');">
-    <?= csrf_field() ?>
-    <button type="submit" class="btn btn-danger"><?= t('common.delete') ?></button>
-  </form>
+  <div style="display:flex;gap:8px;">
+    <a href="/app/quick-estimate/<?= $estimate['id'] ?>/edit" class="btn btn-light"><?= t('common.edit') ?></a>
+    <form method="post" action="/app/quick-estimate/<?= $estimate['id'] ?>/delete" onsubmit="return confirm('<?= t('user.quick_estimate.delete_confirm') ?>');">
+      <?= csrf_field() ?>
+      <button type="submit" class="btn btn-danger"><?= t('common.delete') ?></button>
+    </form>
+  </div>
 </div>
 
 <div class="card" style="max-width:640px;text-align:center;padding:40px;">

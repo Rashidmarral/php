@@ -354,6 +354,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/quick-estimate', [QuickEstimateController::class, 'index']);
     Route::post('/quick-estimate', [QuickEstimateController::class, 'store']);
     Route::get('/quick-estimate/{id}/pdf', [QuickEstimateController::class, 'pdf']);
+    Route::get('/quick-estimate/{id}/edit', [QuickEstimateController::class, 'edit']);
+    Route::post('/quick-estimate/{id}/update', [QuickEstimateController::class, 'update']);
     Route::get('/quick-estimate/{id}', [QuickEstimateController::class, 'show']);
     Route::post('/quick-estimate/{id}/convert', [QuickEstimateController::class, 'convertToEstimate']);
     Route::post('/quick-estimate/{id}/delete', [QuickEstimateController::class, 'destroy']);

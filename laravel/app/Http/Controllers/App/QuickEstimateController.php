@@ -104,6 +104,83 @@ class QuickEstimateController extends Controller
         return redirect('/app/quick-estimate/' . $estimate->id);
     }
 
+    public function edit(int $id): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('quick_estimate')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        $companyId = Auth::user()->company_id;
+        $addons = json_decode((string) $estimate->addons_json, true) ?: [];
+        $addonQty = [];
+        foreach ($addons as $a) {
+            $addonQty[(int) $a['id']] = $a['qty'];
+        }
+
+        return view('app.quick-estimate.edit', [
+            'estimate' => $estimate->toArray(),
+            'regions' => QuickEstimateRegion::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
+            'foundations' => QuickEstimateFoundation::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
+            'addons' => QuickEstimateAddon::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
+            'qualityTiers' => QuickEstimateQualityTier::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
+            'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'vatRate' => (float) Setting::get('vat_rate', '15'),
+            'selectedAddonIds' => array_column($addons, 'id'),
+            'addonQty' => $addonQty,
+        ]);
+    }
+
+    public function update(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('quick_estimate')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        $companyId = Auth::user()->company_id;
+
+        $region = QuickEstimateRegion::find((int) $request->input('region_id'));
+        $foundation = QuickEstimateFoundation::find((int) $request->input('foundation_id'));
+        $qualityTier = QuickEstimateQualityTier::find((int) $request->input('quality_tier_id'));
+        $totalArea = max(0, (float) $request->input('total_area', 0));
+        $discountPercent = min(100, max(0, (float) $request->input('discount_percent', 0)));
+        $vatRate = (float) Setting::get('vat_rate', '15');
+
+        if (!$region || !$foundation || $totalArea <= 0) {
+            return $this->redirectWithFlash('/app/quick-estimate/' . $estimate->id . '/edit', 'error', 'Please choose a region, a foundation type, and enter a total area.');
+        }
+
+        $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
+        $addonRows = empty($selectedAddonIds)
+            ? []
+            : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->toArray();
+        $addonQuantities = array_map('floatval', (array) $request->input('addon_qty', []));
+
+        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities, $qualityTier?->toArray() ?? []);
+
+        $clientId = $request->input('client_id') ?: null;
+        $client = $this->ownedClient($clientId, $companyId);
+
+        $estimate->update([
+            'client_id' => $client?->id,
+            'project_name' => trim((string) $request->input('project_name')) ?: null,
+            'region_id' => $region->id,
+            'foundation_id' => $foundation->id,
+            'quality_tier_id' => $qualityTier?->id,
+            'total_area' => $totalArea,
+            'discount_percent' => $discountPercent,
+            'addons_json' => json_encode($result['addons_payload']),
+            'subtotal' => $result['subtotal'],
+            'vat_amount' => $result['vat_amount'],
+            'total' => $result['total'],
+            'contact_name' => $client->name ?? null,
+            'contact_email' => $client->email ?? null,
+            'contact_phone' => $client->phone ?? null,
+        ]);
+
+        $this->flash('success', 'Quick estimate updated.');
+        return redirect('/app/quick-estimate/' . $estimate->id);
+    }
+
     public function show(int $id): View|RedirectResponse
     {
         if ($redirect = $this->requireFeature('quick_estimate')) {
