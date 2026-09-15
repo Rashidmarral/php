@@ -42,6 +42,18 @@
   </div>
   <div class="form-row">
     <div class="form-group">
+      <label><?= t('user.projects.advance_payment_amount') ?></label>
+      <input type="number" step="0.01" min="0" name="advance_payment_amount" value="<?= e((string)($project['advance_payment_amount'] ?? '0')) ?>">
+      <p class="help-text" style="margin-top:4px;"><?= t('user.projects.advance_payment_amount_hint') ?></p>
+    </div>
+    <div class="form-group">
+      <label><?= t('user.projects.advance_recovery_percent') ?></label>
+      <input type="number" step="0.01" min="0" max="100" name="advance_recovery_percent" value="<?= e((string)($project['advance_recovery_percent'] ?? '')) ?>" placeholder="e.g. 20">
+      <p class="help-text" style="margin-top:4px;"><?= t('user.projects.advance_recovery_percent_hint') ?></p>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
       <label><?= t('common.description_en') ?></label>
       <textarea name="description"><?= e($project['description'] ?? '') ?></textarea>
     </div>

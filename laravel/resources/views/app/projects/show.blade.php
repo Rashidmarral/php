@@ -308,6 +308,43 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.payment_certificates.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.payment_certificates.card_hint') ?></p>
+
+  <div class="kpi-grid" style="margin-bottom:14px;">
+    <div class="kpi"><div class="label"><?= t('user.boq.contract_value') ?></div><div class="value" style="font-size:18px;"><?= money($boqContractValue) ?></div></div>
+    <div class="kpi"><div class="label"><?= t('user.payment_certificates.cumulative') ?></div><div class="value" style="font-size:18px;"><?= money($cumulativeCertified) ?></div></div>
+  </div>
+
+  <?php if (empty($paymentCertificates)): ?>
+    <p class="help-text"><?= t('user.payment_certificates.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th><?= t('user.payment_certificates.number') ?></th><th><?= t('user.payment_certificates.date') ?></th><th><?= t('common.status') ?></th><th><?= t('user.payment_certificates.gross') ?></th><th><?= t('user.payment_certificates.net_payable') ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($paymentCertificates as $cert): ?>
+        <tr>
+          <td><a href="/app/payment-certificates/<?= $cert['id'] ?>">#<?= $cert['certificate_number'] ?></a></td>
+          <td><?= e($cert['certificate_date']) ?></td>
+          <td><span class="badge <?= $cert['status'] === 'certified' ? 'badge-green' : 'badge-gray' ?>"><?= e($cert['status']) ?></span></td>
+          <td><?= money((float)$cert['gross_amount']) ?></td>
+          <td><?= money((float)$cert['net_payable']) ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="/app/projects/<?= $project['id'] ?>/boq" class="btn btn-outline"><?= t('user.boq.manage') ?></a>
+    <a href="/app/projects/<?= $project['id'] ?>/payment-certificates" class="btn btn-outline">
+      <?= $paymentCertificateCount > 0 ? t('user.payment_certificates.view_all', ['count' => $paymentCertificateCount]) : t('user.payment_certificates.title') ?>
+    </a>
+    <a href="/app/projects/<?= $project['id'] ?>/payment-certificates/create" class="btn btn-primary"><?= t('user.payment_certificates.new') ?></a>
+  </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.punch_list.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.punch_list.hint') ?></p>
 

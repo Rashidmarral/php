@@ -18,6 +18,8 @@ class Project extends Model
             'start_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
             'budget' => 'decimal:2',
+            'advance_payment_amount' => 'decimal:2',
+            'advance_recovery_percent' => 'decimal:2',
         ];
     }
 
@@ -59,6 +61,28 @@ class Project extends Model
     public function vendorBills(): HasMany
     {
         return $this->hasMany(VendorBill::class);
+    }
+
+    public function boqItems(): HasMany
+    {
+        return $this->hasMany(BoqItem::class);
+    }
+
+    public function paymentCertificates(): HasMany
+    {
+        return $this->hasMany(PaymentCertificate::class);
+    }
+
+    /** Sum of every BOQ line's contract value — the total contract sum this project's certificates claim against. */
+    public function boqContractValue(): float
+    {
+        return (float) $this->boqItems()->sum('total');
+    }
+
+    /** True once this project has at least one certificate (draft or certified) — the point past which BOQ qty/rate edits are locked, since a certificate has snapshotted numbers against the BOQ as it stood. */
+    public function hasAnyPaymentCertificate(): bool
+    {
+        return $this->paymentCertificates()->exists();
     }
 
     public function approvedChangeOrdersTotal(): float

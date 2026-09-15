@@ -4,11 +4,13 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\BankGuarantee;
+use App\Models\BoqItem;
 use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\Invoice;
+use App\Models\PaymentCertificate;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
 use App\Models\PunchListItem;
@@ -205,6 +207,8 @@ class ProjectController extends Controller
             'description_ar' => $request->input('description_ar', ''),
             'status' => $request->input('status', 'planning'),
             'budget' => (float) $request->input('budget', 0),
+            'advance_payment_amount' => (float) $request->input('advance_payment_amount', 0),
+            'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
         ]);
@@ -226,6 +230,9 @@ class ProjectController extends Controller
         $vendorBills = VendorBill::where('project_id', $project->id)->orderByDesc('bill_date')->orderByDesc('id')->get();
         $suppliers = Supplier::where('company_id', Auth::user()->company_id)->orderBy('name')->get();
         $purchaseOrders = PurchaseOrder::where('project_id', $project->id)->orderByDesc('created_at')->get();
+        $boqItems = BoqItem::where('project_id', $project->id)->orderBy('sort_order')->orderBy('id')->get();
+        $paymentCertificates = PaymentCertificate::where('project_id', $project->id)->orderByDesc('certificate_number')->limit(5)->get();
+        $paymentCertificateCount = PaymentCertificate::where('project_id', $project->id)->count();
         $bankGuarantees = BankGuarantee::where('project_id', $project->id)
             ->orderByRaw('expiry_date IS NULL')
             ->orderBy('expiry_date')
@@ -264,6 +271,11 @@ class ProjectController extends Controller
             'suppliers' => $suppliers->toArray(),
             'purchaseOrders' => $purchaseOrders->toArray(),
             'purchaseOrderStatuses' => PurchaseOrder::STATUSES,
+            'boqItems' => $boqItems->toArray(),
+            'boqContractValue' => (float) $boqItems->sum('total'),
+            'paymentCertificates' => $paymentCertificates->toArray(),
+            'paymentCertificateCount' => $paymentCertificateCount,
+            'cumulativeCertified' => (float) $paymentCertificates->max('cumulative_certified'),
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
             'siteLogs' => $siteLogs->toArray(),
@@ -375,6 +387,8 @@ class ProjectController extends Controller
             'description_ar' => $request->input('description_ar', ''),
             'status' => $request->input('status', 'planning'),
             'budget' => (float) $request->input('budget', 0),
+            'advance_payment_amount' => (float) $request->input('advance_payment_amount', 0),
+            'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
         ]);
