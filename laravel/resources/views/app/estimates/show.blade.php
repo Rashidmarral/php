@@ -80,12 +80,12 @@
   <div class="form-group" style="margin:0;">
     <label><?= t('common.pdf_template') ?></label>
     <select name="template">
-      <option value="modern">Modern</option>
-      <option value="classic">Classic</option>
-      <option value="minimal">Minimal</option>
-      <option value="bold">Bold</option>
-      <option value="elegant">Elegant</option>
-        <option value="saudi">Saudi (ZATCA bilingual)</option>
+      <option value="modern"><?= t('common.pdf_template_modern') ?></option>
+      <option value="classic"><?= t('common.pdf_template_classic') ?></option>
+      <option value="minimal"><?= t('common.pdf_template_minimal') ?></option>
+      <option value="bold"><?= t('common.pdf_template_bold') ?></option>
+      <option value="elegant"><?= t('common.pdf_template_elegant') ?></option>
+      <option value="saudi"><?= t('common.pdf_template_saudi') ?></option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">
@@ -126,10 +126,10 @@
     </tbody>
   </table>
   <div class="breakdown" style="margin-top:14px;max-width:320px;margin-inline-start:auto;font-size:14px;">
-    <div><span>Cost subtotal</span><span><?= money((float)$estimate['subtotal']) ?></span></div>
-    <div><span>Margin (<?= e($estimate['markup_percent']) ?>%)</span><span><?= money((float)$estimate['markup_amount']) ?></span></div>
+    <div><span><?= t('user.estimates.cost_subtotal') ?></span><span><?= money((float)$estimate['subtotal']) ?></span></div>
+    <div><span><?= t('user.estimates.margin_with_pct', ['pct' => e($estimate['markup_percent'])]) ?></span><span><?= money((float)$estimate['markup_amount']) ?></span></div>
     <?php if ((float)$estimate['tax_amount'] > 0 || $estimate['tax_rate_id']): ?>
-      <div><span>Tax (<?= e($estimate['tax_percent']) ?>%)</span><span><?= money((float)$estimate['tax_amount']) ?></span></div>
+      <div><span><?= t('user.estimates.tax_with_pct', ['pct' => e($estimate['tax_percent'])]) ?></span><span><?= money((float)$estimate['tax_amount']) ?></span></div>
     <?php endif; ?>
   </div>
   <div class="total-row" style="margin-top:8px;"><?= t('common.total') ?>: <?= money((float)$estimate['total']) ?></div>
@@ -166,17 +166,17 @@
 </div>
 
 <div class="card" style="max-width:820px;margin-top:20px;">
-  <h3>Profit margin &amp; tax</h3>
+  <h3><?= t('user.estimates.profit_tax_title') ?></h3>
   <form method="post" action="/app/estimates/<?= $estimate['id'] ?>/totals" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
     <?= csrf_field() ?>
     <div class="form-group" style="margin:0;">
-      <label>Profit margin %</label>
+      <label><?= t('user.estimates.profit_margin_percent') ?></label>
       <input type="number" step="0.01" min="0" max="100" name="markup_percent" value="<?= e($estimate['markup_percent']) ?>" style="width:110px;">
     </div>
     <div class="form-group" style="margin:0;">
-      <label>Tax rate</label>
+      <label><?= t('user.estimates.tax_rate') ?></label>
       <select name="tax_rate_id">
-        <option value="">No tax</option>
+        <option value=""><?= t('user.estimates.no_tax') ?></option>
         <?php foreach ($taxRates as $tr): ?>
           <option value="<?= $tr['id'] ?>" <?= (string)$estimate['tax_rate_id'] === (string)$tr['id'] ? 'selected' : '' ?>><?= e($tr['name']) ?> (<?= e($tr['rate_percent']) ?>%)</option>
         <?php endforeach; ?>
@@ -191,7 +191,7 @@
   <?php if ($estimate['status'] === 'accepted' && !empty($estimate['signed_by_name'])): ?>
     <p class="help-text" style="color:var(--success);">✅ <?= t('user.estimates.signed_by') ?> <strong><?= e($estimate['signed_by_name']) ?></strong> <?= t('user.estimates.on') ?> <?= e($estimate['signed_at']) ?></p>
     <?php if (!empty($estimate['signature_data'])): ?>
-      <img src="<?= e($estimate['signature_data']) ?>" alt="Signature" style="max-width:240px;border:1px solid var(--border);border-radius:8px;margin-top:6px;background:#fff;">
+      <img src="<?= e($estimate['signature_data']) ?>" alt="<?= t('user.estimates.signature_alt') ?>" style="max-width:240px;border:1px solid var(--border);border-radius:8px;margin-top:6px;background:#fff;">
     <?php endif; ?>
   <?php elseif ($estimate['status'] === 'declined'): ?>
     <p class="help-text" style="color:var(--danger);">❌ <?= t('user.estimates.declined_notice') ?></p>

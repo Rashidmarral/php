@@ -152,7 +152,7 @@ class PaymentCertificateController extends Controller
             return $certificate;
         });
 
-        $this->flash('success', 'Payment Certificate #' . $certificate->certificate_number . ' created as a draft.');
+        $this->flash('success', t('user.payment_certificates.flash_created_draft', ['number' => $certificate->certificate_number]));
         return redirect('/app/payment-certificates/' . $certificate->id);
     }
 
@@ -266,7 +266,7 @@ class PaymentCertificateController extends Controller
         // deleted (see isLatestDraft()/destroy()): an out-of-order edit further back in the chain
         // is prevented from happening in the first place because certify() locks everything at
         // and before it, and destroy() only ever removes from the top of the stack.
-        $this->flash('success', 'Payment Certificate #' . $certificate->certificate_number . ' updated.');
+        $this->flash('success', t('user.payment_certificates.flash_updated', ['number' => $certificate->certificate_number]));
         return redirect('/app/payment-certificates/' . $certificate->id);
     }
 
@@ -386,7 +386,7 @@ class PaymentCertificateController extends Controller
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
         WebhookDispatcher::dispatch($companyId, 'payment_certificate.certified', $certificate->fresh()->toArray());
 
-        $this->flash('success', 'Certificate #' . $certificate->certificate_number . ' certified — Invoice #' . $invoice->invoice_number . ' generated.');
+        $this->flash('success', t('user.payment_certificates.flash_certified', ['number' => $certificate->certificate_number, 'invoice' => $invoice->invoice_number]));
         return redirect('/app/payment-certificates/' . $certificate->id);
     }
 

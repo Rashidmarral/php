@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <p class="help-text" style="margin-bottom:4px;"><a href="/app/subcontract-payments/<?= $payment['id'] ?>">&larr; <?= t('user.subcontract_payments.number') ?> #<?= $payment['payment_number'] ?></a></p>
-    <h1>Edit Payment #<?= $payment['payment_number'] ?></h1>
+    <h1><?= t('user.subcontract_payments.edit_title', ['number' => $payment['payment_number']]) ?></h1>
   </div>
 </div>
 

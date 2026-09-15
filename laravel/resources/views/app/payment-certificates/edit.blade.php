@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <p class="help-text" style="margin-bottom:4px;"><a href="/app/payment-certificates/<?= $certificate['id'] ?>">&larr; <?= t('user.payment_certificates.title') ?> #<?= $certificate['certificate_number'] ?></a></p>
-    <h1>Edit Certificate #<?= $certificate['certificate_number'] ?></h1>
+    <h1><?= t('user.payment_certificates.edit_title', ['number' => $certificate['certificate_number']]) ?></h1>
   </div>
 </div>
 

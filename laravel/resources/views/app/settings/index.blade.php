@@ -20,7 +20,7 @@
   <div class="form-group">
     <label><?= t('user.settings.company_logo') ?></label>
     <?php if (!empty($company['logo_path'])): ?>
-      <div style="margin-bottom:8px;"><img src="<?= e($company['logo_path']) ?>" alt="Logo" style="height:56px;border-radius:8px;border:1px solid var(--border);"></div>
+      <div style="margin-bottom:8px;"><img src="<?= e($company['logo_path']) ?>" alt="<?= t('user.settings.logo_alt') ?>" style="height:56px;border-radius:8px;border:1px solid var(--border);"></div>
     <?php endif; ?>
     <?php if (auth()->user()->isCompanyOwner()): ?><input type="file" name="logo" accept="image/png,image/jpeg,image/webp"><?php endif; ?>
   </div>
@@ -32,7 +32,7 @@
     <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" value="<?= e($company['phone']) ?>" <?= $ro ?>></div>
     <div class="form-group"><label><?= t('common.city') ?></label><input type="text" name="city" value="<?= e($company['city']) ?>" <?= $ro ?>></div>
   </div>
-  <div class="form-group"><label><?= t('user.settings.address_freetext') ?></label><input type="text" name="address" value="<?= e($company['address'] ?? '') ?>" placeholder="Street, district" <?= $ro ?>></div>
+  <div class="form-group"><label><?= t('user.settings.address_freetext') ?></label><input type="text" name="address" value="<?= e($company['address'] ?? '') ?>" placeholder="<?= t('user.settings.address_placeholder') ?>" <?= $ro ?>></div>
   <div class="form-row">
     <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($company['cr_number']) ?>" <?= $ro ?>></div>
     <div class="form-group"><label><?= t('common.tax_number') ?></label><input type="text" name="vat_number" value="<?= e($company['vat_number']) ?>" <?= $ro ?>></div>
@@ -50,7 +50,7 @@
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.settings.additional_number') ?></label><input type="text" name="additional_number" maxlength="4" value="<?= e($company['additional_number'] ?? '') ?>" placeholder="6789" <?= $ro ?>></div>
-    <div class="form-group"><label><?= t('user.settings.country') ?></label><input type="text" value="Saudi Arabia" disabled></div>
+    <div class="form-group"><label><?= t('user.settings.country') ?></label><input type="text" value="<?= t('common.saudi_arabia') ?>" disabled></div>
   </div>
 
   <?php if (auth()->user()->isCompanyOwner()): ?>

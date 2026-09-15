@@ -287,9 +287,9 @@ class InvoiceController extends Controller
         $result = WhatsApp::sendMessage($client->phone, $this->paymentReminderMessage($invoice, $client, $company, $shareUrl));
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'Payment reminder sent via WhatsApp.');
+            $this->flash('success', t('user.invoices.whatsapp_payment_reminder_sent'));
         } else {
-            $this->flash('error', 'Could not send WhatsApp reminder: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('common.whatsapp_send_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }
@@ -346,9 +346,9 @@ class InvoiceController extends Controller
         $result = WhatsApp::sendMessage($company->phone, $this->approverPingMessage($invoice, $company));
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'Approval reminder sent via WhatsApp.');
+            $this->flash('success', t('common.whatsapp_approval_sent'));
         } else {
-            $this->flash('error', 'Could not send WhatsApp reminder: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('common.whatsapp_send_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }

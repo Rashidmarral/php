@@ -1037,9 +1037,9 @@ class EstimateController extends Controller
         $result = WhatsApp::sendMessage($company->phone, $this->approverPingMessage($estimate, $company));
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'Approval reminder sent via WhatsApp.');
+            $this->flash('success', t('common.whatsapp_approval_sent'));
         } else {
-            $this->flash('error', 'Could not send WhatsApp reminder: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('common.whatsapp_send_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/estimates/' . $estimate->id);
     }

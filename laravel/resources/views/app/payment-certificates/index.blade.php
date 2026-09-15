@@ -12,7 +12,7 @@
 <div class="kpi-grid" style="margin-bottom:20px;">
   <div class="kpi"><div class="label"><?= t('user.boq.contract_value') ?></div><div class="value"><?= money($contractValue) ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.payment_certificates.cumulative') ?></div><div class="value"><?= money($cumulativeCertified) ?></div></div>
-  <div class="kpi"><div class="label">Retention Held</div><div class="value"><?= money($retentionHeld) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.projects.retention_held') ?></div><div class="value"><?= money($retentionHeld) ?></div></div>
 </div>
 
 <?php if (empty($certificates)): ?>

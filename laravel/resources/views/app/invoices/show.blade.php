@@ -59,12 +59,12 @@
   <div class="form-group" style="margin:0;">
     <label><?= t('common.pdf_template') ?></label>
     <select name="template">
-      <option value="modern">Modern</option>
-      <option value="classic">Classic</option>
-      <option value="minimal">Minimal</option>
-      <option value="bold">Bold</option>
-      <option value="elegant">Elegant</option>
-        <option value="saudi">Saudi (ZATCA bilingual)</option>
+      <option value="modern"><?= t('common.pdf_template_modern') ?></option>
+      <option value="classic"><?= t('common.pdf_template_classic') ?></option>
+      <option value="minimal"><?= t('common.pdf_template_minimal') ?></option>
+      <option value="bold"><?= t('common.pdf_template_bold') ?></option>
+      <option value="elegant"><?= t('common.pdf_template_elegant') ?></option>
+      <option value="saudi"><?= t('common.pdf_template_saudi') ?></option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">
@@ -136,7 +136,7 @@
 
 <?php if ($zatcaQr): ?>
   <div class="card" style="max-width:820px;margin-top:20px;display:flex;gap:16px;align-items:center;">
-    <img src="<?= $zatcaQr ?>" width="110" height="110" alt="ZATCA QR Code">
+    <img src="<?= $zatcaQr ?>" width="110" height="110" alt="<?= t('user.invoices.zatca_qr_alt') ?>">
     <div>
       <h3 style="margin-bottom:4px;"><?= t('user.invoices.zatca_qr') ?></h3>
       <p class="help-text"><?= t('user.invoices.zatca_qr_hint') ?></p>

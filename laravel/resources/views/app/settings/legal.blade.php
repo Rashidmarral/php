@@ -42,8 +42,8 @@
       <label><?= t('user.settings.classification_grade') ?></label>
       <select name="contractor_classification" <?= $ro ?>>
         <option value=""><?= t('user.settings.not_classified') ?></option>
-        <?php foreach (['1'=>'Grade 1','2'=>'Grade 2','3'=>'Grade 3','4'=>'Grade 4','5'=>'Grade 5'] as $val => $label): ?>
-          <option value="<?= $val ?>" <?= ($company['contractor_classification'] ?? '') === $val ? 'selected' : '' ?>><?= $label ?></option>
+        <?php foreach (['1', '2', '3', '4', '5'] as $val): ?>
+          <option value="<?= $val ?>" <?= ($company['contractor_classification'] ?? '') === $val ? 'selected' : '' ?>><?= t('user.settings.classification_grade_option', ['n' => $val]) ?></option>
         <?php endforeach; ?>
       </select>
     </div>

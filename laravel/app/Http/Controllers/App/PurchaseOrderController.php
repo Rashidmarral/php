@@ -153,9 +153,9 @@ class PurchaseOrderController extends Controller
         $result = WhatsApp::sendMessage($supplier->phone, self::supplierMessage($purchaseOrder, $supplier, $company));
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'WhatsApp notification sent to supplier.');
+            $this->flash('success', t('user.purchase_orders.whatsapp_sent_supplier'));
         } else {
-            $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('user.purchase_orders.whatsapp_send_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/projects/' . $purchaseOrder->project_id);
     }

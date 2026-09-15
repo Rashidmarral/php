@@ -29,12 +29,12 @@
   <div class="form-group" style="margin:0;">
     <label><?= t('common.pdf_template') ?></label>
     <select name="template">
-      <option value="modern">Modern</option>
-      <option value="classic">Classic</option>
-      <option value="minimal">Minimal</option>
-      <option value="bold">Bold</option>
-      <option value="elegant">Elegant</option>
-      <option value="saudi">Saudi (ZATCA bilingual)</option>
+      <option value="modern"><?= t('common.pdf_template_modern') ?></option>
+      <option value="classic"><?= t('common.pdf_template_classic') ?></option>
+      <option value="minimal"><?= t('common.pdf_template_minimal') ?></option>
+      <option value="bold"><?= t('common.pdf_template_bold') ?></option>
+      <option value="elegant"><?= t('common.pdf_template_elegant') ?></option>
+      <option value="saudi"><?= t('common.pdf_template_saudi') ?></option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">

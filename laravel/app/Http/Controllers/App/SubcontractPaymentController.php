@@ -73,7 +73,7 @@ class SubcontractPaymentController extends Controller
             ...$data,
         ]);
 
-        $this->flash('success', 'Payment #' . $payment->payment_number . ' created as a draft.');
+        $this->flash('success', t('user.subcontract_payments.flash_created_draft', ['number' => $payment->payment_number]));
         return redirect('/app/subcontract-payments/' . $payment->id);
     }
 
@@ -130,7 +130,7 @@ class SubcontractPaymentController extends Controller
 
         $payment->update($data);
 
-        $this->flash('success', 'Payment #' . $payment->payment_number . ' updated.');
+        $this->flash('success', t('user.subcontract_payments.flash_updated', ['number' => $payment->payment_number]));
         return redirect('/app/subcontract-payments/' . $payment->id);
     }
 
@@ -195,7 +195,7 @@ class SubcontractPaymentController extends Controller
 
         WebhookDispatcher::dispatch($companyId, 'subcontract_payment.certified', $payment->fresh()->toArray());
 
-        $this->flash('success', 'Payment #' . $payment->payment_number . ' certified — Vendor Bill recorded (' . $vendorBill->reference . ').');
+        $this->flash('success', t('user.subcontract_payments.flash_certified', ['number' => $payment->payment_number, 'reference' => $vendorBill->reference]));
         return redirect('/app/subcontract-payments/' . $payment->id);
     }
 

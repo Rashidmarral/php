@@ -60,7 +60,7 @@ class SettingsController extends Controller
 
         Company::whereKey($companyId)->update($data);
 
-        $this->flash('success', 'Company settings updated.');
+        $this->flash('success', t('user.settings.company_updated'));
         return redirect('/app/settings');
     }
 
@@ -90,7 +90,7 @@ class SettingsController extends Controller
 
         Company::whereKey($companyId)->update($data);
 
-        $this->flash('success', 'Company settings updated.');
+        $this->flash('success', t('user.settings.company_updated'));
         return redirect('/app/settings/legal');
     }
 
@@ -125,7 +125,7 @@ class SettingsController extends Controller
 
         Company::whereKey($companyId)->update($data);
 
-        $this->flash('success', 'Company settings updated.');
+        $this->flash('success', t('user.settings.company_updated'));
         return redirect('/app/settings/business');
     }
 

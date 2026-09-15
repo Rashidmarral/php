@@ -23,7 +23,7 @@
         <div class="form-group">
           <label><?= t('user.payment_certificates.advance_recovery_percent') ?></label>
           <input type="number" step="0.01" min="0" max="100" name="advance_recovery_percent" id="advance-recovery-percent" value="<?= e((string)$defaultAdvanceRecoveryPercent) ?>">
-          <p class="help-text" style="margin-top:4px;">Advance paid: <?= money($advancePaymentAmount) ?> · Recovered so far: <?= money($advanceRecoveredSoFar) ?> · Remaining: <?= money(max(0, $advancePaymentAmount - $advanceRecoveredSoFar)) ?></p>
+          <p class="help-text" style="margin-top:4px;"><?= t('user.payment_certificates.advance_summary', ['paid' => money($advancePaymentAmount), 'recovered' => money($advanceRecoveredSoFar), 'remaining' => money(max(0, $advancePaymentAmount - $advanceRecoveredSoFar))]) ?></p>
         </div>
       <?php endif; ?>
     </div>
@@ -80,7 +80,7 @@
     <div class="total-row" style="margin-top:8px;"><?= t('user.payment_certificates.net_payable') ?>: <span id="calc-net">0.00</span> SAR</div>
   </div>
 
-  <button type="submit" class="btn btn-primary" style="margin-top:20px;">Save as Draft</button>
+  <button type="submit" class="btn btn-primary" style="margin-top:20px;"><?= t('common.save_as_draft') ?></button>
 </form>
 
 <script>

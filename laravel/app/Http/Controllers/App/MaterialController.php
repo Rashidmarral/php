@@ -162,7 +162,7 @@ class MaterialController extends Controller
             $isNew ? $created++ : $updated++;
         }
 
-        $this->flash('success', "Imported {$created} new and updated {$updated} existing materials from the library.");
+        $this->flash('success', t('user.materials.library_import_flash', ['created' => $created, 'updated' => $updated]));
         return redirect('/app/materials');
     }
 

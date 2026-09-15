@@ -410,9 +410,9 @@ class ProjectController extends Controller
         $result = WhatsApp::sendMessage($client->phone, $this->progressMessage($project, $client, $note));
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'Progress update sent to client via WhatsApp.');
+            $this->flash('success', t('user.projects.whatsapp_progress_sent'));
         } else {
-            $this->flash('error', 'Could not send WhatsApp update: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('user.projects.whatsapp_update_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/projects/' . $project->id);
     }

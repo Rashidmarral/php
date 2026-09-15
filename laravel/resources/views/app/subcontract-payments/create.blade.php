@@ -38,7 +38,7 @@
     <div class="total-row" style="margin-top:8px;"><?= t('user.subcontract_payments.net_payable') ?>: <span id="calc-net">0.00</span> SAR</div>
   </div>
 
-  <button type="submit" class="btn btn-primary" style="margin-top:20px;">Save as Draft</button>
+  <button type="submit" class="btn btn-primary" style="margin-top:20px;"><?= t('common.save_as_draft') ?></button>
 </form>
 
 <script>

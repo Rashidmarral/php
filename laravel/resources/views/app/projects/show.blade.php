@@ -235,26 +235,26 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
-  <h3>Budget vs. Actual</h3>
-  <p class="help-text" style="margin-top:-6px;">Real costs recorded against vendor bills, open purchase order commitments not yet billed, compared to the revised budget (original + approved change orders).</p>
+  <h3><?= t('user.projects.budget_vs_actual_title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.budget_vs_actual_hint') ?></p>
 
   <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-top:12px;">
-    <div class="kpi"><div class="label">Revised budget</div><div class="value" style="font-size:20px;"><?= money($revisedBudget) ?></div></div>
+    <div class="kpi"><div class="label"><?= t('user.projects.revised_budget') ?></div><div class="value" style="font-size:20px;"><?= money($revisedBudget) ?></div></div>
     <div class="kpi"><div class="label"><?= t('user.purchase_orders.committed') ?></div><div class="value" style="font-size:20px;"><?= money($committedTotal) ?></div></div>
-    <div class="kpi"><div class="label">Actual spent</div><div class="value" style="font-size:20px;"><?= money($actualCostTotal) ?></div></div>
+    <div class="kpi"><div class="label"><?= t('user.projects.actual_spent') ?></div><div class="value" style="font-size:20px;"><?= money($actualCostTotal) ?></div></div>
     <div class="kpi"><div class="label"><?= $availableBudget >= 0 ? t('user.purchase_orders.available') : t('user.purchase_orders.over_budget') ?></div><div class="value" style="font-size:20px;color:<?= $availableBudget < 0 ? 'var(--danger)' : 'var(--brand-dark)' ?>;"><?= money(abs($availableBudget)) ?></div></div>
   </div>
   <div style="background:var(--bg);border-radius:8px;height:10px;overflow:hidden;margin:14px 0 6px;">
     <div style="background:<?= $availableBudget < 0 ? 'var(--danger)' : 'linear-gradient(90deg,var(--brand),var(--brand-dark))' ?>;height:100%;width:<?= min(100, $budgetUsedPercent) ?>%;"></div>
   </div>
-  <p class="help-text"><?= $budgetUsedPercent ?>% of revised budget already billed<?php if ($committedTotal > 0): ?> — plus <?= money($committedTotal) ?> committed on open purchase orders<?php endif; ?></p>
+  <p class="help-text"><?= t('user.projects.budget_used_note', ['percent' => $budgetUsedPercent]) ?><?php if ($committedTotal > 0): ?> <?= t('user.projects.budget_used_committed_note', ['amount' => money($committedTotal)]) ?><?php endif; ?></p>
   <?php if ($availableBudget < 0): ?>
-    <p class="help-text" style="color:var(--danger);font-weight:600;">⚠ This project is over budget once open purchase order commitments are counted, even though actual billed spend may still look fine.</p>
+    <p class="help-text" style="color:var(--danger);font-weight:600;">⚠ <?= t('user.projects.over_budget_warning') ?></p>
   <?php endif; ?>
 
   <?php if (!empty($vendorBills)): ?>
     <table class="data" style="margin:16px 0;">
-      <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.category') ?></th><th><?= t('common.date') ?></th><th><?= t('common.amount') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
       <tbody>
       <?php foreach ($vendorBills as $vb):
         $vbPo = $vb['purchase_order_id'] ? collect($purchaseOrders)->firstWhere('id', $vb['purchase_order_id']) : null;
@@ -267,7 +267,7 @@
           <td><span class="badge badge-<?= $vb['status']==='paid'?'green':'yellow' ?>"><?= e(ucfirst($vb['status'])) ?></span></td>
           <td>
             <?php if ($vb['file_path']): ?><a href="<?= e($vb['file_path']) ?>" target="_blank" class="btn btn-sm btn-light">📎</a><?php endif; ?>
-            <form method="post" action="/app/vendor-bills/<?= $vb['id'] ?>/delete" onsubmit="return confirm('Remove this vendor bill?');" style="display:inline;">
+            <form method="post" action="/app/vendor-bills/<?= $vb['id'] ?>/delete" onsubmit="return confirm('<?= t('user.projects.remove_vendor_bill_confirm') ?>');" style="display:inline;">
               <?= csrf_field() ?>
               <button type="submit" class="btn btn-sm btn-danger">✕</button>
             </form>
@@ -280,13 +280,13 @@
 
   <form method="post" action="/app/projects/<?= $project['id'] ?>/vendor-bills" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
     <?= csrf_field() ?>
-    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label>Description</label><input type="text" name="description" placeholder="e.g. Rebar delivery — invoice #4521" required></div>
-    <div class="form-group" style="margin:0;width:140px;"><label>Category</label>
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label><?= t('common.description') ?></label><input type="text" name="description" placeholder="e.g. Rebar delivery — invoice #4521" required></div>
+    <div class="form-group" style="margin:0;width:140px;"><label><?= t('common.category') ?></label>
       <select name="category">
         <?php foreach (\App\Models\VendorBill::CATEGORIES as $val => $label): ?><option value="<?= $val ?>"><?= $label ?></option><?php endforeach; ?>
       </select>
     </div>
-    <div class="form-group" style="margin:0;width:150px;"><label>Supplier</label>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('common.supplier') ?></label>
       <select name="supplier_id">
         <option value="">—</option>
         <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
@@ -300,11 +300,11 @@
         <?php endforeach; ?>
       </select>
     </div>
-    <div class="form-group" style="margin:0;width:130px;"><label>Amount (SAR)</label><input type="number" step="0.01" min="0.01" name="amount" required></div>
-    <div class="form-group" style="margin:0;width:150px;"><label>Bill date</label><input type="date" name="bill_date"></div>
-    <div class="form-group" style="margin:0;width:150px;"><label>Reference #</label><input type="text" name="reference" placeholder="Invoice / PO #"></div>
-    <div class="form-group" style="margin:0;min-width:180px;"><label>Receipt (optional)</label><input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png"></div>
-    <button type="submit" class="btn btn-outline">Add vendor bill</button>
+    <div class="form-group" style="margin:0;width:130px;"><label><?= t('user.projects.amount_sar') ?></label><input type="number" step="0.01" min="0.01" name="amount" required></div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.projects.bill_date') ?></label><input type="date" name="bill_date"></div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.projects.reference_number') ?></label><input type="text" name="reference" placeholder="<?= t('user.projects.reference_placeholder') ?>"></div>
+    <div class="form-group" style="margin:0;min-width:180px;"><label><?= t('user.projects.receipt_optional') ?></label><input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.projects.add_vendor_bill') ?></button>
   </form>
 </div>
 
@@ -622,7 +622,7 @@
       <?php foreach ($photos as $photo): ?>
         <div>
           <a href="<?= e($photo['file_path']) ?>" target="_blank">
-            <img src="<?= e($photo['file_path']) ?>" alt="Site photo" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
+            <img src="<?= e($photo['file_path']) ?>" alt="<?= t('user.projects.site_photo_alt') ?>" style="width:100%;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">
           </a>
           <p class="help-text" style="margin-top:4px;margin-bottom:0;"><?= e($photo['taken_on'] ?: '') ?></p>
           <?php if ($photo['caption']): ?><p style="font-size:12.5px;margin:2px 0 4px;"><?= e($photo['caption']) ?></p><?php endif; ?>

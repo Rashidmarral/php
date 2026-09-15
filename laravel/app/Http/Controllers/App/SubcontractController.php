@@ -92,7 +92,7 @@ class SubcontractController extends Controller
             ...$data,
         ]);
 
-        $this->flash('success', 'Subcontract created.');
+        $this->flash('success', t('user.subcontracts.flash_created'));
         return redirect('/app/subcontracts/' . $subcontract->id);
     }
 
@@ -148,7 +148,7 @@ class SubcontractController extends Controller
 
         $subcontract->update($data);
 
-        $this->flash('success', 'Subcontract updated.');
+        $this->flash('success', t('user.subcontracts.flash_updated'));
         return redirect('/app/subcontracts/' . $subcontract->id);
     }
 

@@ -24,7 +24,7 @@
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="form-group"><label><?= t('common.unit') ?></label><input type="text" name="unit" value="each"></div>
+      <div class="form-group"><label><?= t('common.unit') ?></label><input type="text" name="unit" value="<?= t('admin.material_library.default_unit') ?>"></div>
       <div class="form-group"><label><?= t('user.materials.material_cost') ?></label><input type="number" step="0.01" name="material_cost" value="0"></div>
       <div class="form-group"><label><?= t('user.materials.labor_cost') ?></label><input type="number" step="0.01" name="labor_cost" value="0"></div>
       <div class="form-group"><label><?= t('common.sort_order') ?></label><input type="number" name="sort_order" value="0"></div>
