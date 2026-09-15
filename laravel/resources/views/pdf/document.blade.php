@@ -19,13 +19,7 @@ body {
   direction: <?= $rtl ? 'rtl' : 'ltr' ?>;
 }
 table { width: 100%; border-collapse: collapse; }
-.head-table td { vertical-align: top; padding: 0; }
-.doc-title { font-size: 22px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-.doc-number { font-size: 13px; color: #555; margin-top: 4px; }
-.company-name { font-size: 17px; font-weight: 700; }
-.meta-line { font-size: 11px; color: #555; margin-top: 2px; }
-.section-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 4px; }
-.party-name { font-size: 13px; font-weight: 700; }
+<?= \App\Support\Pdf\PdfTemplateStyles::baseChrome() ?>
 .items-table { margin-top: 18px; }
 .items-table th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; padding: 8px 10px; text-align: <?= $rtl ? 'right' : 'left' ?>; }
 .items-table td { padding: 8px 10px; font-size: 11.5px; }
@@ -36,66 +30,9 @@ table { width: 100%; border-collapse: collapse; }
 .totals-table .grand { font-size: 15px; font-weight: 700; }
 .zatca-qr { <?= $rtl ? 'float:right;' : 'float:left;' ?> margin-top: 14px; text-align: center; width: 120px; }
 .zatca-qr-label { font-size: 8.5px; color: #777; margin-top: 4px; }
-.notes-box { clear: both; margin-top: 60px; padding-top: 10px; font-size: 10.5px; color: #666; }
-.status-badge { display: inline-block; padding: 3px 12px; border-radius: 3px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; }
-.footer-note { position: fixed; bottom: -10mm; left: 0; right: 0; text-align: center; font-size: 9.5px; color: #999; }
+<?= \App\Support\Pdf\PdfTemplateStyles::statusAndFooterChrome() ?>
 
-/* ---- Modern template ---- */
-.tpl-modern .head-band { background: #0f6e5f; color: #fff; padding: 22px 24px; margin: -20mm -16mm 20px; }
-.tpl-modern .head-band .doc-title, .tpl-modern .head-band .doc-number { color: #fff; }
-.tpl-modern .head-band .company-name { color: #fff; }
-.tpl-modern .head-band .meta-line { color: #d8ece7; }
-.tpl-modern .items-table thead { background: #e6f4f1; }
-.tpl-modern .items-table thead th { color: #0a4d42; }
-.tpl-modern .items-table td { border-bottom: 1px solid #e6ecea; }
-.tpl-modern .items-table tr:nth-child(even) td { background: #f7faf9; }
-.tpl-modern .totals-table .grand { color: #0a4d42; border-top: 2px solid #0f6e5f; }
-.tpl-modern .status-badge { background: #e6f4f1; color: #0a4d42; }
-
-/* ---- Classic template ---- */
-.tpl-classic body, .tpl-classic { font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Serif'" ?>, serif; }
-.tpl-classic .head-table { border-bottom: 3px double #16211f; padding-bottom: 14px; margin-bottom: 16px; }
-.tpl-classic .doc-title { font-weight: 700; }
-.tpl-classic .items-table thead { border-top: 1.5px solid #16211f; border-bottom: 1.5px solid #16211f; }
-.tpl-classic .items-table th { font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif; }
-.tpl-classic .items-table td { border-bottom: 0.5px solid #ccc; }
-.tpl-classic .totals-table .grand { border-top: 1.5px solid #16211f; }
-.tpl-classic .status-badge { border: 1px solid #16211f; background: #fff; color: #16211f; }
-
-/* ---- Minimal template ---- */
-.tpl-minimal .head-table { margin-bottom: 26px; }
-.tpl-minimal .doc-title { font-weight: 300; letter-spacing: .12em; color: #555; }
-.tpl-minimal .company-name { font-weight: 400; }
-.tpl-minimal .items-table thead th { border-bottom: 1px solid #16211f; color: #16211f; }
-.tpl-minimal .items-table td { border-bottom: 1px solid #eee; }
-.tpl-minimal .totals-table .grand { border-top: 1px solid #16211f; }
-.tpl-minimal .status-badge { background: #f2f2f2; color: #444; }
-
-/* ---- Bold template ---- */
-.tpl-bold .head-band { background: #a8790a; color: #fff; padding: 26px 24px; margin: -20mm -16mm 22px; }
-.tpl-bold .head-band .doc-title, .tpl-bold .head-band .doc-number, .tpl-bold .head-band .company-name { color: #fff; }
-.tpl-bold .head-band .meta-line { color: #fbe9c6; }
-.tpl-bold .doc-title { font-weight: 800; font-size: 26px; }
-.tpl-bold .party-name { font-size: 15px; }
-.tpl-bold .items-table thead { background: #16211f; }
-.tpl-bold .items-table thead th { color: #fff; }
-.tpl-bold .items-table tr:nth-child(even) td { background: #fbf3e2; }
-.tpl-bold .items-table td { border-bottom: 1px solid #f0e2c4; }
-.tpl-bold .totals-table .grand { color: #a8790a; border-top: 3px solid #a8790a; font-size: 17px; }
-.tpl-bold .status-badge { background: #a8790a; color: #fff; }
-
-/* ---- Elegant template ---- */
-.tpl-elegant body, .tpl-elegant { font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Serif'" ?>, serif; color: #2a2a28; }
-.tpl-elegant .head-table { margin-bottom: 8px; }
-.tpl-elegant .doc-title { font-weight: 400; letter-spacing: .2em; font-size: 15px; color: #8a7550; }
-.tpl-elegant .company-name { font-weight: 700; font-size: 19px; letter-spacing: .03em; }
-.tpl-elegant .doc-number { color: #8a7550; }
-.tpl-elegant .section-title { letter-spacing: .12em; }
-.tpl-elegant .items-table { margin-top: 26px; }
-.tpl-elegant .items-table thead th { border-top: 0.75px solid #8a7550; border-bottom: 0.75px solid #8a7550; font-weight: 400; letter-spacing: .08em; color: #8a7550; }
-.tpl-elegant .items-table td { border-bottom: 0.5px solid #e7e1d3; font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif; }
-.tpl-elegant .totals-table .grand { border-top: 0.75px solid #8a7550; color: #8a7550; }
-.tpl-elegant .status-badge { border: 0.75px solid #8a7550; background: #fff; color: #8a7550; letter-spacing: .08em; }
+<?= \App\Support\Pdf\PdfTemplateStyles::variants($rtl) ?>
 
 /* ---- Saudi (ZATCA-standard bilingual) template ---- */
 .tpl-saudi body, .tpl-saudi { font-family: 'DejaVu Sans', 'Noto Naskh Arabic', sans-serif; font-size: 11px; }

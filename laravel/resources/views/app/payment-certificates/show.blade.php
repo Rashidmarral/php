@@ -9,7 +9,6 @@
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <span class="badge <?= $certificate['status'] === 'certified' ? 'badge-green' : 'badge-gray' ?>" style="font-size:13px;padding:6px 14px;"><?= e($certificate['status']) ?></span>
-    <a href="/app/payment-certificates/<?= $certificate['id'] ?>/pdf" class="btn btn-outline" target="_blank"><?= t('user.payment_certificates.pdf') ?></a>
     <?php if ($certificate['status'] === 'draft'): ?>
       <a href="/app/payment-certificates/<?= $certificate['id'] ?>/edit" class="btn btn-light"><?= t('common.edit') ?></a>
       <form method="post" action="/app/payment-certificates/<?= $certificate['id'] ?>/certify" onsubmit="return confirm('<?= t('user.payment_certificates.certify_confirm') ?>');">
@@ -25,6 +24,24 @@
     <?php endif; ?>
   </div>
 </div>
+
+<form method="get" action="/app/payment-certificates/<?= $certificate['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;flex-wrap:wrap;">
+  <div class="form-group" style="margin:0;">
+    <label><?= t('common.pdf_template') ?></label>
+    <select name="template">
+      <option value="modern">Modern</option>
+      <option value="classic">Classic</option>
+      <option value="minimal">Minimal</option>
+      <option value="bold">Bold</option>
+      <option value="elegant">Elegant</option>
+    </select>
+  </div>
+  <div class="form-group" style="margin:0;">
+    <label><?= t('common.language') ?></label>
+    <select name="lang"><option value="en"><?= t('common.english') ?></option><option value="ar"><?= t('common.arabic') ?></option></select>
+  </div>
+  <button type="submit" class="btn btn-outline">⬇ <?= t('user.payment_certificates.pdf') ?></button>
+</form>
 
 <?php if ($invoice): ?>
   <div class="alert" style="max-width:820px;background:#e6f4f1;color:#0a4d42;border:1px solid #b7ded4;margin-bottom:20px;">

@@ -5,12 +5,21 @@
 /** @var \App\Models\PaymentCertificate $certificate */
 $rtl = $lang === 'ar';
 $T = fn ($v) => pdfText($v, $lang);
+// Same template-whitelist pattern as InvoiceController::pdf(), minus 'saudi': that template
+// is a whole separate bilingual ZATCA tax-invoice/quotation layout (TAX INVOICE / QUOTATION
+// titles, its own dedicated bilingual-column markup in document.blade.php) built for exactly
+// those two document types. A Payment Certificate is neither, and needs its own richer
+// progress/retention columns instead of document.blade.php's generic 4-column items table —
+// half-implementing a bilingual layout that doesn't fit either concern would be worse than not
+// offering it. The other 5 are genuinely just look-and-feel (color/border/font) variants, so
+// they apply here unchanged via the shared CSS in PdfTemplateStyles.
+$tpl = in_array($template ?? null, ['classic', 'minimal', 'bold', 'elegant'], true) ? $template : 'modern';
 ?><!doctype html>
 <html lang="<?= $lang ?>" dir="<?= $rtl ? 'rtl' : 'ltr' ?>">
 <head>
 <meta charset="utf-8">
 <style>
-@page { margin: 18mm 15mm; }
+@page { margin: 20mm 16mm; }
 * { box-sizing: border-box; }
 body {
   font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif;
@@ -19,14 +28,7 @@ body {
   direction: <?= $rtl ? 'rtl' : 'ltr' ?>;
 }
 table { width: 100%; border-collapse: collapse; }
-.head-table td { vertical-align: top; padding: 0; }
-.doc-title { font-size: 20px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #0a4d42; }
-.doc-number { font-size: 13px; color: #555; margin-top: 4px; }
-.company-name { font-size: 16px; font-weight: 700; }
-.meta-line { font-size: 10.5px; color: #555; margin-top: 2px; }
-.section-title { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: #888; margin-bottom: 4px; }
-.party-name { font-size: 12.5px; font-weight: 700; }
-.status-badge { display: inline-block; padding: 3px 12px; border-radius: 3px; font-size: 10px; font-weight: 700; text-transform: uppercase; background: #e6f4f1; color: #0a4d42; }
+<?= \App\Support\Pdf\PdfTemplateStyles::baseChrome() ?>
 .items-table { margin-top: 16px; }
 .items-table th { font-size: 9.5px; text-transform: uppercase; letter-spacing: .02em; padding: 6px 8px; text-align: <?= $rtl ? 'right' : 'left' ?>; background: #e6f4f1; color: #0a4d42; }
 .items-table td { padding: 6px 8px; font-size: 10px; border-bottom: 1px solid #e6ecea; }
@@ -39,12 +41,21 @@ table { width: 100%; border-collapse: collapse; }
 .progress-table { width: 260px; <?= $rtl ? 'float:left;' : 'float:right;' ?> margin-top: 16px; }
 .progress-table td { padding: 5px 10px; font-size: 10.5px; }
 .progress-table .num { text-align: <?= $rtl ? 'left' : 'right' ?>; }
-.notes-box { clear: both; margin-top: 40px; padding-top: 10px; font-size: 10px; color: #666; border-top: 1px solid #e6ecea; }
-.footer-note { position: fixed; bottom: -8mm; left: 0; right: 0; text-align: center; font-size: 9px; color: #999; }
+<?= \App\Support\Pdf\PdfTemplateStyles::statusAndFooterChrome() ?>
+
+<?= \App\Support\Pdf\PdfTemplateStyles::variants($rtl) ?>
 </style>
 </head>
-<body>
+<body class="tpl-<?= $tpl ?>">
 
+<?php
+  // Exactly document.blade.php's own head-band-or-not split: modern/bold get the
+  // colored band, the other 3 templates get a plain head-table — same markup either
+  // way, just with the certificate's own header fields (company/VAT/CR, status
+  // badge) in place of an invoice's issuer/bill-to fields.
+  $headBand = in_array($tpl, ['modern', 'bold'], true);
+?>
+<?php if ($headBand): ?><div class="head-band"><?php endif; ?>
 <table class="head-table"><tr>
   <td style="width:60%">
     <div class="company-name"><?= $T($company->name ?? '') ?></div>
@@ -59,6 +70,7 @@ table { width: 100%; border-collapse: collapse; }
     <div style="margin-top:6px;"><span class="status-badge"><?= $T($certificate->status) ?></span></div>
   </td>
 </tr></table>
+<?php if ($headBand): ?></div><?php endif; ?>
 
 <table class="head-table" style="margin-top:16px;"><tr>
   <td style="width:50%">

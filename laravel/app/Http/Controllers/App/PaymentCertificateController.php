@@ -398,6 +398,9 @@ class PaymentCertificateController extends Controller
         $company = Company::find($project->company_id);
         $lines = PaymentCertificateLine::where('payment_certificate_id', $certificate->id)->orderBy('id')->get();
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+        // Same 6-option whitelist InvoiceController::pdf() validates against, minus 'saudi' —
+        // see payment-certificate.blade.php's own comment for why that one doesn't apply here.
+        $template = in_array($request->input('template'), ['classic', 'minimal', 'bold', 'elegant'], true) ? $request->input('template') : 'modern';
 
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
         // A certified certificate shows its real invoiced VAT/total; a draft one shows a live
@@ -407,6 +410,7 @@ class PaymentCertificateController extends Controller
         $totalDue = $invoice ? (float) $invoice->total : round((float) $certificate->net_payable + $vatAmount, 2);
 
         $html = view('pdf.payment-certificate', [
+            'template' => $template,
             'lang' => $lang,
             'currency' => 'SAR',
             'company' => $company,
