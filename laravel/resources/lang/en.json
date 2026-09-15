@@ -1792,5 +1792,13 @@
     "user.projects.advance_payment_amount": "Advance / Mobilization Payment (SAR)",
     "user.projects.advance_payment_amount_hint": "Amount the client paid up front, if any — each certificate can recover a % of it from the gross claim.",
     "user.projects.advance_recovery_percent": "Advance Recovery % (per certificate)",
-    "user.projects.advance_recovery_percent_hint": "% of each certificate's gross claim deducted to recover the advance, until it's fully recovered."
+    "user.projects.advance_recovery_percent_hint": "% of each certificate's gross claim deducted to recover the advance, until it's fully recovered.",
+    "user.projects.defects_liability_end_date": "Defects Liability End Date",
+    "user.projects.defects_liability_end_date_hint": "The date the contract's defects liability period ends — you'll get a reminder when retention held on this project is coming up for release.",
+    "user.projects.retention_held": "Retention Held",
+    "user.projects.retention_release_due": "Release due",
+    "user.projects.release_all_retention": "Release all retention",
+    "user.projects.release_all_retention_confirm": "Mark all unreleased retention on this project as released to the client?",
+    "user.projects.retention_released_all": "Retention released on :count invoice(s).",
+    "user.projects.retention_none_to_release": "There is no unreleased retention on this project."
 }

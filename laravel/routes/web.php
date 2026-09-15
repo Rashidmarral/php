@@ -138,6 +138,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/projects/{id}/edit', [ProjectController::class, 'edit']);
     Route::post('/projects/{id}', [ProjectController::class, 'update']);
     Route::post('/projects/{id}/delete', [ProjectController::class, 'destroy']);
+    Route::post('/projects/{id}/retention/release-all', [ProjectController::class, 'releaseAllRetention']);
     Route::get('/projects/{id}/duplicate', [ProjectController::class, 'duplicateForm']);
     Route::post('/projects/{id}/duplicate', [ProjectController::class, 'duplicateProject']);
     Route::post('/projects/{id}/change-orders', [ChangeOrderController::class, 'store']);

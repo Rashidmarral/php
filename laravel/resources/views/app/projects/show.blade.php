@@ -342,6 +342,31 @@
     </a>
     <a href="/app/projects/<?= $project['id'] ?>/payment-certificates/create" class="btn btn-primary"><?= t('user.payment_certificates.new') ?></a>
   </div>
+
+  <?php if ($paymentCertificateCount > 0 || $retentionHeld > 0): ?>
+    <?php $dlpPassed = !empty($project['defects_liability_end_date']) && $project['defects_liability_end_date'] < date('Y-m-d'); ?>
+    <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;">
+      <div class="kpi-grid" style="margin-bottom:10px;">
+        <div class="kpi">
+          <div class="label"><?= t('user.projects.retention_held') ?></div>
+          <div class="value" style="font-size:18px;"><?= money($retentionHeld) ?></div>
+        </div>
+        <div class="kpi">
+          <div class="label"><?= t('user.projects.defects_liability_end_date') ?></div>
+          <div class="value" style="font-size:18px;">
+            <?= $project['defects_liability_end_date'] ? e($project['defects_liability_end_date']) : '—' ?>
+            <?php if ($dlpPassed): ?> <span class="badge badge-red"><?= t('user.projects.retention_release_due') ?></span><?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php if ($retentionHeld > 0): ?>
+        <form method="post" action="/app/projects/<?= $project['id'] ?>/retention/release-all" onsubmit="return confirm('<?= t('user.projects.release_all_retention_confirm') ?>');">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-outline"><?= t('user.projects.release_all_retention') ?></button>
+        </form>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 </div>
 
 <div class="card" style="margin-top:24px;">

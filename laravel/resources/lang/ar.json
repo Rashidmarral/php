@@ -1792,5 +1792,13 @@
     "user.projects.advance_payment_amount": "الدفعة المقدمة / التمهيدية (ريال)",
     "user.projects.advance_payment_amount_hint": "المبلغ الذي دفعه العميل مقدمًا، إن وجد — يمكن لكل مستخلص استرداد نسبة منه من المطالبة الإجمالية.",
     "user.projects.advance_recovery_percent": "نسبة استرداد الدفعة المقدمة (لكل مستخلص)",
-    "user.projects.advance_recovery_percent_hint": "النسبة المئوية من المطالبة الإجمالية لكل مستخلص التي تُخصم لاسترداد الدفعة المقدمة، حتى استردادها بالكامل."
+    "user.projects.advance_recovery_percent_hint": "النسبة المئوية من المطالبة الإجمالية لكل مستخلص التي تُخصم لاسترداد الدفعة المقدمة، حتى استردادها بالكامل.",
+    "user.projects.defects_liability_end_date": "تاريخ نهاية فترة ضمان العيوب",
+    "user.projects.defects_liability_end_date_hint": "التاريخ الذي تنتهي فيه فترة ضمان العيوب في العقد — ستصلك رسالة تذكير عند اقتراب موعد الإفراج عن الاحتجاز في هذا المشروع.",
+    "user.projects.retention_held": "الاحتجاز المحتفظ به",
+    "user.projects.retention_release_due": "مستحق الإفراج",
+    "user.projects.release_all_retention": "الإفراج عن كل الاحتجاز",
+    "user.projects.release_all_retention_confirm": "هل تريد وضع علامة على جميع الاحتجازات غير المُفرج عنها في هذا المشروع كمُفرج عنها للعميل؟",
+    "user.projects.retention_released_all": "تم الإفراج عن الاحتجاز على :count فاتورة.",
+    "user.projects.retention_none_to_release": "لا يوجد احتجاز غير مُفرج عنه في هذا المشروع."
 }

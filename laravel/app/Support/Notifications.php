@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\Invoice;
+use App\Models\Project;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
@@ -161,6 +162,22 @@ class Notifications
             "Hi {$owner->name},\n\nThe \"{$typeLabel}\"" . ($guarantee->bank_name ? " from {$guarantee->bank_name}" : '') . " is due to expire on {$guarantee->expiry_date?->format('Y-m-d')}. Renew it with the bank before it lapses, or it will no longer satisfy the client's contract requirement.\n\nView the project: " . rtrim((string) config('app.url'), '/') . "/app/projects/{$guarantee->project_id}"
         );
         self::smsCompany($company, "Your {$typeLabel} expires on {$guarantee->expiry_date?->format('Y-m-d')} — renew it with the bank before it lapses.");
+    }
+
+    public static function retentionReleaseDue(Company $company, Project $project, float $retentionHeld): void
+    {
+        $owner = self::companyOwner($company->id);
+        if (!$owner) {
+            return;
+        }
+        $dlpDate = $project->defects_liability_end_date?->format('Y-m-d');
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "Retention on \"{$project->name}\" is due for release",
+            "Hi {$owner->name},\n\nThe defects liability period on \"{$project->name}\" " . ($dlpDate ? "ends on {$dlpDate}" : 'is ending soon') . ", and " . number_format($retentionHeld, 2) . " SAR in retention is still held back across its invoices. Review it and release what's due to the client.\n\nView the project: " . rtrim((string) config('app.url'), '/') . "/app/projects/{$project->id}"
+        );
+        self::smsCompany($company, "Retention on \"{$project->name}\": " . number_format($retentionHeld, 2) . " SAR still held — its defects liability period " . ($dlpDate ? "ends {$dlpDate}" : 'is ending soon') . ".");
     }
 
     private static function companyOwner(int $companyId): ?User

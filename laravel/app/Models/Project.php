@@ -20,6 +20,8 @@ class Project extends Model
             'budget' => 'decimal:2',
             'advance_payment_amount' => 'decimal:2',
             'advance_recovery_percent' => 'decimal:2',
+            'defects_liability_end_date' => 'date:Y-m-d',
+            'retention_reminder_sent_at' => 'datetime',
         ];
     }
 
@@ -83,6 +85,20 @@ class Project extends Model
     public function hasAnyPaymentCertificate(): bool
     {
         return $this->paymentCertificates()->exists();
+    }
+
+    /**
+     * Retention still held on this project — summed across every one of its invoices
+     * (regular invoices and IPC-certificate-generated ones alike, since certify() copies
+     * the certificate's own retention_percent/retention_amount onto the Invoice it creates)
+     * that carries retention and hasn't had it released yet.
+     */
+    public function retentionHeld(): float
+    {
+        return (float) Invoice::where('project_id', $this->id)
+            ->where('retention_amount', '>', 0)
+            ->where('retention_released', false)
+            ->sum('retention_amount');
     }
 
     public function approvedChangeOrdersTotal(): float

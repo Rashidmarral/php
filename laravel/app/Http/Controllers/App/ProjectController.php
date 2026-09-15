@@ -211,6 +211,7 @@ class ProjectController extends Controller
             'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
+            'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
         ]);
 
         $this->flash('success', 'Project created.');
@@ -276,6 +277,7 @@ class ProjectController extends Controller
             'paymentCertificates' => $paymentCertificates->toArray(),
             'paymentCertificateCount' => $paymentCertificateCount,
             'cumulativeCertified' => (float) $paymentCertificates->max('cumulative_certified'),
+            'retentionHeld' => $project->retentionHeld(),
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
             'siteLogs' => $siteLogs->toArray(),
@@ -391,9 +393,35 @@ class ProjectController extends Controller
             'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
+            'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
         ]);
 
         $this->flash('success', 'Project updated.');
+        return redirect('/app/projects/' . $project->id);
+    }
+
+    /** Releases every unreleased-retention invoice on this project in one go — a convenience over releasing them one by one from each invoice's own page. */
+    public function releaseAllRetention(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $project = $this->findOwned($id);
+
+        $released = DB::transaction(function () use ($project) {
+            $invoices = Invoice::where('project_id', $project->id)
+                ->where('retention_amount', '>', 0)
+                ->where('retention_released', false)
+                ->get();
+            foreach ($invoices as $invoice) {
+                $invoice->update(['retention_released' => true, 'retention_released_at' => now()]);
+            }
+            return $invoices->count();
+        });
+
+        $this->flash('success', $released > 0
+            ? t('user.projects.retention_released_all', ['count' => $released])
+            : t('user.projects.retention_none_to_release'));
         return redirect('/app/projects/' . $project->id);
     }
 

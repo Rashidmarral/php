@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Models\ComplianceDocument;
 use App\Models\Payment;
 use App\Models\Plan;
+use App\Models\Project;
 use App\Models\RecurringInvoice;
 use App\Models\Subscription;
 use App\Models\TeamMemberDocument;
@@ -21,7 +22,7 @@ use Illuminate\Console\Command;
  * Daily background jobs — subscription auto-renewal, trial-ending reminders,
  * compliance-document expiry reminders, team-member-document (iqama, health
  * certificate, etc.) expiry reminders, bank-guarantee/bond expiry reminders,
- * and recurring invoice generation.
+ * retention-release reminders, and recurring invoice generation.
  * Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
@@ -190,6 +191,33 @@ class RunDailyTasks extends Command
             $recurringGenerated++;
         }
         $this->info("Recurring invoices generated: {$recurringGenerated}.");
+
+        // ---- 7. Remind companies about retention coming up for release (once per project):
+        //         the project's defects liability end date is within 30 days OR already
+        //         passed (a contractor behind on releasing retention still needs the nudge,
+        //         not just one looking ahead) and it actually still has retention held —
+        //         no point reminding about a project with nothing left to release. ----
+        $retentionCutoff = now()->addDays(30)->format('Y-m-d');
+        $dueRetentionProjects = Project::whereNotNull('defects_liability_end_date')
+            ->where('defects_liability_end_date', '<=', $retentionCutoff)
+            ->whereNull('retention_reminder_sent_at')
+            ->get();
+
+        $retentionReminders = 0;
+        foreach ($dueRetentionProjects as $project) {
+            $retentionHeld = $project->retentionHeld();
+            if ($retentionHeld <= 0) {
+                continue;
+            }
+            $company = Company::find($project->company_id);
+            if (!$company) {
+                continue;
+            }
+            Notifications::retentionReleaseDue($company, $project, $retentionHeld);
+            $project->update(['retention_reminder_sent_at' => now()]);
+            $retentionReminders++;
+        }
+        $this->info("Retention release reminders sent: {$retentionReminders}.");
 
         $this->info('Daily tasks complete.');
         return self::SUCCESS;
