@@ -260,12 +260,40 @@ class EstimateController extends Controller
         }
 
         $description = trim((string) $request->input('description'));
-        if ($description === '') {
-            return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Describe the project first.');
+        $companyId = Auth::user()->company_id;
+
+        $imagePath = null;
+        $fullImagePath = null;
+        $photo = $request->file('photo');
+        if ($photo && $photo->isValid()) {
+            $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            $mime = $photo->getMimeType();
+            if (!isset($allowed[$mime])) {
+                return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Photo must be a JPG, PNG, or WEBP file.');
+            }
+            if ($photo->getSize() > 8 * 1024 * 1024) {
+                return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Photo must be smaller than 8MB.');
+            }
+            $filename = bin2hex(random_bytes(12)) . '.' . $allowed[$mime];
+            $photo->move(public_path("uploads/ai-estimate-tmp/{$companyId}"), $filename);
+            $imagePath = "/uploads/ai-estimate-tmp/{$companyId}/{$filename}";
+            $fullImagePath = public_path($imagePath);
         }
 
-        $result = AiEstimateGenerator::generate($description);
-        $companyId = Auth::user()->company_id;
+        if ($description === '' && $imagePath === null) {
+            return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Describe the project or attach a photo first.');
+        }
+
+        // The uploaded photo is transient, one-shot AI input — there's no Estimate row to
+        // attach it to yet (one isn't created until after generation, below), so it's
+        // deleted once the AI call has run, whether that call succeeds, fails, or throws.
+        try {
+            $result = AiEstimateGenerator::generate($description, $imagePath);
+        } finally {
+            if ($fullImagePath) {
+                @unlink($fullImagePath);
+            }
+        }
 
         $total = 0;
         $rows = [];

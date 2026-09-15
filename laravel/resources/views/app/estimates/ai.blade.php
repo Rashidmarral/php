@@ -15,11 +15,16 @@
 <?php endif; ?>
 
 <div class="card" style="max-width:760px;">
-  <form method="post" action="/app/estimates/ai/generate">
+  <form method="post" action="/app/estimates/ai/generate" enctype="multipart/form-data">
     <?= csrf_field() ?>
     <div class="form-group">
       <label><?= t('user.estimates.ai_describe_project') ?></label>
-      <textarea name="description" id="ai-description" rows="5" placeholder="e.g. Remodel a 20m² kitchen. Remove 15 linear meters of upper cabinets and 14 linear meters of damaged base units. Install new quartz countertops and porcelain flooring." required></textarea>
+      <textarea name="description" id="ai-description" rows="5" placeholder="e.g. Remodel a 20m² kitchen. Remove 15 linear meters of upper cabinets and 14 linear meters of damaged base units. Install new quartz countertops and porcelain flooring."></textarea>
+    </div>
+    <div class="form-group">
+      <label><?= t('user.estimates.ai_photo_label') ?></label>
+      <input type="file" name="photo" accept="image/jpeg,image/png,image/webp">
+      <p class="help-text" style="margin-top:6px;"><?= t('user.estimates.ai_photo_hint') ?></p>
     </div>
     <button type="submit" class="btn btn-primary"><?= t('common.generate') ?></button>
   </form>
