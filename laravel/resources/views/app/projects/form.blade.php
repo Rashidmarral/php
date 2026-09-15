@@ -62,6 +62,26 @@
   </div>
   <div class="form-row">
     <div class="form-group">
+      <label><?= t('user.projects.actual_completion_date') ?></label>
+      <input type="date" name="actual_completion_date" value="<?= e($project['actual_completion_date'] ?? '') ?>">
+      <p class="help-text" style="margin-top:4px;"><?= t('user.projects.actual_completion_date_hint') ?></p>
+    </div>
+    <div class="form-group"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label><?= t('user.projects.ld_rate_per_day') ?></label>
+      <input type="number" step="0.01" min="0" name="ld_rate_per_day" value="<?= e((string)($project['ld_rate_per_day'] ?? '')) ?>">
+      <p class="help-text" style="margin-top:4px;"><?= t('user.projects.ld_rate_per_day_hint') ?></p>
+    </div>
+    <div class="form-group">
+      <label><?= t('user.projects.ld_cap_percent') ?></label>
+      <input type="number" step="0.01" min="0" max="100" name="ld_cap_percent" value="<?= e((string)($project['ld_cap_percent'] ?? '')) ?>" placeholder="e.g. 10">
+      <p class="help-text" style="margin-top:4px;"><?= t('user.projects.ld_cap_percent_hint') ?></p>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
       <label><?= t('common.description_en') ?></label>
       <textarea name="description"><?= e($project['description'] ?? '') ?></textarea>
     </div>

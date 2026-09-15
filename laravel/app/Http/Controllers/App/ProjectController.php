@@ -9,6 +9,7 @@ use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
+use App\Models\ExtensionOfTimeRequest;
 use App\Models\Invoice;
 use App\Models\PaymentCertificate;
 use App\Models\Project;
@@ -213,6 +214,9 @@ class ProjectController extends Controller
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
+            'actual_completion_date' => $request->input('actual_completion_date') ?: null,
+            'ld_rate_per_day' => $request->filled('ld_rate_per_day') ? (float) $request->input('ld_rate_per_day') : null,
+            'ld_cap_percent' => $request->filled('ld_cap_percent') ? min(100, max(0, (float) $request->input('ld_cap_percent'))) : null,
         ]);
 
         $this->flash('success', 'Project created.');
@@ -262,6 +266,16 @@ class ProjectController extends Controller
             ->orderBy('due_date')
             ->orderByDesc('created_at')
             ->get();
+        $eotRequests = ExtensionOfTimeRequest::where('project_id', $project->id)->orderByDesc('created_at')->get();
+        $eotUserIds = $eotRequests->pluck('requested_by')->merge($eotRequests->pluck('reviewed_by'))->filter()->unique();
+        $eotUsers = User::whereIn('id', $eotUserIds)->get()->keyBy('id');
+        $eotRequestRows = $eotRequests->map(fn (ExtensionOfTimeRequest $r) => [
+            ...$r->toArray(),
+            'requested_by_name' => $eotUsers->get($r->requested_by)->name ?? '—',
+            'reviewed_by_name' => $r->reviewed_by ? ($eotUsers->get($r->reviewed_by)->name ?? '—') : null,
+        ])->all();
+        $approvedEotDays = (int) $eotRequests->where('status', 'approved')->sum('requested_days');
+        $ldExposure = $project->ldExposure();
         $teamMembers = User::where('company_id', $project->company_id)->orderBy('name')->get();
         $actualCostTotal = (float) $vendorBills->sum('amount');
         $revisedBudget = (float) $project->budget + $approvedTotal;
@@ -296,6 +310,10 @@ class ProjectController extends Controller
             'subcontractsContractValue' => $subcontractsContractValue,
             'subcontractsCumulativePaid' => $subcontractsCumulativePaid,
             'subcontractsRetentionHeld' => $subcontractsRetentionHeld,
+            'eotRequests' => $eotRequestRows,
+            'eotStatuses' => ExtensionOfTimeRequest::STATUSES,
+            'approvedEotDays' => $approvedEotDays,
+            'ldExposure' => $ldExposure,
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
             'siteLogs' => $siteLogs->toArray(),
@@ -398,21 +416,37 @@ class ProjectController extends Controller
             return $redirect;
         }
         $project = $this->findOwned($id);
+        $newStatus = $request->input('status', 'planning');
 
-        $project->update([
+        $data = [
             'client_id' => $this->ownedClient($request->input('client_id') ?: null, $project->company_id)?->id,
             'name' => trim((string) $request->input('name')),
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'description' => $request->input('description', ''),
             'description_ar' => $request->input('description_ar', ''),
-            'status' => $request->input('status', 'planning'),
+            'status' => $newStatus,
             'budget' => (float) $request->input('budget', 0),
             'advance_payment_amount' => (float) $request->input('advance_payment_amount', 0),
             'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
             'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
-        ]);
+            'ld_rate_per_day' => $request->filled('ld_rate_per_day') ? (float) $request->input('ld_rate_per_day') : null,
+            'ld_cap_percent' => $request->filled('ld_cap_percent') ? min(100, max(0, (float) $request->input('ld_cap_percent'))) : null,
+        ];
+
+        // actual_completion_date is directly editable (a user can correct it or set it
+        // retroactively), so an explicit value from the form always wins. Only when the field
+        // is left blank AND the status is (becoming) 'completed' AND nothing is set yet do we
+        // auto-populate it with today — same only-set-if-null pattern as certified_at elsewhere,
+        // never overwriting a value that's already there.
+        if ($request->filled('actual_completion_date')) {
+            $data['actual_completion_date'] = $request->input('actual_completion_date');
+        } elseif ($newStatus === 'completed' && !$project->actual_completion_date) {
+            $data['actual_completion_date'] = now()->format('Y-m-d');
+        }
+
+        $project->update($data);
 
         $this->flash('success', 'Project updated.');
         return redirect('/app/projects/' . $project->id);

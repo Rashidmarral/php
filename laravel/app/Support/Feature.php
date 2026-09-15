@@ -32,6 +32,7 @@ class Feature
         'purchase_orders' => 'Purchase Orders',
         'payment_certificates' => 'Payment Certificates (IPC)',
         'subcontractors' => 'Subcontractor Management',
+        'ld_eot_tracking' => 'Liquidated Damages & EOT Tracking',
         'recurring_invoices' => 'Recurring Invoices',
         'approval_workflow' => 'Approval Workflow',
         'project_photos' => 'Project Photo Gallery',

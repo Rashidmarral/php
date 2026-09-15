@@ -405,6 +405,74 @@
   </div>
 </div>
 
+<?php if (!empty($project['end_date']) || !empty($eotRequests)): ?>
+<div class="card" style="margin-top:24px;">
+  <h3><?= t('user.ld_eot.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.ld_eot.card_hint') ?></p>
+
+  <?php if (!empty($project['end_date'])): ?>
+    <div class="kpi-grid" style="margin-bottom:14px;">
+      <div class="kpi"><div class="label"><?= t('user.ld_eot.contract_end_date') ?></div><div class="value" style="font-size:18px;"><?= e($project['end_date']) ?></div></div>
+      <div class="kpi"><div class="label"><?= t('user.ld_eot.approved_eot_days') ?></div><div class="value" style="font-size:18px;"><?= (int)$approvedEotDays ?></div></div>
+      <div class="kpi"><div class="label"><?= t('user.ld_eot.effective_completion_date') ?></div><div class="value" style="font-size:18px;"><?= $ldExposure['effectiveCompletionDate'] ? e($ldExposure['effectiveCompletionDate']) : '—' ?></div></div>
+      <div class="kpi"><div class="label"><?= t('user.ld_eot.delay_days') ?></div><div class="value" style="font-size:18px;"><?= (int)$ldExposure['delayDays'] ?></div></div>
+      <div class="kpi"><div class="label"><?= t('user.ld_eot.ld_exposure') ?></div><div class="value" style="font-size:18px;"><?= money($ldExposure['cappedLdAmount']) ?></div></div>
+    </div>
+    <?php if ($ldExposure['isCapped']): ?>
+      <p class="help-text" style="margin-bottom:10px;"><?= t('user.ld_eot.capped_note', ['percent' => e((string)$project['ld_cap_percent']), 'raw' => money($ldExposure['rawLdAmount'])]) ?></p>
+    <?php endif; ?>
+    <div class="alert" style="max-width:820px;background:#eef3fb;color:#2c5282;border:1px solid #bcd6f2;margin-bottom:16px;">
+      <?= t('user.ld_eot.disclaimer') ?>
+    </div>
+  <?php endif; ?>
+
+  <h4 style="margin-bottom:4px;"><?= t('user.ld_eot.requests_title') ?></h4>
+  <?php if (empty($eotRequests)): ?>
+    <p class="help-text"><?= t('user.ld_eot.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th><?= t('user.ld_eot.days_requested') ?></th><th><?= t('user.ld_eot.reason') ?></th><th><?= t('common.status') ?></th><th><?= t('user.ld_eot.requested_by') ?></th><th><?= t('user.ld_eot.reviewed_by') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($eotRequests as $eot): ?>
+        <tr>
+          <td><?= (int)$eot['requested_days'] ?></td>
+          <td><?= e(\Illuminate\Support\Str::limit((string)$eot['reason'], 80)) ?></td>
+          <td><span class="badge <?= ['approved'=>'badge-green','rejected'=>'badge-red'][$eot['status']] ?? 'badge-gray' ?>"><?= e($eotStatuses[$eot['status']] ?? ucfirst($eot['status'])) ?></span></td>
+          <td><?= e($eot['requested_by_name']) ?></td>
+          <td><?= e($eot['reviewed_by_name'] ?? '—') ?></td>
+          <td>
+            <?php if ($eot['status'] === 'pending'): ?>
+              <?php if (auth()->user()->can('approve_documents')): ?>
+                <form method="post" action="/app/extension-of-time/<?= $eot['id'] ?>/approve" style="display:inline;">
+                  <?= csrf_field() ?>
+                  <button type="submit" class="btn btn-sm btn-primary"><?= t('common.approve') ?></button>
+                </form>
+                <form method="post" action="/app/extension-of-time/<?= $eot['id'] ?>/reject" style="display:inline;">
+                  <?= csrf_field() ?>
+                  <button type="submit" class="btn btn-sm btn-danger"><?= t('common.reject') ?></button>
+                </form>
+              <?php endif; ?>
+              <form method="post" action="/app/extension-of-time/<?= $eot['id'] ?>/delete" onsubmit="return confirm('<?= t('user.ld_eot.withdraw_confirm') ?>');" style="display:inline;">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-outline"><?= t('user.ld_eot.withdraw') ?></button>
+              </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/extension-of-time" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.ld_eot.days_requested') ?></label><input type="number" min="1" step="1" name="requested_days" required></div>
+    <div class="form-group" style="margin:0;flex:1;min-width:220px;"><label><?= t('user.ld_eot.reason') ?></label><input type="text" name="reason" placeholder="<?= t('user.ld_eot.reason_placeholder') ?>" required></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.ld_eot.submit_request') ?></button>
+  </form>
+</div>
+<?php endif; ?>
+
 <div class="card" style="margin-top:24px;">
   <h3><?= t('user.punch_list.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.punch_list.hint') ?></p>

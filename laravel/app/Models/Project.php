@@ -22,6 +22,9 @@ class Project extends Model
             'advance_recovery_percent' => 'decimal:2',
             'defects_liability_end_date' => 'date:Y-m-d',
             'retention_reminder_sent_at' => 'datetime',
+            'actual_completion_date' => 'date:Y-m-d',
+            'ld_rate_per_day' => 'decimal:2',
+            'ld_cap_percent' => 'decimal:2',
         ];
     }
 
@@ -80,6 +83,11 @@ class Project extends Model
         return $this->hasMany(Subcontract::class);
     }
 
+    public function extensionOfTimeRequests(): HasMany
+    {
+        return $this->hasMany(ExtensionOfTimeRequest::class);
+    }
+
     /** Sum of every BOQ line's contract value — the total contract sum this project's certificates claim against. */
     public function boqContractValue(): float
     {
@@ -119,5 +127,72 @@ class Project extends Model
     public function revisedBudget(): float
     {
         return (float) $this->budget + $this->approvedChangeOrdersTotal();
+    }
+
+    /**
+     * The contract completion date after every APPROVED Extension of Time is applied —
+     * pending/rejected requests never shift this. Null when end_date itself is null: there's
+     * no baseline to push back in the first place.
+     */
+    public function effectiveCompletionDate(): ?\Carbon\Carbon
+    {
+        if (!$this->end_date) {
+            return null;
+        }
+        $approvedDays = (int) $this->extensionOfTimeRequests()->where('status', 'approved')->sum('requested_days');
+        return $this->end_date->copy()->addDays($approvedDays);
+    }
+
+    /**
+     * Liquidated Damages exposure — an INFORMATIONAL estimate only (see ZakatController's own
+     * docblock for this app's precedent on this kind of worksheet-not-transaction tool). This
+     * never creates or feeds a real deduction on any invoice/certificate; it exists purely so a
+     * contractor can see where they stand before negotiating with the client.
+     *
+     * Compares actual_completion_date (once the project has actually finished) — or today, while
+     * still ongoing — against effectiveCompletionDate() (end_date shifted by approved EOT days).
+     * Delay is floored at zero (never negative), and there's nothing to calculate once end_date
+     * or ld_rate_per_day is missing.
+     *
+     * @return array{contractValue: float, effectiveCompletionDate: ?string, delayDays: int, rawLdAmount: float, cappedLdAmount: float, isCapped: bool}
+     */
+    public function ldExposure(): array
+    {
+        $contractValue = $this->boqItems()->exists() ? $this->boqContractValue() : (float) $this->budget;
+        $effectiveCompletionDate = $this->effectiveCompletionDate();
+
+        if (!$effectiveCompletionDate || !$this->ld_rate_per_day) {
+            return [
+                'contractValue' => $contractValue,
+                'effectiveCompletionDate' => $effectiveCompletionDate?->format('Y-m-d'),
+                'delayDays' => 0,
+                'rawLdAmount' => 0.0,
+                'cappedLdAmount' => 0.0,
+                'isCapped' => false,
+            ];
+        }
+
+        $referenceDate = $this->actual_completion_date ?? \Carbon\Carbon::today();
+        // diffInDays' sign convention varies by direction of comparison, so the "is it even
+        // delayed" check is done explicitly with gt() rather than trusting a signed diff.
+        $delayDays = $referenceDate->greaterThan($effectiveCompletionDate)
+            ? $effectiveCompletionDate->diffInDays($referenceDate)
+            : 0;
+
+        $rawLdAmount = $delayDays * (float) $this->ld_rate_per_day;
+        $cappedLdAmount = $rawLdAmount;
+        if ($this->ld_cap_percent !== null) {
+            $capAmount = $contractValue * (float) $this->ld_cap_percent / 100;
+            $cappedLdAmount = min($rawLdAmount, $capAmount);
+        }
+
+        return [
+            'contractValue' => $contractValue,
+            'effectiveCompletionDate' => $effectiveCompletionDate->format('Y-m-d'),
+            'delayDays' => $delayDays,
+            'rawLdAmount' => $rawLdAmount,
+            'cappedLdAmount' => $cappedLdAmount,
+            'isCapped' => $cappedLdAmount < $rawLdAmount,
+        ];
     }
 }

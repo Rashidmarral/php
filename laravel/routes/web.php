@@ -32,6 +32,7 @@ use App\Http\Controllers\App\ChangeOrderController;
 use App\Http\Controllers\App\PaymentCertificateController;
 use App\Http\Controllers\App\PurchaseOrderController;
 use App\Http\Controllers\App\SubcontractController;
+use App\Http\Controllers\App\ExtensionOfTimeController;
 use App\Http\Controllers\App\SubcontractPaymentController;
 use App\Http\Controllers\App\VendorBillController;
 use App\Http\Controllers\App\ClientController;
@@ -187,6 +188,10 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/subcontract-payments/{id}', [SubcontractPaymentController::class, 'update']);
     Route::post('/subcontract-payments/{id}/delete', [SubcontractPaymentController::class, 'destroy']);
     Route::post('/subcontract-payments/{id}/certify', [SubcontractPaymentController::class, 'certify']);
+    Route::post('/projects/{id}/extension-of-time', [ExtensionOfTimeController::class, 'store']);
+    Route::post('/extension-of-time/{id}/approve', [ExtensionOfTimeController::class, 'approve']);
+    Route::post('/extension-of-time/{id}/reject', [ExtensionOfTimeController::class, 'reject']);
+    Route::post('/extension-of-time/{id}/delete', [ExtensionOfTimeController::class, 'destroy']);
     Route::post('/projects/{id}/punch-list', [PunchListController::class, 'store']);
     Route::post('/punch-list/{id}', [PunchListController::class, 'update']);
     Route::post('/punch-list/{id}/delete', [PunchListController::class, 'destroy']);
