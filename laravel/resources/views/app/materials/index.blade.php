@@ -3,7 +3,10 @@
 @section('content')
 <div class="page-head">
   <h1><?= t('user.materials.title') ?></h1>
-  <a href="/app/materials/create" class="btn btn-primary"><?= t('user.materials.new') ?></a>
+  <div style="display:flex;gap:8px;">
+    <a href="/app/materials/library" class="btn btn-outline"><?= t('user.materials.browse_library') ?></a>
+    <a href="/app/materials/create" class="btn btn-primary"><?= t('user.materials.new') ?></a>
+  </div>
 </div>
 
 <?php

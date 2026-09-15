@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\CompanyZatcaController;
 use App\Http\Controllers\Admin\ConsultationAdminController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\EstimateTemplateAdminController;
+use App\Http\Controllers\Admin\MaterialLibraryAdminController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PageSectionController;
@@ -354,6 +355,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/materials', [MaterialController::class, 'store']);
     Route::post('/materials/import', [MaterialController::class, 'importCsv']);
     Route::post('/materials/sync-sheet', [MaterialController::class, 'syncFromSheet']);
+    Route::get('/materials/library', [MaterialController::class, 'libraryIndex']);
+    Route::post('/materials/library/import', [MaterialController::class, 'importFromLibrary']);
     Route::get('/materials/{id}/edit', [MaterialController::class, 'edit']);
     Route::post('/materials/{id}', [MaterialController::class, 'update']);
     Route::post('/materials/{id}/delete', [MaterialController::class, 'destroy']);
@@ -470,6 +473,8 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/estimate-templates', [EstimateTemplateAdminController::class, 'index']);
     Route::get('/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'items']);
 
+    Route::get('/material-library', [MaterialLibraryAdminController::class, 'index']);
+
     Route::get('/tenders', [TenderAdminController::class, 'index']);
     Route::get('/tenders/create', [TenderAdminController::class, 'create']);
     Route::get('/tenders/{id}/edit', [TenderAdminController::class, 'edit']);
@@ -539,6 +544,10 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'storeItem']);
         Route::post('/estimate-templates/{id}/items/{itemId}', [EstimateTemplateAdminController::class, 'updateItem']);
         Route::post('/estimate-templates/{id}/items/{itemId}/delete', [EstimateTemplateAdminController::class, 'destroyItem']);
+
+        Route::post('/material-library', [MaterialLibraryAdminController::class, 'store']);
+        Route::post('/material-library/{id}', [MaterialLibraryAdminController::class, 'update']);
+        Route::post('/material-library/{id}/delete', [MaterialLibraryAdminController::class, 'destroy']);
 
         Route::post('/tenders', [TenderAdminController::class, 'store']);
         Route::post('/tenders/{id}', [TenderAdminController::class, 'update']);

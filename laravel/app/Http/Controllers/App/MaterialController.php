@@ -5,6 +5,7 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Material;
+use App\Models\MaterialLibraryItem;
 use App\Models\Supplier;
 use App\Models\UnitOfMeasure;
 use Illuminate\Http\RedirectResponse;
@@ -100,6 +101,68 @@ class MaterialController extends Controller
         }
         $this->findOwned($id)->delete();
         $this->flash('success', 'Material removed.');
+        return redirect('/app/materials');
+    }
+
+    /** Browsable, admin-curated shared catalog a company can pull materials from without building its own list from scratch. */
+    public function libraryIndex(): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('materials')) {
+            return $redirect;
+        }
+        $items = MaterialLibraryItem::where('is_active', true)
+            ->orderBy('category')->orderBy('sort_order')->orderBy('id')
+            ->get()
+            ->toArray();
+
+        $categories = [];
+        foreach ($items as $it) {
+            $categories[$it['category']] = ($categories[$it['category']] ?? 0) + 1;
+        }
+
+        return view('app.materials.library', [
+            'items' => $items,
+            'categories' => $categories,
+        ]);
+    }
+
+    /** Copies selected shared-library items into this company's own materials table, deduping the same way importCsvContent() does. */
+    public function importFromLibrary(Request $request): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('materials')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+        $ids = array_filter(array_map('intval', (array) $request->input('item_ids', [])));
+        if (empty($ids)) {
+            return $this->redirectWithFlash('/app/materials/library', 'error', 'Select at least one item to import.');
+        }
+
+        $created = 0;
+        $updated = 0;
+        $libraryItems = MaterialLibraryItem::whereIn('id', $ids)->where('is_active', true)->get();
+        foreach ($libraryItems as $libraryItem) {
+            $materialCost = (float) $libraryItem->material_cost;
+            $laborCost = (float) $libraryItem->labor_cost;
+            $isNew = $this->upsertMaterial($companyId, [
+                'name' => $libraryItem->name,
+                'name_ar' => $libraryItem->name_ar ?? '',
+                'category' => $libraryItem->category,
+                'unit' => $libraryItem->unit,
+                'material_cost' => $materialCost,
+                'labor_cost' => $laborCost,
+                'unit_cost' => $materialCost + $laborCost,
+                'sku' => $libraryItem->sku ?? '',
+                'notes' => $libraryItem->notes ?? '',
+                'updated_at' => now(),
+            ]);
+            $isNew ? $created++ : $updated++;
+        }
+
+        $this->flash('success', "Imported {$created} new and updated {$updated} existing materials from the library.");
         return redirect('/app/materials');
     }
 
@@ -201,10 +264,6 @@ class MaterialController extends Controller
                 $supplierId = $this->resolveSupplierId($supplierName, $companyId, $supplierCache);
             }
 
-            $existing = $sku !== ''
-                ? Material::where('company_id', $companyId)->where('sku', $sku)->first()
-                : Material::where('company_id', $companyId)->where('name', $name)->first();
-
             $data = [
                 'name' => $name, 'category' => $category, 'unit' => $unit,
                 'material_cost' => $materialCost, 'labor_cost' => $laborCost, 'unit_cost' => $materialCost + $laborCost,
@@ -214,16 +273,32 @@ class MaterialController extends Controller
                 $data['supplier_id'] = $supplierId;
             }
 
-            if ($existing) {
-                $existing->update($data);
-                $updated++;
-            } else {
-                Material::create([...$data, 'company_id' => $companyId]);
-                $created++;
-            }
+            $this->upsertMaterial($companyId, $data) ? $created++ : $updated++;
         }
 
         return ['created' => $created, 'updated' => $updated];
+    }
+
+    /**
+     * Creates or updates one company's material by matching sku (or name when sku is
+     * blank) — the single dedup rule shared by CSV import, Google Sheets sync, and
+     * importing from the shared material library, so all three behave identically on
+     * re-import. Returns true when a new row was created, false when an existing one
+     * was updated instead.
+     */
+    private function upsertMaterial(int $companyId, array $data): bool
+    {
+        $sku = trim((string) ($data['sku'] ?? ''));
+        $existing = $sku !== ''
+            ? Material::where('company_id', $companyId)->where('sku', $sku)->first()
+            : Material::where('company_id', $companyId)->where('name', $data['name'])->first();
+
+        if ($existing) {
+            $existing->update($data);
+            return false;
+        }
+        Material::create([...$data, 'company_id' => $companyId]);
+        return true;
     }
 
     /** Finds a supplier by name (case-insensitive) for this company, creating one if it doesn't exist yet. */

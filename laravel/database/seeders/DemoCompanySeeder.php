@@ -310,18 +310,36 @@ class DemoCompanySeeder extends Seeder
             'address' => 'Jeddah Industrial Area', 'category' => 'Finishing',
         ]);
 
-        $materials = [
-            [$supplier1->id, 'CEM-42.5', 'Cement 42.5N (50kg bag)', 'أسمنت 42.5 (كيس 50 كجم)', 'Concrete', 'bag', 18.50, 15.00, 3.50],
-            [$supplier1->id, 'REBAR-12', 'Rebar 12mm (ton)', 'حديد تسليح 12مم (طن)', 'Steel', 'ton', 2850.00, 2700.00, 150.00],
-            [$supplier1->id, 'BLK-STD', 'Concrete Block (standard)', 'بلوك خرساني قياسي', 'Masonry', 'unit', 3.20, 2.80, 0.40],
-            [$supplier2->id, 'TILE-CER-60', 'Ceramic Floor Tile 60x60', 'بلاط أرضيات سيراميك 60×60', 'Finishing', 'sqm', 45.00, 38.00, 7.00],
-            [$supplier2->id, 'MARB-KIT', 'Marble Countertop Slab', 'ألواح رخام لأسطح المطابخ', 'Finishing', 'sqm', 320.00, 280.00, 40.00],
+        // A broad, representative slice of the shared material library (see
+        // database/data/material_library_items.php) spanning most catalog categories,
+        // rather than a handful of hand-typed rows, so the demo shows a realistic library.
+        // Roughly a third are attributed to each of the two demo suppliers; the rest are
+        // left unassigned, same as a real company wouldn't source every material from one place.
+        $librarySkus = [
+            'CEM-425' => $supplier1->id, 'REBAR-12' => $supplier1->id, 'RMX-C25' => $supplier1->id,
+            'BLK-CONC20' => $supplier1->id, 'BLK-AAC' => $supplier1->id,
+            'PVC-110' => $supplier1->id, 'PPR-20' => $supplier1->id,
+            'CABLE-25' => $supplier1->id, 'MCB-20A' => $supplier1->id,
+            'SAND-FINE' => $supplier1->id, 'AGG-CRUSH20' => $supplier1->id,
+            'TILE-CER60' => $supplier2->id, 'TILE-POR80' => $supplier2->id, 'MARBLE-SLAB' => $supplier2->id,
+            'WC-WALLHUNG' => $supplier2->id, 'BASIN-COUNTER' => $supplier2->id, 'MIXER-SHOWER' => $supplier2->id,
+            'KITCHENSINK-SS' => $supplier2->id, 'GLASS-TEMP10' => $supplier2->id, 'ALUCOMPOSITE' => $supplier2->id,
+            'WATERHEATER-50' => null, 'LED-DOWNLIGHT' => null, 'AC-SPLIT18' => null, 'AC-SPLIT24' => null,
+            'PAINT-EMLINT' => null, 'PAINT-EMLEXT' => null, 'DOOR-FLUSHINT' => null, 'WIN-ALUSLD' => null,
+            'WPMEMB-BIT' => null, 'INSUL-XPS5' => null, 'ALUPROFILE-WIN' => null,
         ];
-        foreach ($materials as [$supplierId, $sku, $name, $nameAr, $category, $unit, $unitCost, $materialCost, $laborCost]) {
+        $libraryBySku = collect(require database_path('data/material_library_items.php'))->keyBy('sku');
+        foreach ($librarySkus as $sku => $supplierId) {
+            $li = $libraryBySku[$sku] ?? null;
+            if (!$li) {
+                continue;
+            }
+            $materialCost = (float) $li['material_cost'];
+            $laborCost = (float) ($li['labor_cost'] ?? 0);
             Material::create([
-                'company_id' => $company->id, 'supplier_id' => $supplierId, 'sku' => $sku,
-                'name' => $name, 'name_ar' => $nameAr, 'category' => $category, 'unit' => $unit,
-                'unit_cost' => $unitCost, 'material_cost' => $materialCost, 'labor_cost' => $laborCost,
+                'company_id' => $company->id, 'supplier_id' => $supplierId, 'sku' => $li['sku'],
+                'name' => $li['name'], 'name_ar' => $li['name_ar'] ?? null, 'category' => $li['category'], 'unit' => $li['unit'],
+                'unit_cost' => $materialCost + $laborCost, 'material_cost' => $materialCost, 'labor_cost' => $laborCost,
             ]);
         }
 

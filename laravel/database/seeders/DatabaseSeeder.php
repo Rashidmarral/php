@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             QuickEstimateSeeder::class,
             EstimateTemplateSeeder::class,
+            MaterialLibrarySeeder::class,
             TenderSeeder::class,
             AdminUserSeeder::class,
             DemoCompanySeeder::class,
