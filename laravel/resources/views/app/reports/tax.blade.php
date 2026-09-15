@@ -7,7 +7,7 @@
 
 <div class="tabs">
   <a href="/app/reports"><?= t('user.reports.tab_performance') ?></a>
-  <a href="/app/reports/profit"><?= t('user.reports.tab_profit') ?></a>
+  <a href="/app/reports/profit"><?= t('user.reports.tab_cost_variance') ?></a>
   <a href="/app/reports/tax" class="active"><?= t('user.reports.tab_tax') ?></a>
   <a href="/app/reports/retention"><?= t('user.reports.tab_retention') ?></a>
 </div>

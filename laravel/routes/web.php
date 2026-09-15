@@ -377,7 +377,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/end-impersonation', [ImpersonationController::class, 'stop']);
 
     Route::get('/reports', [ReportController::class, 'overview']);
-    Route::get('/reports/profit', [ReportController::class, 'profit']);
+    Route::get('/reports/profit', [ReportController::class, 'costVariance']);
     Route::get('/reports/tax', [ReportController::class, 'tax']);
     Route::get('/reports/retention', [ReportController::class, 'retention']);
 
