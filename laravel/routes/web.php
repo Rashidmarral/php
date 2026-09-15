@@ -304,7 +304,12 @@ Route::prefix('app')->middleware('company.user')->group(function () {
 
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
-    Route::post('/settings/password', [SettingsController::class, 'updatePassword']);
+    Route::get('/settings/legal', [SettingsController::class, 'legal']);
+    Route::post('/settings/legal', [SettingsController::class, 'updateLegal']);
+    Route::get('/settings/business', [SettingsController::class, 'business']);
+    Route::post('/settings/business', [SettingsController::class, 'updateBusiness']);
+    Route::get('/settings/security', [SettingsController::class, 'security']);
+    Route::post('/settings/security', [SettingsController::class, 'updatePassword']);
 
     Route::get('/security', [SecurityController::class, 'index']);
     Route::post('/security/enable', [SecurityController::class, 'confirmEnable']);
