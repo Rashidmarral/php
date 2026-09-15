@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\QuickEstimateAddon;
 use App\Models\QuickEstimateFoundation;
+use App\Models\QuickEstimateQualityTier;
 use App\Models\QuickEstimateRegion;
 use Illuminate\Database\Seeder;
 
@@ -65,6 +66,22 @@ class QuickEstimateSeeder extends Seeder
                     'name_en' => $en, 'name_ar' => $ar, 'description_en' => $descEn, 'description_ar' => $descAr,
                     'unit_price' => $price, 'unit_type' => $unitType, 'qty_mode' => $qtyMode, 'is_pro' => $isPro,
                     'sort_order' => $sort, 'is_active' => true,
+                ]);
+            }
+        }
+
+        if (QuickEstimateQualityTier::count() === 0) {
+            // Finish/quality tier — a second multiplier applied alongside the region's, letting a visitor
+            // ballpark the cost swing between a bare-bones build and a fully finished one.
+            $qualityTiers = [
+                ['Economy', 'اقتصادي', 0.85, 1],
+                ['Standard', 'قياسي', 1.00, 2],
+                ['Premium', 'مميز', 1.30, 3],
+            ];
+            foreach ($qualityTiers as [$en, $ar, $mult, $sort]) {
+                QuickEstimateQualityTier::create([
+                    'name_en' => $en, 'name_ar' => $ar,
+                    'multiplier' => $mult, 'sort_order' => $sort, 'is_active' => true,
                 ]);
             }
         }

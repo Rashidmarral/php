@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\QuickEstimate;
 use App\Models\QuickEstimateAddon;
 use App\Models\QuickEstimateFoundation;
+use App\Models\QuickEstimateQualityTier;
 use App\Models\QuickEstimateRegion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -143,6 +144,43 @@ class QuickEstimateAdminController extends Controller
     {
         QuickEstimateAddon::destroy($id);
         return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', 'Add-on removed.');
+    }
+
+    // ---------------- Quality tiers ----------------
+
+    public function qualityTiers(): View
+    {
+        return view('admin.quick-estimate.quality-tiers', ['qualityTiers' => QuickEstimateQualityTier::orderBy('sort_order')->get()]);
+    }
+
+    public function storeQualityTier(Request $request): RedirectResponse
+    {
+        QuickEstimateQualityTier::create([
+            'name_en' => trim((string) $request->input('name_en')),
+            'name_ar' => trim((string) $request->input('name_ar')),
+            'multiplier' => (float) $request->input('multiplier', 1),
+            'sort_order' => (int) $request->input('sort_order', 0),
+            'is_active' => true,
+        ]);
+        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', 'Quality tier added.');
+    }
+
+    public function updateQualityTier(Request $request, int $id): RedirectResponse
+    {
+        QuickEstimateQualityTier::findOrFail($id)->update([
+            'name_en' => trim((string) $request->input('name_en')),
+            'name_ar' => trim((string) $request->input('name_ar')),
+            'multiplier' => (float) $request->input('multiplier', 1),
+            'sort_order' => (int) $request->input('sort_order', 0),
+            'is_active' => (bool) $request->input('is_active'),
+        ]);
+        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', 'Quality tier updated.');
+    }
+
+    public function destroyQualityTier(int $id): RedirectResponse
+    {
+        QuickEstimateQualityTier::destroy($id);
+        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', 'Quality tier removed.');
     }
 
     // ---------------- Leads (submitted quick estimates) ----------------

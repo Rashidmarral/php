@@ -10,6 +10,7 @@ use App\Models\EstimateItem;
 use App\Models\QuickEstimate;
 use App\Models\QuickEstimateAddon;
 use App\Models\QuickEstimateFoundation;
+use App\Models\QuickEstimateQualityTier;
 use App\Models\QuickEstimateRegion;
 use App\Models\Setting;
 use App\Support\QuickEstimateCalc;
@@ -43,6 +44,7 @@ class QuickEstimateController extends Controller
             'regions' => QuickEstimateRegion::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'foundations' => QuickEstimateFoundation::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'addons' => QuickEstimateAddon::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
+            'qualityTiers' => QuickEstimateQualityTier::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
             'quotes' => $quotes,
             'vatRate' => (float) Setting::get('vat_rate', '15'),
@@ -58,6 +60,7 @@ class QuickEstimateController extends Controller
 
         $region = QuickEstimateRegion::find((int) $request->input('region_id'));
         $foundation = QuickEstimateFoundation::find((int) $request->input('foundation_id'));
+        $qualityTier = QuickEstimateQualityTier::find((int) $request->input('quality_tier_id'));
         $totalArea = max(0, (float) $request->input('total_area', 0));
         $discountPercent = min(100, max(0, (float) $request->input('discount_percent', 0)));
         $vatRate = (float) Setting::get('vat_rate', '15');
@@ -72,7 +75,7 @@ class QuickEstimateController extends Controller
             : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->toArray();
         $addonQuantities = array_map('floatval', (array) $request->input('addon_qty', []));
 
-        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities);
+        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities, $qualityTier?->toArray() ?? []);
 
         $clientId = $request->input('client_id') ?: null;
         $client = $this->ownedClient($clientId, $companyId);
@@ -83,6 +86,7 @@ class QuickEstimateController extends Controller
             'project_name' => trim((string) $request->input('project_name')) ?: null,
             'region_id' => $region->id,
             'foundation_id' => $foundation->id,
+            'quality_tier_id' => $qualityTier?->id,
             'total_area' => $totalArea,
             'discount_percent' => $discountPercent,
             'addons_json' => json_encode($result['addons_payload']),
@@ -108,6 +112,7 @@ class QuickEstimateController extends Controller
         $estimate = $this->findOwned($id);
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
         $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
 
@@ -115,6 +120,7 @@ class QuickEstimateController extends Controller
             'estimate' => $estimate->toArray(),
             'region' => $region?->toArray(),
             'foundation' => $foundation?->toArray(),
+            'qualityTier' => $qualityTier?->toArray(),
             'addons' => $addons,
             'client' => $client?->toArray(),
             'vatRate' => (float) Setting::get('vat_rate', '15'),
@@ -126,12 +132,13 @@ class QuickEstimateController extends Controller
         $estimate = $this->findOwned($id);
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
         $lang = $request->input('lang') === 'ar' ? 'ar' : ($estimate->lang === 'ar' ? 'ar' : 'en');
         $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
         $company = Company::find($estimate->company_id);
 
-        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang);
+        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang, $qualityTier?->toArray());
 
         return $this->streamPdf([
             'template' => $template,
@@ -161,9 +168,10 @@ class QuickEstimateController extends Controller
         $estimate = $this->findOwned($id);
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
         $lang = $estimate->lang === 'ar' ? 'ar' : 'en';
-        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang);
+        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang, $qualityTier?->toArray());
 
         $companyId = Auth::user()->company_id;
         $taxPercent = (float) $estimate->subtotal > 0 ? round((float) $estimate->vat_amount / (float) $estimate->subtotal * 100, 2) : 0;

@@ -26,6 +26,7 @@
     <tbody>
       <?php if ($region): ?><tr><td><?= t('qe.region') ?></td><td><?= e(app()->getLocale() === 'ar' ? $region['name_ar'] : $region['name_en']) ?></td></tr><?php endif; ?>
       <?php if ($foundation): ?><tr><td><?= t('qe.foundation_type') ?></td><td><?= e(app()->getLocale() === 'ar' ? $foundation['name_ar'] : $foundation['name_en']) ?></td></tr><?php endif; ?>
+      <?php if ($qualityTier): ?><tr><td><?= t('qe.quality_tier') ?></td><td><?= e(app()->getLocale() === 'ar' ? $qualityTier['name_ar'] : $qualityTier['name_en']) ?></td></tr><?php endif; ?>
       <tr><td><?= t('qe.total_area') ?></td><td><?= e((string)$estimate['total_area']) ?> m²</td></tr>
       <?php if (!empty($addons)): ?>
       <tr><td><?= t('qe.addons') ?></td><td><?= e(implode(', ', array_map(fn($a) => $a[app()->getLocale() === 'ar' ? 'name_ar' : 'name_en'], $addons))) ?></td></tr>

@@ -415,6 +415,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/quick-estimate/regions', [QuickEstimateAdminController::class, 'regions']);
     Route::get('/quick-estimate/foundations', [QuickEstimateAdminController::class, 'foundations']);
     Route::get('/quick-estimate/addons', [QuickEstimateAdminController::class, 'addons']);
+    Route::get('/quick-estimate/quality-tiers', [QuickEstimateAdminController::class, 'qualityTiers']);
     Route::get('/quick-estimate/leads', [QuickEstimateAdminController::class, 'leads']);
 
     Route::get('/estimate-templates', [EstimateTemplateAdminController::class, 'index']);
@@ -477,6 +478,9 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/quick-estimate/addons', [QuickEstimateAdminController::class, 'storeAddon']);
         Route::post('/quick-estimate/addons/{id}', [QuickEstimateAdminController::class, 'updateAddon']);
         Route::post('/quick-estimate/addons/{id}/delete', [QuickEstimateAdminController::class, 'destroyAddon']);
+        Route::post('/quick-estimate/quality-tiers', [QuickEstimateAdminController::class, 'storeQualityTier']);
+        Route::post('/quick-estimate/quality-tiers/{id}', [QuickEstimateAdminController::class, 'updateQualityTier']);
+        Route::post('/quick-estimate/quality-tiers/{id}/delete', [QuickEstimateAdminController::class, 'destroyQualityTier']);
         Route::post('/quick-estimate/leads/{id}/status', [QuickEstimateAdminController::class, 'updateLeadStatus']);
 
         Route::post('/estimate-templates', [EstimateTemplateAdminController::class, 'store']);

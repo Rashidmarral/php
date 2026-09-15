@@ -23,6 +23,9 @@
         <div class="mini-kpi"><div class="l"><?= t('qe.region') ?></div><div class="v" id="qe-region-mult">1.00x</div></div>
         <div class="mini-kpi"><div class="l"><?= t('qe.discount') ?></div><div class="v" id="qe-discount-pct">0%</div></div>
       </div>
+      <div class="mini-grid">
+        <div class="mini-kpi"><div class="l"><?= t('qe.quality_tier') ?></div><div class="v" id="qe-tier-mult">1.00x</div></div>
+      </div>
 
       <div class="total-box">
         <div class="label"><?= t('qe.total') ?></div>
@@ -83,6 +86,17 @@
               <div class="name"><?= e($name) ?></div>
               <div class="desc"><?= e($desc) ?></div>
               <div class="price">SAR/m² <?= number_format((float)$f['price_per_sqm'],2) ?></div>
+            </label>
+          <?php endforeach; ?>
+        </div>
+
+        <h3>✨ <?= t('qe.quality_tier') ?></h3>
+        <div class="qe-pick-grid" id="qe-tiers" style="grid-template-columns:repeat(3,1fr);">
+          <?php foreach ($qualityTiers as $qt): $name = app()->getLocale() === 'ar' ? $qt['name_ar'] : $qt['name_en']; ?>
+            <label class="qe-pick-card" data-id="<?= $qt['id'] ?>" data-mult="<?= $qt['multiplier'] ?>">
+              <input type="radio" name="quality_tier_id" value="<?= $qt['id'] ?>">
+              <div class="name"><?= e($name) ?></div>
+              <div class="price"><?= number_format((float)$qt['multiplier'],2) ?>x</div>
             </label>
           <?php endforeach; ?>
         </div>
@@ -157,6 +171,7 @@
   const discountInput = document.getElementById('qe-discount-input');
   let selectedRegion = null;
   let selectedFoundation = null;
+  let selectedTier = null;
   const selectedAddons = new Map();
 
   function selectCard(container, card) {
@@ -177,6 +192,14 @@
     card.addEventListener('click', () => {
       selectCard(document.getElementById('qe-foundations'), card);
       selectedFoundation = { price: parseFloat(card.dataset.price) };
+      recalc();
+    });
+  });
+
+  document.querySelectorAll('#qe-tiers .qe-pick-card').forEach(card => {
+    card.addEventListener('click', () => {
+      selectCard(document.getElementById('qe-tiers'), card);
+      selectedTier = { mult: parseFloat(card.dataset.mult) };
       recalc();
     });
   });
@@ -214,7 +237,9 @@
     let addonsTotal = 0;
     selectedAddons.forEach(a => addonsTotal += a.price * (a.mode === 'manual' ? a.qty : area));
 
-    const mult = selectedRegion ? selectedRegion.mult : 1;
+    const regionMult = selectedRegion ? selectedRegion.mult : 1;
+    const tierMult = selectedTier ? selectedTier.mult : 1;
+    const mult = regionMult * tierMult;
     const subtotal = (base + foundation + addonsTotal) * mult;
     const discountAmt = subtotal * discountPct / 100;
     const taxable = subtotal - discountAmt;
@@ -224,7 +249,8 @@
 
     document.getElementById('qe-addons-total').textContent = addonsTotal.toFixed(2);
     document.getElementById('qe-foundation-total').textContent = foundation.toFixed(2);
-    document.getElementById('qe-region-mult').textContent = mult.toFixed(2) + 'x';
+    document.getElementById('qe-region-mult').textContent = regionMult.toFixed(2) + 'x';
+    document.getElementById('qe-tier-mult').textContent = tierMult.toFixed(2) + 'x';
     document.getElementById('qe-discount-pct').textContent = discountPct + '%';
     document.getElementById('qe-subtotal').textContent = subtotal.toFixed(2);
     document.getElementById('qe-discount-amt').textContent = '-' + discountAmt.toFixed(2);

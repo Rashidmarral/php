@@ -18,6 +18,7 @@
         <tbody>
           @if($region)<tr><td>{{ t('qe.region') }}</td><td>{{ app()->getLocale() === 'ar' ? $region['name_ar'] : $region['name_en'] }}</td></tr>@endif
           @if($foundation)<tr><td>{{ t('qe.foundation_type') }}</td><td>{{ app()->getLocale() === 'ar' ? $foundation['name_ar'] : $foundation['name_en'] }}</td></tr>@endif
+          @if($qualityTier)<tr><td>{{ t('qe.quality_tier') }}</td><td>{{ app()->getLocale() === 'ar' ? $qualityTier['name_ar'] : $qualityTier['name_en'] }}</td></tr>@endif
           <tr><td>{{ t('qe.total_area') }}</td><td>{{ (string)$estimate['total_area'] }} m²</td></tr>
           @if(!empty($addons))
           <tr><td>{{ t('qe.addons') }}</td><td>{{ implode(', ', array_map(fn($a) => $a[app()->getLocale() === 'ar' ? 'name_ar' : 'name_en'], $addons)) }}</td></tr>

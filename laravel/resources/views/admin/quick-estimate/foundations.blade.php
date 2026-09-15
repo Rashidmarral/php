@@ -9,6 +9,7 @@
   <a href="/admin/quick-estimate/regions"><?= t('admin.qe.tab_regions') ?></a>
   <a href="/admin/quick-estimate/foundations" class="active"><?= t('admin.qe.tab_foundations') ?></a>
   <a href="/admin/quick-estimate/addons"><?= t('admin.qe.tab_addons') ?></a>
+  <a href="/admin/quick-estimate/quality-tiers"><?= t('admin.qe.tab_quality_tiers') ?></a>
   <a href="/admin/quick-estimate/leads"><?= t('admin.qe.tab_leads') ?></a>
 </div>
 

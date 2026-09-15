@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\QuickEstimate;
 use App\Models\QuickEstimateAddon;
 use App\Models\QuickEstimateFoundation;
+use App\Models\QuickEstimateQualityTier;
 use App\Models\QuickEstimateRegion;
 use App\Models\Setting;
 use App\Support\QuickEstimateCalc;
@@ -23,6 +24,7 @@ class QuickEstimateController extends Controller
             'regions' => QuickEstimateRegion::where('is_active', true)->orderBy('sort_order')->get(),
             'foundations' => QuickEstimateFoundation::where('is_active', true)->orderBy('sort_order')->get(),
             'addons' => QuickEstimateAddon::where('is_active', true)->orderBy('sort_order')->get(),
+            'qualityTiers' => QuickEstimateQualityTier::where('is_active', true)->orderBy('sort_order')->get(),
             'vatRate' => (float) Setting::get('vat_rate', '15'),
         ]);
     }
@@ -31,6 +33,7 @@ class QuickEstimateController extends Controller
     {
         $region = QuickEstimateRegion::find((int) $request->input('region_id'));
         $foundation = QuickEstimateFoundation::find((int) $request->input('foundation_id'));
+        $qualityTier = QuickEstimateQualityTier::find((int) $request->input('quality_tier_id'));
         $totalArea = max(0, (float) $request->input('total_area', 0));
         $discountPercent = min(100, max(0, (float) $request->input('discount_percent', 0)));
         $vatRate = (float) Setting::get('vat_rate', '15');
@@ -39,16 +42,24 @@ class QuickEstimateController extends Controller
             return $this->redirectWithFlash('/quick-estimate', 'error', 'Please choose a region, a foundation type, and enter a total area.');
         }
 
+        $contactName = trim((string) $request->input('contact_name'));
+        $contactEmail = trim((string) $request->input('contact_email'));
+        $contactPhone = trim((string) $request->input('contact_phone'));
+        if ($contactName === '' || $contactEmail === '' || $contactPhone === '') {
+            return $this->redirectWithFlash('/quick-estimate', 'error', 'Please enter your name, email, and phone so we can send you the detailed quote.');
+        }
+
         $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
         $addonRows = empty($selectedAddonIds) ? [] : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->map(fn ($a) => $a->toArray())->all();
         $addonQuantities = array_map('floatval', (array) $request->input('addon_qty', []));
 
-        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities);
+        $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities, $qualityTier?->toArray() ?? []);
 
         $estimate = QuickEstimate::create([
             'project_name' => trim((string) $request->input('project_name')) ?: null,
             'region_id' => $region->id,
             'foundation_id' => $foundation->id,
+            'quality_tier_id' => $qualityTier?->id,
             'total_area' => $totalArea,
             'discount_percent' => $discountPercent,
             'addons_json' => json_encode($result['addons_payload']),
@@ -56,9 +67,9 @@ class QuickEstimateController extends Controller
             'vat_amount' => $result['vat_amount'],
             'total' => $result['total'],
             'lang' => app()->getLocale(),
-            'contact_name' => trim((string) $request->input('contact_name')) ?: null,
-            'contact_email' => trim((string) $request->input('contact_email')) ?: null,
-            'contact_phone' => trim((string) $request->input('contact_phone')) ?: null,
+            'contact_name' => $contactName,
+            'contact_email' => $contactEmail,
+            'contact_phone' => $contactPhone,
             'status' => 'new',
         ]);
 
@@ -71,6 +82,7 @@ class QuickEstimateController extends Controller
         abort_if(!$estimate, 404, 'Estimate not found.');
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
 
         return view('site.quick-estimate-result', [
@@ -78,6 +90,7 @@ class QuickEstimateController extends Controller
             'estimate' => $estimate->toArray(),
             'region' => $region?->toArray(),
             'foundation' => $foundation?->toArray(),
+            'qualityTier' => $qualityTier?->toArray(),
             'addons' => $addons,
             'vatRate' => (float) Setting::get('vat_rate', '15'),
         ]);
@@ -89,11 +102,12 @@ class QuickEstimateController extends Controller
         abort_if(!$estimate, 404, 'Estimate not found.');
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
+        $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
         $lang = $estimate->lang === 'ar' ? 'ar' : 'en';
         $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
 
-        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang);
+        $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang, $qualityTier?->toArray());
 
         return $this->streamPdf([
             'template' => $template,
