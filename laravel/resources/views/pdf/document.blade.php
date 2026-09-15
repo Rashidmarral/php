@@ -13,7 +13,9 @@ $isInvoice = stripos((string) $docType, 'invoice') !== false || str_contains((st
 @page { margin: 20mm 16mm; }
 * { box-sizing: border-box; }
 body {
-  font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif;
+  /* Cairo (Latin + Arabic) is the default; DejaVu Sans/Noto Naskh Arabic stay as
+     documented fallbacks in case an edge-case glyph is ever missing from Cairo. */
+  font-family: 'Cairo', <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif;
   color: #16211f;
   font-size: 12px;
   direction: <?= $rtl ? 'rtl' : 'ltr' ?>;
@@ -35,19 +37,19 @@ table { width: 100%; border-collapse: collapse; }
 <?= \App\Support\Pdf\PdfTemplateStyles::variants($rtl) ?>
 
 /* ---- Saudi (ZATCA-standard bilingual) template ---- */
-.tpl-saudi body, .tpl-saudi { font-family: 'DejaVu Sans', 'Noto Naskh Arabic', sans-serif; font-size: 11px; }
+.tpl-saudi body, .tpl-saudi { font-family: 'Cairo', 'DejaVu Sans', 'Noto Naskh Arabic', sans-serif; font-size: 11px; }
 .tpl-saudi .saudi-header { border: 1.5px solid #16211f; padding: 10px 14px; }
 .tpl-saudi .saudi-header td { vertical-align: middle; }
 .tpl-saudi .saudi-company-en { font-size: 13px; font-weight: 700; }
-.tpl-saudi .saudi-company-ar { font-size: 13px; font-weight: 700; direction: rtl; text-align: right; font-family: 'Noto Naskh Arabic', sans-serif; }
+.tpl-saudi .saudi-company-ar { font-size: 13px; font-weight: 700; direction: rtl; text-align: right; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
 .tpl-saudi .saudi-meta-en { font-size: 9px; color: #444; margin-top: 2px; }
-.tpl-saudi .saudi-meta-ar { font-size: 9px; color: #444; margin-top: 2px; direction: rtl; text-align: right; font-family: 'Noto Naskh Arabic', sans-serif; }
+.tpl-saudi .saudi-meta-ar { font-size: 9px; color: #444; margin-top: 2px; direction: rtl; text-align: right; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
 .tpl-saudi .saudi-logo { text-align: center; }
 .tpl-saudi .saudi-title-bar { text-align: center; background: #16211f; color: #fff; border: 1.5px solid #16211f; border-top: none; padding: 7px; font-weight: 700; font-size: 13px; }
 .tpl-saudi .saudi-info-table { border: 1px solid #16211f; border-top: none; }
 .tpl-saudi .saudi-info-table td { border: 1px solid #16211f; padding: 5px 8px; font-size: 9.5px; }
 .tpl-saudi .saudi-info-table .en { text-align: left; }
-.tpl-saudi .saudi-info-table .ar { text-align: right; direction: rtl; font-family: 'Noto Naskh Arabic', sans-serif; }
+.tpl-saudi .saudi-info-table .ar { text-align: right; direction: rtl; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
 .tpl-saudi .saudi-items-table { margin-top: 0; border: 1px solid #16211f; }
 .tpl-saudi .saudi-items-table th { border: 1px solid #16211f; padding: 6px 8px; font-size: 9.5px; background: #eef1f0; text-align: center; }
 .tpl-saudi .saudi-items-table td { border: 1px solid #16211f; padding: 6px 8px; font-size: 10px; text-align: center; }

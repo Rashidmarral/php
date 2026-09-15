@@ -22,7 +22,9 @@ $tpl = in_array($template ?? null, ['classic', 'minimal', 'bold', 'elegant'], tr
 @page { margin: 20mm 16mm; }
 * { box-sizing: border-box; }
 body {
-  font-family: <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif;
+  /* Cairo (Latin + Arabic) is the default; DejaVu Sans/Noto Naskh Arabic stay as
+     documented fallbacks in case an edge-case glyph is ever missing from Cairo. */
+  font-family: 'Cairo', <?= $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'" ?>, sans-serif;
   color: #16211f;
   font-size: 11.5px;
   direction: <?= $rtl ? 'rtl' : 'ltr' ?>;

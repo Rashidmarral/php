@@ -64,8 +64,11 @@ class PdfTemplateStyles
      */
     public static function variants(bool $rtl): string
     {
-        $arabicSerif = $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Serif'";
-        $arabicSans = $rtl ? "'Noto Naskh Arabic'" : "'DejaVu Sans'";
+        // Cairo (Latin + Arabic) is the default for both languages; the old per-language
+        // choice (DejaVu Serif/Sans for English, Noto Naskh Arabic for Arabic) stays as a
+        // documented fallback rather than being dropped outright.
+        $arabicSerif = $rtl ? "'Cairo', 'Noto Naskh Arabic'" : "'Cairo', 'DejaVu Serif'";
+        $arabicSans = $rtl ? "'Cairo', 'Noto Naskh Arabic'" : "'Cairo', 'DejaVu Sans'";
 
         return <<<CSS
         /* ---- Modern template ---- */
