@@ -22,7 +22,9 @@ class SupportTicketController extends Controller
         }
 
         return view('admin.support.index', [
-            'tickets' => $query->orderByRaw("FIELD(status,'open','pending','resolved','closed')")->orderByDesc('last_message_at')->paginate($this->perPage($request))->withQueryString(),
+            // Plain CASE WHEN instead of MySQL-only FIELD() so this also works against
+            // sqlite (local dev/test) rather than only against production's MySQL.
+            'tickets' => $query->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'pending' THEN 1 WHEN 'resolved' THEN 2 WHEN 'closed' THEN 3 ELSE 4 END")->orderByDesc('last_message_at')->paginate($this->perPage($request))->withQueryString(),
             'statuses' => SupportTicket::STATUSES,
             'priorities' => SupportTicket::PRIORITIES,
             'activeStatus' => $status,
