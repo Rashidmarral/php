@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\Feature;
 use App\Support\Pdf\Pdf;
+use App\Support\SpreadsheetBoqImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 
@@ -55,5 +56,51 @@ abstract class Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    /**
+     * Downloadable CSV template for SpreadsheetBoqImporter::parse() — the exact
+     * headers/order it recognizes for $target, plus one example row, so a user
+     * always has a working starting point instead of guessing column names.
+     * Shared by EstimateController and BoqController's own importTemplate()
+     * actions (same fputcsv() streaming convention as TeamController's WPS
+     * export / Admin\CompanyController's/Admin\PaymentController's CSV exports).
+     */
+    protected function streamCsvTemplate(string $target, string $filename): Response
+    {
+        $csv = fopen('php://temp', 'r+');
+        fputcsv($csv, SpreadsheetBoqImporter::templateHeaders($target));
+        fputcsv($csv, SpreadsheetBoqImporter::templateExampleRow($target));
+        rewind($csv);
+        $body = stream_get_contents($csv);
+        fclose($csv);
+
+        return response($body, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Flashes a SpreadsheetBoqImporter::parse() result: a translated success
+     * summary (imported/failed counts) whenever at least one row was actually
+     * imported, one translated error line per row failure so nothing fails
+     * silently, and a translated "nothing to import" error only when the whole
+     * file produced zero valid rows AND zero row errors (e.g. every row in the
+     * file was entirely blank).
+     */
+    protected function flashImportResult(array $result, string $summaryKey, string $rowErrorKey, string $noRowsKey): void
+    {
+        $importedCount = count($result['valid']);
+        $errorCount = count($result['errors']);
+
+        foreach ($result['errors'] as $err) {
+            $this->flash('error', t($rowErrorKey, ['row' => $err['row'], 'reason' => $err['reason']]));
+        }
+        if ($importedCount > 0) {
+            $this->flash('success', t($summaryKey, ['imported' => $importedCount, 'failed' => $errorCount]));
+        } elseif ($errorCount === 0) {
+            $this->flash('error', t($noRowsKey));
+        }
     }
 }

@@ -96,4 +96,15 @@
   </form>
 </div>
 
+<div class="card" style="margin-top:20px;max-width:900px;">
+  <h3 style="font-size:14px;"><?= t('user.boq.import_title') ?></h3>
+  <p class="help-text"><?= t('user.boq.import_hint') ?></p>
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/boq/import" enctype="multipart/form-data" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+    <button type="submit" class="btn btn-sm btn-outline"><?= t('user.boq.import_button') ?></button>
+    <a href="/app/projects/<?= $project['id'] ?>/boq/import-template" class="btn btn-sm btn-light"><?= t('user.boq.download_template') ?></a>
+  </form>
+</div>
+
 @endsection

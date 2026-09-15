@@ -35,4 +35,15 @@
   <button type="submit" class="btn btn-primary" style="margin-top:16px;">{{ t('common.save_changes') }}</button>
 </form>
 
+<div class="card" style="max-width:1080px;margin-top:20px;">
+  <h3 style="font-size:14px;margin-top:0;">{{ t('user.estimates.import_title') }}</h3>
+  <p class="help-text">{{ t('user.estimates.import_hint') }}</p>
+  <form method="post" action="{{ url('/app/estimates/' . $estimate['id'] . '/import-items') }}" enctype="multipart/form-data" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+    @csrf
+    <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+    <button type="submit" class="btn btn-sm btn-outline">{{ t('user.estimates.import_button') }}</button>
+    <a href="{{ url('/app/estimates/import-template') }}" class="btn btn-sm btn-light">{{ t('user.estimates.download_template') }}</a>
+  </form>
+</div>
+
 @endsection

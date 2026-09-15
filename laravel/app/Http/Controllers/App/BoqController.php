@@ -5,8 +5,10 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Models\BoqItem;
 use App\Models\Project;
+use App\Support\SpreadsheetBoqImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -73,6 +75,61 @@ class BoqController extends Controller
         ]);
 
         return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', 'BOQ line added.');
+    }
+
+    /**
+     * Bulk-appends new BOQ lines parsed from an uploaded spreadsheet — same
+     * "add lines" semantics as store() above, so this is allowed even once
+     * hasAnyPaymentCertificate() has locked editing of existing lines: an
+     * import can only ever create new BoqItem rows, never touch one that's
+     * already there, so it can't corrupt certified history either.
+     */
+    public function import(Request $request, int $projectId): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('payment_certificates')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $project = $this->findOwnedProject($projectId);
+        $boqUrl = '/app/projects/' . $project->id . '/boq';
+
+        $file = $request->file('file');
+        if (!$file) {
+            return $this->redirectWithFlash($boqUrl, 'error', t('user.boq.import_file_required'));
+        }
+
+        $result = SpreadsheetBoqImporter::parse($file, 'boq');
+        if ($result['error'] !== null) {
+            return $this->redirectWithFlash($boqUrl, 'error', $result['error']);
+        }
+
+        $sortOrder = (int) BoqItem::where('project_id', $project->id)->max('sort_order');
+        foreach ($result['valid'] as $row) {
+            $sortOrder++;
+            BoqItem::create([
+                'company_id' => $project->company_id,
+                'project_id' => $project->id,
+                'section_title' => $row['section'] ?: null,
+                'item_number' => $row['item_number'] ?: null,
+                'description' => $row['description'],
+                'uom' => $row['uom'],
+                'qty' => $row['qty'],
+                'unit_price' => $row['unit_price'],
+                'total' => round($row['qty'] * $row['unit_price'], 2),
+                'sort_order' => $sortOrder,
+            ]);
+        }
+
+        $this->flashImportResult($result, 'user.boq.import_summary', 'user.boq.import_row_error', 'user.boq.import_no_rows');
+        return redirect($boqUrl);
+    }
+
+    /** Downloadable CSV template so users know the exact headers/column order import() expects, with one example row — see Controller::streamCsvTemplate(). */
+    public function importTemplate(): Response
+    {
+        return $this->streamCsvTemplate('boq', 'boq-import-template.csv');
     }
 
     public function update(Request $request, int $id): RedirectResponse

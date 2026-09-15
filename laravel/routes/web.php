@@ -163,6 +163,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/site-log', [SiteLogController::class, 'store']);
     Route::get('/projects/{id}/boq', [BoqController::class, 'index']);
     Route::post('/projects/{id}/boq', [BoqController::class, 'store']);
+    Route::get('/projects/{id}/boq/import-template', [BoqController::class, 'importTemplate']);
+    Route::post('/projects/{id}/boq/import', [BoqController::class, 'import']);
     Route::post('/boq/{id}', [BoqController::class, 'update']);
     Route::post('/boq/{id}/delete', [BoqController::class, 'destroy']);
     Route::get('/projects/{id}/payment-certificates', [PaymentCertificateController::class, 'index']);
@@ -213,10 +215,12 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/estimates/templates/{id}', [EstimateController::class, 'storeFromTemplate']);
     Route::get('/estimates/ai', [EstimateController::class, 'aiGenerator']);
     Route::post('/estimates/ai/generate', [EstimateController::class, 'aiGenerate']);
+    Route::get('/estimates/import-template', [EstimateController::class, 'importTemplate']);
     Route::get('/estimates/{id}/pdf', [EstimateController::class, 'pdf']);
     Route::get('/estimates/{id}', [EstimateController::class, 'show']);
     Route::get('/estimates/{id}/edit', [EstimateController::class, 'edit']);
     Route::post('/estimates/{id}/update', [EstimateController::class, 'update']);
+    Route::post('/estimates/{id}/import-items', [EstimateController::class, 'importItems']);
     Route::post('/estimates/{id}/status', [EstimateController::class, 'updateStatus']);
     Route::post('/estimates/{id}/totals', [EstimateController::class, 'updateTotals']);
     Route::post('/estimates/{id}/delete', [EstimateController::class, 'destroy']);

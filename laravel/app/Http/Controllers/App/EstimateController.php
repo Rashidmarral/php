@@ -19,6 +19,7 @@ use App\Models\UnitOfMeasure;
 use App\Support\AiEstimateGenerator;
 use App\Support\EstimateCalc;
 use App\Support\Sms;
+use App\Support\SpreadsheetBoqImporter;
 use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
 use App\Support\Zatca\InvoiceChainer;
@@ -603,6 +604,78 @@ class EstimateController extends Controller
 
         $this->flash('success', 'Estimate updated.');
         return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    /**
+     * Bulk-appends new line items parsed from an uploaded spreadsheet to an
+     * existing estimate — never replaces the items already there, mirroring
+     * store()/update()'s own "these are additional rows" semantics rather
+     * than a destructive re-import. Gated by the exact same assertEditable()
+     * rule as update()/updateTotals(): once a client has signed (accepted),
+     * an import can no longer silently change the numbers under that
+     * signature either.
+     */
+    public function importItems(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        if ($redirect = $this->assertEditable($estimate)) {
+            return $redirect;
+        }
+        $editUrl = '/app/estimates/' . $estimate->id . '/edit';
+
+        $file = $request->file('file');
+        if (!$file) {
+            return $this->redirectWithFlash($editUrl, 'error', t('user.estimates.import_file_required'));
+        }
+
+        $result = SpreadsheetBoqImporter::parse($file, 'estimate');
+        if ($result['error'] !== null) {
+            return $this->redirectWithFlash($editUrl, 'error', $result['error']);
+        }
+
+        $addedSubtotal = 0.0;
+        foreach ($result['valid'] as $row) {
+            $lineTotal = round($row['qty'] * $row['unit_price'], 2);
+            $addedSubtotal += $lineTotal;
+            EstimateItem::create([
+                'estimate_id' => $estimate->id,
+                'description' => $row['description'],
+                'section_title' => $row['section'] ?: null,
+                'item_type' => $row['type'],
+                'qty' => $row['qty'],
+                'uom' => $row['uom'] ?: 'each',
+                'unit_cost' => $row['unit_price'],
+                'total' => $lineTotal,
+                'is_optional' => false,
+            ]);
+        }
+
+        // Recompute the same way store()/update() do, keeping the estimate's
+        // existing markup/tax selection — an import only ever adds cost, it
+        // never touches those choices.
+        if ($addedSubtotal > 0) {
+            $subtotal = (float) $estimate->subtotal + $addedSubtotal;
+            $calc = EstimateCalc::compute($subtotal, (float) $estimate->markup_percent, (float) $estimate->tax_percent);
+            $estimate->update([
+                'subtotal' => $subtotal,
+                'markup_amount' => $calc['markup_amount'],
+                'tax_amount' => $calc['tax_amount'],
+                'total' => $calc['total'],
+            ]);
+        }
+
+        $this->flashImportResult($result, 'user.estimates.import_summary', 'user.estimates.import_row_error', 'user.estimates.import_no_rows');
+
+        return redirect($editUrl);
+    }
+
+    /** Downloadable CSV template so users know the exact headers/column order importItems() expects, with one example row — see Controller::streamCsvTemplate(). */
+    public function importTemplate(): Response
+    {
+        return $this->streamCsvTemplate('estimate', 'estimate-import-template.csv');
     }
 
     public function duplicate(int $id): RedirectResponse
