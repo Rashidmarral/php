@@ -18,6 +18,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\ScheduleTask;
 use App\Models\SiteLog;
+use App\Models\Subcontract;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\VendorBill;
@@ -234,6 +235,17 @@ class ProjectController extends Controller
         $boqItems = BoqItem::where('project_id', $project->id)->orderBy('sort_order')->orderBy('id')->get();
         $paymentCertificates = PaymentCertificate::where('project_id', $project->id)->orderByDesc('certificate_number')->limit(5)->get();
         $paymentCertificateCount = PaymentCertificate::where('project_id', $project->id)->count();
+        $subcontractModels = Subcontract::where('project_id', $project->id)->orderByDesc('created_at')->limit(5)->get();
+        $subcontractCount = Subcontract::where('project_id', $project->id)->count();
+        $subcontractSuppliers = Supplier::where('company_id', $project->company_id)->get()->keyBy('id');
+        $subcontracts = $subcontractModels->map(fn (Subcontract $s) => [
+            ...$s->toArray(),
+            'supplier_name' => $subcontractSuppliers->get($s->supplier_id)->name ?? '—',
+        ])->all();
+        $allSubcontracts = Subcontract::where('project_id', $project->id)->get();
+        $subcontractsContractValue = (float) $allSubcontracts->sum('contract_value');
+        $subcontractsCumulativePaid = round($allSubcontracts->sum(fn (Subcontract $s) => $s->cumulativePaid()), 2);
+        $subcontractsRetentionHeld = round($allSubcontracts->sum(fn (Subcontract $s) => $s->retentionHeld()), 2);
         $bankGuarantees = BankGuarantee::where('project_id', $project->id)
             ->orderByRaw('expiry_date IS NULL')
             ->orderBy('expiry_date')
@@ -278,6 +290,12 @@ class ProjectController extends Controller
             'paymentCertificateCount' => $paymentCertificateCount,
             'cumulativeCertified' => (float) $paymentCertificates->max('cumulative_certified'),
             'retentionHeld' => $project->retentionHeld(),
+            'subcontracts' => $subcontracts,
+            'subcontractStatuses' => Subcontract::STATUSES,
+            'subcontractCount' => $subcontractCount,
+            'subcontractsContractValue' => $subcontractsContractValue,
+            'subcontractsCumulativePaid' => $subcontractsCumulativePaid,
+            'subcontractsRetentionHeld' => $subcontractsRetentionHeld,
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
             'siteLogs' => $siteLogs->toArray(),

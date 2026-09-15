@@ -75,6 +75,11 @@ class Project extends Model
         return $this->hasMany(PaymentCertificate::class);
     }
 
+    public function subcontracts(): HasMany
+    {
+        return $this->hasMany(Subcontract::class);
+    }
+
     /** Sum of every BOQ line's contract value — the total contract sum this project's certificates claim against. */
     public function boqContractValue(): float
     {

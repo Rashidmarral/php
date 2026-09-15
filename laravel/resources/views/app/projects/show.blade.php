@@ -370,6 +370,42 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.subcontracts.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.subcontracts.card_hint') ?></p>
+
+  <div class="kpi-grid" style="margin-bottom:14px;">
+    <div class="kpi"><div class="label"><?= t('user.subcontracts.contract_value') ?></div><div class="value" style="font-size:18px;"><?= money($subcontractsContractValue) ?></div></div>
+    <div class="kpi"><div class="label"><?= t('user.subcontracts.cumulative_paid') ?></div><div class="value" style="font-size:18px;"><?= money($subcontractsCumulativePaid) ?></div></div>
+    <div class="kpi"><div class="label"><?= t('user.subcontracts.retention_held') ?></div><div class="value" style="font-size:18px;"><?= money($subcontractsRetentionHeld) ?></div></div>
+  </div>
+
+  <?php if (empty($subcontracts)): ?>
+    <p class="help-text"><?= t('user.subcontracts.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th><?= t('common.title') ?></th><th><?= t('user.subcontracts.subcontractor') ?></th><th><?= t('common.status') ?></th><th><?= t('user.subcontracts.contract_value') ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($subcontracts as $s): ?>
+        <tr>
+          <td><a href="/app/subcontracts/<?= $s['id'] ?>"><?= e($s['title']) ?></a></td>
+          <td><?= e($s['supplier_name']) ?></td>
+          <td><span class="badge <?= $s['status'] === 'active' ? 'badge-green' : ($s['status'] === 'terminated' ? 'badge-red' : 'badge-gray') ?>"><?= e($subcontractStatuses[$s['status']] ?? ucfirst($s['status'])) ?></span></td>
+          <td><?= money((float)$s['contract_value']) ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="/app/projects/<?= $project['id'] ?>/subcontracts" class="btn btn-outline">
+      <?= $subcontractCount > 0 ? t('user.subcontracts.view_all', ['count' => $subcontractCount]) : t('user.subcontracts.title') ?>
+    </a>
+    <a href="/app/projects/<?= $project['id'] ?>/subcontracts/create" class="btn btn-primary"><?= t('user.subcontracts.new') ?></a>
+  </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.punch_list.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.punch_list.hint') ?></p>
 

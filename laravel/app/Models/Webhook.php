@@ -13,6 +13,7 @@ class Webhook extends Model
         'invoice.created' => 'Invoice created',
         'invoice.paid' => 'Invoice paid',
         'payment_certificate.certified' => 'Payment certificate certified',
+        'subcontract_payment.certified' => 'Subcontract payment certified',
     ];
 
     public $timestamps = true;
