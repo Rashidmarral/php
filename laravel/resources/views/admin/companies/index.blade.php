@@ -23,6 +23,7 @@
     <?php endforeach; ?>
     </tbody>
   </table>
+  @include('admin.partials.pagination', ['paginator' => $companies])
 <?php endif; ?>
 
 @endsection

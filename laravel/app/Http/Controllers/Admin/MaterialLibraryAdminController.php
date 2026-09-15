@@ -17,13 +17,14 @@ class MaterialLibraryAdminController extends Controller
         'Aggregates', 'Sanitaryware', 'Glass & Aluminum',
     ];
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $items = MaterialLibraryItem::query()
             ->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->get();
+            ->paginate($this->perPage($request))
+            ->withQueryString();
 
         return view('admin.material-library.index', [
             'items' => $items,

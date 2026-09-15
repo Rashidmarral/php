@@ -51,5 +51,6 @@
   <?php endif; ?>
   </tbody>
 </table>
+@include('admin.partials.pagination', ['paginator' => $consultations])
 
 @endsection

@@ -37,7 +37,7 @@
 <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
   <input type="text" id="lib-search" placeholder="<?= t('admin.material_library.search_placeholder') ?>" style="flex:1;min-width:220px;">
   <select id="lib-category-filter">
-    <option value=""><?= t('user.materials.all_categories') ?> (<?= count($items) ?>)</option>
+    <option value=""><?= t('user.materials.all_categories') ?> (<?= $items->total() ?>)</option>
     <?php foreach ($categories as $cat): ?>
       <option value="<?= e(strtolower($cat)) ?>"><?= e($cat) ?></option>
     <?php endforeach; ?>
@@ -80,6 +80,7 @@
   </tbody>
 </table>
 </div>
+@include('admin.partials.pagination', ['paginator' => $items])
 
 <script>
 (function() {

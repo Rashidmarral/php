@@ -44,5 +44,6 @@
   <?php endif; ?>
   </tbody>
 </table>
+@include('admin.partials.pagination', ['paginator' => $logs])
 
 @endsection

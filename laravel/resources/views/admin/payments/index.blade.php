@@ -42,6 +42,7 @@
     <?php endforeach; ?>
     </tbody>
   </table>
+  @include('admin.partials.pagination', ['paginator' => $payments])
 <?php endif; ?>
 
 @endsection

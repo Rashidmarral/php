@@ -22,7 +22,7 @@ class SupportTicketController extends Controller
         }
 
         return view('admin.support.index', [
-            'tickets' => $query->orderByRaw("FIELD(status,'open','pending','resolved','closed')")->orderByDesc('last_message_at')->get(),
+            'tickets' => $query->orderByRaw("FIELD(status,'open','pending','resolved','closed')")->orderByDesc('last_message_at')->paginate($this->perPage($request))->withQueryString(),
             'statuses' => SupportTicket::STATUSES,
             'priorities' => SupportTicket::PRIORITIES,
             'activeStatus' => $status,

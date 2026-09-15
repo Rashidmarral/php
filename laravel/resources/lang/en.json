@@ -603,7 +603,7 @@
     "admin.usage.unlimited": "unlimited",
     "admin.usage.no_companies": "No companies yet.",
     "admin.audit.title": "Audit Log",
-    "admin.audit.hint": "A record of admin actions on the platform — who changed what, and when. Showing the most recent 300 entries.",
+    "admin.audit.hint": "A record of admin actions on the platform — who changed what, and when.",
     "admin.audit.admin": "Admin",
     "admin.audit.name_contains": "Name contains…",
     "admin.audit.action": "Action",
@@ -1920,5 +1920,11 @@
     "user.ld_eot.reason_placeholder": "e.g. Client-instructed scope change, unusual weather delay...",
     "user.ld_eot.submit_request": "Submit Request",
     "user.ld_eot.withdraw": "Withdraw",
-    "user.ld_eot.withdraw_confirm": "Withdraw this Extension of Time request?"
+    "user.ld_eot.withdraw_confirm": "Withdraw this Extension of Time request?",
+    "admin.pagination.show": "Show",
+    "admin.pagination.per_page_suffix": "per page",
+    "admin.pagination.showing": "Showing :from–:thru of :total",
+    "admin.pagination.prev": "Prev",
+    "admin.pagination.next": "Next",
+    "admin.pagination.page_of": "Page :page of :last"
 }

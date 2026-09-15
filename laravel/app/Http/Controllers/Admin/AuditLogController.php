@@ -18,8 +18,8 @@ class AuditLogController extends Controller
             ->when($adminFilter !== '', fn ($q) => $q->where('admin_name', 'like', '%' . $adminFilter . '%'))
             ->when($actionFilter !== '', fn ($q) => $q->where('action', $actionFilter))
             ->orderByDesc('created_at')
-            ->limit(300)
-            ->get();
+            ->paginate($this->perPage($request))
+            ->withQueryString();
 
         $actions = AuditLog::query()->select('action')->distinct()->orderBy('action')->pluck('action');
 

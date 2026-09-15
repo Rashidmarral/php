@@ -15,17 +15,19 @@ use Illuminate\View\View;
 
 class PaymentController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $payments = DB::table('payments as pay')
             ->join('companies as c', 'c.id', '=', 'pay.company_id')
             ->select('pay.*', 'c.name as company_name')
             ->orderByDesc('pay.created_at')
-            ->get()
-            ->map(fn ($r) => (array) $r);
+            ->paginate($this->perPage($request))
+            ->through(fn ($r) => (array) $r)
+            ->withQueryString();
 
-        $total = $payments->where('status', 'paid')->sum(fn ($p) => (float) $p['amount']);
-        $pendingCount = $payments->where('status', 'pending')->count();
+        // Computed over every payment, not just the current page, so the KPI cards stay accurate while paginated.
+        $total = (float) DB::table('payments')->where('status', 'paid')->sum('amount');
+        $pendingCount = DB::table('payments')->where('status', 'pending')->count();
 
         return view('admin.payments.index', [
             'payments' => $payments,

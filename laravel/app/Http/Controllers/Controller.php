@@ -6,10 +6,21 @@ use App\Support\Feature;
 use App\Support\Pdf\Pdf;
 use App\Support\SpreadsheetBoqImporter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 abstract class Controller
 {
+    /** Allowed rows-per-page choices for the shared admin.partials.pagination selector. */
+    protected const PER_PAGE_OPTIONS = [10, 20, 50];
+
+    /** Reads and validates ?per_page= against PER_PAGE_OPTIONS, falling back to $default for anything else. */
+    protected function perPage(Request $request, int $default = 20): int
+    {
+        $value = (int) $request->query('per_page', $default);
+        return in_array($value, self::PER_PAGE_OPTIONS, true) ? $value : $default;
+    }
+
     protected function flash(string $type, string $message): void
     {
         session()->push("flash.{$type}", $message);

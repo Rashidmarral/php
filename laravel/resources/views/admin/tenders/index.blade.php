@@ -38,6 +38,7 @@
     <?php endforeach; ?>
     </tbody>
   </table>
+  @include('admin.partials.pagination', ['paginator' => $tenders])
 <?php endif; ?>
 
 @endsection

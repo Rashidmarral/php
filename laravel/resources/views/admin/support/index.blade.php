@@ -31,4 +31,5 @@
   @endforelse
   </tbody>
 </table>
+@include('admin.partials.pagination', ['paginator' => $tickets])
 @endsection

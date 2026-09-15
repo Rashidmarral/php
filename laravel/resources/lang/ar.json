@@ -603,7 +603,7 @@
     "admin.usage.unlimited": "غير محدود",
     "admin.usage.no_companies": "لا توجد شركات بعد.",
     "admin.audit.title": "سجل التدقيق",
-    "admin.audit.hint": "سجل بإجراءات المشرفين على المنصة — من غيّر ماذا ومتى. يعرض آخر 300 سجل.",
+    "admin.audit.hint": "سجل بإجراءات المشرفين على المنصة — من غيّر ماذا ومتى.",
     "admin.audit.admin": "المشرف",
     "admin.audit.name_contains": "الاسم يحتوي على…",
     "admin.audit.action": "الإجراء",
@@ -1920,5 +1920,11 @@
     "user.ld_eot.reason_placeholder": "مثال: تغيير في نطاق العمل بتوجيه من العميل، تأخير بسبب طقس غير معتاد...",
     "user.ld_eot.submit_request": "إرسال الطلب",
     "user.ld_eot.withdraw": "سحب",
-    "user.ld_eot.withdraw_confirm": "هل تريد سحب طلب تمديد المدة هذا؟"
+    "user.ld_eot.withdraw_confirm": "هل تريد سحب طلب تمديد المدة هذا؟",
+    "admin.pagination.show": "عرض",
+    "admin.pagination.per_page_suffix": "لكل صفحة",
+    "admin.pagination.showing": "عرض :from–:thru من :total",
+    "admin.pagination.prev": "السابق",
+    "admin.pagination.next": "التالي",
+    "admin.pagination.page_of": "صفحة :page من :last"
 }

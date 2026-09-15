@@ -11,10 +11,10 @@ use Illuminate\View\View;
 /** Admin-curated global feed of government/giga-project tender opportunities — see Tender model. */
 class TenderAdminController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         return view('admin.tenders.index', [
-            'tenders' => Tender::orderBy('submission_deadline')->orderBy('sort_order')->get(),
+            'tenders' => Tender::orderBy('submission_deadline')->orderBy('sort_order')->paginate($this->perPage($request))->withQueryString(),
             'categories' => Tender::TYPES,
         ]);
     }

@@ -21,14 +21,15 @@ class CompanyController extends Controller
 {
     private const ALLOWED_DOC_TYPES = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $companies = DB::table('companies as c')
             ->leftJoin('plans as p', 'p.id', '=', 'c.plan_id')
             ->select('c.*', 'p.name as plan_name')
             ->orderByDesc('c.created_at')
-            ->get()
-            ->map(fn ($r) => (array) $r);
+            ->paginate($this->perPage($request))
+            ->through(fn ($r) => (array) $r)
+            ->withQueryString();
 
         return view('admin.companies.index', ['companies' => $companies]);
     }

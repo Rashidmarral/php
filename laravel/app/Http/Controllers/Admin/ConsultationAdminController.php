@@ -23,7 +23,8 @@ class ConsultationAdminController extends Controller
             ->orderByDesc(DB::raw("(consultations.status = 'requested')"))
             ->orderByDesc('consultations.created_at')
             ->select('consultations.*', 'c.name as company_name', 'u.name as requested_by_name')
-            ->get();
+            ->paginate($this->perPage($request))
+            ->withQueryString();
 
         return view('admin.consultations.index', [
             'consultations' => $consultations,
