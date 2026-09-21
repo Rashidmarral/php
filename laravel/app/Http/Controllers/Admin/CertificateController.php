@@ -25,16 +25,16 @@ class CertificateController extends Controller
     {
         $titleEn = trim((string) $request->input('title_en'));
         if ($titleEn === '') {
-            return $this->redirectWithFlash('/admin/certificates', 'error', 'Please enter a certificate title.');
+            return $this->redirectWithFlash('/admin/certificates', 'error', t('admin.certificates.title_required'));
         }
 
         /** @var UploadedFile|null $file */
         $file = $request->file('image');
         if (!$file || !$file->isValid() || !isset(self::ALLOWED_TYPES[$file->getMimeType()])) {
-            return $this->redirectWithFlash('/admin/certificates', 'error', 'Please upload a PNG, JPG, WEBP, or SVG image.');
+            return $this->redirectWithFlash('/admin/certificates', 'error', t('admin.certificates.image_type_invalid'));
         }
         if ($file->getSize() > 3 * 1024 * 1024) {
-            return $this->redirectWithFlash('/admin/certificates', 'error', 'Image must be smaller than 3MB.');
+            return $this->redirectWithFlash('/admin/certificates', 'error', t('admin.certificates.image_max_size'));
         }
         $filename = 'certificate-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_TYPES[$file->getMimeType()];
         $file->move(public_path('uploads/certificates'), $filename);
@@ -49,7 +49,7 @@ class CertificateController extends Controller
             'is_active' => true,
         ]);
 
-        $this->flash('success', 'Certificate added.');
+        $this->flash('success', t('admin.certificates.added'));
         return redirect('/admin/certificates');
     }
 
@@ -68,7 +68,7 @@ class CertificateController extends Controller
             unlink($file);
         }
         $certificate->delete();
-        $this->flash('success', 'Certificate removed.');
+        $this->flash('success', t('admin.certificates.removed'));
         return redirect('/admin/certificates');
     }
 

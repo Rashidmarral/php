@@ -26,7 +26,7 @@ class PlanController extends Controller
     {
         $plan = $this->save($request, null);
         AuditLog::record($request->user(), 'plan_create', 'plan', null, trim((string) $request->input('name')));
-        return $this->redirectWithFlash('/admin/plans', 'success', 'Plan created.');
+        return $this->redirectWithFlash('/admin/plans', 'success', t('admin.plans.created'));
     }
 
     public function edit(int $id): View
@@ -40,7 +40,7 @@ class PlanController extends Controller
         $plan = Plan::findOrFail($id);
         $this->save($request, $plan->id);
         AuditLog::record($request->user(), 'plan_update', 'plan', $plan->id, $plan->name);
-        return $this->redirectWithFlash('/admin/plans', 'success', 'Plan updated.');
+        return $this->redirectWithFlash('/admin/plans', 'success', t('admin.plans.updated'));
     }
 
     public function destroy(Request $request, int $id): RedirectResponse
@@ -48,7 +48,7 @@ class PlanController extends Controller
         $plan = Plan::find($id);
         Plan::destroy($id);
         AuditLog::record($request->user(), 'plan_delete', 'plan', $id, $plan->name ?? '');
-        return $this->redirectWithFlash('/admin/plans', 'success', 'Plan deleted.');
+        return $this->redirectWithFlash('/admin/plans', 'success', t('admin.plans.deleted'));
     }
 
     private function save(Request $request, ?int $id): Plan

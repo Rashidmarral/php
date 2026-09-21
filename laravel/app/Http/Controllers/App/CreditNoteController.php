@@ -74,7 +74,7 @@ class CreditNoteController extends Controller
 
         $invoice = $this->ownedInvoice($invoiceId, $companyId);
         if ($invoice->remainingCreditableTotal() <= 0.01) {
-            return $this->redirectWithFlash('/app/credit-notes/create', 'error', 'This invoice has no remaining creditable amount — it may already be fully credited.');
+            return $this->redirectWithFlash('/app/credit-notes/create', 'error', t('user.credit_notes.no_remaining_creditable'));
         }
 
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get()->toArray();
@@ -99,7 +99,7 @@ class CreditNoteController extends Controller
 
         [$items, $subtotal] = $this->parseItems($request);
         if (empty($items)) {
-            return $this->redirectWithFlash('/app/credit-notes/create?invoice_id=' . $invoice->id, 'error', 'Add at least one line item with a positive quantity.');
+            return $this->redirectWithFlash('/app/credit-notes/create?invoice_id=' . $invoice->id, 'error', t('common.line_item_required'));
         }
 
         $vatRate = (float) $invoice->vat_rate;
@@ -111,7 +111,7 @@ class CreditNoteController extends Controller
         // invoice's live remainingCreditableTotal() (which already
         // accounts for every other issued credit note against it).
         if ($total - $invoice->remainingCreditableTotal() > 0.01) {
-            return $this->redirectWithFlash('/app/credit-notes/create?invoice_id=' . $invoice->id, 'error', 'This credit note (' . number_format($total, 2) . ' SAR) exceeds the amount remaining on the invoice (' . number_format($invoice->remainingCreditableTotal(), 2) . ' SAR).');
+            return $this->redirectWithFlash('/app/credit-notes/create?invoice_id=' . $invoice->id, 'error', t('user.credit_notes.exceeds_remaining', ['total' => number_format($total, 2), 'remaining' => number_format($invoice->remainingCreditableTotal(), 2)]));
         }
 
         $client = $this->ownedClient($invoice->client_id, $companyId);
@@ -141,7 +141,7 @@ class CreditNoteController extends Controller
 
         $this->chainZatcaCreditNote($creditNote->fresh(), $company, $invoice, $client, $items, $zatcaSync);
 
-        $this->flash('success', 'Credit note issued.');
+        $this->flash('success', t('user.credit_notes.issued'));
         return redirect('/app/credit-notes/' . $creditNote->id);
     }
 
@@ -232,7 +232,7 @@ class CreditNoteController extends Controller
     {
         $creditNote = $this->findOwned($id);
         if (empty($creditNote->zatca_uuid)) {
-            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', 'This credit note has no ZATCA chain data.');
+            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', t('user.credit_notes.no_zatca_chain_data'));
         }
         $items = CreditNoteItem::where('credit_note_id', $creditNote->id)->orderBy('id')->get();
         $invoice = $this->ownedInvoice($creditNote->invoice_id, $creditNote->company_id);
@@ -269,10 +269,10 @@ class CreditNoteController extends Controller
         $company = Company::find($creditNote->company_id);
 
         if (!$company || !$company->isZatcaOnboarded()) {
-            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', "ZATCA Phase 2 isn't activated for your company yet. Ask your platform administrator to complete onboarding.");
+            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', t('common.zatca_phase2_not_activated'));
         }
         if (empty($creditNote->zatca_uuid)) {
-            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', 'This credit note has no ZATCA chain data.');
+            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', t('user.credit_notes.no_zatca_chain_data'));
         }
 
         $items = CreditNoteItem::where('credit_note_id', $creditNote->id)->orderBy('id')->get();
@@ -281,7 +281,7 @@ class CreditNoteController extends Controller
 
         $result = $zatcaSync->submitCreditNote($creditNote, $company, $client, $this->itemsForXml($items), $invoice);
 
-        $this->flash($result['ok'] ? 'success' : 'error', $result['ok'] ? $result['message'] : 'ZATCA rejected the credit note: ' . $result['message']);
+        $this->flash($result['ok'] ? 'success' : 'error', $result['ok'] ? $result['message'] : t('user.credit_notes.zatca_rejected', ['reason' => $result['message']]));
 
         return redirect('/app/credit-notes/' . $creditNote->id);
     }
@@ -296,10 +296,10 @@ class CreditNoteController extends Controller
             return redirect('/app/credit-notes/' . $creditNote->id);
         }
         if ($creditNote->isZatcaLocked()) {
-            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', 'This credit note has been cleared/reported to ZATCA and is now part of an immutable tax record — it can no longer be voided.');
+            return $this->redirectWithFlash('/app/credit-notes/' . $creditNote->id, 'error', t('user.credit_notes.zatca_locked_cannot_void'));
         }
         $creditNote->update(['status' => 'void']);
-        $this->flash('success', 'Credit note voided.');
+        $this->flash('success', t('user.credit_notes.voided'));
         return redirect('/app/credit-notes/' . $creditNote->id);
     }
 

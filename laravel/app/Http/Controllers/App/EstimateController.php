@@ -210,7 +210,7 @@ class EstimateController extends Controller
         }
         WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
 
-        $this->flash('success', 'Estimate created from "' . $template->name_en . '".');
+        $this->flash('success', t('user.estimates.created_from_template', ['template' => $template->name_en]));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -270,10 +270,10 @@ class EstimateController extends Controller
             $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
             $mime = $photo->getMimeType();
             if (!isset($allowed[$mime])) {
-                return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Photo must be a JPG, PNG, or WEBP file.');
+                return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.photo_type_invalid'));
             }
             if ($photo->getSize() > 8 * 1024 * 1024) {
-                return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Photo must be smaller than 8MB.');
+                return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.photo_max_size'));
             }
             $filename = bin2hex(random_bytes(12)) . '.' . $allowed[$mime];
             $photo->move(public_path("uploads/ai-estimate-tmp/{$companyId}"), $filename);
@@ -282,7 +282,7 @@ class EstimateController extends Controller
         }
 
         if ($description === '' && $imagePath === null) {
-            return $this->redirectWithFlash('/app/estimates/ai', 'error', 'Describe the project or attach a photo first.');
+            return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.description_or_photo_required'));
         }
 
         // The uploaded photo is transient, one-shot AI input — there's no Estimate row to
@@ -342,7 +342,7 @@ class EstimateController extends Controller
         if (!empty($result['note'])) {
             $this->flash('success', $result['note']);
         } else {
-            $this->flash('success', 'AI-generated estimate created — review and adjust as needed.');
+            $this->flash('success', t('user.estimates.ai_created'));
         }
         return redirect('/app/estimates/' . $estimate->id);
     }
@@ -381,7 +381,7 @@ class EstimateController extends Controller
         $title = trim((string) $request->input('title'));
 
         if ($title === '') {
-            return $this->redirectWithFlash('/app/estimates/create', 'error', 'Estimate title is required.');
+            return $this->redirectWithFlash('/app/estimates/create', 'error', t('user.estimates.title_required'));
         }
 
         $sections = $request->input('item_section', []);
@@ -457,7 +457,7 @@ class EstimateController extends Controller
         }
         WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
 
-        $this->flash('success', 'Estimate created.');
+        $this->flash('success', t('user.estimates.created'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -531,7 +531,7 @@ class EstimateController extends Controller
         $title = trim((string) $request->input('title'));
 
         if ($title === '') {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', 'Estimate title is required.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', t('user.estimates.title_required'));
         }
 
         $sections = $request->input('item_section', []);
@@ -602,7 +602,7 @@ class EstimateController extends Controller
             'valid_until' => trim((string) $request->input('valid_until', '')) ?: now()->addDays(30)->toDateString(),
         ]);
 
-        $this->flash('success', 'Estimate updated.');
+        $this->flash('success', t('user.estimates.updated'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -734,7 +734,7 @@ class EstimateController extends Controller
         }
         WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
 
-        $this->flash('success', 'Estimate duplicated — review and send.');
+        $this->flash('success', t('user.estimates.duplicated'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -752,10 +752,10 @@ class EstimateController extends Controller
         $estimate = $this->findOwned($id);
 
         if ($estimate->status !== 'accepted') {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'Only a signed/accepted estimate can be converted to an invoice.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.not_accepted_for_invoice'));
         }
         if (Invoice::where('source_estimate_id', $estimate->id)->exists()) {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate has already been converted to an invoice.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.already_converted'));
         }
 
         $companyId = $estimate->company_id;
@@ -803,7 +803,7 @@ class EstimateController extends Controller
         InvoiceChainer::chain($invoice->fresh(), $company, $client, $items, $zatcaSync);
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
 
-        $this->flash('success', 'Invoice #' . $invoice->invoice_number . ' created from this estimate.');
+        $this->flash('success', t('user.estimates.invoice_created', ['number' => $invoice->invoice_number]));
         return redirect('/app/invoices/' . $invoice->id);
     }
 
@@ -843,7 +843,7 @@ class EstimateController extends Controller
         if ($estimate->status !== 'accepted') {
             return null;
         }
-        return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate has already been signed and can no longer be edited — duplicate it to send a revised version.');
+        return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.locked_signed'));
     }
 
     public function updateTotals(Request $request, int $id): RedirectResponse
@@ -869,7 +869,7 @@ class EstimateController extends Controller
             'total' => $calc['total'],
         ]);
 
-        $this->flash('success', 'Markup and tax updated.');
+        $this->flash('success', t('user.estimates.markup_tax_updated'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -933,10 +933,10 @@ class EstimateController extends Controller
         $company = Company::find($estimate->company_id);
 
         if ($estimate->isApprovalBlocked()) {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate is awaiting internal approval before it can be sent.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.awaiting_approval_cannot_send'));
         }
         if (!$client || empty($client->phone)) {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate has no client phone number on file.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.no_client_phone'));
         }
         if (empty($estimate->share_token)) {
             $estimate->update(['share_token' => bin2hex(random_bytes(20))]);
@@ -947,9 +947,9 @@ class EstimateController extends Controller
         $result = Sms::sendMessage($client->phone, $message);
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'SMS notification sent.');
+            $this->flash('success', t('common.sms_notification_sent'));
         } else {
-            $this->flash('error', 'Could not send SMS notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('common.sms_send_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/estimates/' . $estimate->id);
     }
@@ -962,11 +962,11 @@ class EstimateController extends Controller
         $estimate = $this->findOwned($id);
         $status = (string) $request->input('status', 'draft');
         if ($status === 'sent' && $estimate->isApprovalBlocked()) {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate is awaiting internal approval before it can be sent.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.awaiting_approval_cannot_send'));
         }
         if (in_array($status, ['draft', 'sent', 'accepted', 'declined'], true)) {
             $estimate->update(['status' => $status]);
-            $this->flash('success', 'Estimate status updated.');
+            $this->flash('success', t('user.estimates.status_updated'));
         }
         return redirect('/app/estimates/' . $estimate->id);
     }
@@ -979,11 +979,11 @@ class EstimateController extends Controller
         }
         $estimate = $this->findOwned($id);
         if ($estimate->approval_status !== 'pending') {
-            $this->flash('error', 'This estimate is not awaiting approval.');
+            $this->flash('error', t('user.estimates.not_awaiting_approval'));
             return redirect('/app/estimates/' . $estimate->id);
         }
         $estimate->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
-        $this->flash('success', 'Estimate approved — it can now be sent to the client.');
+        $this->flash('success', t('user.estimates.approved'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -994,7 +994,7 @@ class EstimateController extends Controller
         }
         $estimate = $this->findOwned($id);
         if ($estimate->approval_status !== 'pending') {
-            $this->flash('error', 'This estimate is not awaiting approval.');
+            $this->flash('error', t('user.estimates.not_awaiting_approval'));
             return redirect('/app/estimates/' . $estimate->id);
         }
         $estimate->update([
@@ -1003,7 +1003,7 @@ class EstimateController extends Controller
             'approved_by' => null,
             'approved_at' => null,
         ]);
-        $this->flash('success', 'Estimate rejected.');
+        $this->flash('success', t('user.estimates.rejected'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -1025,13 +1025,13 @@ class EstimateController extends Controller
         $company = Company::find($estimate->company_id);
 
         if ($estimate->approval_status !== 'pending') {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'This estimate is not awaiting approval.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.not_awaiting_approval'));
         }
         if ((int) $estimate->approval_requested_by !== (int) Auth::id()) {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'Only the person who requested approval can send this reminder.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.only_requester_can_remind'));
         }
         if (empty($company->phone)) {
-            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', 'Your company has no contact phone number on file to notify the approver.');
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id, 'error', t('user.estimates.no_company_phone'));
         }
 
         $result = WhatsApp::sendMessage($company->phone, $this->approverPingMessage($estimate, $company));
@@ -1052,7 +1052,7 @@ class EstimateController extends Controller
         $estimate = $this->findOwned($id);
         EstimateItem::where('estimate_id', $estimate->id)->delete();
         $estimate->delete();
-        $this->flash('success', 'Estimate deleted.');
+        $this->flash('success', t('user.estimates.deleted'));
         return redirect('/app/estimates');
     }
 

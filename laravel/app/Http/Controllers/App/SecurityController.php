@@ -58,17 +58,17 @@ class SecurityController extends Controller
             return redirect('/app/security');
         }
         if (!$user->two_factor_secret) {
-            return $this->redirectWithFlash('/app/security', 'error', 'Please start two-factor setup again.');
+            return $this->redirectWithFlash('/app/security', 'error', t('user.security.restart_2fa_setup'));
         }
 
         $code = trim((string) $request->input('code'));
         if (!Totp::verify($user->two_factor_secret, $code)) {
-            return $this->redirectWithFlash('/app/security', 'error', "That code didn't match — check your authenticator app and try again.");
+            return $this->redirectWithFlash('/app/security', 'error', t('user.security.code_mismatch'));
         }
 
         $this->issueRecoveryCodesAndConfirm($request, $user);
 
-        $this->flash('success', 'Two-factor authentication is now enabled on your account.');
+        $this->flash('success', t('user.security.2fa_enabled'));
         return redirect('/app/security');
     }
 
@@ -82,7 +82,7 @@ class SecurityController extends Controller
         }
 
         if (!$this->reauthenticated($request, $user)) {
-            return $this->redirectWithFlash('/app/security', 'error', 'Enter your current password or a valid authenticator code to disable two-factor authentication.');
+            return $this->redirectWithFlash('/app/security', 'error', t('user.security.reauth_required_disable'));
         }
 
         $user->forceFill([
@@ -91,7 +91,7 @@ class SecurityController extends Controller
             'two_factor_confirmed_at' => null,
         ])->save();
 
-        $this->flash('success', 'Two-factor authentication has been disabled.');
+        $this->flash('success', t('user.security.2fa_disabled'));
         return redirect('/app/security');
     }
 
@@ -103,12 +103,12 @@ class SecurityController extends Controller
         }
 
         if (!$this->reauthenticated($request, $user)) {
-            return $this->redirectWithFlash('/app/security', 'error', 'Enter your current password or a valid authenticator code to regenerate recovery codes.');
+            return $this->redirectWithFlash('/app/security', 'error', t('user.security.reauth_required_recovery_codes'));
         }
 
         $this->issueRecoveryCodes($request, $user);
 
-        $this->flash('success', 'New recovery codes generated — your old codes no longer work.');
+        $this->flash('success', t('user.security.recovery_codes_regenerated'));
         return redirect('/app/security');
     }
 

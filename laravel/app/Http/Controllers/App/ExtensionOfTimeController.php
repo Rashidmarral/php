@@ -32,10 +32,10 @@ class ExtensionOfTimeController extends Controller
         $requestedDays = (int) $request->input('requested_days', 0);
         $reason = trim((string) $request->input('reason', ''));
         if ($requestedDays < 1) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'Requested days must be a positive number.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.ld_eot.days_positive_required'));
         }
         if ($reason === '') {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'A reason is required for an Extension of Time request.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.ld_eot.reason_required'));
         }
 
         ExtensionOfTimeRequest::create([
@@ -47,7 +47,7 @@ class ExtensionOfTimeController extends Controller
             'requested_by' => Auth::id(),
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Extension of Time request submitted.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.ld_eot.submitted'));
     }
 
     public function approve(int $id): RedirectResponse
@@ -60,11 +60,11 @@ class ExtensionOfTimeController extends Controller
         }
         $eot = $this->findOwned($id);
         if ($eot->status !== 'pending') {
-            return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'error', 'This request is not awaiting approval.');
+            return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'error', t('user.ld_eot.not_awaiting_approval'));
         }
         $eot->update(['status' => 'approved', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
 
-        return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'success', 'Extension of Time approved.');
+        return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'success', t('user.ld_eot.approved'));
     }
 
     public function reject(int $id): RedirectResponse
@@ -77,11 +77,11 @@ class ExtensionOfTimeController extends Controller
         }
         $eot = $this->findOwned($id);
         if ($eot->status !== 'pending') {
-            return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'error', 'This request is not awaiting approval.');
+            return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'error', t('user.ld_eot.not_awaiting_approval'));
         }
         $eot->update(['status' => 'rejected', 'reviewed_by' => Auth::id(), 'reviewed_at' => now()]);
 
-        return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'success', 'Extension of Time rejected.');
+        return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'success', t('user.ld_eot.rejected'));
     }
 
     /** Withdraw a request that hasn't been decided yet — the submitter or any other write-able teammate/admin can do this, same as they could submit one. */
@@ -95,12 +95,12 @@ class ExtensionOfTimeController extends Controller
         }
         $eot = $this->findOwned($id);
         if ($eot->status !== 'pending') {
-            return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'error', 'Only a pending request can be withdrawn.');
+            return $this->redirectWithFlash('/app/projects/' . $eot->project_id, 'error', t('user.ld_eot.only_pending_withdrawable'));
         }
         $projectId = $eot->project_id;
         $eot->delete();
 
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Extension of Time request withdrawn.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.ld_eot.withdrawn'));
     }
 
     private function findOwned(int $id): ExtensionOfTimeRequest

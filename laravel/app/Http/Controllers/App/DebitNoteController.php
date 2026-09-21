@@ -85,7 +85,7 @@ class DebitNoteController extends Controller
 
         [$items, $subtotal] = $this->parseItems($request);
         if (empty($items)) {
-            return $this->redirectWithFlash('/app/debit-notes/create?invoice_id=' . $invoice->id, 'error', 'Add at least one line item with a positive quantity.');
+            return $this->redirectWithFlash('/app/debit-notes/create?invoice_id=' . $invoice->id, 'error', t('common.line_item_required'));
         }
 
         $vatRate = (float) $invoice->vat_rate;
@@ -119,7 +119,7 @@ class DebitNoteController extends Controller
 
         $this->chainZatcaDebitNote($debitNote->fresh(), $company, $invoice, $client, $items, $zatcaSync);
 
-        $this->flash('success', 'Debit note issued.');
+        $this->flash('success', t('user.debit_notes.issued'));
         return redirect('/app/debit-notes/' . $debitNote->id);
     }
 
@@ -208,7 +208,7 @@ class DebitNoteController extends Controller
     {
         $debitNote = $this->findOwned($id);
         if (empty($debitNote->zatca_uuid)) {
-            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', 'This debit note has no ZATCA chain data.');
+            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', t('user.debit_notes.no_zatca_chain_data'));
         }
         $items = DebitNoteItem::where('debit_note_id', $debitNote->id)->orderBy('id')->get();
         $invoice = $this->ownedInvoice($debitNote->invoice_id, $debitNote->company_id);
@@ -245,10 +245,10 @@ class DebitNoteController extends Controller
         $company = Company::find($debitNote->company_id);
 
         if (!$company || !$company->isZatcaOnboarded()) {
-            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', "ZATCA Phase 2 isn't activated for your company yet. Ask your platform administrator to complete onboarding.");
+            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', t('common.zatca_phase2_not_activated'));
         }
         if (empty($debitNote->zatca_uuid)) {
-            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', 'This debit note has no ZATCA chain data.');
+            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', t('user.debit_notes.no_zatca_chain_data'));
         }
 
         $items = DebitNoteItem::where('debit_note_id', $debitNote->id)->orderBy('id')->get();
@@ -257,7 +257,7 @@ class DebitNoteController extends Controller
 
         $result = $zatcaSync->submitDebitNote($debitNote, $company, $client, $this->itemsForXml($items), $invoice);
 
-        $this->flash($result['ok'] ? 'success' : 'error', $result['ok'] ? $result['message'] : 'ZATCA rejected the debit note: ' . $result['message']);
+        $this->flash($result['ok'] ? 'success' : 'error', $result['ok'] ? $result['message'] : t('user.debit_notes.zatca_rejected', ['reason' => $result['message']]));
 
         return redirect('/app/debit-notes/' . $debitNote->id);
     }
@@ -272,10 +272,10 @@ class DebitNoteController extends Controller
             return redirect('/app/debit-notes/' . $debitNote->id);
         }
         if ($debitNote->isZatcaLocked()) {
-            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', 'This debit note has been cleared/reported to ZATCA and is now part of an immutable tax record — it can no longer be voided.');
+            return $this->redirectWithFlash('/app/debit-notes/' . $debitNote->id, 'error', t('user.debit_notes.zatca_locked_cannot_void'));
         }
         $debitNote->update(['status' => 'void']);
-        $this->flash('success', 'Debit note voided.');
+        $this->flash('success', t('user.debit_notes.voided'));
         return redirect('/app/debit-notes/' . $debitNote->id);
     }
 

@@ -66,7 +66,7 @@ class QuickEstimateController extends Controller
         $vatRate = (float) Setting::get('vat_rate', '15');
 
         if (!$region || !$foundation || $totalArea <= 0) {
-            return $this->redirectWithFlash('/app/quick-estimate', 'error', 'Please choose a region, a foundation type, and enter a total area.');
+            return $this->redirectWithFlash('/app/quick-estimate', 'error', t('user.quick_estimate.inputs_required'));
         }
 
         $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
@@ -100,7 +100,7 @@ class QuickEstimateController extends Controller
             'status' => 'internal',
         ]);
 
-        $this->flash('success', 'Quick estimate generated.');
+        $this->flash('success', t('user.quick_estimate.flash_generated'));
         return redirect('/app/quick-estimate/' . $estimate->id);
     }
 
@@ -146,7 +146,7 @@ class QuickEstimateController extends Controller
         $vatRate = (float) Setting::get('vat_rate', '15');
 
         if (!$region || !$foundation || $totalArea <= 0) {
-            return $this->redirectWithFlash('/app/quick-estimate/' . $estimate->id . '/edit', 'error', 'Please choose a region, a foundation type, and enter a total area.');
+            return $this->redirectWithFlash('/app/quick-estimate/' . $estimate->id . '/edit', 'error', t('user.quick_estimate.inputs_required'));
         }
 
         $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
@@ -177,7 +177,7 @@ class QuickEstimateController extends Controller
             'contact_phone' => $client->phone ?? null,
         ]);
 
-        $this->flash('success', 'Quick estimate updated.');
+        $this->flash('success', t('user.quick_estimate.updated'));
         return redirect('/app/quick-estimate/' . $estimate->id);
     }
 
@@ -287,7 +287,7 @@ class QuickEstimateController extends Controller
             ]);
         }
 
-        $this->flash('success', 'Converted to a formal estimate.');
+        $this->flash('success', t('user.quick_estimate.converted'));
         return redirect('/app/estimates/' . $newEstimate->id);
     }
 
@@ -297,7 +297,7 @@ class QuickEstimateController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->delete();
-        $this->flash('success', 'Quick estimate deleted.');
+        $this->flash('success', t('user.quick_estimate.deleted'));
         return redirect('/app/quick-estimate');
     }
 

@@ -42,12 +42,12 @@ class BillingController extends Controller
     public function checkout(Request $request): View|RedirectResponse
     {
         if (!Auth::user()->isCompanyOwner()) {
-            return $this->redirectWithFlash('/app/billing', 'error', 'Only the company owner can change the subscription plan.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.owner_only'));
         }
 
         $plan = Plan::where('slug', (string) $request->input('plan'))->first();
         if (!$plan) {
-            return $this->redirectWithFlash('/app/billing', 'error', 'Invalid plan selected.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.invalid_plan'));
         }
         $cycle = $request->input('cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
         $amount = (float) ($cycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly);
@@ -77,7 +77,7 @@ class BillingController extends Controller
         $companyId = Auth::user()->company_id;
         $plan = Plan::where('slug', (string) $request->input('plan'))->first();
         if (!$plan) {
-            return $this->redirectWithFlash('/app/billing', 'error', 'Invalid plan selected.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.invalid_plan'));
         }
         $cycle = $request->input('cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
         $amount = (float) ($cycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly);
@@ -99,10 +99,10 @@ class BillingController extends Controller
         if ($receipt && $receipt->isValid()) {
             $mime = $receipt->getMimeType();
             if (!isset(self::ALLOWED_RECEIPT_TYPES[$mime])) {
-                return $this->redirectWithFlash('/app/billing/checkout?plan=' . urlencode($plan->slug) . '&cycle=' . $cycle, 'error', 'Receipt must be a PDF, JPG, or PNG file.');
+                return $this->redirectWithFlash('/app/billing/checkout?plan=' . urlencode($plan->slug) . '&cycle=' . $cycle, 'error', t('user.billing.receipt_pdf_jpg_png'));
             }
             if ($receipt->getSize() > 10 * 1024 * 1024) {
-                return $this->redirectWithFlash('/app/billing/checkout?plan=' . urlencode($plan->slug) . '&cycle=' . $cycle, 'error', 'Receipt must be smaller than 10MB.');
+                return $this->redirectWithFlash('/app/billing/checkout?plan=' . urlencode($plan->slug) . '&cycle=' . $cycle, 'error', t('user.billing.receipt_max_size'));
             }
             $filename = 'receipt-' . $companyId . '-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_RECEIPT_TYPES[$mime];
             $receipt->move(public_path('uploads/payment-receipts'), $filename);
@@ -112,7 +112,7 @@ class BillingController extends Controller
 
         Payment::create($data);
 
-        $this->flash('success', 'Your bank transfer request has been submitted' . ($receiptAttached ? ' with your receipt attached' : '') . '. Your plan will be activated once our team confirms receipt of payment.');
+        $this->flash('success', $receiptAttached ? t('user.billing.bank_transfer_submitted_with_receipt') : t('user.billing.bank_transfer_submitted'));
         return redirect('/app/billing');
     }
 
@@ -127,7 +127,7 @@ class BillingController extends Controller
         $moyasarPayment = $paymentId !== '' ? Moyasar::fetchPayment($paymentId) : null;
 
         if (!$plan || !$moyasarPayment || ($moyasarPayment['status'] ?? '') !== 'paid') {
-            return $this->redirectWithFlash('/app/billing', 'error', 'Payment was not completed. Please try again or use bank transfer.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.payment_not_completed'));
         }
 
         // Moyasar amounts are in halalas (SAR x 100); re-derive SAR for our records.
@@ -149,7 +149,7 @@ class BillingController extends Controller
             'status' => 'paid',
         ]);
 
-        $this->flash('success', "Payment received — you're now on the {$plan->name} plan.");
+        $this->flash('success', t('user.billing.payment_received_on_plan', ['plan' => $plan->name]));
         return redirect('/app/billing');
     }
 
@@ -157,13 +157,13 @@ class BillingController extends Controller
     public function upgrade(Request $request): RedirectResponse
     {
         if (!Auth::user()->isCompanyOwner()) {
-            return $this->redirectWithFlash('/app/billing', 'error', 'Only the company owner can change the subscription plan.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.owner_only'));
         }
 
         $companyId = Auth::user()->company_id;
         $plan = Plan::where('slug', (string) $request->input('plan'))->first();
         if (!$plan) {
-            return $this->redirectWithFlash('/app/billing', 'error', 'Invalid plan selected.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.invalid_plan'));
         }
 
         $cycle = $request->input('cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
@@ -182,7 +182,7 @@ class BillingController extends Controller
             'status' => 'paid',
         ]);
 
-        $this->flash('success', "You're now on the {$plan->name} plan.");
+        $this->flash('success', t('user.billing.now_on_plan', ['plan' => $plan->name]));
         return redirect('/app/billing');
     }
 }

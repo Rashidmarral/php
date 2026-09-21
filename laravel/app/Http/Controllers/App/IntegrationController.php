@@ -51,7 +51,7 @@ class IntegrationController extends Controller
         }
 
         Company::whereKey($companyId)->update($data);
-        $this->flash('success', 'Client payment settings updated.');
+        $this->flash('success', t('user.integrations.client_payments_updated'));
         return redirect('/app/integrations');
     }
 
@@ -61,7 +61,7 @@ class IntegrationController extends Controller
             return $redirect;
         }
         if (!Auth::user()->isCompanyOwner()) {
-            return $this->redirectWithFlash('/app/integrations', 'error', 'Only the company owner can change integration settings.');
+            return $this->redirectWithFlash('/app/integrations', 'error', t('user.integrations.owner_only'));
         }
 
         $url = trim((string) $request->input('price_sync_url'));
@@ -69,12 +69,12 @@ class IntegrationController extends Controller
             $scheme = parse_url($url, PHP_URL_SCHEME);
             $host = parse_url($url, PHP_URL_HOST);
             if ($scheme !== 'https' || !in_array(strtolower((string) $host), ['docs.google.com', 'sheets.googleapis.com'], true)) {
-                return $this->redirectWithFlash('/app/integrations', 'error', 'Please paste a valid https://docs.google.com link (published to web as CSV).');
+                return $this->redirectWithFlash('/app/integrations', 'error', t('user.integrations.invalid_sheets_url'));
             }
         }
 
         Company::whereKey(Auth::user()->company_id)->update(['price_sync_url' => $url]);
-        $this->flash('success', 'Google Sheets link saved.');
+        $this->flash('success', t('user.integrations.sheets_link_saved'));
         return redirect('/app/integrations');
     }
 
@@ -88,10 +88,10 @@ class IntegrationController extends Controller
         $url = trim((string) $request->input('url'));
         $events = array_intersect((array) $request->input('events', []), array_keys(Webhook::EVENTS));
         if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
-            return $this->redirectWithFlash('/app/integrations', 'error', 'Please enter a valid https:// webhook URL.');
+            return $this->redirectWithFlash('/app/integrations', 'error', t('user.integrations.invalid_webhook_url'));
         }
         if (empty($events)) {
-            return $this->redirectWithFlash('/app/integrations', 'error', 'Choose at least one event to subscribe to.');
+            return $this->redirectWithFlash('/app/integrations', 'error', t('user.integrations.webhook_event_required'));
         }
 
         Webhook::create([
@@ -102,7 +102,7 @@ class IntegrationController extends Controller
             'is_active' => true,
         ]);
 
-        $this->flash('success', 'Webhook added.');
+        $this->flash('success', t('user.integrations.webhook_added'));
         return redirect('/app/integrations');
     }
 
@@ -122,7 +122,7 @@ class IntegrationController extends Controller
             return $redirect;
         }
         $this->findOwnedWebhook($id)->delete();
-        $this->flash('success', 'Webhook removed.');
+        $this->flash('success', t('user.integrations.webhook_removed'));
         return redirect('/app/integrations');
     }
 
@@ -140,7 +140,7 @@ class IntegrationController extends Controller
         $name = trim((string) $request->input('name')) ?: 'API token';
         $plainTextToken = Auth::user()->createToken($name)->plainTextToken;
 
-        return $this->redirectWithFlash('/app/integrations', 'success', 'API token created — copy it now, it will not be shown again: ' . $plainTextToken);
+        return $this->redirectWithFlash('/app/integrations', 'success', t('user.integrations.api_token_created', ['token' => $plainTextToken]));
     }
 
     public function revokeApiToken(int $id): RedirectResponse
@@ -149,7 +149,7 @@ class IntegrationController extends Controller
         abort_if(!$token, 404, 'Token not found.');
         $token->delete();
 
-        $this->flash('success', 'API token revoked.');
+        $this->flash('success', t('user.integrations.api_token_revoked'));
         return redirect('/app/integrations');
     }
 }

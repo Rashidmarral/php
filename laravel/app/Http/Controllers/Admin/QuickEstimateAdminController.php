@@ -36,7 +36,7 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => true,
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', 'Region added.');
+        return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', t('admin.quick_estimate.region_added'));
     }
 
     public function updateRegion(Request $request, int $id): RedirectResponse
@@ -49,13 +49,13 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', 'Region updated.');
+        return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', t('admin.quick_estimate.region_updated'));
     }
 
     public function destroyRegion(int $id): RedirectResponse
     {
         QuickEstimateRegion::destroy($id);
-        return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', 'Region removed.');
+        return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', t('admin.quick_estimate.region_removed'));
     }
 
     // ---------------- Foundations ----------------
@@ -76,7 +76,7 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => true,
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', 'Foundation type added.');
+        return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', t('admin.quick_estimate.foundation_added'));
     }
 
     public function updateFoundation(Request $request, int $id): RedirectResponse
@@ -90,13 +90,13 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', 'Foundation type updated.');
+        return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', t('admin.quick_estimate.foundation_updated'));
     }
 
     public function destroyFoundation(int $id): RedirectResponse
     {
         QuickEstimateFoundation::destroy($id);
-        return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', 'Foundation type removed.');
+        return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', t('admin.quick_estimate.foundation_removed'));
     }
 
     // ---------------- Add-ons ----------------
@@ -120,7 +120,7 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => true,
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', 'Add-on added.');
+        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_added'));
     }
 
     public function updateAddon(Request $request, int $id): RedirectResponse
@@ -137,13 +137,13 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', 'Add-on updated.');
+        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_updated'));
     }
 
     public function destroyAddon(int $id): RedirectResponse
     {
         QuickEstimateAddon::destroy($id);
-        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', 'Add-on removed.');
+        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_removed'));
     }
 
     // ---------------- Quality tiers ----------------
@@ -162,7 +162,7 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => true,
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', 'Quality tier added.');
+        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', t('admin.quick_estimate.quality_tier_added'));
     }
 
     public function updateQualityTier(Request $request, int $id): RedirectResponse
@@ -174,13 +174,13 @@ class QuickEstimateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', 'Quality tier updated.');
+        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', t('admin.quick_estimate.quality_tier_updated'));
     }
 
     public function destroyQualityTier(int $id): RedirectResponse
     {
         QuickEstimateQualityTier::destroy($id);
-        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', 'Quality tier removed.');
+        return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', t('admin.quick_estimate.quality_tier_removed'));
     }
 
     // ---------------- Leads (submitted quick estimates) ----------------

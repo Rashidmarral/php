@@ -32,7 +32,7 @@ class MediaController extends Controller
         $type = $request->input('type') === 'video' ? 'video' : 'image';
 
         if ($title === '') {
-            return $this->redirectWithFlash('/admin/media', 'error', 'Please give this media item a title.');
+            return $this->redirectWithFlash('/admin/media', 'error', t('admin.media.title_required'));
         }
 
         $data = ['title' => $title, 'type' => $type, 'uploaded_by' => Auth::id()];
@@ -40,17 +40,17 @@ class MediaController extends Controller
         if ($type === 'video') {
             $videoUrl = trim((string) $request->input('video_url'));
             if (!filter_var($videoUrl, FILTER_VALIDATE_URL)) {
-                return $this->redirectWithFlash('/admin/media', 'error', 'Please enter a valid video URL (YouTube, Vimeo, or a direct .mp4 link).');
+                return $this->redirectWithFlash('/admin/media', 'error', t('admin.media.invalid_video_url'));
             }
             $data['video_url'] = $videoUrl;
         } else {
             /** @var UploadedFile|null $file */
             $file = $request->file('image');
             if (!$file || !$file->isValid() || !isset(self::ALLOWED_IMAGE_TYPES[$file->getMimeType()])) {
-                return $this->redirectWithFlash('/admin/media', 'error', 'Please upload a PNG, JPG, WEBP, or GIF image.');
+                return $this->redirectWithFlash('/admin/media', 'error', t('admin.media.image_type_invalid'));
             }
             if ($file->getSize() > 8 * 1024 * 1024) {
-                return $this->redirectWithFlash('/admin/media', 'error', 'Image must be smaller than 8MB.');
+                return $this->redirectWithFlash('/admin/media', 'error', t('admin.media.image_max_size'));
             }
             $filename = bin2hex(random_bytes(8)) . '.' . self::ALLOWED_IMAGE_TYPES[$file->getMimeType()];
             $file->move(public_path('uploads/media'), $filename);
@@ -58,7 +58,7 @@ class MediaController extends Controller
         }
 
         Media::create($data);
-        $this->flash('success', 'Media added to the library.');
+        $this->flash('success', t('admin.media.added'));
         return redirect('/admin/media');
     }
 
@@ -73,7 +73,7 @@ class MediaController extends Controller
             }
         }
         $media->delete();
-        $this->flash('success', 'Media removed.');
+        $this->flash('success', t('admin.media.removed'));
         return redirect('/admin/media');
     }
 }

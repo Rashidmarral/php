@@ -70,12 +70,12 @@ class RecurringInvoiceController extends Controller
 
         $title = trim((string) $request->input('title'));
         if ($title === '') {
-            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', 'A title is required.');
+            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.title_required'));
         }
 
         $items = $this->itemsFromRequest($request);
         if (empty($items)) {
-            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', 'A recurring invoice needs at least one line item.');
+            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.line_item_required'));
         }
 
         $client = $this->ownedClient($request->input('client_id') ?: null, $companyId);
@@ -99,7 +99,7 @@ class RecurringInvoiceController extends Controller
             RecurringInvoiceItem::create(['recurring_invoice_id' => $template->id, ...$item]);
         }
 
-        $this->flash('success', 'Recurring invoice template created.');
+        $this->flash('success', t('user.recurring_invoices.created'));
         return redirect('/app/recurring-invoices/' . $template->id);
     }
 
@@ -157,12 +157,12 @@ class RecurringInvoiceController extends Controller
 
         $title = trim((string) $request->input('title'));
         if ($title === '') {
-            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', 'A title is required.');
+            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.title_required'));
         }
 
         $items = $this->itemsFromRequest($request);
         if (empty($items)) {
-            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', 'A recurring invoice needs at least one line item.');
+            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.line_item_required'));
         }
 
         $client = $this->ownedClient($request->input('client_id') ?: null, $companyId);
@@ -185,7 +185,7 @@ class RecurringInvoiceController extends Controller
             RecurringInvoiceItem::create(['recurring_invoice_id' => $template->id, ...$item]);
         }
 
-        $this->flash('success', 'Recurring invoice template updated.');
+        $this->flash('success', t('user.recurring_invoices.updated'));
         return redirect('/app/recurring-invoices/' . $template->id);
     }
 
@@ -201,7 +201,7 @@ class RecurringInvoiceController extends Controller
         $template = $this->findOwned($id);
         $template->update(['is_active' => !$template->is_active]);
 
-        $this->flash('success', 'Recurring invoice template ' . ($template->is_active ? 'resumed' : 'paused') . '.');
+        $this->flash('success', t($template->is_active ? 'user.recurring_invoices.resumed' : 'user.recurring_invoices.paused'));
         return redirect('/app/recurring-invoices/' . $template->id);
     }
 
@@ -225,12 +225,12 @@ class RecurringInvoiceController extends Controller
 
         if ($template->generatedInvoices()->exists()) {
             $template->update(['is_active' => false]);
-            return $this->redirectWithFlash('/app/recurring-invoices', 'success', 'This template has already generated invoices, so it has been deactivated instead of deleted — the invoices it generated are untouched.');
+            return $this->redirectWithFlash('/app/recurring-invoices', 'success', t('user.recurring_invoices.deactivated_instead_of_deleted'));
         }
 
         RecurringInvoiceItem::where('recurring_invoice_id', $template->id)->delete();
         $template->delete();
-        return $this->redirectWithFlash('/app/recurring-invoices', 'success', 'Recurring invoice template deleted.');
+        return $this->redirectWithFlash('/app/recurring-invoices', 'success', t('user.recurring_invoices.deleted'));
     }
 
     /** @return array<int, array{description:string,description_ar:string,qty:float,unit_price:float}> */

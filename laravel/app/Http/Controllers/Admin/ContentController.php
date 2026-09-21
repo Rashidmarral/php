@@ -85,7 +85,7 @@ class ContentController extends Controller
             }
         }
 
-        return $this->redirectWithFlash("/admin/content/{$page}", 'success', $config['label'] . ' content updated — visit the live page to see it.');
+        return $this->redirectWithFlash("/admin/content/{$page}", 'success', t('admin.content.updated', ['page' => $config['label']]));
     }
 
     /** @return string[] */

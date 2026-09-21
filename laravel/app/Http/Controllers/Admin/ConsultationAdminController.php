@@ -49,6 +49,6 @@ class ConsultationAdminController extends Controller
         ]);
         AuditLog::record($request->user(), 'consultation_update', 'consultation', $consultation->id, "{$consultation->topic} → {$status}");
 
-        return $this->redirectWithFlash('/admin/consultations', 'success', 'Consultation updated.');
+        return $this->redirectWithFlash('/admin/consultations', 'success', t('admin.consultations.updated'));
     }
 }

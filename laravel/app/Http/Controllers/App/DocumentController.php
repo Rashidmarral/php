@@ -49,16 +49,16 @@ class DocumentController extends Controller
 
         $file = $request->file('file');
         if (!$file || !$file->isValid()) {
-            return $this->redirectWithFlash('/app/documents', 'error', 'Please choose a file to upload.');
+            return $this->redirectWithFlash('/app/documents', 'error', t('user.documents.file_required'));
         }
         if ($file->getSize() > 15 * 1024 * 1024) {
-            return $this->redirectWithFlash('/app/documents', 'error', 'File must be smaller than 15MB.');
+            return $this->redirectWithFlash('/app/documents', 'error', t('user.documents.max_size'));
         }
 
         $originalName = $file->getClientOriginalName();
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if (!in_array($ext, self::ALLOWED_EXT, true)) {
-            return $this->redirectWithFlash('/app/documents', 'error', 'File type not allowed. Allowed: ' . implode(', ', self::ALLOWED_EXT));
+            return $this->redirectWithFlash('/app/documents', 'error', t('user.documents.type_not_allowed', ['allowed' => implode(', ', self::ALLOWED_EXT)]));
         }
 
         $fileSize = $file->getSize();
@@ -84,7 +84,7 @@ class DocumentController extends Controller
             'file_size' => $fileSize,
         ]);
 
-        $this->flash('success', 'Document uploaded.');
+        $this->flash('success', t('user.documents.uploaded'));
         return redirect('/app/documents');
     }
 
@@ -104,7 +104,7 @@ class DocumentController extends Controller
             unlink($file);
         }
         $document->delete();
-        $this->flash('success', 'Document removed.');
+        $this->flash('success', t('user.documents.removed'));
         return redirect('/app/documents');
     }
 }

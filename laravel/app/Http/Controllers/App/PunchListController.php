@@ -28,7 +28,7 @@ class PunchListController extends Controller
 
         $title = trim((string) $request->input('title'));
         if ($title === '') {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'A title is required for a punch list item.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.punch_list.title_required'));
         }
 
         $data = [
@@ -49,7 +49,7 @@ class PunchListController extends Controller
         }
 
         PunchListItem::create($data);
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Punch list item added.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.punch_list.added'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -76,7 +76,7 @@ class PunchListController extends Controller
             $item->update($data);
         }
 
-        return $this->redirectWithFlash('/app/projects/' . $item->project_id, 'success', 'Punch list item updated.');
+        return $this->redirectWithFlash('/app/projects/' . $item->project_id, 'success', t('user.punch_list.updated'));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -96,7 +96,7 @@ class PunchListController extends Controller
             }
         }
         $item->delete();
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Punch list item removed.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.punch_list.removed'));
     }
 
     /** @param array $data by reference — sets photo_path on success */

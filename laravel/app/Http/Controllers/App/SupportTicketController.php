@@ -51,7 +51,7 @@ class SupportTicketController extends Controller
         $priority = array_key_exists((string) $request->input('priority'), SupportTicket::PRIORITIES) ? $request->input('priority') : 'normal';
 
         if ($subject === '' || $message === '') {
-            return $this->redirectWithFlash('/app/support/new', 'error', 'Please enter a subject and describe the issue.');
+            return $this->redirectWithFlash('/app/support/new', 'error', t('user.support_tickets.subject_message_required'));
         }
 
         $ticket = SupportTicket::create([
@@ -80,7 +80,7 @@ class SupportTicketController extends Controller
             'attachment_name' => $attachment['name'],
         ]);
 
-        $this->flash('success', 'Your support ticket has been submitted — our team will respond soon.');
+        $this->flash('success', t('user.support_tickets.submitted'));
         return redirect('/app/support/' . $ticket->id);
     }
 
@@ -100,7 +100,7 @@ class SupportTicketController extends Controller
         $ticket = $this->findOwned($id);
         $message = trim((string) $request->input('message'));
         if ($message === '') {
-            return $this->redirectWithFlash('/app/support/' . $id, 'error', 'Please enter a reply message.');
+            return $this->redirectWithFlash('/app/support/' . $id, 'error', t('user.support_tickets.reply_message_required'));
         }
 
         $attachment = TicketAttachment::store($request->file('attachment'), $ticket->id);
@@ -123,7 +123,7 @@ class SupportTicketController extends Controller
             'status' => $ticket->channel === 'platform' ? 'pending' : $ticket->status,
         ]);
 
-        $this->flash('success', 'Reply sent.');
+        $this->flash('success', t('user.support_tickets.reply_sent'));
         return redirect('/app/support/' . $id);
     }
 
@@ -132,10 +132,10 @@ class SupportTicketController extends Controller
         $ticket = $this->findOwned($id);
         $status = $request->input('status');
         if (!array_key_exists($status, SupportTicket::STATUSES)) {
-            return $this->redirectWithFlash('/app/support/' . $id, 'error', 'Invalid status.');
+            return $this->redirectWithFlash('/app/support/' . $id, 'error', t('user.support_tickets.invalid_status'));
         }
         $ticket->update(['status' => $status]);
-        $this->flash('success', 'Ticket status updated.');
+        $this->flash('success', t('user.support_tickets.status_updated'));
         return redirect('/app/support/' . $id);
     }
 

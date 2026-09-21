@@ -72,7 +72,7 @@ class PurchaseOrderController extends Controller
         }
 
         if (empty($items)) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'A purchase order needs at least one line item.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.purchase_orders.line_item_required'));
         }
 
         $applyVat = (bool) $request->input('apply_vat', true);
@@ -100,7 +100,7 @@ class PurchaseOrderController extends Controller
             PurchaseOrderItem::create(['purchase_order_id' => $purchaseOrder->id, ...$item]);
         }
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Purchase order ' . ($status === 'issued' ? 'issued' : 'saved as draft') . '.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t($status === 'issued' ? 'user.purchase_orders.issued' : 'user.purchase_orders.saved_as_draft'));
     }
 
     public function updateStatus(Request $request, int $id): RedirectResponse
@@ -115,12 +115,12 @@ class PurchaseOrderController extends Controller
         $status = (string) $request->input('status');
 
         if (!in_array($status, self::ALLOWED_TRANSITIONS[$purchaseOrder->status] ?? [], true)) {
-            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', 'That status change isn\'t allowed from ' . $purchaseOrder->status . '.');
+            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', t('user.purchase_orders.status_change_not_allowed', ['from' => $purchaseOrder->status]));
         }
 
         $purchaseOrder->update(['status' => $status]);
 
-        return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'success', 'Purchase order ' . $status . '.');
+        return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'success', t('user.purchase_orders.status_changed', ['status' => $status]));
     }
 
     /**
@@ -142,11 +142,11 @@ class PurchaseOrderController extends Controller
         $purchaseOrder = $this->findOwned($id);
 
         if ($purchaseOrder->status === 'draft') {
-            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', 'This purchase order is still a draft — issue it before notifying the supplier.');
+            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', t('user.purchase_orders.still_draft_cannot_notify'));
         }
         $supplier = $purchaseOrder->supplier_id ? $this->ownedSupplier($purchaseOrder->supplier_id, $purchaseOrder->company_id) : null;
         if (!$supplier || empty($supplier->phone)) {
-            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', 'This purchase order has no supplier phone number on file.');
+            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', t('user.purchase_orders.no_supplier_phone'));
         }
 
         $company = Company::find($purchaseOrder->company_id);
@@ -177,12 +177,12 @@ class PurchaseOrderController extends Controller
         }
         $purchaseOrder = $this->findOwned($id);
         if (!$purchaseOrder->isEditable()) {
-            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', 'Only a draft purchase order can be deleted — this one has already been issued to the supplier.');
+            return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'error', t('user.purchase_orders.only_draft_deletable'));
         }
         $projectId = $purchaseOrder->project_id;
         PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)->delete();
         $purchaseOrder->delete();
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Purchase order deleted.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.purchase_orders.deleted'));
     }
 
     public function pdf(Request $request, int $id): Response

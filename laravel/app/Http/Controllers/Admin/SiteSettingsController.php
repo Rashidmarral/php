@@ -37,7 +37,7 @@ class SiteSettingsController extends Controller
         Setting::set('support_email', (string) $request->input('support_email', ''));
         Setting::set('support_phone', (string) $request->input('support_phone', ''));
 
-        return $this->redirectWithFlash('/admin/settings', 'success', 'Platform settings updated.');
+        return $this->redirectWithFlash('/admin/settings', 'success', t('admin.settings.platform_updated'));
     }
 
     public function legal(): View
@@ -62,7 +62,7 @@ class SiteSettingsController extends Controller
         if ($uploadError) {
             return $this->redirectWithFlash('/admin/settings/legal', 'error', $uploadError);
         }
-        return $this->redirectWithFlash('/admin/settings/legal', 'success', 'Legal & branding settings updated.');
+        return $this->redirectWithFlash('/admin/settings/legal', 'success', t('admin.settings.legal_updated'));
     }
 
     /** @return string|null error message, or null on success/no file provided */
@@ -109,7 +109,7 @@ class SiteSettingsController extends Controller
             Setting::set("hero_video_{$page}", trim((string) $request->input("hero_video_{$page}", '')));
         }
 
-        return $this->redirectWithFlash('/admin/settings/header', 'success', 'Header, footer & website content updated.');
+        return $this->redirectWithFlash('/admin/settings/header', 'success', t('admin.settings.header_updated'));
     }
 
     /** Default navy/amber theme — used whenever the admin hasn't overridden a color. */
@@ -135,7 +135,7 @@ class SiteSettingsController extends Controller
             foreach (array_keys(self::THEME_DEFAULTS) as $key) {
                 Setting::set($key, '');
             }
-            return $this->redirectWithFlash('/admin/settings/theme', 'success', 'Theme reset to the default navy & amber colors.');
+            return $this->redirectWithFlash('/admin/settings/theme', 'success', t('admin.settings.theme_reset'));
         }
 
         foreach (array_keys(self::THEME_DEFAULTS) as $key) {
@@ -145,7 +145,7 @@ class SiteSettingsController extends Controller
             }
         }
 
-        return $this->redirectWithFlash('/admin/settings/theme', 'success', 'Theme colors updated across the whole system.');
+        return $this->redirectWithFlash('/admin/settings/theme', 'success', t('admin.settings.theme_updated'));
     }
 
     public function ai(): View
@@ -162,7 +162,7 @@ class SiteSettingsController extends Controller
             Setting::set('ai_api_key', $apiKey);
         }
 
-        return $this->redirectWithFlash('/admin/settings/ai', 'success', 'AI generator settings updated.');
+        return $this->redirectWithFlash('/admin/settings/ai', 'success', t('admin.settings.ai_updated'));
     }
 
     public function notifications(): View
@@ -186,7 +186,7 @@ class SiteSettingsController extends Controller
             Setting::set('sms_app_sid', $appSid);
         }
 
-        return $this->redirectWithFlash('/admin/settings/notifications', 'success', 'Notification settings updated.');
+        return $this->redirectWithFlash('/admin/settings/notifications', 'success', t('admin.settings.notifications_updated'));
     }
 
     public function email(): View
@@ -208,7 +208,7 @@ class SiteSettingsController extends Controller
         Setting::set('smtp_from_email', trim((string) $request->input('smtp_from_email', '')));
         Setting::set('smtp_from_name', trim((string) $request->input('smtp_from_name', 'BuildXact Saudi')));
 
-        return $this->redirectWithFlash('/admin/settings/email', 'success', 'Email settings updated.');
+        return $this->redirectWithFlash('/admin/settings/email', 'success', t('admin.settings.email_updated'));
     }
 
     public function payments(): View
@@ -231,6 +231,6 @@ class SiteSettingsController extends Controller
             Setting::set('moyasar_secret_key', $secret);
         }
 
-        return $this->redirectWithFlash('/admin/settings/payments', 'success', 'Payment settings updated.');
+        return $this->redirectWithFlash('/admin/settings/payments', 'success', t('admin.settings.payments_updated'));
     }
 }

@@ -41,7 +41,7 @@ class EstimateTemplateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => true,
         ]);
-        return $this->redirectWithFlash('/admin/estimate-templates', 'success', 'Template created. Add line items to it below.');
+        return $this->redirectWithFlash('/admin/estimate-templates', 'success', t('admin.estimate_templates.created'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -56,14 +56,14 @@ class EstimateTemplateAdminController extends Controller
             'sort_order' => (int) $request->input('sort_order', 0),
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        return $this->redirectWithFlash('/admin/estimate-templates', 'success', 'Template updated.');
+        return $this->redirectWithFlash('/admin/estimate-templates', 'success', t('admin.estimate_templates.updated'));
     }
 
     public function destroy(int $id): RedirectResponse
     {
         EstimateTemplateItem::where('template_id', $id)->delete();
         EstimateTemplate::destroy($id);
-        return $this->redirectWithFlash('/admin/estimate-templates', 'success', 'Template deleted.');
+        return $this->redirectWithFlash('/admin/estimate-templates', 'success', t('admin.estimate_templates.deleted'));
     }
 
     /** Only one template can be the default pre-selected choice on the "New Estimate" screen. */
@@ -71,7 +71,7 @@ class EstimateTemplateAdminController extends Controller
     {
         EstimateTemplate::query()->update(['is_default_choice' => false]);
         EstimateTemplate::findOrFail($id)->update(['is_default_choice' => true]);
-        return $this->redirectWithFlash('/admin/estimate-templates', 'success', 'Default template updated.');
+        return $this->redirectWithFlash('/admin/estimate-templates', 'success', t('admin.estimate_templates.default_updated'));
     }
 
     public function items(int $id): View
@@ -103,7 +103,7 @@ class EstimateTemplateAdminController extends Controller
             'unit_cost' => (float) $request->input('unit_cost', 0),
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        return $this->redirectWithFlash('/admin/estimate-templates/' . $template->id . '/items', 'success', 'Line item added.');
+        return $this->redirectWithFlash('/admin/estimate-templates/' . $template->id . '/items', 'success', t('admin.estimate_templates.item_added'));
     }
 
     public function updateItem(Request $request, int $id, int $itemId): RedirectResponse
@@ -125,7 +125,7 @@ class EstimateTemplateAdminController extends Controller
             'unit_cost' => (float) $request->input('unit_cost', 0),
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        return $this->redirectWithFlash('/admin/estimate-templates/' . $id . '/items', 'success', 'Line item updated.');
+        return $this->redirectWithFlash('/admin/estimate-templates/' . $id . '/items', 'success', t('admin.estimate_templates.item_updated'));
     }
 
     public function destroyItem(int $id, int $itemId): RedirectResponse
@@ -133,7 +133,7 @@ class EstimateTemplateAdminController extends Controller
         $item = EstimateTemplateItem::find($itemId);
         if ($item && $item->template_id === $id) {
             $item->delete();
-            $this->flash('success', 'Line item removed.');
+            $this->flash('success', t('admin.estimate_templates.item_removed'));
         }
         return redirect('/admin/estimate-templates/' . $id . '/items');
     }

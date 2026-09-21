@@ -24,14 +24,14 @@ class AdminPageController extends Controller
     {
         $slug = $this->slugify((string) $request->input('slug'));
         if ($slug === '') {
-            return $this->redirectWithFlash('/admin/pages/create', 'error', 'A URL slug is required.');
+            return $this->redirectWithFlash('/admin/pages/create', 'error', t('admin.pages.slug_required'));
         }
         if (Page::where('slug', $slug)->exists()) {
-            return $this->redirectWithFlash('/admin/pages/create', 'error', 'A page with that URL slug already exists.');
+            return $this->redirectWithFlash('/admin/pages/create', 'error', t('admin.pages.slug_exists'));
         }
 
         $page = Page::create($this->collectInput($request));
-        $this->flash('success', 'Page created.');
+        $this->flash('success', t('admin.pages.created'));
         return redirect('/admin/pages/' . $page->id . '/edit');
     }
 
@@ -46,22 +46,22 @@ class AdminPageController extends Controller
 
         $slug = $this->slugify((string) $request->input('slug'));
         if ($slug === '') {
-            return $this->redirectWithFlash('/admin/pages/' . $page->id . '/edit', 'error', 'A URL slug is required.');
+            return $this->redirectWithFlash('/admin/pages/' . $page->id . '/edit', 'error', t('admin.pages.slug_required'));
         }
         $existing = Page::where('slug', $slug)->first();
         if ($existing && $existing->id !== $page->id) {
-            return $this->redirectWithFlash('/admin/pages/' . $page->id . '/edit', 'error', 'A page with that URL slug already exists.');
+            return $this->redirectWithFlash('/admin/pages/' . $page->id . '/edit', 'error', t('admin.pages.slug_exists'));
         }
 
         $page->update($this->collectInput($request));
-        $this->flash('success', 'Page updated.');
+        $this->flash('success', t('admin.pages.updated'));
         return redirect('/admin/pages/' . $page->id . '/edit');
     }
 
     public function destroy(int $id): RedirectResponse
     {
         Page::findOrFail($id)->delete();
-        return $this->redirectWithFlash('/admin/pages', 'success', 'Page deleted.');
+        return $this->redirectWithFlash('/admin/pages', 'success', t('admin.pages.deleted'));
     }
 
     private function collectInput(Request $request): array

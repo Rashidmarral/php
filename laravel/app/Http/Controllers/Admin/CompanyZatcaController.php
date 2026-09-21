@@ -46,7 +46,7 @@ class CompanyZatcaController extends Controller
         $syncB2b = $request->boolean('zatca_sync_b2b');
         $syncB2c = $request->boolean('zatca_sync_b2c');
         if (!$syncB2b && !$syncB2c) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Enable at least one of Standard (B2B) or Simplified (B2C) invoicing.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.b2b_b2c_required'));
         }
 
         $company->update([
@@ -59,7 +59,7 @@ class CompanyZatcaController extends Controller
             'zatca_business_category' => trim((string) $request->input('zatca_business_category')) ?: null,
         ]);
 
-        return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'success', 'ZATCA settings updated.');
+        return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'success', t('admin.zatca.settings_updated'));
     }
 
     public function generateCsr(int $id, ZatcaCryptoService $crypto): RedirectResponse
@@ -67,7 +67,7 @@ class CompanyZatcaController extends Controller
         $company = Company::findOrFail($id);
 
         if (empty($company->vat_number)) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', "Set the company's VAT number (in their Settings) before generating a CSR.");
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.vat_number_required'));
         }
 
         try {
@@ -79,10 +79,10 @@ class CompanyZatcaController extends Controller
                 'zatca_status' => 'csr_generated',
                 'zatca_last_error' => null,
             ]);
-            $this->flash('success', 'CSR generated. Copy the CSR into the ZATCA Fatoora portal to request an OTP, then continue below.');
+            $this->flash('success', t('admin.zatca.csr_generated'));
         } catch (Throwable $e) {
             $company->update(['zatca_last_error' => $e->getMessage()]);
-            $this->flash('error', 'CSR generation failed: ' . $e->getMessage() . ' — this is almost always a server-side OpenSSL issue (missing openssl.cnf, or an OpenSSL build without the secp256k1 curve ZATCA requires), not the company\'s data.');
+            $this->flash('error', t('admin.zatca.csr_generation_failed', ['reason' => $e->getMessage()]));
         }
         return redirect('/admin/companies/' . $company->id . '/zatca');
     }
@@ -92,23 +92,23 @@ class CompanyZatcaController extends Controller
         $company = Company::findOrFail($id);
 
         if (empty($company->zatca_csr)) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Generate a CSR first.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.csr_required'));
         }
         $otp = trim((string) $request->input('otp'));
         if ($otp === '') {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', "Enter the OTP from this company's Fatoora portal account.");
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.otp_required'));
         }
 
         try {
             $response = $api->issueComplianceCsid($company->zatca_environment, $company->zatca_csr, $otp);
         } catch (Throwable $e) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Could not reach ZATCA: ' . $e->getMessage());
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.connection_failed', ['reason' => $e->getMessage()]));
         }
 
         if (!$response->successful()) {
             $error = 'HTTP ' . $response->status() . ': ' . $response->body();
             $company->update(['zatca_status' => 'error', 'zatca_last_error' => $error]);
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'ZATCA rejected the OTP/CSR: ' . $error);
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.otp_rejected', ['reason' => $error]));
         }
 
         $body = $response->json();
@@ -119,7 +119,7 @@ class CompanyZatcaController extends Controller
             'zatca_status' => 'compliance_pending',
             'zatca_last_error' => null,
         ]);
-        $this->flash('success', 'Compliance CSID issued by ZATCA. Run the compliance checks next.');
+        $this->flash('success', t('admin.zatca.compliance_csid_issued'));
         return redirect('/admin/companies/' . $company->id . '/zatca');
     }
 
@@ -136,7 +136,7 @@ class CompanyZatcaController extends Controller
         $company = Company::findOrFail($id);
 
         if (empty($company->zatca_compliance_csid) || empty($company->zatca_compliance_secret)) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Issue a compliance CSID first.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.compliance_csid_required'));
         }
 
         $profiles = array_values(array_filter([
@@ -168,7 +168,7 @@ class CompanyZatcaController extends Controller
                     base64_encode($xmlString), $hash, $uuid
                 );
             } catch (Throwable $e) {
-                return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Could not reach ZATCA: ' . $e->getMessage());
+                return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.connection_failed', ['reason' => $e->getMessage()]));
             }
 
             // A prior successful run already satisfied this exact
@@ -190,7 +190,7 @@ class CompanyZatcaController extends Controller
         }
 
         $company->update(['zatca_status' => 'compliance_verified', 'zatca_last_error' => null]);
-        $this->flash('success', 'Compliance checks passed. You can now request the production CSID.');
+        $this->flash('success', t('admin.zatca.compliance_checks_passed'));
         return redirect('/admin/companies/' . $company->id . '/zatca');
     }
 
@@ -202,7 +202,7 @@ class CompanyZatcaController extends Controller
             || ($company->zatca_status === 'onboarded' && !$company->zatca_production_csid);
 
         if (!$eligible) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Complete the compliance checks first.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.compliance_checks_required'));
         }
 
         try {
@@ -211,13 +211,13 @@ class CompanyZatcaController extends Controller
                 (string) $company->zatca_compliance_request_id
             );
         } catch (Throwable $e) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Could not reach ZATCA: ' . $e->getMessage());
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.connection_failed', ['reason' => $e->getMessage()]));
         }
 
         if (!$response->successful()) {
             $error = 'HTTP ' . $response->status() . ': ' . $response->body();
             $company->update(['zatca_status' => 'failed', 'zatca_last_error' => $error]);
-            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', 'Could not issue the production CSID: ' . $error);
+            return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.production_csid_failed', ['reason' => $error]));
         }
 
         $body = $response->json();
@@ -229,7 +229,7 @@ class CompanyZatcaController extends Controller
             'zatca_linked_at' => now(),
             'zatca_last_error' => null,
         ]);
-        $this->flash('success', 'Production CSID issued. This company can now submit invoices to ZATCA.');
+        $this->flash('success', t('admin.zatca.production_csid_issued'));
         return redirect('/admin/companies/' . $company->id . '/zatca');
     }
 
@@ -242,8 +242,8 @@ class CompanyZatcaController extends Controller
             '/admin/companies/' . $company->id . '/zatca',
             $result['reachable'] ? 'success' : 'error',
             $result['reachable']
-                ? "ZATCA {$company->zatca_environment} gateway is reachable (HTTP {$result['http_status']}, {$result['latency_ms']} ms)."
-                : "Could not reach the ZATCA {$company->zatca_environment} gateway: {$result['error']}"
+                ? t('admin.zatca.test_connection_success', ['env' => $company->zatca_environment, 'status' => $result['http_status'], 'latency' => $result['latency_ms']])
+                : t('admin.zatca.test_connection_failed', ['env' => $company->zatca_environment, 'reason' => $result['error']])
         );
     }
 
@@ -263,7 +263,7 @@ class CompanyZatcaController extends Controller
             'zatca_linked_at' => null,
             'zatca_last_error' => null,
         ]);
-        $this->flash('success', 'ZATCA onboarding reset. The company can restart from CSR generation.');
+        $this->flash('success', t('admin.zatca.onboarding_reset'));
         return redirect('/admin/companies/' . $company->id . '/zatca');
     }
 }

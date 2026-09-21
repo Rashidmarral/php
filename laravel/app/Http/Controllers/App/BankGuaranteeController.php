@@ -26,7 +26,7 @@ class BankGuaranteeController extends Controller
         $bankName = trim((string) $request->input('bank_name'));
         $amount = (float) $request->input('amount', 0);
         if ($bankName === '' || $amount <= 0) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'An issuing bank and a positive amount are required.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.bank_guarantees.bank_and_amount_required'));
         }
 
         $data = [
@@ -48,7 +48,7 @@ class BankGuaranteeController extends Controller
         }
 
         BankGuarantee::create($data);
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Bank guarantee added.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.bank_guarantees.added'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -68,7 +68,7 @@ class BankGuaranteeController extends Controller
 
         $guarantee->update(['status' => $status]);
 
-        return $this->redirectWithFlash('/app/projects/' . $guarantee->project_id, 'success', 'Bank guarantee ' . $status . '.');
+        return $this->redirectWithFlash('/app/projects/' . $guarantee->project_id, 'success', t('user.bank_guarantees.status_changed', ['status' => $status]));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -88,7 +88,7 @@ class BankGuaranteeController extends Controller
             }
         }
         $guarantee->delete();
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Bank guarantee removed.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.bank_guarantees.removed'));
     }
 
     /** @param array $data by reference — sets file_path on success */

@@ -52,7 +52,7 @@ class BoqController extends Controller
 
         $description = trim((string) $request->input('description'));
         if ($description === '') {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', 'A BOQ line needs a description.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', t('user.boq.description_required'));
         }
 
         $qty = (float) $request->input('qty', 0);
@@ -74,7 +74,7 @@ class BoqController extends Controller
             'sort_order' => $maxSortOrder + 1,
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', 'BOQ line added.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', t('user.boq.added'));
     }
 
     /**
@@ -144,12 +144,12 @@ class BoqController extends Controller
         $project = $this->findOwnedProject($item->project_id);
 
         if ($project->hasAnyPaymentCertificate()) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', 'This BOQ line can no longer be edited: at least one payment certificate already exists for this project.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', t('user.boq.locked_edit_certificate_exists'));
         }
 
         $description = trim((string) $request->input('description'));
         if ($description === '') {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', 'A BOQ line needs a description.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', t('user.boq.description_required'));
         }
 
         $qty = (float) $request->input('qty', 0);
@@ -167,7 +167,7 @@ class BoqController extends Controller
             'total' => round($qty * $unitPrice, 2),
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', 'BOQ line updated.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', t('user.boq.updated'));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -182,11 +182,11 @@ class BoqController extends Controller
         $project = $this->findOwnedProject($item->project_id);
 
         if ($project->hasAnyPaymentCertificate()) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', 'This BOQ line cannot be removed once a payment certificate exists for this project.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', t('user.boq.locked_delete_certificate_exists'));
         }
 
         $item->delete();
-        return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', 'BOQ line removed.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', t('user.boq.removed'));
     }
 
     private function findOwned(int $id): BoqItem

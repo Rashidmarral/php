@@ -180,7 +180,7 @@ class ProjectController extends Controller
     public function create(): View|RedirectResponse
     {
         if (!Feature::withinProjectLimit()) {
-            return $this->redirectWithFlash('/app/billing', 'error', "Your plan's project limit (" . Feature::projectLimit() . ') has been reached. Upgrade to create more.');
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.projects.limit_reached_with_count', ['limit' => Feature::projectLimit()]));
         }
         $clients = Client::where('company_id', Auth::user()->company_id)->orderBy('name')->get();
         return view('app.projects.form', ['clients' => $clients, 'project' => null]);
@@ -194,12 +194,12 @@ class ProjectController extends Controller
         $companyId = Auth::user()->company_id;
 
         if (!Feature::withinProjectLimit()) {
-            return $this->redirectWithFlash('/app/billing', 'error', "Your plan's project limit has been reached. Upgrade to create more.");
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.projects.limit_reached'));
         }
 
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/projects/create', 'error', 'Project name is required.');
+            return $this->redirectWithFlash('/app/projects/create', 'error', t('user.projects.name_required'));
         }
 
         $project = Project::create([
@@ -221,7 +221,7 @@ class ProjectController extends Controller
             'ld_cap_percent' => $request->filled('ld_cap_percent') ? min(100, max(0, (float) $request->input('ld_cap_percent'))) : null,
         ]);
 
-        $this->flash('success', 'Project created.');
+        $this->flash('success', t('user.projects.created'));
         return redirect('/app/projects/' . $project->id);
     }
 
@@ -385,12 +385,12 @@ class ProjectController extends Controller
         $project = $this->findOwned($id);
         $client = $this->ownedClient($project->client_id, $project->company_id);
         if (!$client || empty($client->phone)) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'This project has no client phone number on file.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.projects.no_client_phone'));
         }
         $note = trim((string) $request->input('note', ''));
         $link = WhatsApp::shareLink($client->phone, $this->progressMessage($project, $client, $note));
         if (!$link) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', "Could not build a WhatsApp link for this client's phone number.");
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.projects.whatsapp_link_build_failed'));
         }
         return redirect()->away($link);
     }
@@ -404,7 +404,7 @@ class ProjectController extends Controller
         $project = $this->findOwned($id);
         $client = $this->ownedClient($project->client_id, $project->company_id);
         if (!$client || empty($client->phone)) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'This project has no client phone number on file.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.projects.no_client_phone'));
         }
         $note = trim((string) $request->input('note', ''));
         $result = WhatsApp::sendMessage($client->phone, $this->progressMessage($project, $client, $note));
@@ -485,7 +485,7 @@ class ProjectController extends Controller
             ]);
         }
 
-        $this->flash('success', 'Project duplicated — schedule shifted to the new start date.');
+        $this->flash('success', t('user.projects.duplicated'));
         return redirect('/app/projects/' . $project->id);
     }
 
@@ -534,7 +534,7 @@ class ProjectController extends Controller
 
         $project->update($data);
 
-        $this->flash('success', 'Project updated.');
+        $this->flash('success', t('user.projects.updated'));
         return redirect('/app/projects/' . $project->id);
     }
 
@@ -635,7 +635,7 @@ class ProjectController extends Controller
             $project->delete();
         });
 
-        return $this->redirectWithFlash('/app/projects', 'success', 'Project and all its records deleted.');
+        return $this->redirectWithFlash('/app/projects', 'success', t('user.projects.deleted_with_records'));
     }
 
     private function findOwned(int $id): Project

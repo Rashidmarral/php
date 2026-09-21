@@ -120,7 +120,7 @@ class SubcontractController extends Controller
     {
         $subcontract = $this->findOwned($id);
         if ($subcontract->hasCertifiedPayment()) {
-            return $this->redirectWithFlash('/app/subcontracts/' . $subcontract->id, 'error', 'This subcontract already has a certified payment against it and can no longer be edited.');
+            return $this->redirectWithFlash('/app/subcontracts/' . $subcontract->id, 'error', t('user.subcontracts.locked_certified_payment'));
         }
         $project = $this->findOwnedProject($subcontract->project_id);
 
@@ -138,7 +138,7 @@ class SubcontractController extends Controller
         }
         $subcontract = $this->findOwned($id);
         if ($subcontract->hasCertifiedPayment()) {
-            return $this->redirectWithFlash('/app/subcontracts/' . $subcontract->id, 'error', 'This subcontract already has a certified payment against it and can no longer be edited.');
+            return $this->redirectWithFlash('/app/subcontracts/' . $subcontract->id, 'error', t('user.subcontracts.locked_certified_payment'));
         }
 
         [$data, $error] = $this->validated($request, $subcontract->company_id);
@@ -159,12 +159,12 @@ class SubcontractController extends Controller
         }
         $subcontract = $this->findOwned($id);
         if ($subcontract->hasAnyPayment()) {
-            return $this->redirectWithFlash('/app/subcontracts/' . $subcontract->id, 'error', 'This subcontract cannot be removed once it has a payment recorded against it.');
+            return $this->redirectWithFlash('/app/subcontracts/' . $subcontract->id, 'error', t('user.subcontracts.has_payment_cannot_delete'));
         }
         $projectId = $subcontract->project_id;
         $subcontract->delete();
 
-        return $this->redirectWithFlash('/app/projects/' . $projectId . '/subcontracts', 'success', 'Subcontract removed.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId . '/subcontracts', 'success', t('user.subcontracts.removed'));
     }
 
     /**

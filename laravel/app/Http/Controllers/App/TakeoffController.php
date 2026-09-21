@@ -60,7 +60,7 @@ class TakeoffController extends Controller
         $name = trim((string) $request->input('name'));
 
         if ($name === '') {
-            return $this->redirectWithFlash('/app/takeoffs/create', 'error', 'Takeoff name is required.');
+            return $this->redirectWithFlash('/app/takeoffs/create', 'error', t('user.takeoffs.name_required'));
         }
 
         $imagePath = null;
@@ -69,10 +69,10 @@ class TakeoffController extends Controller
             $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
             $mime = $planImage->getMimeType();
             if (!isset($allowed[$mime])) {
-                return $this->redirectWithFlash('/app/takeoffs/create', 'error', 'Plan image must be a JPG, PNG, or WEBP file.');
+                return $this->redirectWithFlash('/app/takeoffs/create', 'error', t('user.takeoffs.image_type_invalid'));
             }
             if ($planImage->getSize() > 8 * 1024 * 1024) {
-                return $this->redirectWithFlash('/app/takeoffs/create', 'error', 'Plan image must be smaller than 8MB.');
+                return $this->redirectWithFlash('/app/takeoffs/create', 'error', t('user.takeoffs.image_max_size'));
             }
             $filename = bin2hex(random_bytes(12)) . '.' . $allowed[$mime];
             $planImage->move(public_path("uploads/takeoffs/{$companyId}"), $filename);
@@ -199,20 +199,20 @@ class TakeoffController extends Controller
         $takeoff = $this->findOwned($id);
 
         if (!$takeoff->plan_image_path) {
-            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'Upload a plan image before running AI analysis.');
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.image_required_for_ai'));
         }
         if (!AiTakeoffAnalyzer::isConfigured()) {
-            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'AI analysis isn\'t configured yet. Ask your platform admin to enable it under Admin > Platform Settings > AI Generator.');
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.ai_not_configured'));
         }
 
         $items = AiTakeoffAnalyzer::analyzeTakeoffPlan($takeoff->plan_image_path);
 
         if ($items === null) {
             $lastError = Setting::get('ai_last_error') ?: 'The AI provider did not return a usable response.';
-            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'AI analysis failed: ' . $lastError);
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.ai_failed', ['reason' => $lastError]));
         }
         if (empty($items)) {
-            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'AI analysis did not identify any measurements on this plan — try measuring manually instead.');
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.ai_no_measurements'));
         }
 
         $materials = Material::where('company_id', $takeoff->company_id)->get(['name', 'category', 'unit_cost']);
@@ -241,7 +241,7 @@ class TakeoffController extends Controller
             $count++;
         }
 
-        $this->flash('success', "{$count} measurement(s) suggested by AI — review and adjust before converting to an estimate.");
+        $this->flash('success', t('user.takeoffs.ai_measurements_suggested', ['count' => $count]));
         return redirect('/app/takeoffs/' . $takeoff->id);
     }
 
@@ -293,7 +293,7 @@ class TakeoffController extends Controller
         $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff->id)->orderBy('id')->get();
 
         if ($measurements->isEmpty()) {
-            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', 'Add at least one measurement before converting to an estimate.');
+            return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.measurement_required_for_conversion'));
         }
 
         $total = (float) $measurements->sum('total_cost');
@@ -317,7 +317,7 @@ class TakeoffController extends Controller
             ]);
         }
 
-        $this->flash('success', 'Takeoff converted to a new estimate.');
+        $this->flash('success', t('user.takeoffs.converted'));
         return redirect('/app/estimates/' . $estimate->id);
     }
 
@@ -338,7 +338,7 @@ class TakeoffController extends Controller
             }
         }
         $takeoff->delete();
-        $this->flash('success', 'Takeoff deleted.');
+        $this->flash('success', t('user.takeoffs.deleted'));
         return redirect('/app/takeoffs');
     }
 

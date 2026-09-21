@@ -24,7 +24,7 @@ class ChangeOrderController extends Controller
         $title = trim((string) $request->input('title'));
         $amount = (float) $request->input('amount', 0);
         if ($title === '' || $amount == 0.0) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'A title and a non-zero amount are required (use a negative amount for a scope reduction).');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.change_orders.title_and_amount_required'));
         }
 
         ChangeOrder::create([
@@ -38,7 +38,7 @@ class ChangeOrderController extends Controller
             'status' => 'pending',
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Change order added.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.change_orders.added'));
     }
 
     public function updateStatus(Request $request, int $id): RedirectResponse
@@ -60,7 +60,7 @@ class ChangeOrderController extends Controller
             'approved_at' => $status === 'approved' ? now() : null,
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $changeOrder->project_id, 'success', 'Change order ' . $status . '.');
+        return $this->redirectWithFlash('/app/projects/' . $changeOrder->project_id, 'success', t('user.change_orders.status_changed', ['status' => $status]));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -74,7 +74,7 @@ class ChangeOrderController extends Controller
         $changeOrder = $this->findOwned($id);
         $projectId = $changeOrder->project_id;
         $changeOrder->delete();
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Change order removed.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.change_orders.removed'));
     }
 
     private function findOwned(int $id): ChangeOrder

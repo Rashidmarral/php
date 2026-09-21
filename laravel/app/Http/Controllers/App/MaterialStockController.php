@@ -53,19 +53,19 @@ class MaterialStockController extends Controller
 
         $type = (string) $request->input('type');
         if (!array_key_exists($type, MaterialStockMovement::TYPES)) {
-            return $this->redirectWithFlash($backTo, 'error', 'Choose a valid movement type.');
+            return $this->redirectWithFlash($backTo, 'error', t('user.material_stock.invalid_type'));
         }
 
         $qty = (float) $request->input('qty', 0);
         if ($qty <= 0) {
-            return $this->redirectWithFlash($backTo, 'error', 'Quantity must be a positive number.');
+            return $this->redirectWithFlash($backTo, 'error', t('user.material_stock.qty_positive_required'));
         }
 
         $direction = null;
         if ($type === 'adjustment') {
             $direction = (string) $request->input('direction');
             if (!array_key_exists($direction, MaterialStockMovement::DIRECTIONS)) {
-                return $this->redirectWithFlash($backTo, 'error', 'Choose whether the adjustment goes up or down.');
+                return $this->redirectWithFlash($backTo, 'error', t('user.material_stock.direction_required'));
             }
         }
 
@@ -107,10 +107,10 @@ class MaterialStockController extends Controller
 
         if ($result === null) {
             $onHand = number_format((float) $material->qty_on_hand, 2);
-            return $this->redirectWithFlash($backTo, 'error', "Not enough stock on hand for that — only {$onHand} {$material->unit} available.");
+            return $this->redirectWithFlash($backTo, 'error', t('user.material_stock.insufficient_stock', ['available' => $onHand, 'unit' => $material->unit]));
         }
 
-        $this->flash('success', 'Stock movement recorded.');
+        $this->flash('success', t('user.material_stock.recorded'));
         return redirect($backTo);
     }
 

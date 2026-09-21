@@ -25,10 +25,10 @@ class AdminUserController extends Controller
         $role = $request->input('role') === 'support_admin' ? 'support_admin' : 'super_admin';
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 8) {
-            return $this->redirectWithFlash('/admin/admins', 'error', 'A valid name, email, and password (min 8 chars) are required.');
+            return $this->redirectWithFlash('/admin/admins', 'error', t('admin.admin_users.valid_fields_required'));
         }
         if (User::where('email', $email)->exists()) {
-            return $this->redirectWithFlash('/admin/admins', 'error', 'A user with this email already exists.');
+            return $this->redirectWithFlash('/admin/admins', 'error', t('admin.admin_users.email_exists'));
         }
 
         User::create([
@@ -41,7 +41,7 @@ class AdminUserController extends Controller
         ]);
         AuditLog::record($request->user(), 'admin_user_create', 'user', null, "{$name} ({$email}) as {$role}");
 
-        return $this->redirectWithFlash('/admin/admins', 'success', 'Admin user created.');
+        return $this->redirectWithFlash('/admin/admins', 'success', t('admin.admin_users.created'));
     }
 
     public function destroy(Request $request, int $id): RedirectResponse
@@ -51,14 +51,14 @@ class AdminUserController extends Controller
             abort(404, 'Admin user not found.');
         }
         if ($admin->id === $request->user()->id) {
-            return $this->redirectWithFlash('/admin/admins', 'error', 'You cannot remove your own admin account.');
+            return $this->redirectWithFlash('/admin/admins', 'error', t('admin.admin_users.cannot_remove_self'));
         }
         if ($admin->role === 'super_admin' && User::where('role', 'super_admin')->count() <= 1) {
-            return $this->redirectWithFlash('/admin/admins', 'error', 'At least one super admin account must remain.');
+            return $this->redirectWithFlash('/admin/admins', 'error', t('admin.admin_users.last_super_admin'));
         }
         $admin->delete();
         AuditLog::record($request->user(), 'admin_user_delete', 'user', $id, "{$admin->name} ({$admin->email})");
 
-        return $this->redirectWithFlash('/admin/admins', 'success', 'Admin user removed.');
+        return $this->redirectWithFlash('/admin/admins', 'success', t('admin.admin_users.removed'));
     }
 }

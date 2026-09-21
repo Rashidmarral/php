@@ -44,16 +44,16 @@ class ConsultationController extends Controller
         $quota = (int) ($plan->consultation_quota_monthly ?? 0);
 
         if ($quota <= 0) {
-            return $this->redirectWithFlash('/app/billing', 'error', "Live expert consultations aren't included in your current plan. Upgrade to unlock them.");
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.consultations.not_included_in_plan'));
         }
         if (Consultation::usedThisMonth($companyId) >= $quota) {
-            return $this->redirectWithFlash('/app/consultations', 'error', "You've used all {$quota} consultation" . ($quota === 1 ? '' : 's') . " included in your plan this month. More become available next month, or upgrade your plan for a higher allowance.");
+            return $this->redirectWithFlash('/app/consultations', 'error', $quota === 1 ? t('user.consultations.quota_used_one') : t('user.consultations.quota_used_many', ['quota' => $quota]));
         }
 
         $type = $request->input('type') === 'in_person' ? 'in_person' : 'chat';
         $topic = trim((string) $request->input('topic'));
         if ($topic === '') {
-            return $this->redirectWithFlash('/app/consultations', 'error', "Briefly describe what you'd like to discuss.");
+            return $this->redirectWithFlash('/app/consultations', 'error', t('user.consultations.topic_required'));
         }
 
         Consultation::create([
@@ -66,7 +66,7 @@ class ConsultationController extends Controller
             'preferred_date' => $request->input('preferred_date') ?: null,
         ]);
 
-        $this->flash('success', 'Request sent — one of our engineers will confirm a time with you shortly.');
+        $this->flash('success', t('user.consultations.request_sent'));
         return redirect('/app/consultations');
     }
 
@@ -77,7 +77,7 @@ class ConsultationController extends Controller
 
         if (in_array($consultation->status, ['requested', 'scheduled'], true)) {
             $consultation->update(['status' => 'cancelled']);
-            $this->flash('success', 'Consultation cancelled.');
+            $this->flash('success', t('user.consultations.cancelled'));
         }
         return redirect('/app/consultations');
     }

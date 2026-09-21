@@ -55,7 +55,7 @@ class ZakatController extends Controller
 
         $periodEndDate = $request->input('period_end_date');
         if (!$periodEndDate || strtotime($periodEndDate) === false) {
-            return $this->redirectWithFlash('/app/zakat/create', 'error', 'A valid period end date is required.');
+            return $this->redirectWithFlash('/app/zakat/create', 'error', t('user.zakat.period_end_date_required'));
         }
 
         $rateType = $request->input('rate_type') === 'gregorian' ? 'gregorian' : 'hijri';
@@ -85,7 +85,7 @@ class ZakatController extends Controller
             'notes' => trim((string) $request->input('notes', '')) ?: null,
         ]);
 
-        return $this->redirectWithFlash('/app/zakat/' . $calculation->id, 'success', 'Zakat estimate saved.');
+        return $this->redirectWithFlash('/app/zakat/' . $calculation->id, 'success', t('user.zakat.saved'));
     }
 
     public function show(int $id): View|RedirectResponse
@@ -109,7 +109,7 @@ class ZakatController extends Controller
         $calculation = $this->findOwned($id);
         $calculation->delete();
 
-        return $this->redirectWithFlash('/app/zakat', 'success', 'Zakat estimate deleted.');
+        return $this->redirectWithFlash('/app/zakat', 'success', t('user.zakat.deleted'));
     }
 
     public function pdf(Request $request, int $id): Response

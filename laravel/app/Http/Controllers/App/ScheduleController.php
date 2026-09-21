@@ -70,7 +70,7 @@ class ScheduleController extends Controller
         $projectId = (int) $request->input('project_id');
 
         if ($title === '' || !$projectId) {
-            return $this->redirectWithFlash('/app/schedule', 'error', 'Task title and project are required.');
+            return $this->redirectWithFlash('/app/schedule', 'error', t('user.schedule.title_project_required'));
         }
 
         $project = Project::find($projectId);
@@ -86,7 +86,7 @@ class ScheduleController extends Controller
             'status' => 'pending',
         ]);
 
-        $this->flash('success', 'Task added to schedule.');
+        $this->flash('success', t('user.schedule.added'));
         return redirect('/app/schedule');
     }
 
@@ -110,7 +110,7 @@ class ScheduleController extends Controller
         }
         $task = $this->findOwned($id);
         $task->delete();
-        $this->flash('success', 'Task removed.');
+        $this->flash('success', t('user.schedule.removed'));
         return redirect('/app/schedule');
     }
 

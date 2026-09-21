@@ -39,7 +39,7 @@ class TeamController extends Controller
             return $redirect;
         }
         if (!Feature::withinUserLimit()) {
-            return $this->redirectWithFlash('/app/billing', 'error', "Your plan's team member limit has been reached. Upgrade to invite more.");
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.team.member_limit_reached'));
         }
 
         $name = trim((string) $request->input('name'));
@@ -50,10 +50,10 @@ class TeamController extends Controller
         }
 
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->redirectWithFlash('/app/team', 'error', 'A valid name and email are required.');
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.valid_name_email_required'));
         }
         if (User::where('email', $email)->exists()) {
-            return $this->redirectWithFlash('/app/team', 'error', 'A user with this email already exists.');
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.email_exists'));
         }
 
         $tempPassword = bin2hex(random_bytes(4));
@@ -76,10 +76,10 @@ class TeamController extends Controller
                 "Hi {$name},\n\nYou've been added to {$company->name}'s " . Setting::siteName() . " account.\n\nLog in at " . rtrim((string) config('app.url'), '/') . "/login\nEmail: {$email}\nTemporary password: {$tempPassword}\n\nPlease change your password after logging in."
             );
             $this->flash($result['ok'] ? 'success' : 'error', $result['ok']
-                ? "Team member invited — an email with login details was sent to {$email}."
-                : "Team member invited, but the invite email failed to send ({$result['error']}). Temporary password: {$tempPassword} (share this securely).");
+                ? t('user.team.invited_with_email', ['email' => $email])
+                : t('user.team.invited_email_failed', ['reason' => $result['error'], 'password' => $tempPassword]));
         } else {
-            $this->flash('success', "Team member invited. Temporary password: {$tempPassword} (share this securely).");
+            $this->flash('success', t('user.team.invited_no_email', ['password' => $tempPassword]));
         }
         return redirect('/app/team');
     }
@@ -92,16 +92,16 @@ class TeamController extends Controller
         $member = $this->findOwned($id);
 
         if ($member->role === 'owner') {
-            return $this->redirectWithFlash('/app/team', 'error', "The account owner's role cannot be changed.");
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.owner_role_immutable'));
         }
 
         $role = (string) $request->input('role', 'estimator');
         if (!array_key_exists($role, User::ASSIGNABLE_ROLES)) {
-            return $this->redirectWithFlash('/app/team', 'error', 'Invalid role.');
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.invalid_role'));
         }
 
         $member->update(['role' => $role]);
-        $this->flash('success', 'Role updated for ' . $member->name . '.');
+        $this->flash('success', t('user.team.role_updated', ['name' => $member->name]));
         return redirect('/app/team');
     }
 
@@ -112,13 +112,13 @@ class TeamController extends Controller
         }
         $member = $this->findOwned($id);
         if ($member->id === Auth::id()) {
-            return $this->redirectWithFlash('/app/team', 'error', 'You cannot remove yourself.');
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.cannot_remove_self'));
         }
         if ($member->role === 'owner') {
-            return $this->redirectWithFlash('/app/team', 'error', 'The account owner cannot be removed.');
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.owner_cannot_be_removed'));
         }
         $member->delete();
-        $this->flash('success', 'Team member removed.');
+        $this->flash('success', t('user.team.removed'));
         return redirect('/app/team');
     }
 
@@ -140,14 +140,14 @@ class TeamController extends Controller
 
         $iban = strtoupper(str_replace(' ', '', (string) $request->input('bank_iban', '')));
         if ($iban !== '' && !preg_match(self::IBAN_PATTERN, $iban)) {
-            return $this->redirectWithFlash($redirectPath, 'error', 'IBAN must be a Saudi IBAN: "SA" followed by 22 digits (24 characters total).');
+            return $this->redirectWithFlash($redirectPath, 'error', t('user.team.iban_invalid'));
         }
 
         $amounts = [];
         foreach (['basic_salary', 'housing_allowance', 'other_earnings'] as $field) {
             $value = trim((string) $request->input($field, ''));
             if ($value !== '' && (!is_numeric($value) || (float) $value < 0)) {
-                return $this->redirectWithFlash($redirectPath, 'error', 'Salary amounts must be non-negative numbers.');
+                return $this->redirectWithFlash($redirectPath, 'error', t('user.team.salary_amounts_invalid'));
             }
             $amounts[$field] = $value === '' ? null : $value;
         }
@@ -160,7 +160,7 @@ class TeamController extends Controller
             ...$amounts,
         ]);
 
-        $this->flash('success', 'Payroll details updated for ' . $member->name . '.');
+        $this->flash('success', t('user.team.payroll_updated', ['name' => $member->name]));
         return redirect($redirectPath);
     }
 
@@ -194,7 +194,7 @@ class TeamController extends Controller
         $members = User::where('company_id', $companyId)->whereNotNull('basic_salary')->orderBy('name')->get();
 
         if ($members->isEmpty()) {
-            return $this->redirectWithFlash('/app/team', 'error', 'No team members have payroll data yet. Open a member\'s Payroll page and add a basic salary + IBAN before exporting.');
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team.no_payroll_data'));
         }
 
         $csv = fopen('php://temp', 'r+');

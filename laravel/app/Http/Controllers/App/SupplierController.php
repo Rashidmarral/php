@@ -39,7 +39,7 @@ class SupplierController extends Controller
         }
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/suppliers/create', 'error', 'Supplier name is required.');
+            return $this->redirectWithFlash('/app/suppliers/create', 'error', t('user.suppliers.name_required'));
         }
         Supplier::create([
             'company_id' => Auth::user()->company_id,
@@ -52,7 +52,7 @@ class SupplierController extends Controller
             'category' => $request->input('category', ''),
             'notes' => $request->input('notes', ''),
         ]);
-        $this->flash('success', 'Supplier added.');
+        $this->flash('success', t('user.suppliers.added'));
         return redirect('/app/suppliers');
     }
 
@@ -83,7 +83,7 @@ class SupplierController extends Controller
             'category' => $request->input('category', ''),
             'notes' => $request->input('notes', ''),
         ]);
-        $this->flash('success', 'Supplier updated.');
+        $this->flash('success', t('user.suppliers.updated'));
         return redirect('/app/suppliers');
     }
 
@@ -96,7 +96,7 @@ class SupplierController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->delete();
-        $this->flash('success', 'Supplier removed.');
+        $this->flash('success', t('user.suppliers.removed'));
         return redirect('/app/suppliers');
     }
 

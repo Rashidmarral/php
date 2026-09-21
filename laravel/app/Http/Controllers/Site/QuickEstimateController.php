@@ -39,14 +39,14 @@ class QuickEstimateController extends Controller
         $vatRate = (float) Setting::get('vat_rate', '15');
 
         if (!$region || !$foundation || $totalArea <= 0) {
-            return $this->redirectWithFlash('/quick-estimate', 'error', 'Please choose a region, a foundation type, and enter a total area.');
+            return $this->redirectWithFlash('/quick-estimate', 'error', t('user.quick_estimate.inputs_required'));
         }
 
         $contactName = trim((string) $request->input('contact_name'));
         $contactEmail = trim((string) $request->input('contact_email'));
         $contactPhone = trim((string) $request->input('contact_phone'));
         if ($contactName === '' || $contactEmail === '' || $contactPhone === '') {
-            return $this->redirectWithFlash('/quick-estimate', 'error', 'Please enter your name, email, and phone so we can send you the detailed quote.');
+            return $this->redirectWithFlash('/quick-estimate', 'error', t('site.quick_estimate.contact_required'));
         }
 
         $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));

@@ -64,7 +64,7 @@ class PageSectionController extends Controller
         $pageSlug = trim((string) $request->input('page_slug'));
         $type = $request->input('section_type');
         if ($pageSlug === '' || !array_key_exists($type, PageSection::TYPES)) {
-            return $this->redirectWithFlash('/admin/sections', 'error', 'Please choose a page and a section type.');
+            return $this->redirectWithFlash('/admin/sections', 'error', t('admin.sections.page_type_required'));
         }
 
         $items = [];
@@ -94,14 +94,14 @@ class PageSectionController extends Controller
         ]);
         $section->save();
 
-        $this->flash('success', 'Section saved — visit the live page to see it.');
+        $this->flash('success', t('admin.sections.saved'));
         return redirect('/admin/sections');
     }
 
     public function destroy(int $id): RedirectResponse
     {
         PageSection::findOrFail($id)->delete();
-        $this->flash('success', 'Section removed.');
+        $this->flash('success', t('admin.sections.removed'));
         return redirect('/admin/sections');
     }
 }

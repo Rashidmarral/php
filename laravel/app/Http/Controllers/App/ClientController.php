@@ -39,7 +39,7 @@ class ClientController extends Controller
         }
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/clients/create', 'error', 'Client name is required.');
+            return $this->redirectWithFlash('/app/clients/create', 'error', t('user.clients.name_required'));
         }
         [$data, $error] = $this->b2bData($request);
         if ($error) {
@@ -54,7 +54,7 @@ class ClientController extends Controller
             'address' => $request->input('address', ''),
             ...$data,
         ]);
-        return $this->redirectWithFlash('/app/clients', 'success', 'Client added.');
+        return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.added'));
     }
 
     public function edit(int $id): View
@@ -80,7 +80,7 @@ class ClientController extends Controller
             'address' => $request->input('address', ''),
             ...$data,
         ]);
-        return $this->redirectWithFlash('/app/clients', 'success', 'Client updated.');
+        return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.updated'));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -89,7 +89,7 @@ class ClientController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->delete();
-        return $this->redirectWithFlash('/app/clients', 'success', 'Client removed.');
+        return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.removed'));
     }
 
     public function enablePortal(int $id): RedirectResponse
@@ -103,7 +103,7 @@ class ClientController extends Controller
         $client = $this->findOwned($id);
 
         if (empty($client->email)) {
-            return $this->redirectWithFlash('/app/clients', 'error', 'Add an email address for this client before enabling portal access.');
+            return $this->redirectWithFlash('/app/clients', 'error', t('user.clients.email_required_for_portal'));
         }
 
         $tempPassword = bin2hex(random_bytes(4));
@@ -112,7 +112,7 @@ class ClientController extends Controller
             'password' => Hash::make($tempPassword),
         ]);
 
-        return $this->redirectWithFlash('/app/clients', 'success', "Portal access enabled for {$client->email}. Temporary password: {$tempPassword} (share this securely).");
+        return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.portal_enabled', ['email' => $client->email, 'password' => $tempPassword]));
     }
 
     public function disablePortal(int $id): RedirectResponse
@@ -121,7 +121,7 @@ class ClientController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->update(['portal_enabled' => false]);
-        return $this->redirectWithFlash('/app/clients', 'success', 'Portal access disabled.');
+        return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.portal_disabled'));
     }
 
     /**

@@ -43,7 +43,7 @@ class TeamMemberDocumentController extends Controller
 
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash("/app/team/{$member->id}/documents", 'error', 'Document name is required.');
+            return $this->redirectWithFlash("/app/team/{$member->id}/documents", 'error', t('user.team_documents.name_required'));
         }
 
         $data = [
@@ -63,7 +63,7 @@ class TeamMemberDocumentController extends Controller
         }
 
         TeamMemberDocument::create($data);
-        $this->flash('success', 'Document added.');
+        $this->flash('success', t('user.team_documents.added'));
         return redirect("/app/team/{$member->id}/documents");
     }
 
@@ -97,7 +97,7 @@ class TeamMemberDocumentController extends Controller
         }
 
         $doc->update($data);
-        $this->flash('success', 'Document updated.');
+        $this->flash('success', t('user.team_documents.updated'));
         return redirect("/app/team/{$member->id}/documents");
     }
 
@@ -108,7 +108,7 @@ class TeamMemberDocumentController extends Controller
         }
         $member = $this->findOwnedMember($userId);
         $this->findOwnedDocument($id, $member->id)->delete();
-        $this->flash('success', 'Document removed.');
+        $this->flash('success', t('user.team_documents.removed'));
         return redirect("/app/team/{$member->id}/documents");
     }
 

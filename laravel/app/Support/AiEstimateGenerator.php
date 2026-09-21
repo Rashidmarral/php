@@ -47,14 +47,14 @@ class AiEstimateGenerator
             // there's no provider configured (the real reason is in ai_last_error).
             $fallback = self::generateViaTemplateFallback($description, true);
             if ($imagePath !== null) {
-                $fallback['note'] = 'The attached photo could not be analyzed because the AI call failed (Admin > Platform Settings > AI Generator has the error: \'' . Setting::get('ai_last_error', 'unknown error') . '\') — this draft was suggested from the closest matching template instead, based on your description alone. Review and adjust before sending.';
+                $fallback['note'] = t('user.estimates.ai_note_photo_call_failed', ['reason' => Setting::get('ai_last_error', 'unknown error')]);
             }
             return $fallback;
         }
 
         $fallback = self::generateViaTemplateFallback($description);
         if ($imagePath !== null) {
-            $fallback['note'] = 'No AI provider is configured yet (Admin > Platform Settings > AI Generator), so the attached photo could not be analyzed — this draft was suggested from the closest matching template based on your description alone. Review and adjust before sending.';
+            $fallback['note'] = t('user.estimates.ai_note_photo_not_configured');
         }
         return $fallback;
     }
@@ -274,7 +274,7 @@ PROMPT;
         }
 
         if (!$bestTemplate) {
-            return ['title' => 'New estimate', 'items' => [], 'source' => 'ai_fallback', 'note' => 'No templates available to suggest from — add line items manually.'];
+            return ['title' => t('user.estimates.ai_fallback_title'), 'items' => [], 'source' => 'ai_fallback', 'note' => t('user.estimates.ai_note_no_templates')];
         }
 
         $templateItems = EstimateTemplateItem::where('template_id', $bestTemplate->id)->orderBy('sort_order')->orderBy('id')->get();
@@ -288,8 +288,8 @@ PROMPT;
         ])->all();
 
         $note = $aiCallFailed
-            ? 'AI generation failed (Admin > Platform Settings > AI Generator has the error: \'' . Setting::get('ai_last_error', 'unknown error') . '\') — this draft was suggested from the closest matching template instead. Review and adjust before sending.'
-            : 'No AI provider is configured yet (Admin > Platform Settings > AI Generator), so this draft was suggested from the closest matching template — "' . $bestTemplate->name_en . '". Review and adjust before sending.';
+            ? t('user.estimates.ai_note_call_failed', ['reason' => Setting::get('ai_last_error', 'unknown error')])
+            : t('user.estimates.ai_note_not_configured', ['template' => $bestTemplate->name_en]);
 
         return [
             'title' => $bestTemplate->name_en,

@@ -59,10 +59,10 @@ class MaterialController extends Controller
         }
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/materials/create', 'error', 'Material name is required.');
+            return $this->redirectWithFlash('/app/materials/create', 'error', t('user.materials.name_required'));
         }
         Material::create($this->fromInput($request));
-        $this->flash('success', 'Material added.');
+        $this->flash('success', t('user.materials.added'));
         return redirect('/app/materials');
     }
 
@@ -87,7 +87,7 @@ class MaterialController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->update($this->fromInput($request));
-        $this->flash('success', 'Material updated.');
+        $this->flash('success', t('user.materials.updated'));
         return redirect('/app/materials');
     }
 
@@ -100,7 +100,7 @@ class MaterialController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->delete();
-        $this->flash('success', 'Material removed.');
+        $this->flash('success', t('user.materials.removed'));
         return redirect('/app/materials');
     }
 
@@ -138,7 +138,7 @@ class MaterialController extends Controller
         $companyId = Auth::user()->company_id;
         $ids = array_filter(array_map('intval', (array) $request->input('item_ids', [])));
         if (empty($ids)) {
-            return $this->redirectWithFlash('/app/materials/library', 'error', 'Select at least one item to import.');
+            return $this->redirectWithFlash('/app/materials/library', 'error', t('user.materials.select_item_required'));
         }
 
         $created = 0;
@@ -176,11 +176,11 @@ class MaterialController extends Controller
         }
         $file = $request->file('csv');
         if (!$file || !$file->isValid()) {
-            return $this->redirectWithFlash('/app/materials', 'error', 'Please choose a CSV file to import.');
+            return $this->redirectWithFlash('/app/materials', 'error', t('user.materials.csv_file_required'));
         }
         $content = file_get_contents($file->getRealPath());
         $result = $this->importCsvContent((string) $content);
-        $this->flash('success', "Imported {$result['created']} new and updated {$result['updated']} existing materials.");
+        $this->flash('success', t('user.materials.csv_import_summary', ['created' => $result['created'], 'updated' => $result['updated']]));
         return redirect('/app/materials');
     }
 
@@ -197,22 +197,22 @@ class MaterialController extends Controller
         $url = trim((string) ($company->price_sync_url ?? ''));
 
         if ($url === '') {
-            return $this->redirectWithFlash('/app/materials', 'error', 'Set a Google Sheets CSV link on the Integrations page first.');
+            return $this->redirectWithFlash('/app/materials', 'error', t('user.materials.sheets_link_missing'));
         }
         if (!$this->isAllowedSheetUrl($url)) {
-            return $this->redirectWithFlash('/app/materials', 'error', 'Only https://docs.google.com links are allowed for price sync.');
+            return $this->redirectWithFlash('/app/materials', 'error', t('user.materials.sheets_url_not_allowed'));
         }
 
         $context = stream_context_create(['http' => ['timeout' => 10, 'follow_location' => 1, 'max_redirects' => 3]]);
         $content = @file_get_contents($url, false, $context, 0, 2 * 1024 * 1024);
 
         if ($content === false) {
-            return $this->redirectWithFlash('/app/materials', 'error', 'Could not reach that Google Sheet. Make sure it is published to the web as CSV.');
+            return $this->redirectWithFlash('/app/materials', 'error', t('user.materials.sheets_unreachable'));
         }
 
         $result = $this->importCsvContent($content);
         $company->update(['price_sync_last_at' => now()]);
-        $this->flash('success', "Synced from Google Sheets: {$result['created']} new, {$result['updated']} updated.");
+        $this->flash('success', t('user.materials.sheets_sync_summary', ['created' => $result['created'], 'updated' => $result['updated']]));
         return redirect('/app/materials');
     }
 

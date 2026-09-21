@@ -25,7 +25,7 @@ class VendorBillController extends Controller
         $description = trim((string) $request->input('description'));
         $amount = (float) $request->input('amount', 0);
         if ($description === '' || $amount <= 0) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'A description and a positive amount are required.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.vendor_bills.description_amount_required'));
         }
 
         $filePath = null;
@@ -33,7 +33,7 @@ class VendorBillController extends Controller
         if ($file && $file->isValid()) {
             $ext = strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
             if (!in_array($ext, self::ALLOWED_EXT, true)) {
-                return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'Receipt file type not allowed. Allowed: ' . implode(', ', self::ALLOWED_EXT));
+                return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.vendor_bills.receipt_type_not_allowed', ['allowed' => implode(', ', self::ALLOWED_EXT)]));
             }
             $storedName = bin2hex(random_bytes(12)) . '.' . $ext;
             $file->move(public_path("uploads/vendor-bills/{$companyId}"), $storedName);
@@ -62,7 +62,7 @@ class VendorBillController extends Controller
             $purchaseOrder->update(['status' => 'received']);
         }
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Vendor bill recorded.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.vendor_bills.recorded'));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -79,7 +79,7 @@ class VendorBillController extends Controller
             }
         }
         $bill->delete();
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Vendor bill removed.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.vendor_bills.removed'));
     }
 
     private function findOwned(int $id): VendorBill

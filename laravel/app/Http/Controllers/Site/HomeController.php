@@ -52,7 +52,7 @@ class HomeController extends Controller
 
     public function contactSubmit(): RedirectResponse
     {
-        return $this->redirectWithFlash('/contact', 'success', 'Thanks for reaching out! Our Saudi sales team will contact you within one business day.');
+        return $this->redirectWithFlash('/contact', 'success', t('site.contact.submitted'));
     }
 
     public function privacy(): View

@@ -63,7 +63,7 @@ class PaymentCertificateController extends Controller
         $boqItems = BoqItem::where('project_id', $project->id)->orderBy('sort_order')->orderBy('id')->get();
 
         if ($boqItems->isEmpty()) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', 'Add a Bill of Quantities to this project before creating a payment certificate.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'error', t('user.payment_certificates.boq_required'));
         }
 
         $previousCumulative = $this->previousCumulativeByBoqItemId($project->id);
@@ -176,7 +176,7 @@ class PaymentCertificateController extends Controller
     {
         $certificate = $this->findOwned($id);
         if (!$certificate->isDraft()) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', 'This certificate has already been certified and can no longer be edited.');
+            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.locked_certified'));
         }
         $project = $this->findOwnedProject($certificate->project_id);
         $existingLines = PaymentCertificateLine::where('payment_certificate_id', $certificate->id)->get()->keyBy('boq_item_id');
@@ -214,7 +214,7 @@ class PaymentCertificateController extends Controller
         }
         $certificate = $this->findOwned($id);
         if (!$certificate->isDraft()) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', 'This certificate has already been certified and can no longer be edited.');
+            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.locked_certified'));
         }
         $project = $this->findOwnedProject($certificate->project_id);
 
@@ -279,10 +279,10 @@ class PaymentCertificateController extends Controller
         $projectId = $certificate->project_id;
 
         if (!$certificate->isDraft()) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', 'A certified certificate cannot be deleted.');
+            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.certified_cannot_delete'));
         }
         if (!$this->isLatestDraft($certificate)) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', 'Only the most recently created draft certificate can be deleted — a later certificate already exists for this project and its numbers depend on this one staying intact.');
+            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.only_latest_draft_deletable'));
         }
 
         DB::transaction(function () use ($certificate) {
@@ -290,7 +290,7 @@ class PaymentCertificateController extends Controller
             $certificate->delete();
         });
 
-        return $this->redirectWithFlash('/app/projects/' . $projectId . '/payment-certificates', 'success', 'Draft certificate deleted.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId . '/payment-certificates', 'success', t('user.payment_certificates.draft_deleted'));
     }
 
     /**
@@ -319,7 +319,7 @@ class PaymentCertificateController extends Controller
         }
         $certificate = $this->findOwned($id);
         if (!$certificate->isDraft()) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', 'This certificate has already been certified.');
+            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.already_certified'));
         }
 
         $project = $this->findOwnedProject($certificate->project_id);
@@ -333,7 +333,7 @@ class PaymentCertificateController extends Controller
             ->get();
 
         if ($lineRows->isEmpty()) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', 'Nothing to certify — no new progress was claimed on any line this period.');
+            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.nothing_to_certify'));
         }
 
         // Billed at this-period value only (the delta since the last certificate) — never the

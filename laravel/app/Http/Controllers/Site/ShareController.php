@@ -112,7 +112,7 @@ class ShareController extends Controller
             return redirect('/e/' . $token);
         }
         if ($estimate->isExpired()) {
-            return $this->redirectWithFlash('/e/' . $token, 'error', 'This estimate has expired — please contact the contractor for an updated quote.');
+            return $this->redirectWithFlash('/e/' . $token, 'error', t('site.share.estimate_expired'));
         }
 
         $decision = $request->input('decision');
@@ -120,7 +120,7 @@ class ShareController extends Controller
             $signedByName = trim((string) $request->input('signed_by_name'));
             $signatureData = (string) $request->input('signature_data');
             if ($signedByName === '' || !str_starts_with($signatureData, 'data:image/')) {
-                return $this->redirectWithFlash('/e/' . $token, 'error', 'Please type your name and draw your signature before submitting.');
+                return $this->redirectWithFlash('/e/' . $token, 'error', t('site.share.signature_required'));
             }
             // Never trust client-submitted item IDs blindly — filter the
             // submitted selection down to optional items that actually belong
@@ -155,10 +155,10 @@ class ShareController extends Controller
             ]);
             Notifications::estimateSigned($estimate->id, $signedByName);
             WebhookDispatcher::dispatch($estimate->company_id, 'estimate.signed', $estimate->fresh()->toArray());
-            $this->flash('success', 'Thank you — the estimate has been signed and accepted.');
+            $this->flash('success', t('site.share.estimate_signed'));
         } else {
             $estimate->update(['status' => 'declined']);
-            $this->flash('success', 'You have declined this estimate.');
+            $this->flash('success', t('site.share.estimate_declined'));
         }
         return redirect('/e/' . $token);
     }
@@ -273,7 +273,7 @@ class ShareController extends Controller
             return redirect('/i/' . $token);
         }
         if (!Moyasar::isConfiguredForCompany($company?->toArray()) || !Feature::allowsForCompany('online_invoice_payments', $company)) {
-            return $this->redirectWithFlash('/i/' . $token, 'error', "Online payment isn't available for this invoice yet — please contact " . ($company->name ?? 'the company') . ' directly.');
+            return $this->redirectWithFlash('/i/' . $token, 'error', t('site.share.online_payment_unavailable', ['company' => $company->name ?? t('site.share.the_company')]));
         }
 
         return view('site.pay-invoice', [
@@ -297,7 +297,7 @@ class ShareController extends Controller
             : null;
 
         if (!$moyasarPayment || ($moyasarPayment['status'] ?? '') !== 'paid') {
-            return $this->redirectWithFlash('/i/' . $token, 'error', 'Payment was not completed. Please try again.');
+            return $this->redirectWithFlash('/i/' . $token, 'error', t('site.share.payment_not_completed'));
         }
 
         if ($invoice->status !== 'paid') {
@@ -316,7 +316,7 @@ class ShareController extends Controller
             WebhookDispatcher::dispatch($invoice->company_id, 'invoice.paid', $invoice->fresh()->toArray());
         }
 
-        return $this->redirectWithFlash('/i/' . $token, 'success', 'Payment received — thank you!');
+        return $this->redirectWithFlash('/i/' . $token, 'success', t('site.share.payment_received'));
     }
 
     private function zatcaQrDataUri(Invoice $invoice, ?Company $company): ?string

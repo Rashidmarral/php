@@ -23,11 +23,11 @@ class AdminProfileController extends Controller
         $name = trim((string) $request->input('name'));
         $email = strtolower(trim((string) $request->input('email')));
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $this->redirectWithFlash('/admin/profile', 'error', 'A valid name and email are required.');
+            return $this->redirectWithFlash('/admin/profile', 'error', t('admin.profile.valid_name_email_required'));
         }
         $existing = User::where('email', $email)->first();
         if ($existing && $existing->id !== $admin->id) {
-            return $this->redirectWithFlash('/admin/profile', 'error', 'Another user already uses this email.');
+            return $this->redirectWithFlash('/admin/profile', 'error', t('admin.profile.email_taken'));
         }
 
         $data = ['name' => $name, 'email' => $email];
@@ -36,19 +36,19 @@ class AdminProfileController extends Controller
         if ($newPassword !== '') {
             $currentPassword = (string) $request->input('current_password', '');
             if (!Hash::check($currentPassword, $admin->password)) {
-                return $this->redirectWithFlash('/admin/profile', 'error', 'Current password is incorrect — password was not changed.');
+                return $this->redirectWithFlash('/admin/profile', 'error', t('admin.profile.current_password_incorrect'));
             }
             if (strlen($newPassword) < 8) {
-                return $this->redirectWithFlash('/admin/profile', 'error', 'New password must be at least 8 characters — password was not changed.');
+                return $this->redirectWithFlash('/admin/profile', 'error', t('admin.profile.new_password_min_length'));
             }
             if ($newPassword !== (string) $request->input('new_password_confirm', '')) {
-                return $this->redirectWithFlash('/admin/profile', 'error', 'New password confirmation does not match — password was not changed.');
+                return $this->redirectWithFlash('/admin/profile', 'error', t('admin.profile.new_password_mismatch'));
             }
             $data['password'] = $newPassword;
         }
 
         $admin->update($data);
 
-        return $this->redirectWithFlash('/admin/profile', 'success', 'Profile updated.');
+        return $this->redirectWithFlash('/admin/profile', 'success', t('admin.profile.updated'));
     }
 }

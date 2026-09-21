@@ -28,11 +28,11 @@ class TenderAdminController extends Controller
     {
         $titleEn = trim((string) $request->input('title_en'));
         if ($titleEn === '') {
-            return $this->redirectWithFlash('/admin/tenders/create', 'error', 'Please enter a tender title.');
+            return $this->redirectWithFlash('/admin/tenders/create', 'error', t('admin.tenders.title_required'));
         }
 
         $tender = Tender::create($this->collectInput($request) + ['is_active' => true]);
-        $this->flash('success', 'Tender added.');
+        $this->flash('success', t('admin.tenders.added'));
         return redirect('/admin/tenders/' . $tender->id . '/edit');
     }
 
@@ -47,20 +47,20 @@ class TenderAdminController extends Controller
 
         $titleEn = trim((string) $request->input('title_en'));
         if ($titleEn === '') {
-            return $this->redirectWithFlash('/admin/tenders/' . $tender->id . '/edit', 'error', 'Please enter a tender title.');
+            return $this->redirectWithFlash('/admin/tenders/' . $tender->id . '/edit', 'error', t('admin.tenders.title_required'));
         }
 
         $tender->update($this->collectInput($request) + [
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        $this->flash('success', 'Tender updated.');
+        $this->flash('success', t('admin.tenders.updated'));
         return redirect('/admin/tenders/' . $tender->id . '/edit');
     }
 
     public function destroy(int $id): RedirectResponse
     {
         Tender::findOrFail($id)->delete();
-        return $this->redirectWithFlash('/admin/tenders', 'success', 'Tender deleted.');
+        return $this->redirectWithFlash('/admin/tenders', 'success', t('admin.tenders.deleted'));
     }
 
     private function collectInput(Request $request): array

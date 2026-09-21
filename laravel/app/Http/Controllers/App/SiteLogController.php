@@ -49,7 +49,7 @@ class SiteLogController extends Controller
         $notes = trim((string) $request->input('notes', ''));
         $weather = trim((string) $request->input('weather', ''));
         if ($notes === '' && $weather === '') {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/site-log', 'error', 'Add a note or weather condition to log something.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/site-log', 'error', t('user.site_log.content_required'));
         }
 
         SiteLog::create([
@@ -62,7 +62,7 @@ class SiteLogController extends Controller
             'notes' => $notes,
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id . '/site-log', 'success', 'Site log entry added.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id . '/site-log', 'success', t('user.site_log.added'));
     }
 
     private function findOwnedProject(int $id): Project

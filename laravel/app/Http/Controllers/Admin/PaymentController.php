@@ -71,7 +71,7 @@ class PaymentController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return $this->redirectWithFlash('/admin/payments/' . $payment->id, 'success', 'Transaction updated.');
+        return $this->redirectWithFlash('/admin/payments/' . $payment->id, 'success', t('admin.payments.transaction_updated'));
     }
 
     /** Reassigns which plan/cycle this transaction grants, and pushes that plan live on the company now. */
@@ -80,7 +80,7 @@ class PaymentController extends Controller
         $payment = Payment::findOrFail($id);
         $plan = Plan::find((int) $request->input('plan_id'));
         if (!$plan) {
-            return $this->redirectWithFlash('/admin/payments/' . $payment->id, 'error', 'Invalid plan.');
+            return $this->redirectWithFlash('/admin/payments/' . $payment->id, 'error', t('admin.payments.invalid_plan'));
         }
         $cycle = $request->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 
@@ -94,7 +94,7 @@ class PaymentController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        return $this->redirectWithFlash('/admin/payments/' . $payment->id, 'success', "Transaction reassigned to {$plan->name} ({$cycle}) and applied to the company.");
+        return $this->redirectWithFlash('/admin/payments/' . $payment->id, 'success', t('admin.payments.transaction_reassigned', ['plan' => $plan->name, 'cycle' => $cycle]));
     }
 
     public function approve(Request $request, int $id): RedirectResponse
@@ -115,7 +115,7 @@ class PaymentController extends Controller
 
         AuditLog::record($request->user(), 'payment_approve', 'payment', $payment->id, "{$payment->reference} — " . number_format((float) $payment->amount, 2) . ' SAR');
 
-        return $this->redirectWithFlash('/admin/payments', 'success', 'Payment approved' . ($plan ? " and the company's plan has been activated." : '.'));
+        return $this->redirectWithFlash('/admin/payments', 'success', $plan ? t('admin.payments.approved_with_plan') : t('admin.payments.approved_no_plan'));
     }
 
     public function reject(Request $request, int $id): RedirectResponse
@@ -131,7 +131,7 @@ class PaymentController extends Controller
 
         AuditLog::record($request->user(), 'payment_reject', 'payment', $payment->id, "{$payment->reference} — " . number_format((float) $payment->amount, 2) . ' SAR');
 
-        return $this->redirectWithFlash('/admin/payments', 'success', 'Payment rejected.');
+        return $this->redirectWithFlash('/admin/payments', 'success', t('admin.payments.rejected'));
     }
 
     public function exportCsv(): Response

@@ -48,10 +48,10 @@ class SettingsController extends Controller
         if ($logo && $logo->isValid()) {
             $mime = $logo->getMimeType();
             if (!isset(self::ALLOWED_LOGO_TYPES[$mime])) {
-                return $this->redirectWithFlash('/app/settings', 'error', 'Logo must be a JPG, PNG, or WEBP image.');
+                return $this->redirectWithFlash('/app/settings', 'error', t('user.settings.logo_type_invalid'));
             }
             if ($logo->getSize() > 3 * 1024 * 1024) {
-                return $this->redirectWithFlash('/app/settings', 'error', 'Logo must be smaller than 3MB.');
+                return $this->redirectWithFlash('/app/settings', 'error', t('user.settings.logo_max_size'));
             }
             $filename = 'company-' . $companyId . '-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_LOGO_TYPES[$mime];
             $logo->move(public_path('uploads/logos'), $filename);
@@ -144,17 +144,17 @@ class SettingsController extends Controller
         $confirm = (string) $request->input('new_password_confirm');
 
         if (!Hash::check($current, $user->password)) {
-            return $this->redirectWithFlash('/app/settings/security', 'error', 'Your current password is incorrect.');
+            return $this->redirectWithFlash('/app/settings/security', 'error', t('user.settings.current_password_incorrect'));
         }
         if (strlen($new) < 8) {
-            return $this->redirectWithFlash('/app/settings/security', 'error', 'New password must be at least 8 characters.');
+            return $this->redirectWithFlash('/app/settings/security', 'error', t('user.settings.new_password_min_length'));
         }
         if ($new !== $confirm) {
-            return $this->redirectWithFlash('/app/settings/security', 'error', 'New password and confirmation do not match.');
+            return $this->redirectWithFlash('/app/settings/security', 'error', t('user.settings.new_password_mismatch'));
         }
 
         $user->update(['password' => Hash::make($new)]);
-        $this->flash('success', 'Password updated.');
+        $this->flash('success', t('user.settings.password_updated'));
         return redirect('/app/settings/security');
     }
 

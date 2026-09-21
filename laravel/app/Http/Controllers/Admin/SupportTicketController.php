@@ -49,7 +49,7 @@ class SupportTicketController extends Controller
         $ticket = $this->findOwned($id);
         $message = trim((string) $request->input('message'));
         if ($message === '') {
-            return $this->redirectWithFlash('/admin/support/' . $id, 'error', 'Please enter a reply message.');
+            return $this->redirectWithFlash('/admin/support/' . $id, 'error', t('admin.support_tickets.reply_message_required'));
         }
 
         $attachment = TicketAttachment::store($request->file('attachment'), $ticket->id);
@@ -69,7 +69,7 @@ class SupportTicketController extends Controller
 
         $ticket->update(['last_message_at' => now(), 'status' => 'pending']);
 
-        $this->flash('success', 'Reply sent.');
+        $this->flash('success', t('admin.support_tickets.reply_sent'));
         return redirect('/admin/support/' . $id);
     }
 
@@ -84,10 +84,10 @@ class SupportTicketController extends Controller
             $data['priority'] = $request->input('priority');
         }
         if (empty($data)) {
-            return $this->redirectWithFlash('/admin/support/' . $id, 'error', 'Nothing to update.');
+            return $this->redirectWithFlash('/admin/support/' . $id, 'error', t('admin.support_tickets.nothing_to_update'));
         }
         $ticket->update($data);
-        $this->flash('success', 'Ticket updated.');
+        $this->flash('success', t('admin.support_tickets.updated'));
         return redirect('/admin/support/' . $id);
     }
 

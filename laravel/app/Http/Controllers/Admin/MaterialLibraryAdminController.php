@@ -36,10 +36,10 @@ class MaterialLibraryAdminController extends Controller
     {
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/admin/material-library', 'error', 'Item name is required.');
+            return $this->redirectWithFlash('/admin/material-library', 'error', t('admin.material_library.name_required'));
         }
         MaterialLibraryItem::create([...$this->fromInput($request), 'is_active' => true]);
-        return $this->redirectWithFlash('/admin/material-library', 'success', 'Library item added.');
+        return $this->redirectWithFlash('/admin/material-library', 'success', t('admin.material_library.added'));
     }
 
     public function update(Request $request, int $id): RedirectResponse
@@ -48,13 +48,13 @@ class MaterialLibraryAdminController extends Controller
             ...$this->fromInput($request),
             'is_active' => (bool) $request->input('is_active'),
         ]);
-        return $this->redirectWithFlash('/admin/material-library', 'success', 'Library item updated.');
+        return $this->redirectWithFlash('/admin/material-library', 'success', t('admin.material_library.updated'));
     }
 
     public function destroy(int $id): RedirectResponse
     {
         MaterialLibraryItem::destroy($id);
-        return $this->redirectWithFlash('/admin/material-library', 'success', 'Library item deleted.');
+        return $this->redirectWithFlash('/admin/material-library', 'success', t('admin.material_library.deleted'));
     }
 
     private function fromInput(Request $request): array

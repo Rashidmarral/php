@@ -66,7 +66,7 @@ class CompanyController extends Controller
         if (in_array($status, ['trial', 'active', 'past_due', 'suspended', 'cancelled'], true)) {
             $company->update(['status' => $status]);
             AuditLog::record($request->user(), 'company_status_change', 'company', $company->id, "{$company->name} → {$status}");
-            $this->flash('success', 'Company status updated.');
+            $this->flash('success', t('admin.company.status_updated'));
         }
         return redirect('/admin/companies/' . $company->id);
     }
@@ -105,7 +105,7 @@ class CompanyController extends Controller
         $company->update($data);
         AuditLog::record($request->user(), 'company_profile_update', 'company', $company->id, $company->name);
 
-        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', 'Company profile updated.');
+        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.profile_updated'));
     }
 
     /** @param array $data by reference — sets $column on success */
@@ -134,14 +134,14 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
         $plan = Plan::find((int) $request->input('plan_id'));
         if (!$plan) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', 'Invalid plan.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', t('admin.company.invalid_plan'));
         }
         $cycle = $request->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 
         Billing::activatePlan($company->id, $plan, $cycle);
         AuditLog::record($request->user(), 'company_plan_override', 'company', $company->id, "{$company->name} → {$plan->name}");
 
-        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', "Plan changed to {$plan->name} (admin override, no charge recorded).");
+        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.plan_changed', ['plan' => $plan->name]));
     }
 
     /** Log the admin in as this company's owner, for support/debugging. Ends via /app/end-impersonation. */
@@ -150,7 +150,7 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
         $owner = User::where('company_id', $company->id)->where('role', 'owner')->first();
         if (!$owner) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', 'This company has no owner account to log in as.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', t('admin.company.no_owner_account'));
         }
 
         $admin = $request->user();
@@ -167,7 +167,7 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         if ($request->input('confirm_name') !== $company->name) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', 'Type the company name exactly to confirm permanent deletion.');
+            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', t('admin.company.confirm_name_mismatch'));
         }
 
         $companyId = $company->id;
@@ -191,7 +191,7 @@ class CompanyController extends Controller
 
         AuditLog::record($request->user(), 'company_hard_delete', 'company', $companyId, "Permanently deleted {$companyName} and all its data");
 
-        return $this->redirectWithFlash('/admin/companies', 'success', "{$companyName} and all its data have been permanently deleted.");
+        return $this->redirectWithFlash('/admin/companies', 'success', t('admin.company.hard_deleted', ['name' => $companyName]));
     }
 
     public function exportCsv(): Response

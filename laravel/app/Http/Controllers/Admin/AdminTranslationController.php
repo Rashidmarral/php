@@ -58,7 +58,7 @@ class AdminTranslationController extends Controller
         Translation::upsert('en', $key, (string) $request->input('en_value', ''));
         Translation::upsert('ar', $key, (string) $request->input('ar_value', ''));
 
-        $this->flash('success', 'Translation "' . $key . '" saved.');
+        $this->flash('success', t('admin.translations.saved', ['key' => $key]));
         return redirect('/admin/translations' . $this->searchQuery($request));
     }
 
@@ -66,13 +66,13 @@ class AdminTranslationController extends Controller
     {
         $key = trim((string) $request->input('new_key'));
         if ($key === '' || !preg_match('/^[a-zA-Z0-9_.\-]+$/', $key)) {
-            return $this->redirectWithFlash('/admin/translations', 'error', 'Enter a valid key using letters, numbers, dots, dashes and underscores only.');
+            return $this->redirectWithFlash('/admin/translations', 'error', t('admin.translations.invalid_key'));
         }
 
         Translation::upsert('en', $key, (string) $request->input('new_en_value', ''));
         Translation::upsert('ar', $key, (string) $request->input('new_ar_value', ''));
 
-        return $this->redirectWithFlash('/admin/translations', 'success', 'Translation key "' . $key . '" added — use it in a custom template as t(\'' . $key . '\').');
+        return $this->redirectWithFlash('/admin/translations', 'success', t('admin.translations.key_added', ['key' => $key]));
     }
 
     public function reset(Request $request): RedirectResponse
@@ -80,7 +80,7 @@ class AdminTranslationController extends Controller
         $key = trim((string) $request->input('key'));
         if ($key !== '') {
             Translation::deleteKey($key);
-            $this->flash('success', 'Translation "' . $key . '" reset to default.');
+            $this->flash('success', t('admin.translations.reset_to_default', ['key' => $key]));
         }
         return redirect('/admin/translations' . $this->searchQuery($request));
     }

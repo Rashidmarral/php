@@ -41,7 +41,7 @@ class ComplianceController extends Controller
 
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/business-setup/compliance', 'error', 'Document name is required.');
+            return $this->redirectWithFlash('/app/business-setup/compliance', 'error', t('user.compliance.name_required'));
         }
 
         $data = [
@@ -60,7 +60,7 @@ class ComplianceController extends Controller
         }
 
         ComplianceDocument::create($data);
-        $this->flash('success', 'Compliance document added.');
+        $this->flash('success', t('user.compliance.added'));
         return redirect('/app/business-setup/compliance');
     }
 
@@ -96,7 +96,7 @@ class ComplianceController extends Controller
         }
 
         $doc->update($data);
-        $this->flash('success', 'Compliance document updated.');
+        $this->flash('success', t('user.compliance.updated'));
         return redirect('/app/business-setup/compliance');
     }
 
@@ -109,7 +109,7 @@ class ComplianceController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->delete();
-        $this->flash('success', 'Compliance document removed.');
+        $this->flash('success', t('user.compliance.removed'));
         return redirect('/app/business-setup/compliance');
     }
 

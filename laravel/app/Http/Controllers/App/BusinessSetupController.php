@@ -55,7 +55,7 @@ class BusinessSetupController extends Controller
 
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/business-setup/' . $type, 'error', 'Name is required.');
+            return $this->redirectWithFlash('/app/business-setup/' . $type, 'error', t('user.business_setup.name_required'));
         }
 
         $config['model']::create([
@@ -64,7 +64,7 @@ class BusinessSetupController extends Controller
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        $this->flash('success', 'Added.');
+        $this->flash('success', t('user.business_setup.added'));
         return redirect('/app/business-setup/' . $type);
     }
 
@@ -81,7 +81,7 @@ class BusinessSetupController extends Controller
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        $this->flash('success', 'Updated.');
+        $this->flash('success', t('user.business_setup.updated'));
         return redirect('/app/business-setup/' . $type);
     }
 
@@ -92,7 +92,7 @@ class BusinessSetupController extends Controller
         }
         $config = $this->config($type);
         $this->findOwned($config['model'], $id)->delete();
-        $this->flash('success', 'Removed.');
+        $this->flash('success', t('user.business_setup.removed'));
         return redirect('/app/business-setup/' . $type);
     }
 
@@ -110,7 +110,7 @@ class BusinessSetupController extends Controller
                 $config['model']::create(['company_id' => $companyId, 'name' => $name, 'sort_order' => $i]);
             }
         }
-        $this->flash('success', 'Suggested defaults added.');
+        $this->flash('success', t('user.business_setup.suggested_defaults_added'));
         return redirect('/app/business-setup/' . $type);
     }
 
@@ -131,14 +131,14 @@ class BusinessSetupController extends Controller
         $code = trim((string) $request->input('code'));
         $name = trim((string) $request->input('name'));
         if ($code === '' || $name === '') {
-            return $this->redirectWithFlash('/app/business-setup/units-of-measure', 'error', 'Code and name are required.');
+            return $this->redirectWithFlash('/app/business-setup/units-of-measure', 'error', t('user.business_setup.code_and_name_required'));
         }
         UnitOfMeasure::create([
             'company_id' => Auth::user()->company_id, 'code' => $code, 'name' => $name,
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        $this->flash('success', 'Unit added.');
+        $this->flash('success', t('user.business_setup.unit_added'));
         return redirect('/app/business-setup/units-of-measure');
     }
 
@@ -154,7 +154,7 @@ class BusinessSetupController extends Controller
             'name_ar' => trim((string) $request->input('name_ar', '')),
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        $this->flash('success', 'Unit updated.');
+        $this->flash('success', t('user.business_setup.unit_updated'));
         return redirect('/app/business-setup/units-of-measure');
     }
 
@@ -164,7 +164,7 @@ class BusinessSetupController extends Controller
             return $redirect;
         }
         $this->findOwned(UnitOfMeasure::class, $id)->delete();
-        $this->flash('success', 'Unit removed.');
+        $this->flash('success', t('user.business_setup.unit_removed'));
         return redirect('/app/business-setup/units-of-measure');
     }
 
@@ -184,7 +184,7 @@ class BusinessSetupController extends Controller
                 UnitOfMeasure::create(['company_id' => $companyId, 'code' => $code, 'name' => $name, 'sort_order' => $i]);
             }
         }
-        $this->flash('success', 'Suggested units added.');
+        $this->flash('success', t('user.business_setup.suggested_units_added'));
         return redirect('/app/business-setup/units-of-measure');
     }
 
@@ -205,7 +205,7 @@ class BusinessSetupController extends Controller
         $companyId = Auth::user()->company_id;
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/business-setup/tax-rates', 'error', 'Name is required.');
+            return $this->redirectWithFlash('/app/business-setup/tax-rates', 'error', t('user.business_setup.name_required'));
         }
         $isDefault = $request->boolean('is_default');
         if ($isDefault) {
@@ -218,7 +218,7 @@ class BusinessSetupController extends Controller
             'is_default' => $isDefault,
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        $this->flash('success', 'Tax rate added.');
+        $this->flash('success', t('user.business_setup.tax_rate_added'));
         return redirect('/app/business-setup/tax-rates');
     }
 
@@ -239,7 +239,7 @@ class BusinessSetupController extends Controller
             'is_default' => $isDefault,
             'sort_order' => (int) $request->input('sort_order', 0),
         ]);
-        $this->flash('success', 'Tax rate updated.');
+        $this->flash('success', t('user.business_setup.tax_rate_updated'));
         return redirect('/app/business-setup/tax-rates');
     }
 
@@ -249,7 +249,7 @@ class BusinessSetupController extends Controller
             return $redirect;
         }
         $this->findOwned(TaxRate::class, $id)->delete();
-        $this->flash('success', 'Tax rate removed.');
+        $this->flash('success', t('user.business_setup.tax_rate_removed'));
         return redirect('/app/business-setup/tax-rates');
     }
 

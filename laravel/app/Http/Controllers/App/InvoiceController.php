@@ -124,7 +124,7 @@ class InvoiceController extends Controller
         $this->chainZatca($invoice->fresh(), $company, $client, $items, $zatcaSync);
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
 
-        $this->flash('success', 'Invoice created.');
+        $this->flash('success', t('user.invoices.created'));
         return redirect('/app/invoices/' . $invoice->id);
     }
 
@@ -238,10 +238,10 @@ class InvoiceController extends Controller
         $company = Company::find($invoice->company_id);
 
         if ($invoice->isApprovalBlocked()) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is awaiting internal approval before it can be sent.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.awaiting_approval_cannot_send'));
         }
         if (!$client || empty($client->phone)) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.no_client_phone'));
         }
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
@@ -253,9 +253,9 @@ class InvoiceController extends Controller
         $result = WhatsApp::sendMessage($client->phone, $message);
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'WhatsApp notification sent.');
+            $this->flash('success', t('common.whatsapp_notification_sent'));
         } else {
-            $this->flash('error', 'Could not send WhatsApp notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('common.whatsapp_notification_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }
@@ -271,13 +271,13 @@ class InvoiceController extends Controller
         $company = Company::find($invoice->company_id);
 
         if ($invoice->isApprovalBlocked()) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is awaiting internal approval before it can be sent.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.awaiting_approval_cannot_send'));
         }
         if ($invoice->status === 'paid') {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is already paid.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.already_paid'));
         }
         if (!$client || empty($client->phone)) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.no_client_phone'));
         }
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
@@ -334,13 +334,13 @@ class InvoiceController extends Controller
         $company = Company::find($invoice->company_id);
 
         if ($invoice->approval_status !== 'pending') {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is not awaiting approval.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.not_awaiting_approval'));
         }
         if ((int) $invoice->approval_requested_by !== (int) Auth::id()) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'Only the person who requested approval can send this reminder.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.only_requester_can_remind'));
         }
         if (empty($company->phone)) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'Your company has no contact phone number on file to notify the approver.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.no_company_phone'));
         }
 
         $result = WhatsApp::sendMessage($company->phone, $this->approverPingMessage($invoice, $company));
@@ -363,10 +363,10 @@ class InvoiceController extends Controller
         $company = Company::find($invoice->company_id);
 
         if ($invoice->isApprovalBlocked()) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice is awaiting internal approval before it can be sent.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.awaiting_approval_cannot_send'));
         }
         if (!$client || empty($client->phone)) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no client phone number on file.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.no_client_phone'));
         }
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
@@ -378,9 +378,9 @@ class InvoiceController extends Controller
         $result = Sms::sendMessage($client->phone, $message);
 
         if (!empty($result['ok'])) {
-            $this->flash('success', 'SMS notification sent.');
+            $this->flash('success', t('common.sms_notification_sent'));
         } else {
-            $this->flash('error', 'Could not send SMS notification: ' . ($result['error'] ?? json_encode($result['data'] ?? $result)));
+            $this->flash('error', t('common.sms_send_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }
@@ -398,7 +398,7 @@ class InvoiceController extends Controller
             if ($status === 'paid' && !$wasPaid) {
                 WebhookDispatcher::dispatch($invoice->company_id, 'invoice.paid', $invoice->fresh()->toArray());
             }
-            $this->flash('success', 'Invoice status updated.');
+            $this->flash('success', t('user.invoices.status_updated'));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }
@@ -411,11 +411,11 @@ class InvoiceController extends Controller
         }
         $invoice = $this->findOwned($id);
         if ($invoice->approval_status !== 'pending') {
-            $this->flash('error', 'This invoice is not awaiting approval.');
+            $this->flash('error', t('user.invoices.not_awaiting_approval'));
             return redirect('/app/invoices/' . $invoice->id);
         }
         $invoice->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
-        $this->flash('success', 'Invoice approved — it can now be sent to the client.');
+        $this->flash('success', t('user.invoices.approved'));
         return redirect('/app/invoices/' . $invoice->id);
     }
 
@@ -426,7 +426,7 @@ class InvoiceController extends Controller
         }
         $invoice = $this->findOwned($id);
         if ($invoice->approval_status !== 'pending') {
-            $this->flash('error', 'This invoice is not awaiting approval.');
+            $this->flash('error', t('user.invoices.not_awaiting_approval'));
             return redirect('/app/invoices/' . $invoice->id);
         }
         $invoice->update([
@@ -435,7 +435,7 @@ class InvoiceController extends Controller
             'approved_by' => null,
             'approved_at' => null,
         ]);
-        $this->flash('success', 'Invoice rejected.');
+        $this->flash('success', t('user.invoices.rejected'));
         return redirect('/app/invoices/' . $invoice->id);
     }
 
@@ -447,7 +447,7 @@ class InvoiceController extends Controller
         $invoice = $this->findOwned($id);
         if ((float) $invoice->retention_amount > 0 && !$invoice->retention_released) {
             $invoice->update(['retention_released' => true, 'retention_released_at' => now()]);
-            $this->flash('success', 'Retention marked as released.');
+            $this->flash('success', t('user.invoices.retention_released'));
         }
         return redirect('/app/invoices/' . $invoice->id);
     }
@@ -459,11 +459,11 @@ class InvoiceController extends Controller
         }
         $invoice = $this->findOwned($id);
         if ($invoice->isZatcaLocked()) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has been cleared/reported to ZATCA and is now part of an immutable tax record — it can no longer be deleted. Issue a Credit Note instead to correct it.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.zatca_locked_cannot_delete'));
         }
         InvoiceItem::where('invoice_id', $invoice->id)->delete();
         $invoice->delete();
-        $this->flash('success', 'Invoice deleted.');
+        $this->flash('success', t('user.invoices.deleted'));
         return redirect('/app/invoices');
     }
 
@@ -505,7 +505,7 @@ class InvoiceController extends Controller
     {
         $invoice = $this->findOwned($id);
         if (empty($invoice->zatca_uuid)) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no ZATCA chain data (it may predate ZATCA integration).');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.no_zatca_chain_data_legacy'));
         }
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
         $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
@@ -545,10 +545,10 @@ class InvoiceController extends Controller
         $company = Company::find($invoice->company_id);
 
         if (!$company || !$company->isZatcaOnboarded()) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', "ZATCA Phase 2 isn't activated for your company yet. Ask your platform administrator to complete onboarding.");
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('common.zatca_phase2_not_activated'));
         }
         if (empty($invoice->zatca_uuid)) {
-            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', 'This invoice has no ZATCA chain data.');
+            return $this->redirectWithFlash('/app/invoices/' . $invoice->id, 'error', t('user.invoices.no_zatca_chain_data'));
         }
 
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
@@ -556,7 +556,7 @@ class InvoiceController extends Controller
 
         $result = $zatcaSync->submitInvoice($invoice, $company, $client, $this->itemsForXml($items));
 
-        $this->flash($result['ok'] ? 'success' : 'error', $result['ok'] ? $result['message'] : 'ZATCA rejected the invoice: ' . $result['message']);
+        $this->flash($result['ok'] ? 'success' : 'error', $result['ok'] ? $result['message'] : t('user.invoices.zatca_rejected', ['reason' => $result['message']]));
 
         return redirect('/app/invoices/' . $invoice->id);
     }

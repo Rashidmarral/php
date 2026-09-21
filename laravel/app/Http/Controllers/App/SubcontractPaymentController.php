@@ -97,7 +97,7 @@ class SubcontractPaymentController extends Controller
     {
         $payment = $this->findOwned($id);
         if (!$payment->isDraft()) {
-            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', 'This payment has already been certified and can no longer be edited.');
+            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', t('user.subcontract_payments.locked_certified'));
         }
         $subcontract = $this->findOwnedSubcontract($payment->subcontract_id);
         $project = $this->findOwnedProject($subcontract->project_id);
@@ -119,7 +119,7 @@ class SubcontractPaymentController extends Controller
         }
         $payment = $this->findOwned($id);
         if (!$payment->isDraft()) {
-            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', 'This payment has already been certified and can no longer be edited.');
+            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', t('user.subcontract_payments.locked_certified'));
         }
         $subcontract = $this->findOwnedSubcontract($payment->subcontract_id);
 
@@ -143,14 +143,14 @@ class SubcontractPaymentController extends Controller
         $subcontractId = $payment->subcontract_id;
 
         if (!$payment->isDraft()) {
-            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', 'A certified payment cannot be deleted.');
+            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', t('user.subcontract_payments.certified_cannot_delete'));
         }
         if (!$this->isLatestDraft($payment)) {
-            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', 'Only the most recently created draft payment can be deleted — a later payment already exists for this subcontract and its numbers depend on this one staying intact.');
+            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', t('user.subcontract_payments.only_latest_draft_deletable'));
         }
 
         $payment->delete();
-        return $this->redirectWithFlash('/app/subcontracts/' . $subcontractId, 'success', 'Draft payment deleted.');
+        return $this->redirectWithFlash('/app/subcontracts/' . $subcontractId, 'success', t('user.subcontract_payments.draft_deleted'));
     }
 
     /**
@@ -165,7 +165,7 @@ class SubcontractPaymentController extends Controller
         }
         $payment = $this->findOwned($id);
         if (!$payment->isDraft()) {
-            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', 'This payment has already been certified.');
+            return $this->redirectWithFlash('/app/subcontract-payments/' . $payment->id, 'error', t('user.subcontract_payments.already_certified'));
         }
         $subcontract = $this->findOwnedSubcontract($payment->subcontract_id);
         $companyId = $subcontract->company_id;

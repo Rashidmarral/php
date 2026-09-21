@@ -25,14 +25,14 @@ class ProjectPhotoController extends Controller
 
         $photo = $request->file('photo');
         if (!$photo || !$photo->isValid()) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'Please choose a photo to upload.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.project_photos.file_required'));
         }
         $mime = $photo->getMimeType();
         if (!isset(self::ALLOWED_TYPES[$mime])) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'Photo must be a JPG, PNG, or WEBP image.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.project_photos.type_invalid'));
         }
         if ($photo->getSize() > 8 * 1024 * 1024) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', 'Photo must be smaller than 8MB.');
+            return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.project_photos.max_size'));
         }
 
         $filename = 'project-' . $project->id . '-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_TYPES[$mime];
@@ -49,7 +49,7 @@ class ProjectPhotoController extends Controller
             'longitude' => $this->coordinate($request->input('longitude'), 180),
         ]);
 
-        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', 'Photo added to site diary.');
+        return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.project_photos.added'));
     }
 
     public function destroy(int $id): RedirectResponse
@@ -64,7 +64,7 @@ class ProjectPhotoController extends Controller
         abort_if(!$photo || $photo->company_id !== Auth::user()->company_id, 404, 'Photo not found.');
         $projectId = $photo->project_id;
         $photo->delete();
-        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', 'Photo removed.');
+        return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.project_photos.removed'));
     }
 
     /**

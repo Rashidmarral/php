@@ -56,7 +56,7 @@ class LeadController extends Controller
 
         $name = trim((string) $request->input('name'));
         if ($name === '') {
-            return $this->redirectWithFlash('/app/leads/create', 'error', 'Lead name is required.');
+            return $this->redirectWithFlash('/app/leads/create', 'error', t('user.leads.name_required'));
         }
 
         $lead = Lead::create([
@@ -72,7 +72,7 @@ class LeadController extends Controller
             'notes' => (string) $request->input('notes', ''),
         ]);
 
-        $this->flash('success', 'Lead added.');
+        $this->flash('success', t('user.leads.added'));
         return redirect('/app/leads/' . $lead->id . '/edit');
     }
 
@@ -106,7 +106,7 @@ class LeadController extends Controller
             'notes' => (string) $request->input('notes', ''),
         ]);
 
-        $this->flash('success', 'Lead updated.');
+        $this->flash('success', t('user.leads.updated'));
         return redirect('/app/leads/' . $lead->id . '/edit');
     }
 
@@ -122,7 +122,7 @@ class LeadController extends Controller
         $status = (string) $request->input('status');
         if (in_array($status, self::STATUSES, true)) {
             $lead->update(['status' => $status]);
-            $this->flash('success', 'Lead status updated.');
+            $this->flash('success', t('user.leads.status_updated'));
         }
         return redirect('/app/leads');
     }
@@ -151,7 +151,7 @@ class LeadController extends Controller
         ]);
 
         $lead->update(['status' => 'won', 'converted_client_id' => $client->id]);
-        $this->flash('success', 'Lead converted to a client.');
+        $this->flash('success', t('user.leads.converted'));
         return redirect('/app/clients/' . $client->id . '/edit');
     }
 
@@ -164,7 +164,7 @@ class LeadController extends Controller
             return $redirect;
         }
         $this->findOwned($id)->delete();
-        $this->flash('success', 'Lead deleted.');
+        $this->flash('success', t('user.leads.deleted'));
         return redirect('/app/leads');
     }
 
