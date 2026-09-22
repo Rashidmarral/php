@@ -16,6 +16,11 @@ $showUnitLabels = (bool) $tpl->show_unit_labels;
 
 $primary = fn ($en, $ar = null) => ($primaryLocale === 'ar' && $ar) ? $ar : $en;
 $secondary = fn ($ar = null) => ($showAr && $primaryLocale !== 'ar') ? $ar : null;
+// See itpl-card.blade.php's identical comment: dompdf does not reverse a
+// table's visual column order on its own for a `dir`/`direction: rtl`
+// table, so table_direction only does anything once the cells themselves
+// are reordered server-side.
+$reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_reverse($cells) : $cells;
 ?>
 <?php if (!empty($tpl->letterhead_path)): ?>
   <img src="<?= 'file://' . public_path($tpl->letterhead_path) ?>" class="itpl-lh-banner">
@@ -72,23 +77,31 @@ $secondary = fn ($ar = null) => ($showAr && $primaryLocale !== 'ar') ? $ar : nul
 <table class="itpl-lh-items-table" dir="<?= $tableDirection ?>">
   <thead>
     <tr>
-      <th style="width:6%">#</th>
-      <th><?= $L('common.description') ?></th>
-      <th class="num"><?= $L('common.qty') ?></th>
-      <th class="num"><?= $L('common.unit_price') ?></th>
-      <?php if ($showVatColumn): ?><th class="num"><?= $L('pdf.vat_amount') ?></th><?php endif; ?>
-      <th class="num"><?= $L('common.total') ?></th>
+      <?php foreach ($reorderCells(array_filter([
+        ['class' => '', 'style' => 'width:6%', 'html' => '#'],
+        ['class' => '', 'style' => '', 'html' => $L('common.description')],
+        ['class' => 'num', 'style' => '', 'html' => $L('common.qty')],
+        ['class' => 'num', 'style' => '', 'html' => $L('common.unit_price')],
+        $showVatColumn ? ['class' => 'num', 'style' => '', 'html' => $L('pdf.vat_amount')] : null,
+        ['class' => 'num', 'style' => '', 'html' => $L('common.total')],
+      ])) as $cell): ?>
+        <th class="<?= $cell['class'] ?>" style="<?= $cell['style'] ?>"><?= $cell['html'] ?></th>
+      <?php endforeach; ?>
     </tr>
   </thead>
   <tbody>
     <?php foreach ($itemRows as $index => $row): ?>
       <tr>
-        <td><?= $index + 1 ?></td>
-        <td><?= pdfText($row['description'], $primaryLocale) ?></td>
-        <td class="num"><?= rtrim(rtrim(number_format($row['qty'], 2), '0'), '.') ?><?php if ($showUnitLabels): ?> <span class="muted small"><?= $L('common.unit') ?></span><?php endif; ?></td>
-        <td class="num"><?= number_format($row['unit_price'], 2) ?></td>
-        <?php if ($showVatColumn): ?><td class="num"><?= number_format($row['vat'], 2) ?></td><?php endif; ?>
-        <td class="num"><?= number_format($row['total'], 2) ?></td>
+        <?php foreach ($reorderCells(array_filter([
+          ['class' => '', 'html' => $index + 1],
+          ['class' => '', 'html' => pdfText($row['description'], $primaryLocale)],
+          ['class' => 'num', 'html' => rtrim(rtrim(number_format($row['qty'], 2), '0'), '.') . ($showUnitLabels ? ' <span class="muted small">' . $L('common.unit') . '</span>' : '')],
+          ['class' => 'num', 'html' => number_format($row['unit_price'], 2)],
+          $showVatColumn ? ['class' => 'num', 'html' => number_format($row['vat'], 2)] : null,
+          ['class' => 'num', 'html' => number_format($row['total'], 2)],
+        ])) as $cell): ?>
+          <td class="<?= $cell['class'] ?>"><?= $cell['html'] ?></td>
+        <?php endforeach; ?>
       </tr>
     <?php endforeach; ?>
   </tbody>

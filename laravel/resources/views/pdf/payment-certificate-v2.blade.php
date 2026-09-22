@@ -58,6 +58,11 @@ $bi = function (string $en, string $ar) use ($showEn, $showAr) {
 };
 
 $percentComplete = $contractValue > 0 ? number_format((float) $certificate->cumulative_certified / $contractValue * 100, 1) : '0.0';
+// See itpl-card.blade.php's identical comment: dompdf does not reverse a
+// table's visual column order on its own for a `dir`/`direction: rtl`
+// table, so table_direction only does anything once the cells themselves
+// are reordered server-side.
+$reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_reverse($cells) : $cells;
 ?><!doctype html>
 <html lang="<?= $lang ?>" dir="<?= $rtl ? 'rtl' : 'ltr' ?>">
 <head>
@@ -135,27 +140,35 @@ body {
   <table class="itpl-bl-items-table dense" dir="<?= $tableDirection ?>">
     <thead>
       <tr>
-        <th class="desc"><?= $bi('Description', 'البيان') ?></th>
-        <th><?= $bi('UOM', 'الوحدة') ?></th>
-        <th><?= $bi('Contract Qty', 'الكمية التعاقدية') ?></th>
-        <th><?= $bi('Rate', 'سعر الوحدة') ?></th>
-        <th><?= $bi('Prev. Cum.', 'السابق تراكمي') ?></th>
-        <th><?= $bi('This Cum.', 'التراكمي الحالي') ?></th>
-        <th><?= $bi('Period Qty', 'كمية الفترة') ?></th>
-        <th><?= $bi('Period Value', 'قيمة الفترة') ?></th>
+        <?php foreach ($reorderCells([
+          ['class' => 'desc', 'html' => $bi('Description', 'البيان')],
+          ['class' => '', 'html' => $bi('UOM', 'الوحدة')],
+          ['class' => '', 'html' => $bi('Contract Qty', 'الكمية التعاقدية')],
+          ['class' => '', 'html' => $bi('Rate', 'سعر الوحدة')],
+          ['class' => '', 'html' => $bi('Prev. Cum.', 'السابق تراكمي')],
+          ['class' => '', 'html' => $bi('This Cum.', 'التراكمي الحالي')],
+          ['class' => '', 'html' => $bi('Period Qty', 'كمية الفترة')],
+          ['class' => '', 'html' => $bi('Period Value', 'قيمة الفترة')],
+        ]) as $cell): ?>
+          <th class="<?= $cell['class'] ?>"><?= $cell['html'] ?></th>
+        <?php endforeach; ?>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($lines as $line): ?>
         <tr>
-          <td class="desc"><?= pdfText($line->description, $primaryLocale) ?></td>
-          <td><?= pdfText((string) $line->uom, $primaryLocale) ?></td>
-          <td><?= number_format((float) $line->contract_qty, 2) ?></td>
-          <td><?= number_format((float) $line->contract_unit_price, 2) ?></td>
-          <td><?= number_format((float) $line->previous_cumulative_qty, 2) ?></td>
-          <td><?= number_format((float) $line->cumulative_qty, 2) ?></td>
-          <td><?= number_format((float) $line->this_period_qty, 2) ?></td>
-          <td><?= number_format((float) $line->this_period_value, 2) ?></td>
+          <?php foreach ($reorderCells([
+            ['class' => 'desc', 'html' => pdfText($line->description, $primaryLocale)],
+            ['class' => '', 'html' => pdfText((string) $line->uom, $primaryLocale)],
+            ['class' => '', 'html' => number_format((float) $line->contract_qty, 2)],
+            ['class' => '', 'html' => number_format((float) $line->contract_unit_price, 2)],
+            ['class' => '', 'html' => number_format((float) $line->previous_cumulative_qty, 2)],
+            ['class' => '', 'html' => number_format((float) $line->cumulative_qty, 2)],
+            ['class' => '', 'html' => number_format((float) $line->this_period_qty, 2)],
+            ['class' => '', 'html' => number_format((float) $line->this_period_value, 2)],
+          ]) as $cell): ?>
+            <td class="<?= $cell['class'] ?>"><?= $cell['html'] ?></td>
+          <?php endforeach; ?>
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -228,27 +241,35 @@ body {
   <table class="itpl-lh-items-table dense" dir="<?= $tableDirection ?>">
     <thead>
       <tr>
-        <th><?= $L('common.description') ?></th>
-        <th><?= $C('UOM', 'الوحدة') ?></th>
-        <th class="num"><?= $C('Contract Qty', 'الكمية التعاقدية') ?></th>
-        <th class="num"><?= $C('Rate', 'سعر الوحدة') ?></th>
-        <th class="num"><?= $C('Prev. Cum.', 'السابق تراكمي') ?></th>
-        <th class="num"><?= $C('This Cum.', 'التراكمي الحالي') ?></th>
-        <th class="num"><?= $C('Period Qty', 'كمية الفترة') ?></th>
-        <th class="num"><?= $C('Period Value', 'قيمة الفترة') ?></th>
+        <?php foreach ($reorderCells([
+          ['class' => '', 'html' => $L('common.description')],
+          ['class' => '', 'html' => $C('UOM', 'الوحدة')],
+          ['class' => 'num', 'html' => $C('Contract Qty', 'الكمية التعاقدية')],
+          ['class' => 'num', 'html' => $C('Rate', 'سعر الوحدة')],
+          ['class' => 'num', 'html' => $C('Prev. Cum.', 'السابق تراكمي')],
+          ['class' => 'num', 'html' => $C('This Cum.', 'التراكمي الحالي')],
+          ['class' => 'num', 'html' => $C('Period Qty', 'كمية الفترة')],
+          ['class' => 'num', 'html' => $C('Period Value', 'قيمة الفترة')],
+        ]) as $cell): ?>
+          <th class="<?= $cell['class'] ?>"><?= $cell['html'] ?></th>
+        <?php endforeach; ?>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($lines as $line): ?>
         <tr>
-          <td><?= pdfText($line->description, $primaryLocale) ?></td>
-          <td><?= pdfText((string) $line->uom, $primaryLocale) ?></td>
-          <td class="num"><?= number_format((float) $line->contract_qty, 2) ?></td>
-          <td class="num"><?= number_format((float) $line->contract_unit_price, 2) ?></td>
-          <td class="num"><?= number_format((float) $line->previous_cumulative_qty, 2) ?></td>
-          <td class="num"><?= number_format((float) $line->cumulative_qty, 2) ?></td>
-          <td class="num"><?= number_format((float) $line->this_period_qty, 2) ?></td>
-          <td class="num"><?= number_format((float) $line->this_period_value, 2) ?></td>
+          <?php foreach ($reorderCells([
+            ['class' => '', 'html' => pdfText($line->description, $primaryLocale)],
+            ['class' => '', 'html' => pdfText((string) $line->uom, $primaryLocale)],
+            ['class' => 'num', 'html' => number_format((float) $line->contract_qty, 2)],
+            ['class' => 'num', 'html' => number_format((float) $line->contract_unit_price, 2)],
+            ['class' => 'num', 'html' => number_format((float) $line->previous_cumulative_qty, 2)],
+            ['class' => 'num', 'html' => number_format((float) $line->cumulative_qty, 2)],
+            ['class' => 'num', 'html' => number_format((float) $line->this_period_qty, 2)],
+            ['class' => 'num', 'html' => number_format((float) $line->this_period_value, 2)],
+          ]) as $cell): ?>
+            <td class="<?= $cell['class'] ?>"><?= $cell['html'] ?></td>
+          <?php endforeach; ?>
         </tr>
       <?php endforeach; ?>
     </tbody>
@@ -320,27 +341,35 @@ body {
     <table class="itpl-items-table dense" dir="<?= $tableDirection ?>">
       <thead>
         <tr>
-          <th><?= $L('common.description') ?></th>
-          <th class="num"><?= $C('UOM', 'الوحدة') ?></th>
-          <th class="num"><?= $C('Contract Qty', 'الكمية التعاقدية') ?></th>
-          <th class="num"><?= $C('Rate', 'سعر الوحدة') ?></th>
-          <th class="num"><?= $C('Prev. Cum.', 'السابق تراكمي') ?></th>
-          <th class="num"><?= $C('This Cum.', 'التراكمي الحالي') ?></th>
-          <th class="num"><?= $C('Period Qty', 'كمية الفترة') ?></th>
-          <th class="num"><?= $C('Period Value', 'قيمة الفترة') ?></th>
+          <?php foreach ($reorderCells([
+            ['class' => '', 'html' => $L('common.description')],
+            ['class' => 'num', 'html' => $C('UOM', 'الوحدة')],
+            ['class' => 'num', 'html' => $C('Contract Qty', 'الكمية التعاقدية')],
+            ['class' => 'num', 'html' => $C('Rate', 'سعر الوحدة')],
+            ['class' => 'num', 'html' => $C('Prev. Cum.', 'السابق تراكمي')],
+            ['class' => 'num', 'html' => $C('This Cum.', 'التراكمي الحالي')],
+            ['class' => 'num', 'html' => $C('Period Qty', 'كمية الفترة')],
+            ['class' => 'num', 'html' => $C('Period Value', 'قيمة الفترة')],
+          ]) as $cell): ?>
+            <th class="<?= $cell['class'] ?>"><?= $cell['html'] ?></th>
+          <?php endforeach; ?>
         </tr>
       </thead>
       <tbody>
         <?php foreach ($lines as $line): ?>
           <tr>
-            <td><?= pdfText($line->description, $primaryLocale) ?></td>
-            <td class="num"><?= pdfText((string) $line->uom, $primaryLocale) ?></td>
-            <td class="num"><?= number_format((float) $line->contract_qty, 2) ?></td>
-            <td class="num"><?= number_format((float) $line->contract_unit_price, 2) ?></td>
-            <td class="num"><?= number_format((float) $line->previous_cumulative_qty, 2) ?></td>
-            <td class="num"><?= number_format((float) $line->cumulative_qty, 2) ?></td>
-            <td class="num"><?= number_format((float) $line->this_period_qty, 2) ?></td>
-            <td class="num"><?= number_format((float) $line->this_period_value, 2) ?></td>
+            <?php foreach ($reorderCells([
+              ['class' => '', 'html' => pdfText($line->description, $primaryLocale)],
+              ['class' => 'num', 'html' => pdfText((string) $line->uom, $primaryLocale)],
+              ['class' => 'num', 'html' => number_format((float) $line->contract_qty, 2)],
+              ['class' => 'num', 'html' => number_format((float) $line->contract_unit_price, 2)],
+              ['class' => 'num', 'html' => number_format((float) $line->previous_cumulative_qty, 2)],
+              ['class' => 'num', 'html' => number_format((float) $line->cumulative_qty, 2)],
+              ['class' => 'num', 'html' => number_format((float) $line->this_period_qty, 2)],
+              ['class' => 'num', 'html' => number_format((float) $line->this_period_value, 2)],
+            ]) as $cell): ?>
+              <td class="<?= $cell['class'] ?>"><?= $cell['html'] ?></td>
+            <?php endforeach; ?>
           </tr>
         <?php endforeach; ?>
       </tbody>

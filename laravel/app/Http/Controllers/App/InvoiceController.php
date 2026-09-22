@@ -214,6 +214,11 @@ class InvoiceController extends Controller
             'project' => $project,
             'company' => $company,
             'activeTemplate' => $company->activeInvoiceTemplate(),
+            // Stage 4 fix: the OLD 6-preset picker below is a no-op once this
+            // company has customized a per-document-type template (Stage 2's
+            // streamPdf() always renders that one, ignoring ?template=) — the
+            // view uses this to hide the picker instead of leaving a dead control.
+            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('invoice'),
             'zatcaQr' => $this->zatcaQrDataUri($invoice, $company),
             'whatsappLink' => $whatsappLink,
             'reminderWhatsappLink' => $reminderWhatsappLink,

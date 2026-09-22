@@ -203,6 +203,9 @@ class QuickEstimateController extends Controller
             'client' => $client?->toArray(),
             'vatRate' => (float) Setting::get('vat_rate', '15'),
             'activeTemplate' => $company->activeInvoiceTemplate(),
+            // Stage 4 fix: see InvoiceController::show()'s identical comment —
+            // hides the OLD template picker once it would be a no-op.
+            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('quick_estimate'),
         ]);
     }
 

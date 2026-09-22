@@ -171,6 +171,9 @@ class PaymentCertificateController extends Controller
             'invoice' => $invoice?->toArray(),
             'isLatestDraft' => $this->isLatestDraft($certificate),
             'activeTemplate' => $company->activeInvoiceTemplate(),
+            // Stage 4 fix: see InvoiceController::show()'s identical comment —
+            // hides the OLD template picker once it would be a no-op.
+            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('payment_certificate'),
         ]);
     }
 

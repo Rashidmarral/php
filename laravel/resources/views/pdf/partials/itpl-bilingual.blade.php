@@ -30,6 +30,20 @@ $showVatColumn = (bool) $tpl->show_vat_column;
 $titleEn = $documentType ? tFor('pdf.doctype.' . $documentType, 'en') : ($rtl ? '' : $docType);
 $titleAr = $documentType ? tFor('pdf.doctype.' . $documentType, 'ar') : ($rtl ? $docType : '');
 $vatRateDisplay = rtrim(rtrim(number_format((float) $vatRate, 2), '0'), '.');
+
+// Bilingual EN/AR header label, "EN / AR" respecting $showEn/$showAr.
+$biLabel = function (string $key) use ($showEn, $showAr): string {
+    $out = $showEn ? tFor($key, 'en') : '';
+    if ($showEn && $showAr) {
+        $out .= ' / ';
+    }
+    return $out . ($showAr ? tFor($key, 'ar') : '');
+};
+// See itpl-card.blade.php's identical comment: dompdf does not reverse a
+// table's visual column order on its own for a `dir`/`direction: rtl`
+// table, so table_direction only does anything once the cells themselves
+// are reordered server-side.
+$reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_reverse($cells) : $cells;
 ?>
 <table class="itpl-bl-header"><tr>
   <?php if ($showEn): ?>
@@ -89,33 +103,33 @@ $vatRateDisplay = rtrim(rtrim(number_format((float) $vatRate, 2), '0'), '.');
 <table class="itpl-bl-items-table" dir="<?= $tableDirection ?>">
   <thead>
     <tr>
-      <th style="width:6%">#</th>
-      <th class="desc">
-        <?php if ($showEn): ?><?= tFor('common.description', 'en') ?><?php endif; ?>
-        <?php if ($showEn && $showAr): ?> / <?php endif; ?>
-        <?php if ($showAr): ?><?= tFor('common.description', 'ar') ?><?php endif; ?>
-      </th>
-      <th><?php if ($showEn): ?><?= tFor('common.qty', 'en') ?><?php endif; ?><?php if ($showEn && $showAr): ?> / <?php endif; ?><?php if ($showAr): ?><?= tFor('common.qty', 'ar') ?><?php endif; ?></th>
-      <th><?php if ($showEn): ?><?= tFor('common.unit_price', 'en') ?><?php endif; ?><?php if ($showEn && $showAr): ?> / <?php endif; ?><?php if ($showAr): ?><?= tFor('common.unit_price', 'ar') ?><?php endif; ?></th>
-      <?php if ($showVatColumn): ?>
-        <th><?php if ($showEn): ?><?= tFor('pdf.taxable_amount', 'en') ?><?php endif; ?><?php if ($showEn && $showAr): ?> / <?php endif; ?><?php if ($showAr): ?><?= tFor('pdf.taxable_amount', 'ar') ?><?php endif; ?></th>
-        <th><?php if ($showEn): ?><?= tFor('pdf.vat_amount', 'en') ?><?php endif; ?><?php if ($showEn && $showAr): ?> / <?php endif; ?><?php if ($showAr): ?><?= tFor('pdf.vat_amount', 'ar') ?><?php endif; ?></th>
-      <?php endif; ?>
-      <th><?php if ($showEn): ?><?= tFor('common.total', 'en') ?><?php endif; ?><?php if ($showEn && $showAr): ?> / <?php endif; ?><?php if ($showAr): ?><?= tFor('common.total', 'ar') ?><?php endif; ?></th>
+      <?php foreach ($reorderCells(array_filter([
+        ['class' => '', 'style' => 'width:6%', 'html' => '#'],
+        ['class' => 'desc', 'style' => '', 'html' => $biLabel('common.description')],
+        ['class' => '', 'style' => '', 'html' => $biLabel('common.qty')],
+        ['class' => '', 'style' => '', 'html' => $biLabel('common.unit_price')],
+        $showVatColumn ? ['class' => '', 'style' => '', 'html' => $biLabel('pdf.taxable_amount')] : null,
+        $showVatColumn ? ['class' => '', 'style' => '', 'html' => $biLabel('pdf.vat_amount')] : null,
+        ['class' => '', 'style' => '', 'html' => $biLabel('common.total')],
+      ])) as $cell): ?>
+        <th class="<?= $cell['class'] ?>" style="<?= $cell['style'] ?>"><?= $cell['html'] ?></th>
+      <?php endforeach; ?>
     </tr>
   </thead>
   <tbody>
     <?php foreach ($itemRows as $index => $row): ?>
       <tr>
-        <td><?= $index + 1 ?></td>
-        <td class="desc"><?= pdfText($row['description'], $primaryLocale) ?></td>
-        <td><?= rtrim(rtrim(number_format($row['qty'], 2), '0'), '.') ?></td>
-        <td><?= number_format($row['unit_price'], 2) ?></td>
-        <?php if ($showVatColumn): ?>
-          <td><?= number_format($row['taxable'], 2) ?></td>
-          <td><?= number_format($row['vat'], 2) ?></td>
-        <?php endif; ?>
-        <td><?= number_format($row['total'], 2) ?></td>
+        <?php foreach ($reorderCells(array_filter([
+          ['class' => '', 'html' => $index + 1],
+          ['class' => 'desc', 'html' => pdfText($row['description'], $primaryLocale)],
+          ['class' => '', 'html' => rtrim(rtrim(number_format($row['qty'], 2), '0'), '.')],
+          ['class' => '', 'html' => number_format($row['unit_price'], 2)],
+          $showVatColumn ? ['class' => '', 'html' => number_format($row['taxable'], 2)] : null,
+          $showVatColumn ? ['class' => '', 'html' => number_format($row['vat'], 2)] : null,
+          ['class' => '', 'html' => number_format($row['total'], 2)],
+        ])) as $cell): ?>
+          <td class="<?= $cell['class'] ?>"><?= $cell['html'] ?></td>
+        <?php endforeach; ?>
       </tr>
     <?php endforeach; ?>
   </tbody>

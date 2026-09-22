@@ -58,6 +58,24 @@ class SettingsController extends Controller
             $data['logo_path'] = "/uploads/logos/{$filename}";
         }
 
+        // Same kind of asset as the logo above, same upload rules — this is
+        // the company stamp/seal Stage 2's 'card' and 'bilingual' PDF layout
+        // partials already read from $company->stamp_path (see those
+        // partials' own comments); the stamp column's migration is Stage 4's.
+        $stamp = $request->file('stamp');
+        if ($stamp && $stamp->isValid()) {
+            $mime = $stamp->getMimeType();
+            if (!isset(self::ALLOWED_LOGO_TYPES[$mime])) {
+                return $this->redirectWithFlash('/app/settings', 'error', t('user.settings.stamp_type_invalid'));
+            }
+            if ($stamp->getSize() > 3 * 1024 * 1024) {
+                return $this->redirectWithFlash('/app/settings', 'error', t('user.settings.stamp_max_size'));
+            }
+            $filename = 'company-' . $companyId . '-stamp-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_LOGO_TYPES[$mime];
+            $stamp->move(public_path('uploads/stamps'), $filename);
+            $data['stamp_path'] = "/uploads/stamps/{$filename}";
+        }
+
         Company::whereKey($companyId)->update($data);
 
         $this->flash('success', t('user.settings.company_updated'));

@@ -166,6 +166,9 @@ class DebitNoteController extends Controller
             'invoice' => $invoice,
             'client' => $client,
             'activeTemplate' => $company->activeInvoiceTemplate(),
+            // Stage 4 fix: see InvoiceController::show()'s identical comment —
+            // hides the OLD template picker once it would be a no-op.
+            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('debit_note'),
         ]);
     }
 

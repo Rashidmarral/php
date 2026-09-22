@@ -38,16 +38,20 @@
   </table>
 
   <form method="get" action="/app/quick-estimate/<?= $estimate['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;justify-content:center;align-items:end;margin-top:24px;flex-wrap:wrap;">
-    <div class="form-group" style="margin:0;">
-      <select name="template">
-        <option value="modern" <?= $activeTemplate === 'modern' ? 'selected' : '' ?>>Modern</option>
-        <option value="classic" <?= $activeTemplate === 'classic' ? 'selected' : '' ?>>Classic</option>
-        <option value="minimal" <?= $activeTemplate === 'minimal' ? 'selected' : '' ?>>Minimal</option>
-        <option value="bold" <?= $activeTemplate === 'bold' ? 'selected' : '' ?>>Bold</option>
-        <option value="elegant" <?= $activeTemplate === 'elegant' ? 'selected' : '' ?>>Elegant</option>
-        <option value="saudi" <?= $activeTemplate === 'saudi' ? 'selected' : '' ?>>Saudi (ZATCA bilingual)</option>
-      </select>
-    </div>
+    <?php if (!$hasCustomTemplate): ?>
+      <div class="form-group" style="margin:0;">
+        <select name="template">
+          <option value="modern" <?= $activeTemplate === 'modern' ? 'selected' : '' ?>>Modern</option>
+          <option value="classic" <?= $activeTemplate === 'classic' ? 'selected' : '' ?>>Classic</option>
+          <option value="minimal" <?= $activeTemplate === 'minimal' ? 'selected' : '' ?>>Minimal</option>
+          <option value="bold" <?= $activeTemplate === 'bold' ? 'selected' : '' ?>>Bold</option>
+          <option value="elegant" <?= $activeTemplate === 'elegant' ? 'selected' : '' ?>>Elegant</option>
+          <option value="saudi" <?= $activeTemplate === 'saudi' ? 'selected' : '' ?>>Saudi (ZATCA bilingual)</option>
+        </select>
+      </div>
+    <?php else: ?>
+      <p class="help-text" style="margin:0;max-width:260px;"><?= t('common.pdf_custom_template_active', ['url' => '/app/settings/invoice-templates/quick_estimate']) ?></p>
+    <?php endif; ?>
     <button type="submit" class="btn btn-primary">⬇ <?= t('qe.download_pdf') ?></button>
   </form>
 

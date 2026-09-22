@@ -25,6 +25,17 @@ $showUnitLabels = (bool) $tpl->show_unit_labels;
 // 'english_only'/'arabic_only' mode there is no secondary line at all.
 $primary = fn ($en, $ar = null) => ($primaryLocale === 'ar' && $ar) ? $ar : $en;
 $secondary = fn ($ar = null) => ($showAr && $primaryLocale !== 'ar') ? $ar : null;
+
+// table_direction is independent of the document's own language ($rtl above,
+// which only reflects ?lang=) — it is a per-template choice of which way the
+// items table itself reads. dompdf does not reverse a table's visual column
+// order on its own for a `dir`/`direction: rtl` table (confirmed against
+// dompdf directly: neither the dir attribute nor `direction`/`unicode-bidi`
+// CSS moves a single column), so making this setting actually do anything
+// means physically reordering the <th>/<td> cells server-side when it's set
+// to 'rtl' — the `dir` attribute stays on the table too, for genuine BIDI
+// text shaping inside each cell.
+$reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_reverse($cells) : $cells;
 ?>
 <div class="itpl-card-topbar"></div>
 
@@ -103,27 +114,31 @@ $secondary = fn ($ar = null) => ($showAr && $primaryLocale !== 'ar') ? $ar : nul
   <table class="itpl-items-table" dir="<?= $tableDirection ?>">
     <thead>
       <tr>
-        <th><?= $L('common.description') ?></th>
-        <th class="num"><?= $L('common.qty') ?></th>
-        <th class="num"><?= $L('common.unit_price') ?></th>
-        <?php if ($showVatColumn): ?>
-          <th class="num"><?= $L('pdf.taxable_amount') ?></th>
-          <th class="num"><?= $L('pdf.vat_amount') ?></th>
-        <?php endif; ?>
-        <th class="num"><?= $L('common.total') ?></th>
+        <?php foreach ($reorderCells(array_filter([
+          ['class' => '', 'html' => $L('common.description')],
+          ['class' => 'num', 'html' => $L('common.qty')],
+          ['class' => 'num', 'html' => $L('common.unit_price')],
+          $showVatColumn ? ['class' => 'num', 'html' => $L('pdf.taxable_amount')] : null,
+          $showVatColumn ? ['class' => 'num', 'html' => $L('pdf.vat_amount')] : null,
+          ['class' => 'num', 'html' => $L('common.total')],
+        ])) as $cell): ?>
+          <th class="<?= $cell['class'] ?>"><?= $cell['html'] ?></th>
+        <?php endforeach; ?>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($itemRows as $row): ?>
         <tr>
-          <td><?= pdfText($row['description'], $primaryLocale) ?></td>
-          <td class="num"><?= rtrim(rtrim(number_format($row['qty'], 2), '0'), '.') ?><?php if ($showUnitLabels): ?> <span class="muted small"><?= $L('common.unit') ?></span><?php endif; ?></td>
-          <td class="num"><?= number_format($row['unit_price'], 2) ?></td>
-          <?php if ($showVatColumn): ?>
-            <td class="num"><?= number_format($row['taxable'], 2) ?></td>
-            <td class="num"><?= number_format($row['vat'], 2) ?></td>
-          <?php endif; ?>
-          <td class="num"><?= number_format($row['total'], 2) ?></td>
+          <?php foreach ($reorderCells(array_filter([
+            ['class' => '', 'html' => pdfText($row['description'], $primaryLocale)],
+            ['class' => 'num', 'html' => rtrim(rtrim(number_format($row['qty'], 2), '0'), '.') . ($showUnitLabels ? ' <span class="muted small">' . $L('common.unit') . '</span>' : '')],
+            ['class' => 'num', 'html' => number_format($row['unit_price'], 2)],
+            $showVatColumn ? ['class' => 'num', 'html' => number_format($row['taxable'], 2)] : null,
+            $showVatColumn ? ['class' => 'num', 'html' => number_format($row['vat'], 2)] : null,
+            ['class' => 'num', 'html' => number_format($row['total'], 2)],
+          ])) as $cell): ?>
+            <td class="<?= $cell['class'] ?>"><?= $cell['html'] ?></td>
+          <?php endforeach; ?>
         </tr>
       <?php endforeach; ?>
     </tbody>

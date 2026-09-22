@@ -12,12 +12,22 @@
   <?= csrf_field() ?>
 
   <h3 style="font-size:14px;"><?= t('user.settings.company_profile') ?></h3>
-  <div class="form-group">
-    <label><?= t('user.settings.company_logo') ?></label>
-    <?php if (!empty($company['logo_path'])): ?>
-      <div style="margin-bottom:8px;"><img src="<?= e($company['logo_path']) ?>" alt="<?= t('user.settings.logo_alt') ?>" style="height:56px;border-radius:8px;border:1px solid var(--border);"></div>
-    <?php endif; ?>
-    <?php if (auth()->user()->isCompanyOwner()): ?><input type="file" name="logo" accept="image/png,image/jpeg,image/webp"><?php endif; ?>
+  <div class="form-row">
+    <div class="form-group">
+      <label><?= t('user.settings.company_logo') ?></label>
+      <?php if (!empty($company['logo_path'])): ?>
+        <div style="margin-bottom:8px;"><img src="<?= e($company['logo_path']) ?>" alt="<?= t('user.settings.logo_alt') ?>" style="height:56px;border-radius:8px;border:1px solid var(--border);"></div>
+      <?php endif; ?>
+      <?php if (auth()->user()->isCompanyOwner()): ?><input type="file" name="logo" accept="image/png,image/jpeg,image/webp"><?php endif; ?>
+    </div>
+    <div class="form-group">
+      <label><?= t('user.settings.company_stamp') ?></label>
+      <p class="help-text" style="margin-top:-4px;"><?= t('user.settings.company_stamp_hint') ?></p>
+      <?php if (!empty($company['stamp_path'])): ?>
+        <div style="margin-bottom:8px;"><img src="<?= e($company['stamp_path']) ?>" alt="<?= t('user.settings.stamp_alt') ?>" style="height:56px;border-radius:8px;border:1px solid var(--border);"></div>
+      <?php endif; ?>
+      <?php if (auth()->user()->isCompanyOwner()): ?><input type="file" name="stamp" accept="image/png,image/jpeg,image/webp"><?php endif; ?>
+    </div>
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.settings.company_name_en') ?></label><input type="text" name="name" value="<?= e($company['name']) ?>" <?= $ro ?>></div>

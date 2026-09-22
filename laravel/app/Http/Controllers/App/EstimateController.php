@@ -912,6 +912,9 @@ class EstimateController extends Controller
             'client' => $client,
             'project' => $project,
             'activeTemplate' => $company->activeInvoiceTemplate(),
+            // Stage 4 fix: see InvoiceController::show()'s identical comment —
+            // hides the OLD template picker once it would be a no-op.
+            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('estimate'),
             'whatsappLink' => $whatsappLink,
             'approverWhatsappLink' => $approverWhatsappLink,
             'whatsappApiConfigured' => WhatsApp::isConfigured(),
