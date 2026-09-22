@@ -95,6 +95,28 @@ class Company extends Model
         return in_array($this->invoice_template, self::INVOICE_TEMPLATES, true) ? $this->invoice_template : 'modern';
     }
 
+    public function invoiceTemplates(): HasMany
+    {
+        return $this->hasMany(InvoiceTemplate::class);
+    }
+
+    /**
+     * The customized InvoiceTemplate a company has set as its default for one
+     * document type (e.g. 'invoice', 'estimate'), or null when it hasn't set
+     * one up for that type yet. Null is the normal, expected result for a
+     * company that never customized this document type — it is not an
+     * error, and a later stage falls back to the old 6-preset system
+     * (activeInvoiceTemplate() above) whenever this returns null, exactly
+     * like it does today for every company.
+     */
+    public function activeInvoiceTemplateFor(string $documentType): ?InvoiceTemplate
+    {
+        return $this->invoiceTemplates()
+            ->where('document_type', $documentType)
+            ->where('is_default', true)
+            ->first();
+    }
+
     public function plan(): BelongsTo
     {
         return $this->belongsTo(Plan::class);
