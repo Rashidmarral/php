@@ -112,7 +112,7 @@ class ZakatController extends Controller
         return $this->redirectWithFlash('/app/zakat', 'success', t('user.zakat.deleted'));
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(Request $request, int $id): Response|RedirectResponse
     {
         if ($redirect = $this->requireFeature('zakat')) {
             return $redirect;
