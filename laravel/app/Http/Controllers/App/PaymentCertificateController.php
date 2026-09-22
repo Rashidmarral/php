@@ -162,6 +162,7 @@ class PaymentCertificateController extends Controller
         $project = $this->findOwnedProject($certificate->project_id);
         $lines = PaymentCertificateLine::where('payment_certificate_id', $certificate->id)->orderBy('id')->get();
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
+        $company = Company::find($project->company_id);
 
         return view('app.payment-certificates.show', [
             'certificate' => $certificate->toArray(),
@@ -169,6 +170,7 @@ class PaymentCertificateController extends Controller
             'lines' => $lines->toArray(),
             'invoice' => $invoice?->toArray(),
             'isLatestDraft' => $this->isLatestDraft($certificate),
+            'activeTemplate' => $company->activeInvoiceTemplate(),
         ]);
     }
 
@@ -402,8 +404,10 @@ class PaymentCertificateController extends Controller
         // 'saudi' too — see payment-certificate.blade.php's own comment for the bilingual
         // layout that template renders for a certificate (a previous pass had excluded it here
         // as a poor fit; it's since been built properly with its own wider cumulative-billing
-        // columns instead of being force-fit onto the invoice template's simpler shape).
-        $template = in_array($request->input('template'), ['classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
+        // columns instead of being force-fit onto the invoice template's simpler shape). Falls
+        // back to the company's activated default (see Company::activeInvoiceTemplate()) rather
+        // than always 'modern' when no ?template= override is given.
+        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
 
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
         // A certified certificate shows its real invoiced VAT/total; a draft one shows a live

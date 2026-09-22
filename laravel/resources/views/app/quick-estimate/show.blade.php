@@ -40,12 +40,12 @@
   <form method="get" action="/app/quick-estimate/<?= $estimate['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;justify-content:center;align-items:end;margin-top:24px;flex-wrap:wrap;">
     <div class="form-group" style="margin:0;">
       <select name="template">
-        <option value="modern">Modern</option>
-        <option value="classic">Classic</option>
-        <option value="minimal">Minimal</option>
-        <option value="bold">Bold</option>
-        <option value="elegant">Elegant</option>
-        <option value="saudi">Saudi (ZATCA bilingual)</option>
+        <option value="modern" <?= $activeTemplate === 'modern' ? 'selected' : '' ?>>Modern</option>
+        <option value="classic" <?= $activeTemplate === 'classic' ? 'selected' : '' ?>>Classic</option>
+        <option value="minimal" <?= $activeTemplate === 'minimal' ? 'selected' : '' ?>>Minimal</option>
+        <option value="bold" <?= $activeTemplate === 'bold' ? 'selected' : '' ?>>Bold</option>
+        <option value="elegant" <?= $activeTemplate === 'elegant' ? 'selected' : '' ?>>Elegant</option>
+        <option value="saudi" <?= $activeTemplate === 'saudi' ? 'selected' : '' ?>>Saudi (ZATCA bilingual)</option>
       </select>
     </div>
     <button type="submit" class="btn btn-primary">⬇ <?= t('qe.download_pdf') ?></button>

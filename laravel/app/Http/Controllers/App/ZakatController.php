@@ -166,7 +166,7 @@ class ZakatController extends Controller
                 . ($calculation->notes ? "\n\nNotes: " . $calculation->notes : '');
 
         return $this->streamPdf([
-            'template' => 'modern',
+            'template' => $company->activeInvoiceTemplate(),
             'lang' => $lang,
             'currency' => 'SAR',
             'docType' => $lang === 'ar' ? 'ورقة عمل تقدير الزكاة — تقدير للتخطيط الداخلي فقط' : 'Zakat Estimate Worksheet — ESTIMATE, FOR INTERNAL PLANNING ONLY',

@@ -13,6 +13,14 @@ class Company extends Model
 
     protected $guarded = ['id'];
 
+    /**
+     * The 6 selectable visual PDF templates document.blade.php renders (see
+     * App\Support\Pdf\PdfTemplateStyles) — the single source of truth for
+     * validating both this company's stored default (activeInvoiceTemplate())
+     * and the "activate" action on the Invoice Templates settings tab.
+     */
+    public const INVOICE_TEMPLATES = ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'];
+
     protected function casts(): array
     {
         return [
@@ -74,6 +82,17 @@ class Company extends Model
     public function requiresInvoiceApproval(): bool
     {
         return (bool) $this->require_invoice_approval && Feature::allowsForCompany('approval_workflow', $this);
+    }
+
+    /**
+     * The PDF template every document-PDF action falls back to when a request has
+     * no ?template= override — the company's choice from the Invoice Templates
+     * settings tab, or 'modern' if it's somehow empty or not one of the 6 known
+     * values (e.g. a stale value from before a template was ever removed).
+     */
+    public function activeInvoiceTemplate(): string
+    {
+        return in_array($this->invoice_template, self::INVOICE_TEMPLATES, true) ? $this->invoice_template : 'modern';
     }
 
     public function plan(): BelongsTo

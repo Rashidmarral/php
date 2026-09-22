@@ -194,7 +194,7 @@ class PurchaseOrderController extends Controller
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
 
         return $this->streamPdf([
-            'template' => 'modern',
+            'template' => $company->activeInvoiceTemplate(),
             'lang' => $lang,
             'currency' => 'SAR',
             'docType' => $lang === 'ar' ? 'أمر شراء' : 'Purchase Order',

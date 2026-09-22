@@ -29,12 +29,12 @@
   <div class="form-group" style="margin:0;">
     <label><?= t('common.pdf_template') ?></label>
     <select name="template">
-      <option value="modern"><?= t('common.pdf_template_modern') ?></option>
-      <option value="classic"><?= t('common.pdf_template_classic') ?></option>
-      <option value="minimal"><?= t('common.pdf_template_minimal') ?></option>
-      <option value="bold"><?= t('common.pdf_template_bold') ?></option>
-      <option value="elegant"><?= t('common.pdf_template_elegant') ?></option>
-      <option value="saudi"><?= t('common.pdf_template_saudi') ?></option>
+      <option value="modern" <?= $activeTemplate === 'modern' ? 'selected' : '' ?>><?= t('common.pdf_template_modern') ?></option>
+      <option value="classic" <?= $activeTemplate === 'classic' ? 'selected' : '' ?>><?= t('common.pdf_template_classic') ?></option>
+      <option value="minimal" <?= $activeTemplate === 'minimal' ? 'selected' : '' ?>><?= t('common.pdf_template_minimal') ?></option>
+      <option value="bold" <?= $activeTemplate === 'bold' ? 'selected' : '' ?>><?= t('common.pdf_template_bold') ?></option>
+      <option value="elegant" <?= $activeTemplate === 'elegant' ? 'selected' : '' ?>><?= t('common.pdf_template_elegant') ?></option>
+      <option value="saudi" <?= $activeTemplate === 'saudi' ? 'selected' : '' ?>><?= t('common.pdf_template_saudi') ?></option>
     </select>
   </div>
   <div class="form-group" style="margin:0;">

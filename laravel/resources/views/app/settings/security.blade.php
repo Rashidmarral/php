@@ -5,12 +5,7 @@
   <h1><?= t('user.settings.title') ?></h1>
 </div>
 
-<div class="tabs">
-  <a href="/app/settings"><?= t('user.settings.tab_profile') ?></a>
-  <a href="/app/settings/legal"><?= t('user.settings.tab_legal') ?></a>
-  <a href="/app/settings/business"><?= t('user.settings.tab_business') ?></a>
-  <a href="/app/settings/security" class="active"><?= t('user.settings.tab_security') ?></a>
-</div>
+@include('app.settings.partials.tabs', ['active' => 'security'])
 
 <form method="post" action="/app/settings/security" class="card" style="max-width:680px;">
   <?= csrf_field() ?>

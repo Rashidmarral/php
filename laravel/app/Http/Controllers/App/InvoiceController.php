@@ -213,6 +213,7 @@ class InvoiceController extends Controller
             'client' => $client,
             'project' => $project,
             'company' => $company,
+            'activeTemplate' => $company->activeInvoiceTemplate(),
             'zatcaQr' => $this->zatcaQrDataUri($invoice, $company),
             'whatsappLink' => $whatsappLink,
             'reminderWhatsappLink' => $reminderWhatsappLink,
@@ -473,7 +474,7 @@ class InvoiceController extends Controller
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
         $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
-        $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
+        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
 
         return $this->streamPdf([

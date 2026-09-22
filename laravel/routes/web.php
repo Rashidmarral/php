@@ -309,6 +309,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/settings/legal', [SettingsController::class, 'updateLegal']);
     Route::get('/settings/business', [SettingsController::class, 'business']);
     Route::post('/settings/business', [SettingsController::class, 'updateBusiness']);
+    Route::get('/settings/invoice-templates', [SettingsController::class, 'invoiceTemplates']);
+    Route::post('/settings/invoice-templates', [SettingsController::class, 'activateInvoiceTemplate']);
     Route::get('/settings/security', [SettingsController::class, 'security']);
     Route::post('/settings/security', [SettingsController::class, 'updatePassword']);
 

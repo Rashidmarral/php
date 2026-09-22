@@ -192,6 +192,7 @@ class QuickEstimateController extends Controller
         $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
         $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
+        $company = Company::find($estimate->company_id);
 
         return view('app.quick-estimate.show', [
             'estimate' => $estimate->toArray(),
@@ -201,6 +202,7 @@ class QuickEstimateController extends Controller
             'addons' => $addons,
             'client' => $client?->toArray(),
             'vatRate' => (float) Setting::get('vat_rate', '15'),
+            'activeTemplate' => $company->activeInvoiceTemplate(),
         ]);
     }
 
@@ -212,8 +214,8 @@ class QuickEstimateController extends Controller
         $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
         $lang = $request->input('lang') === 'ar' ? 'ar' : ($estimate->lang === 'ar' ? 'ar' : 'en');
-        $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
         $company = Company::find($estimate->company_id);
+        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
 
         $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang, $qualityTier?->toArray());
 

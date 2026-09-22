@@ -158,12 +158,14 @@ class DebitNoteController extends Controller
         $items = DebitNoteItem::where('debit_note_id', $debitNote->id)->orderBy('id')->get()->toArray();
         $invoice = $this->ownedInvoice($debitNote->invoice_id, $debitNote->company_id);
         $client = $this->ownedClient($debitNote->client_id, $debitNote->company_id);
+        $company = Company::find($debitNote->company_id);
 
         return view('app.debit-notes.show', [
             'debitNote' => $debitNote->toArray(),
             'items' => $items,
             'invoice' => $invoice,
             'client' => $client,
+            'activeTemplate' => $company->activeInvoiceTemplate(),
         ]);
     }
 
@@ -174,7 +176,7 @@ class DebitNoteController extends Controller
         $invoice = $this->ownedInvoice($debitNote->invoice_id, $debitNote->company_id);
         $client = $this->ownedClient($debitNote->client_id, $debitNote->company_id);
         $company = Company::find($debitNote->company_id);
-        $template = in_array($request->input('template'), ['modern', 'classic', 'minimal', 'bold', 'elegant', 'saudi'], true) ? $request->input('template') : 'modern';
+        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
         $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
 
         $reference = ($lang === 'ar' ? 'مرجع الفاتورة: ' : 'Reference invoice: ') . $invoice->invoice_number . ($debitNote->reason ? ' — ' . $debitNote->reason : '');
