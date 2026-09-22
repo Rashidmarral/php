@@ -61,6 +61,7 @@ use App\Http\Controllers\App\PunchListController;
 use App\Http\Controllers\App\ScheduleController;
 use App\Http\Controllers\App\SecurityController;
 use App\Http\Controllers\App\SiteLogController;
+use App\Http\Controllers\App\InvoiceTemplateController;
 use App\Http\Controllers\App\SettingsController;
 use App\Http\Controllers\App\SupplierController;
 use App\Http\Controllers\App\SupportTicketController;
@@ -309,8 +310,12 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/settings/legal', [SettingsController::class, 'updateLegal']);
     Route::get('/settings/business', [SettingsController::class, 'business']);
     Route::post('/settings/business', [SettingsController::class, 'updateBusiness']);
-    Route::get('/settings/invoice-templates', [SettingsController::class, 'invoiceTemplates']);
-    Route::post('/settings/invoice-templates', [SettingsController::class, 'activateInvoiceTemplate']);
+    Route::post('/settings/invoice-templates/use-preset', [InvoiceTemplateController::class, 'useTemplate']);
+    Route::get('/settings/invoice-templates/template/{id}/edit', [InvoiceTemplateController::class, 'edit'])->where('id', '[0-9]+');
+    Route::post('/settings/invoice-templates/template/{id}', [InvoiceTemplateController::class, 'update'])->where('id', '[0-9]+');
+    Route::post('/settings/invoice-templates/template/{id}/delete', [InvoiceTemplateController::class, 'destroy'])->where('id', '[0-9]+');
+    Route::post('/settings/invoice-templates/template/{id}/default', [InvoiceTemplateController::class, 'setDefault'])->where('id', '[0-9]+');
+    Route::get('/settings/invoice-templates/{documentType?}', [InvoiceTemplateController::class, 'index'])->where('documentType', '[a-z_]+');
     Route::get('/settings/security', [SettingsController::class, 'security']);
     Route::post('/settings/security', [SettingsController::class, 'updatePassword']);
 
