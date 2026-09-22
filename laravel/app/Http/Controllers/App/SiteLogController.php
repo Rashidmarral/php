@@ -18,7 +18,7 @@ use Illuminate\View\View;
  */
 class SiteLogController extends Controller
 {
-    public function index(int $projectId): View
+    public function index(int $projectId): View|RedirectResponse
     {
         if ($redirect = $this->requireFeature('site_logs')) {
             return $redirect;
