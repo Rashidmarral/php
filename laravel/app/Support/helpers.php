@@ -59,6 +59,37 @@ if (!function_exists('pdfText')) {
     }
 }
 
+if (!function_exists('tFor')) {
+    /**
+     * Same lookup t() does (DB-editable override for a locale first, else the
+     * file-based resources/lang/{locale}.json default), but for an EXPLICITLY
+     * given locale rather than the current viewer's app()->getLocale().
+     *
+     * Needed by the bilingual/card/letterhead PDF template layouts
+     * (resources/views/pdf/document-v2.blade.php and friends): a bilingual
+     * document shows an English label AND its Arabic counterpart side by
+     * side on the same page, regardless of which locale the person
+     * generating the PDF happens to be browsing in — the label's language
+     * is a property of the DOCUMENT layout, not the viewer's UI language.
+     */
+    function tFor(string $key, string $locale, array $replace = []): string
+    {
+        static $overridesByLocale = [];
+
+        if (!array_key_exists($locale, $overridesByLocale)) {
+            $overridesByLocale[$locale] = Translation::overridesFor($locale);
+        }
+
+        $line = $overridesByLocale[$locale][$key] ?? __($key, [], $locale);
+
+        foreach ($replace as $placeholder => $value) {
+            $line = str_replace(':' . $placeholder, (string) $value, $line);
+        }
+
+        return $line;
+    }
+}
+
 if (!function_exists('t')) {
     /**
      * Translate a flat dotted key (e.g. 'common.save', 'admin.settings.trial_days').
@@ -70,20 +101,6 @@ if (!function_exists('t')) {
      */
     function t(string $key, array $replace = []): string
     {
-        static $overridesByLocale = [];
-
-        $locale = app()->getLocale();
-
-        if (!array_key_exists($locale, $overridesByLocale)) {
-            $overridesByLocale[$locale] = Translation::overridesFor($locale);
-        }
-
-        $line = $overridesByLocale[$locale][$key] ?? __($key);
-
-        foreach ($replace as $placeholder => $value) {
-            $line = str_replace(':' . $placeholder, (string) $value, $line);
-        }
-
-        return $line;
+        return tFor($key, app()->getLocale(), $replace);
     }
 }

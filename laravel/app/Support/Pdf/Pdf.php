@@ -54,8 +54,14 @@ class Pdf
         }
     }
 
-    /** Renders HTML to raw PDF bytes. Header/attachment handling is the caller's responsibility. */
-    public static function output(string $html, string $lang = 'en'): string
+    /**
+     * Renders HTML to raw PDF bytes. Header/attachment handling is the caller's responsibility.
+     *
+     * $pageSize accepts InvoiceTemplate::page_size's own values ('a4'/'letter', case-insensitive)
+     * or dompdf's own names directly — anything else (including the old callers that never pass
+     * this at all) falls back to 'A4', exactly matching every pre-Stage-2 caller's behavior.
+     */
+    public static function output(string $html, string $lang = 'en', string $pageSize = 'A4'): string
     {
         $cacheDir = storage_path('fonts/cache');
         if (!is_dir($cacheDir)) {
@@ -74,7 +80,7 @@ class Pdf
         $dompdf = new Dompdf($options);
         self::ensureCairoFontRegistered($dompdf);
         self::ensureArabicFontRegistered($dompdf);
-        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->setPaper(strcasecmp($pageSize, 'letter') === 0 ? 'letter' : 'A4', 'portrait');
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->render();
         return $dompdf->output();

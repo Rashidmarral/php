@@ -408,6 +408,11 @@ class PaymentCertificateController extends Controller
         // back to the company's activated default (see Company::activeInvoiceTemplate()) rather
         // than always 'modern' when no ?template= override is given.
         $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
+        // Stage 2: same resolve-then-fallback pattern as every other document-PDF
+        // controller (see InvoiceController::pdf()'s comment) — renders through
+        // pdf.payment-certificate-v2 only when this company customized a template
+        // for 'payment_certificate'; every other company keeps the unchanged view.
+        $invoiceTemplate = $company->activeInvoiceTemplateFor('payment_certificate');
 
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
         // A certified certificate shows its real invoiced VAT/total; a draft one shows a live
@@ -416,7 +421,8 @@ class PaymentCertificateController extends Controller
         $vatAmount = $invoice ? (float) $invoice->vat_amount : round((float) $certificate->net_payable * $vatRate / 100, 2);
         $totalDue = $invoice ? (float) $invoice->total : round((float) $certificate->net_payable + $vatAmount, 2);
 
-        $html = view('pdf.payment-certificate', [
+        $view = $invoiceTemplate ? 'pdf.payment-certificate-v2' : 'pdf.payment-certificate';
+        $html = view($view, [
             'template' => $template,
             'lang' => $lang,
             'currency' => 'SAR',
@@ -429,9 +435,11 @@ class PaymentCertificateController extends Controller
             'vatRate' => $vatRate,
             'vatAmount' => $vatAmount,
             'totalDue' => $totalDue,
+            'invoiceTemplate' => $invoiceTemplate,
         ])->render();
 
-        $pdf = \App\Support\Pdf\Pdf::output($html, $lang);
+        $pageSize = $invoiceTemplate ? ($invoiceTemplate->page_size ?: 'a4') : 'a4';
+        $pdf = \App\Support\Pdf\Pdf::output($html, $lang, $pageSize);
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',

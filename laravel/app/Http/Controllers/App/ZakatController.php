@@ -157,6 +157,8 @@ class ZakatController extends Controller
             ],
         ];
 
+        $invoiceTemplate = $company->activeInvoiceTemplateFor('zakat');
+
         $notes = $lang === 'ar'
             ? "المستحق للزكاة = وعاء الزكاة × النسبة = " . number_format((float) $calculation->zakat_base, 2)
                 . " × {$rateLabel} = " . number_format((float) $calculation->zakat_due, 2) . " ريال."
@@ -185,6 +187,10 @@ class ZakatController extends Controller
             'footerNote' => $lang === 'ar'
                 ? 'تقدير — لأغراض التخطيط الداخلي فقط. ليس بديلاً عن إقرار الزكاة الفعلي المقدَّم عبر بوابة هيئة الزكاة والضريبة والجمارك (زاتكا). يُرجى مراجعة محاسب/مدقق الشركة.'
                 : 'ESTIMATE — FOR INTERNAL PLANNING ONLY. Not a substitute for the actual Zakat return filed through ZATCA\'s own portal. Consult your company\'s accountant/auditor.',
+            'invoiceTemplate' => $invoiceTemplate,
+            'company' => $company,
+            'documentType' => 'zakat',
+            'pageSize' => $invoiceTemplate ? ($invoiceTemplate->page_size ?: 'a4') : 'a4',
         ], 'Zakat-Estimate-' . $calculation->id . '.pdf');
     }
 

@@ -57,11 +57,21 @@ abstract class Controller
         return $this->redirectWithFlash('/app/billing', 'error', "{$label} isn't included in your current plan. Upgrade to unlock it.");
     }
 
-    /** Renders resources/views/pdf/document.blade.php with $data and returns it as a downloadable PDF. */
+    /**
+     * Renders a document PDF and returns it as a download.
+     *
+     * Renders resources/views/pdf/document-v2.blade.php (Stage 2's layout-family
+     * system) when $data carries a real 'invoiceTemplate' (a caller resolved one via
+     * Company::activeInvoiceTemplateFor($documentType)); otherwise renders the
+     * original resources/views/pdf/document.blade.php exactly as before — this is
+     * the fallback every company with no InvoiceTemplate row yet (the common case
+     * right after Stage 1) relies on to see the identical PDF it always has.
+     */
     protected function streamPdf(array $data, string $filename): Response
     {
-        $html = view('pdf.document', $data)->render();
-        $pdf = Pdf::output($html, $data['lang'] ?? 'en');
+        $view = !empty($data['invoiceTemplate']) ? 'pdf.document-v2' : 'pdf.document';
+        $html = view($view, $data)->render();
+        $pdf = Pdf::output($html, $data['lang'] ?? 'en', $data['pageSize'] ?? 'A4');
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
