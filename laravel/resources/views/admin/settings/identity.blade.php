@@ -5,16 +5,7 @@
   <h1><?= t('admin.settings.title') ?></h1>
 </div>
 
-<div class="tabs">
-  <a href="/admin/settings"><?= t('admin.settings.tab_general') ?></a>
-  <a href="/admin/settings/payments"><?= t('admin.settings.tab_payments') ?></a>
-  <a href="/admin/settings/legal" class="active"><?= t('admin.settings.tab_legal') ?></a>
-  <a href="/admin/settings/header"><?= t('admin.settings.tab_header') ?></a>
-  <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
-  <a href="/admin/settings/notifications"><?= t('admin.settings.tab_notifications') ?></a>
-  <a href="/admin/settings/email"><?= t('admin.settings.tab_email') ?></a>
-  <a href="/admin/settings/theme"><?= t('admin.settings.tab_theme') ?></a>
-</div>
+@include('admin.settings.partials.tabs', ['active' => 'identity'])
 
 <p class="help-text" style="max-width:680px;margin-bottom:16px;">
   This is <?= e(\App\Models\Setting::siteName()) ?>'s own legal identity as the platform operator — shown in the public
@@ -23,7 +14,7 @@
   their behalf from Companies → a company → Edit company profile).
 </p>
 
-<form method="post" action="/admin/settings/legal" enctype="multipart/form-data" class="card" style="max-width:680px;">
+<form method="post" action="/admin/settings/identity" enctype="multipart/form-data" class="card" style="max-width:680px;">
   <?= csrf_field() ?>
 
   <h3 style="font-size:14px;"><?= t('admin.settings.brand') ?></h3>

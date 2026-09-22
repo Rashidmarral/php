@@ -103,7 +103,7 @@
           <tr>
             <td><?= e($t->name) ?></td>
             <td class="help-text"><?= $t->last_used_at ? e($t->last_used_at->diffForHumans()) : 'Never' ?></td>
-            <td class="help-text"><?= e($t->created_at->format('Y-m-d')) ?></td>
+            <td class="help-text"><?= e(\App\Models\Setting::formatDate($t->created_at)) ?></td>
             <td>
               <form method="post" action="/app/integrations/api-tokens/<?= $t->id ?>/delete" onsubmit="return confirm('Revoke this API token? Anything using it will stop working immediately.');">
                 <?= csrf_field() ?>

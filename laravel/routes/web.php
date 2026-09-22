@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AdminReportController;
 use App\Http\Controllers\Admin\AdminTranslationController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CompanyZatcaController;
@@ -454,12 +455,19 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 
     Route::get('/settings', [SiteSettingsController::class, 'index']);
     Route::get('/settings/payments', [SiteSettingsController::class, 'payments']);
-    Route::get('/settings/legal', [SiteSettingsController::class, 'legal']);
-    Route::get('/settings/notifications', [SiteSettingsController::class, 'notifications']);
+    Route::get('/settings/identity', [SiteSettingsController::class, 'identity']);
+    Route::get('/settings/legal', [SiteSettingsController::class, 'legalRedirect']);
+    Route::get('/settings/branding', [SiteSettingsController::class, 'branding']);
+    Route::get('/settings/theme', [SiteSettingsController::class, 'themeRedirect']);
+    Route::get('/settings/signup', [SiteSettingsController::class, 'signup']);
+    Route::get('/settings/maintenance', [SiteSettingsController::class, 'maintenance']);
+    Route::get('/settings/features', [SiteSettingsController::class, 'features']);
+    Route::get('/settings/ai', [SiteSettingsController::class, 'aiRedirect']);
+    Route::get('/settings/notifications', [SiteSettingsController::class, 'notificationsRedirect']);
     Route::get('/settings/email', [SiteSettingsController::class, 'email']);
+    Route::get('/settings/storage', [SiteSettingsController::class, 'storage']);
+    Route::get('/settings/system', [SiteSettingsController::class, 'system']);
     Route::get('/settings/header', [SiteSettingsController::class, 'header']);
-    Route::get('/settings/ai', [SiteSettingsController::class, 'ai']);
-    Route::get('/settings/theme', [SiteSettingsController::class, 'theme']);
     Route::get('/integrations', [AdminIntegrationController::class, 'index']);
 
     Route::get('/pages', [AdminPageController::class, 'index']);
@@ -577,12 +585,21 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 
         Route::post('/settings', [SiteSettingsController::class, 'update']);
         Route::post('/settings/payments', [SiteSettingsController::class, 'updatePayments']);
-        Route::post('/settings/legal', [SiteSettingsController::class, 'updateLegal']);
-        Route::post('/settings/notifications', [SiteSettingsController::class, 'updateNotifications']);
+        Route::post('/settings/identity', [SiteSettingsController::class, 'updateIdentity']);
+        Route::post('/settings/branding', [SiteSettingsController::class, 'updateBranding']);
+        Route::post('/settings/signup', [SiteSettingsController::class, 'updateSignup']);
+        Route::post('/settings/maintenance', [SiteSettingsController::class, 'updateMaintenance']);
+        Route::post('/settings/features', [SiteSettingsController::class, 'updateFeatures']);
         Route::post('/settings/email', [SiteSettingsController::class, 'updateEmail']);
+        Route::post('/settings/storage', [SiteSettingsController::class, 'updateStorage']);
+        Route::post('/settings/system/clear-cache', [SiteSettingsController::class, 'clearCache']);
+        Route::post('/settings/system/clear-views', [SiteSettingsController::class, 'clearViews']);
         Route::post('/settings/header', [SiteSettingsController::class, 'updateHeader']);
-        Route::post('/settings/ai', [SiteSettingsController::class, 'updateAi']);
-        Route::post('/settings/theme', [SiteSettingsController::class, 'updateTheme']);
+
+        Route::get('/backups', [BackupController::class, 'index']);
+        Route::post('/backups/create', [BackupController::class, 'create']);
+        Route::get('/backups/{filename}/download', [BackupController::class, 'download']);
+        Route::post('/backups/{filename}/delete', [BackupController::class, 'destroy']);
 
         Route::post('/support/{id}/reply', [AdminSupportTicketController::class, 'reply']);
         Route::post('/support/{id}/status', [AdminSupportTicketController::class, 'updateStatus']);

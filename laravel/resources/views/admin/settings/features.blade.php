@@ -5,19 +5,45 @@
   <h1><?= t('admin.settings.title') ?></h1>
 </div>
 
-<div class="tabs">
-  <a href="/admin/settings"><?= t('admin.settings.tab_general') ?></a>
-  <a href="/admin/settings/payments"><?= t('admin.settings.tab_payments') ?></a>
-  <a href="/admin/settings/legal"><?= t('admin.settings.tab_legal') ?></a>
-  <a href="/admin/settings/header"><?= t('admin.settings.tab_header') ?></a>
-  <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
-  <a href="/admin/settings/notifications" class="active"><?= t('admin.settings.tab_notifications') ?></a>
-  <a href="/admin/settings/email"><?= t('admin.settings.tab_email') ?></a>
-  <a href="/admin/settings/theme"><?= t('admin.settings.tab_theme') ?></a>
-</div>
+@include('admin.settings.partials.tabs', ['active' => 'features'])
 
-<div class="card" style="max-width:680px;margin-bottom:20px;">
-  <h3 style="font-size:14px;">💬 "Send via WhatsApp" links — always on, no setup</h3>
+<p class="help-text" style="max-width:680px;margin-top:-8px;margin-bottom:20px;"><?= t('admin.settings.features_intro') ?></p>
+
+<form method="post" action="/admin/settings/features" class="card" style="max-width:680px;">
+  <?= csrf_field() ?>
+
+  <h3 style="font-size:14px;">✨ <?= t('admin.settings.ai_estimate_generator') ?></h3>
+  <p class="help-text">
+    Every company can already describe a project in plain language on the Create Estimate screen
+    and get a draft estimate back — without any setup here — by matching the description against
+    the built-in template library. Configuring a real API key below upgrades this to a genuine,
+    tailored AI-written estimate instead of the closest matching template.
+  </p>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h3 style="margin:0;">🤖 Anthropic Claude API</h3>
+    <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="ai_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['ai_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
+  </div>
+  <p class="help-text">
+    Get an API key from the <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a>.
+    Usage is billed to that account per the API's standard token pricing.
+  </p>
+  <div class="form-group">
+    <label><?= t('admin.settings.model') ?></label>
+    <input type="text" name="ai_model" value="<?= e($settings['ai_model'] ?? 'claude-sonnet-5') ?>" placeholder="claude-sonnet-5">
+    <p class="help-text"><?= t('admin.settings.model_hint') ?></p>
+  </div>
+  <div class="form-group">
+    <label><?= t('admin.settings.api_key') ?></label>
+    <div class="password-field">
+      <input type="password" name="ai_api_key" placeholder="<?= !empty($settings['ai_api_key']) ? 'Saved — leave blank to keep it' : 'sk-ant-...' ?>">
+      <?= passwordToggle() ?>
+    </div>
+  </div>
+  <?php if (!empty($settings['ai_last_error'])): ?>
+    <div class="alert alert-error"><?= t('admin.settings.last_api_error') ?> <?= e($settings['ai_last_error']) ?></div>
+  <?php endif; ?>
+
+  <h3 style="font-size:14px;margin-top:26px;">💬 <?= t('admin.settings.whatsapp_links_free') ?></h3>
   <p class="help-text">
     Every invoice and estimate already has a "Send via WhatsApp" button that opens a pre-filled
     WhatsApp chat with the client (a <code>wa.me</code> link) — this needs no account or API key
@@ -25,10 +51,6 @@
     no-click WhatsApp notifications (e.g. auto-notifying a client the moment an invoice is
     created).
   </p>
-</div>
-
-<form method="post" action="/admin/settings/notifications" class="card" style="max-width:680px;">
-  <?= csrf_field() ?>
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="margin:0;">🤖 <?= t('admin.settings.automated_whatsapp') ?></h3>
     <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="whatsapp_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['whatsapp_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
@@ -51,11 +73,8 @@
       <?= passwordToggle() ?>
     </div>
   </div>
-  <button type="submit" class="btn btn-primary"><?= t('common.save') ?></button>
-</form>
 
-<div class="card" style="max-width:680px;margin-top:20px;margin-bottom:20px;">
-  <h3 style="font-size:14px;">📱 SMS — real-API-call only, no free fallback</h3>
+  <h3 style="font-size:14px;margin-top:26px;">📱 <?= t('admin.settings.sms_no_free_fallback') ?></h3>
   <p class="help-text">
     Unlike WhatsApp, SMS has no free "share link" option — every SMS goes through a real gateway
     account. This integration targets
@@ -63,10 +82,6 @@
     one of the most widely used SMS gateways for Saudi/GCC businesses. You'll need an <code>AppSid</code>
     credential and an approved alphanumeric <code>SenderID</code> from your Unifonic account.
   </p>
-</div>
-
-<form method="post" action="/admin/settings/notifications" class="card" style="max-width:680px;">
-  <?= csrf_field() ?>
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="margin:0;">🤖 <?= t('admin.settings.automated_sms') ?></h3>
     <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="sms_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['sms_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
@@ -82,7 +97,8 @@
       <?= passwordToggle() ?>
     </div>
   </div>
-  <button type="submit" class="btn btn-primary"><?= t('common.save') ?></button>
+
+  <button type="submit" class="btn btn-primary" style="margin-top:12px;"><?= t('common.save_changes') ?></button>
 </form>
 
 @endsection

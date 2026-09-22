@@ -133,13 +133,20 @@ class AuthController extends Controller
         return false;
     }
 
-    public function showRegister(): View
+    public function showRegister(): View|RedirectResponse
     {
+        if (!Setting::allowsNewRegistrations()) {
+            return $this->redirectWithFlash('/pricing', 'error', t('auth.registrations_closed'));
+        }
         return view('auth.register', ['plans' => Plan::where('is_active', true)->orderBy('sort_order')->get()]);
     }
 
     public function register(Request $request): RedirectResponse
     {
+        if (!Setting::allowsNewRegistrations()) {
+            return $this->redirectWithFlash('/pricing', 'error', t('auth.registrations_closed'));
+        }
+
         $data = $request->validate([
             'company_name' => ['required', 'string', 'max:150'],
             'name' => ['required', 'string', 'max:150'],

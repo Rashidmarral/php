@@ -5,16 +5,7 @@
   <h1><?= t('admin.settings.title') ?></h1>
 </div>
 
-<div class="tabs">
-  <a href="/admin/settings"><?= t('admin.settings.tab_general') ?></a>
-  <a href="/admin/settings/payments"><?= t('admin.settings.tab_payments') ?></a>
-  <a href="/admin/settings/legal"><?= t('admin.settings.tab_legal') ?></a>
-  <a href="/admin/settings/header"><?= t('admin.settings.tab_header') ?></a>
-  <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
-  <a href="/admin/settings/notifications"><?= t('admin.settings.tab_notifications') ?></a>
-  <a href="/admin/settings/email"><?= t('admin.settings.tab_email') ?></a>
-  <a href="/admin/settings/theme" class="active"><?= t('admin.settings.tab_theme') ?></a>
-</div>
+@include('admin.settings.partials.tabs', ['active' => 'branding'])
 
 <p class="help-text" style="max-width:680px;margin-top:-8px;margin-bottom:20px;">
   Changes here recolor the entire system instantly — the public website, the company panel, the admin
@@ -22,7 +13,7 @@
 </p>
 
 <div class="grid grid-2" style="max-width:900px;align-items:start;gap:24px;">
-  <form method="post" action="/admin/settings/theme" class="card">
+  <form method="post" action="/admin/settings/branding" class="card">
     <?= csrf_field() ?>
     <h3 style="font-size:14px;">Brand colors (navigation, links, headers, sidebar)</h3>
     <div class="form-row">

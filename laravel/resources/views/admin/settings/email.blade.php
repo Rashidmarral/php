@@ -5,16 +5,7 @@
   <h1><?= t('admin.settings.title') ?></h1>
 </div>
 
-<div class="tabs">
-  <a href="/admin/settings"><?= t('admin.settings.tab_general') ?></a>
-  <a href="/admin/settings/payments"><?= t('admin.settings.tab_payments') ?></a>
-  <a href="/admin/settings/legal"><?= t('admin.settings.tab_legal') ?></a>
-  <a href="/admin/settings/header"><?= t('admin.settings.tab_header') ?></a>
-  <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
-  <a href="/admin/settings/notifications"><?= t('admin.settings.tab_notifications') ?></a>
-  <a href="/admin/settings/email" class="active"><?= t('admin.settings.tab_email') ?></a>
-  <a href="/admin/settings/theme"><?= t('admin.settings.tab_theme') ?></a>
-</div>
+@include('admin.settings.partials.tabs', ['active' => 'email'])
 
 <form method="post" action="/admin/settings/email" class="card" style="max-width:680px;">
   <?= csrf_field() ?>

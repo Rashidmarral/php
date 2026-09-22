@@ -40,6 +40,9 @@
       <a href="{{ url('/admin/audit-log') }}" class="{{ request()->is('admin/audit-log*') ? 'active' : '' }}">🧾 {{ t('aside.audit_log') }}</a>
       <a href="{{ url('/admin/admins') }}" class="{{ request()->is('admin/admins*') ? 'active' : '' }}">🛡️ {{ t('aside.admins') }}</a>
       <a href="{{ url('/admin/settings') }}" class="{{ request()->is('admin/settings') ? 'active' : '' }}">⚙️ {{ t('aside.settings') }}</a>
+      @if(auth()->user()->isSuperAdmin())
+        <a href="{{ url('/admin/backups') }}" class="{{ request()->is('admin/backups*') ? 'active' : '' }}">🗄️ {{ t('aside.backups') }}</a>
+      @endif
       <a href="{{ url('/admin/profile') }}" class="{{ request()->is('admin/profile*') ? 'active' : '' }}">👤 {{ t('aside.my_profile') }}</a>
       <a href="{{ url('/admin/security') }}" class="{{ request()->is('admin/security*') ? 'active' : '' }}">🔒 {{ t('aside.security') }}</a>
     </nav>

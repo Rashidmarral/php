@@ -38,7 +38,7 @@
     </div>
     <p class="help-text">Fully automated WhatsApp notifications (e.g. "your invoice is ready"). The zero-setup "Send via WhatsApp" button on every invoice/estimate works regardless of this.</p>
     <p class="help-text"><strong>Where to get it:</strong> <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started" target="_blank" rel="noopener">Meta for Developers</a> → create a Business App → add the WhatsApp product → register a phone number → copy the Phone Number ID and a permanent Access Token.</p>
-    <a href="/admin/settings/notifications" class="btn btn-sm btn-outline"><?= t('admin.integrations.configure') ?></a>
+    <a href="/admin/settings/features" class="btn btn-sm btn-outline"><?= t('admin.integrations.configure') ?></a>
   </div>
 
   <div class="card">

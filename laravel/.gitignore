@@ -4,6 +4,7 @@
 /public/hot
 /public/storage
 /public/uploads
+/storage/app/backups
 /storage/*.key
 /storage/pail
 /storage/fonts/cache

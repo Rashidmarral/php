@@ -5,16 +5,7 @@
   <h1><?= t('admin.settings.title') ?></h1>
 </div>
 
-<div class="tabs">
-  <a href="/admin/settings"><?= t('admin.settings.tab_general') ?></a>
-  <a href="/admin/settings/payments"><?= t('admin.settings.tab_payments') ?></a>
-  <a href="/admin/settings/legal"><?= t('admin.settings.tab_legal') ?></a>
-  <a href="/admin/settings/header" class="active"><?= t('admin.settings.tab_header') ?></a>
-  <a href="/admin/settings/ai"><?= t('admin.settings.tab_ai') ?></a>
-  <a href="/admin/settings/notifications"><?= t('admin.settings.tab_notifications') ?></a>
-  <a href="/admin/settings/email"><?= t('admin.settings.tab_email') ?></a>
-  <a href="/admin/settings/theme"><?= t('admin.settings.tab_theme') ?></a>
-</div>
+@include('admin.settings.partials.tabs', ['active' => 'header'])
 
 <p class="help-text" style="margin-top:-8px;margin-bottom:20px;max-width:680px;">
   Leave any field blank to keep the site's default wording. Manage which custom pages appear

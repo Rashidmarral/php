@@ -33,7 +33,8 @@ class CertificateController extends Controller
         if (!$file || !$file->isValid() || !isset(self::ALLOWED_TYPES[$file->getMimeType()])) {
             return $this->redirectWithFlash('/admin/certificates', 'error', t('admin.certificates.image_type_invalid'));
         }
-        if ($file->getSize() > 3 * 1024 * 1024) {
+        $maxMb = SiteSettingsController::effectiveMaxUploadMb(3);
+        if ($file->getSize() > $maxMb * 1024 * 1024) {
             return $this->redirectWithFlash('/admin/certificates', 'error', t('admin.certificates.image_max_size'));
         }
         $filename = 'certificate-' . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_TYPES[$file->getMimeType()];

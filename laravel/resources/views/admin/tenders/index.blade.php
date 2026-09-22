@@ -22,7 +22,7 @@
         <td><?= e($tItem->entity_name_en) ?></td>
         <td><span class="badge badge-blue"><?= e($categories[$tItem->category] ?? $tItem->category) ?></span></td>
         <td>
-          <?= e($tItem->submission_deadline?->format('Y-m-d') ?? '—') ?>
+          <?= e($tItem->submission_deadline ? \App\Models\Setting::formatDate($tItem->submission_deadline) : '—') ?>
           <?php if ($isExpired): ?><br><span class="badge badge-red"><?= t('admin.tenders.closed') ?></span><?php endif; ?>
         </td>
         <td><?= $tItem->estimated_value_sar !== null ? money((float) $tItem->estimated_value_sar) : '—' ?></td>

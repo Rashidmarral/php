@@ -24,6 +24,20 @@ if (!function_exists('local')) {
     }
 }
 
+if (!function_exists('formatBytes')) {
+    /** Human-readable file size (e.g. "42.3 MB") — used by Settings → Storage and the Backups list. */
+    function formatBytes(int $bytes): string
+    {
+        if ($bytes <= 0) {
+            return '0 B';
+        }
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $power = min((int) floor(log($bytes, 1024)), count($units) - 1);
+        $value = $bytes / (1024 ** $power);
+        return number_format($value, $power === 0 ? 0 : 1) . ' ' . $units[$power];
+    }
+}
+
 if (!function_exists('passwordToggle')) {
     function passwordToggle(): string
     {
