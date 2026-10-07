@@ -578,6 +578,73 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.rfi.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.rfi.hint') ?></p>
+
+  <?php if (empty($rfis)): ?>
+    <p class="help-text"><?= t('user.rfi.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th>#</th><th><?= t('user.rfi.subject') ?></th><th><?= t('common.status') ?></th><th><?= t('user.rfi.due_date') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($rfis as $r):
+        $rfiStatusBadge = ['open' => 'yellow', 'answered' => 'blue', 'closed' => 'green'][$r['status']] ?? 'gray';
+      ?>
+        <tr>
+          <td>RFI-<?= str_pad((string)$r['rfi_number'], 3, '0', STR_PAD_LEFT) ?></td>
+          <td><?= e($r['subject']) ?></td>
+          <td><span class="badge badge-<?= $rfiStatusBadge ?>"><?= e($rfiStatuses[$r['status']] ?? ucfirst($r['status'])) ?></span></td>
+          <td><?= e($r['due_date'] ?: '—') ?></td>
+          <td><a href="/app/rfis/<?= $r['id'] ?>" class="btn btn-sm btn-light"><?= t('common.view') ?></a></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <?php if ($rfiCount > count($rfis)): ?>
+      <a href="/app/projects/<?= $project['id'] ?>/rfis" class="btn btn-outline"><?= t('user.rfi.view_all', ['count' => $rfiCount]) ?></a>
+    <?php endif; ?>
+    <a href="/app/projects/<?= $project['id'] ?>/rfis/new" class="btn btn-primary"><?= t('user.rfi.new') ?></a>
+  </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
+  <h3><?= t('user.submittals.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.submittals.hint') ?></p>
+
+  <?php if (empty($submittals)): ?>
+    <p class="help-text"><?= t('user.submittals.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th>#</th><th><?= t('common.title') ?></th><th><?= t('user.submittals.spec_section') ?></th><th><?= t('common.status') ?></th><th><?= t('user.submittals.due_date') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($submittals as $s):
+        $submittalStatusBadge = ['submitted' => 'gray', 'under_review' => 'yellow', 'approved' => 'green', 'approved_as_noted' => 'green', 'rejected' => 'red', 'revise_resubmit' => 'red'][$s['status']] ?? 'gray';
+      ?>
+        <tr>
+          <td>SUB-<?= str_pad((string)$s['submittal_number'], 3, '0', STR_PAD_LEFT) ?></td>
+          <td><?= e($s['title']) ?></td>
+          <td><?= e($s['spec_section'] ?: '—') ?></td>
+          <td><span class="badge badge-<?= $submittalStatusBadge ?>"><?= e($submittalStatuses[$s['status']] ?? ucfirst($s['status'])) ?></span></td>
+          <td><?= e($s['due_date'] ?: '—') ?></td>
+          <td><a href="/app/submittals/<?= $s['id'] ?>" class="btn btn-sm btn-light"><?= t('common.view') ?></a></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <?php if ($submittalCount > count($submittals)): ?>
+      <a href="/app/projects/<?= $project['id'] ?>/submittals" class="btn btn-outline"><?= t('user.submittals.view_all', ['count' => $submittalCount]) ?></a>
+    <?php endif; ?>
+    <a href="/app/projects/<?= $project['id'] ?>/submittals/new" class="btn btn-primary"><?= t('user.submittals.new') ?></a>
+  </div>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.projects.site_photo_diary') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.projects.site_photo_hint') ?></p>
 

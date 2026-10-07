@@ -18,9 +18,11 @@ use App\Models\ProjectPhoto;
 use App\Models\PunchListItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\Rfi;
 use App\Models\ScheduleTask;
 use App\Models\SiteLog;
 use App\Models\Subcontract;
+use App\Models\Submittal;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\VendorBill;
@@ -281,6 +283,10 @@ class ProjectController extends Controller
             ->orderBy('due_date')
             ->orderByDesc('created_at')
             ->get();
+        $rfis = Rfi::where('project_id', $project->id)->orderByDesc('rfi_number')->limit(5)->get();
+        $rfiCount = Rfi::where('project_id', $project->id)->count();
+        $submittals = Submittal::where('project_id', $project->id)->orderByDesc('submittal_number')->limit(5)->get();
+        $submittalCount = Submittal::where('project_id', $project->id)->count();
         $eotRequests = ExtensionOfTimeRequest::where('project_id', $project->id)->orderByDesc('created_at')->get();
         $eotUserIds = $eotRequests->pluck('requested_by')->merge($eotRequests->pluck('reviewed_by'))->filter()->unique();
         $eotUsers = User::whereIn('id', $eotUserIds)->get()->keyBy('id');
@@ -339,6 +345,12 @@ class ProjectController extends Controller
             'punchListItems' => $punchListItems->toArray(),
             'punchListStatuses' => PunchListItem::STATUSES,
             'punchListPriorities' => PunchListItem::PRIORITIES,
+            'rfis' => $rfis->toArray(),
+            'rfiCount' => $rfiCount,
+            'rfiStatuses' => Rfi::STATUSES,
+            'submittals' => $submittals->toArray(),
+            'submittalCount' => $submittalCount,
+            'submittalStatuses' => Submittal::STATUSES,
             'teamMembers' => $teamMembers->toArray(),
             'actualCostTotal' => $actualCostTotal,
             'revisedBudget' => $revisedBudget,

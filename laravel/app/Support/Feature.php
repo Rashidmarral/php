@@ -33,6 +33,8 @@ class Feature
         'payment_certificates' => 'Payment Certificates (IPC)',
         'subcontractors' => 'Subcontractor Management',
         'ld_eot_tracking' => 'Liquidated Damages & EOT Tracking',
+        'rfi' => 'RFI (Request for Information) Tracking',
+        'submittals' => 'Submittals Management',
         'recurring_invoices' => 'Recurring Invoices',
         'approval_workflow' => 'Approval Workflow',
         'project_photos' => 'Project Photo Gallery',

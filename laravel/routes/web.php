@@ -52,6 +52,8 @@ use App\Http\Controllers\App\MaterialController;
 use App\Http\Controllers\App\MaterialStockController;
 use App\Http\Controllers\App\QuickEstimateController;
 use App\Http\Controllers\App\ReportController;
+use App\Http\Controllers\App\RfiController;
+use App\Http\Controllers\App\SubmittalController;
 use App\Http\Controllers\App\TakeoffController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EstimateController;
@@ -208,6 +210,20 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/punch-list', [PunchListController::class, 'store']);
     Route::post('/punch-list/{id}', [PunchListController::class, 'update']);
     Route::post('/punch-list/{id}/delete', [PunchListController::class, 'destroy']);
+    Route::get('/projects/{id}/rfis', [RfiController::class, 'index']);
+    Route::get('/projects/{id}/rfis/new', [RfiController::class, 'create']);
+    Route::post('/projects/{id}/rfis', [RfiController::class, 'store']);
+    Route::get('/rfis/{id}', [RfiController::class, 'show']);
+    Route::post('/rfis/{id}/reply', [RfiController::class, 'reply']);
+    Route::post('/rfis/{id}/status', [RfiController::class, 'updateStatus']);
+    Route::post('/rfis/{id}/delete', [RfiController::class, 'destroy']);
+    Route::get('/projects/{id}/submittals', [SubmittalController::class, 'index']);
+    Route::get('/projects/{id}/submittals/new', [SubmittalController::class, 'create']);
+    Route::post('/projects/{id}/submittals', [SubmittalController::class, 'store']);
+    Route::get('/submittals/{id}', [SubmittalController::class, 'show']);
+    Route::post('/submittals/{id}/revisions', [SubmittalController::class, 'uploadRevision']);
+    Route::post('/submittals/{id}/status', [SubmittalController::class, 'updateStatus']);
+    Route::post('/submittals/{id}/delete', [SubmittalController::class, 'destroy']);
 
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/create', [ClientController::class, 'create']);
@@ -391,6 +407,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
 
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);
+    Route::post('/documents/{id}/version', [DocumentController::class, 'uploadVersion']);
     Route::post('/documents/{id}/delete', [DocumentController::class, 'destroy']);
 
     Route::get('/integrations', [IntegrationController::class, 'index']);
