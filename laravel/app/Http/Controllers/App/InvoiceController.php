@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\CreditNote;
@@ -124,6 +125,7 @@ class InvoiceController extends Controller
         $company = Company::find($companyId);
         $this->chainZatca($invoice->fresh(), $company, $client, $items, $zatcaSync);
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
+        AuditLog::recordForCompany(Auth::user(), 'invoice_create', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} created — " . number_format((float) $invoice->total, 2) . ' SAR');
 
         $this->flash('success', t('user.invoices.created'));
         return redirect('/app/invoices/' . $invoice->id);
@@ -269,6 +271,7 @@ class InvoiceController extends Controller
         $result = WhatsApp::sendMessage($client->phone, $message);
 
         if (!empty($result['ok'])) {
+            AuditLog::recordForCompany(Auth::user(), 'invoice_sent', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} sent to client via WhatsApp");
             $this->flash('success', t('common.whatsapp_notification_sent'));
         } else {
             $this->flash('error', t('common.whatsapp_notification_failed', ['error' => $result['error'] ?? json_encode($result['data'] ?? $result)]));
@@ -414,6 +417,11 @@ class InvoiceController extends Controller
             if ($status === 'paid' && !$wasPaid) {
                 WebhookDispatcher::dispatch($invoice->company_id, 'invoice.paid', $invoice->fresh()->toArray());
             }
+            $amount = number_format((float) $invoice->total, 2) . ' SAR';
+            $logMessage = $status === 'paid'
+                ? "Invoice #{$invoice->invoice_number} marked paid — {$amount}"
+                : "Invoice #{$invoice->invoice_number} → {$status} — {$amount}";
+            AuditLog::recordForCompany(Auth::user(), 'invoice_status_change', 'invoice', $invoice->id, $logMessage);
             $this->flash('success', t('user.invoices.status_updated'));
         }
         return redirect('/app/invoices/' . $invoice->id);
@@ -444,6 +452,7 @@ class InvoiceController extends Controller
             }
             if (ApprovalChain::approveCurrentStep(Auth::user(), 'invoice', $invoice->id) === 'done') {
                 $invoice->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+                AuditLog::recordForCompany(Auth::user(), 'invoice_approved', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} approved");
             }
             $this->flash('success', t('user.invoices.approved'));
             return redirect('/app/invoices/' . $invoice->id);
@@ -458,6 +467,7 @@ class InvoiceController extends Controller
             return redirect('/app/invoices/' . $invoice->id);
         }
         $invoice->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+        AuditLog::recordForCompany(Auth::user(), 'invoice_approved', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} approved");
         $this->flash('success', t('user.invoices.approved'));
         return redirect('/app/invoices/' . $invoice->id);
     }
@@ -483,6 +493,7 @@ class InvoiceController extends Controller
                 'approved_by' => null,
                 'approved_at' => null,
             ]);
+            AuditLog::recordForCompany(Auth::user(), 'invoice_rejected', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} rejected" . ($reason ? " — {$reason}" : ''));
             $this->flash('success', t('user.invoices.rejected'));
             return redirect('/app/invoices/' . $invoice->id);
         }
@@ -495,12 +506,14 @@ class InvoiceController extends Controller
             $this->flash('error', t('user.invoices.not_awaiting_approval'));
             return redirect('/app/invoices/' . $invoice->id);
         }
+        $reason = trim((string) $request->input('reason', '')) ?: null;
         $invoice->update([
             'approval_status' => 'rejected',
-            'rejection_reason' => trim((string) $request->input('reason', '')) ?: null,
+            'rejection_reason' => $reason,
             'approved_by' => null,
             'approved_at' => null,
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'invoice_rejected', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} rejected" . ($reason ? " — {$reason}" : ''));
         $this->flash('success', t('user.invoices.rejected'));
         return redirect('/app/invoices/' . $invoice->id);
     }

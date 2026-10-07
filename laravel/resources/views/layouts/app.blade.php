@@ -32,6 +32,7 @@
 
       <div class="nav-section">{{ t('side.section_resources') }}</div>
       <a href="{{ url('/app/suppliers') }}" class="{{ request()->is('app/suppliers*') ? 'active' : '' }}">🚚 {{ t('side.suppliers') }}</a>
+      <a href="{{ url('/app/rfqs') }}" class="{{ request()->is('app/rfqs*') ? 'active' : '' }}">🧾 {{ t('side.rfqs') }}</a>
       <a href="{{ url('/app/materials') }}" class="{{ request()->is('app/materials*') ? 'active' : '' }}">📦 {{ t('side.materials') }}</a>
       <a href="{{ url('/app/documents') }}" class="{{ request()->is('app/documents*') ? 'active' : '' }}">📁 {{ t('side.documents') }}</a>
       <a href="{{ url('/app/equipment') }}" class="{{ request()->is('app/equipment*') ? 'active' : '' }}">🚜 {{ t('side.equipment') }}</a>
@@ -51,6 +52,7 @@
       <a href="{{ url('/app/business-setup') }}" class="{{ request()->is('app/business-setup*') ? 'active' : '' }}">🧩 {{ t('side.business_setup') }}</a>
       <a href="{{ url('/app/settings') }}" class="{{ request()->is('app/settings*') ? 'active' : '' }}">⚙️ {{ t('side.settings') }}</a>
       <a href="{{ url('/app/security') }}" class="{{ request()->is('app/security*') ? 'active' : '' }}">🔒 {{ t('side.security') }}</a>
+      <a href="{{ url('/app/activity-log') }}" class="{{ request()->is('app/activity-log*') ? 'active' : '' }}">🧾 {{ t('side.activity_log') }}</a>
     </nav>
     <div class="foot">
       <a href="{{ url('/') }}" style="color:#a9c4bd">← {{ t('side.back_site') }}</a>

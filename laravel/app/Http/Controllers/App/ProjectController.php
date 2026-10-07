@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\BankGuarantee;
 use App\Models\BoqItem;
 use App\Models\ChangeOrder;
@@ -227,6 +228,7 @@ class ProjectController extends Controller
             'ld_rate_per_day' => $request->filled('ld_rate_per_day') ? (float) $request->input('ld_rate_per_day') : null,
             'ld_cap_percent' => $request->filled('ld_cap_percent') ? min(100, max(0, (float) $request->input('ld_cap_percent'))) : null,
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'project_create', 'project', $project->id, "Project \"{$project->name}\" created");
 
         $this->flash('success', t('user.projects.created'));
         return redirect('/app/projects/' . $project->id);
@@ -595,6 +597,7 @@ class ProjectController extends Controller
         }
 
         $project->update($data);
+        AuditLog::recordForCompany(Auth::user(), 'project_update', 'project', $project->id, "Project \"{$project->name}\" updated");
 
         $this->flash('success', t('user.projects.updated'));
         return redirect('/app/projects/' . $project->id);
@@ -716,6 +719,7 @@ class ProjectController extends Controller
 
             $project->delete();
         });
+        AuditLog::recordForCompany(Auth::user(), 'project_delete', 'project', $project->id, "Project \"{$project->name}\" deleted");
 
         return $this->redirectWithFlash('/app/projects', 'success', t('user.projects.deleted_with_records'));
     }

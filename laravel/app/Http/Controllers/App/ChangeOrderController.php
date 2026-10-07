@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\ChangeOrder;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,7 @@ class ChangeOrderController extends Controller
             return $this->redirectWithFlash('/app/projects/' . $project->id, 'error', t('user.change_orders.title_and_amount_required'));
         }
 
-        ChangeOrder::create([
+        $changeOrder = ChangeOrder::create([
             'company_id' => Auth::user()->company_id,
             'project_id' => $project->id,
             'title' => $title,
@@ -37,6 +38,7 @@ class ChangeOrderController extends Controller
             'amount' => $amount,
             'status' => 'pending',
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'change_order_create', 'change_order', $changeOrder->id, "Change order \"{$changeOrder->title}\" added — " . number_format((float) $changeOrder->amount, 2) . ' SAR');
 
         return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t('user.change_orders.added'));
     }
@@ -59,6 +61,7 @@ class ChangeOrderController extends Controller
             'status' => $status,
             'approved_at' => $status === 'approved' ? now() : null,
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'change_order_status_change', 'change_order', $changeOrder->id, "Change order \"{$changeOrder->title}\" → {$status} — " . number_format((float) $changeOrder->amount, 2) . ' SAR');
 
         return $this->redirectWithFlash('/app/projects/' . $changeOrder->project_id, 'success', t('user.change_orders.status_changed', ['status' => $status]));
     }

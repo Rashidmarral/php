@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\BuildingType;
 use App\Models\Client;
 use App\Models\Company;
@@ -457,6 +458,7 @@ class EstimateController extends Controller
             EstimateItem::create(['estimate_id' => $estimate->id, ...$item]);
         }
         WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());
+        AuditLog::recordForCompany(Auth::user(), 'estimate_create', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" created — " . number_format((float) $estimate->total, 2) . ' SAR');
 
         $this->flash('success', t('user.estimates.created'));
         return redirect('/app/estimates/' . $estimate->id);
@@ -602,6 +604,7 @@ class EstimateController extends Controller
             'total' => $calc['total'],
             'valid_until' => trim((string) $request->input('valid_until', '')) ?: now()->addDays(30)->toDateString(),
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'estimate_update', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" updated — " . number_format((float) $calc['total'], 2) . ' SAR');
 
         $this->flash('success', t('user.estimates.updated'));
         return redirect('/app/estimates/' . $estimate->id);
@@ -980,6 +983,7 @@ class EstimateController extends Controller
         }
         if (in_array($status, ['draft', 'sent', 'accepted', 'declined'], true)) {
             $estimate->update(['status' => $status]);
+            AuditLog::recordForCompany(Auth::user(), 'estimate_status_change', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" → {$status}");
             $this->flash('success', t('user.estimates.status_updated'));
         }
         return redirect('/app/estimates/' . $estimate->id);
@@ -1011,6 +1015,7 @@ class EstimateController extends Controller
             }
             if (ApprovalChain::approveCurrentStep(Auth::user(), 'estimate', $estimate->id) === 'done') {
                 $estimate->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+                AuditLog::recordForCompany(Auth::user(), 'estimate_approved', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" approved");
             }
             $this->flash('success', t('user.estimates.approved'));
             return redirect('/app/estimates/' . $estimate->id);
@@ -1025,6 +1030,7 @@ class EstimateController extends Controller
             return redirect('/app/estimates/' . $estimate->id);
         }
         $estimate->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+        AuditLog::recordForCompany(Auth::user(), 'estimate_approved', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" approved");
         $this->flash('success', t('user.estimates.approved'));
         return redirect('/app/estimates/' . $estimate->id);
     }
@@ -1050,6 +1056,7 @@ class EstimateController extends Controller
                 'approved_by' => null,
                 'approved_at' => null,
             ]);
+            AuditLog::recordForCompany(Auth::user(), 'estimate_rejected', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" rejected" . ($reason ? " — {$reason}" : ''));
             $this->flash('success', t('user.estimates.rejected'));
             return redirect('/app/estimates/' . $estimate->id);
         }
@@ -1062,12 +1069,14 @@ class EstimateController extends Controller
             $this->flash('error', t('user.estimates.not_awaiting_approval'));
             return redirect('/app/estimates/' . $estimate->id);
         }
+        $reason = trim((string) $request->input('reason', '')) ?: null;
         $estimate->update([
             'approval_status' => 'rejected',
-            'rejection_reason' => trim((string) $request->input('reason', '')) ?: null,
+            'rejection_reason' => $reason,
             'approved_by' => null,
             'approved_at' => null,
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'estimate_rejected', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" rejected" . ($reason ? " — {$reason}" : ''));
         $this->flash('success', t('user.estimates.rejected'));
         return redirect('/app/estimates/' . $estimate->id);
     }

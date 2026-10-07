@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
@@ -99,6 +100,7 @@ class PurchaseOrderController extends Controller
         foreach ($items as $item) {
             PurchaseOrderItem::create(['purchase_order_id' => $purchaseOrder->id, ...$item]);
         }
+        AuditLog::recordForCompany(Auth::user(), 'purchase_order_create', 'purchase_order', $purchaseOrder->id, "Purchase order {$purchaseOrder->po_number} created ({$status}) — " . number_format((float) $purchaseOrder->total, 2) . ' SAR');
 
         return $this->redirectWithFlash('/app/projects/' . $project->id, 'success', t($status === 'issued' ? 'user.purchase_orders.issued' : 'user.purchase_orders.saved_as_draft'));
     }
@@ -119,6 +121,7 @@ class PurchaseOrderController extends Controller
         }
 
         $purchaseOrder->update(['status' => $status]);
+        AuditLog::recordForCompany(Auth::user(), 'purchase_order_status_change', 'purchase_order', $purchaseOrder->id, "Purchase order {$purchaseOrder->po_number} → {$status}");
 
         return $this->redirectWithFlash('/app/projects/' . $purchaseOrder->project_id, 'success', t('user.purchase_orders.status_changed', ['status' => $status]));
     }

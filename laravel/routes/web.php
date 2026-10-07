@@ -54,6 +54,7 @@ use App\Http\Controllers\App\MaterialStockController;
 use App\Http\Controllers\App\QuickEstimateController;
 use App\Http\Controllers\App\ReportController;
 use App\Http\Controllers\App\RfiController;
+use App\Http\Controllers\App\RfqController;
 use App\Http\Controllers\App\SafetyIncidentController;
 use App\Http\Controllers\App\SubmittalController;
 use App\Http\Controllers\App\ToolboxTalkController;
@@ -67,6 +68,7 @@ use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\PunchListController;
 use App\Http\Controllers\App\ScheduleController;
 use App\Http\Controllers\App\SearchController;
+use App\Http\Controllers\App\ActivityLogController;
 use App\Http\Controllers\App\SecurityController;
 use App\Http\Controllers\App\SiteLogController;
 use App\Http\Controllers\App\InvoiceTemplateController;
@@ -361,6 +363,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/security/disable', [SecurityController::class, 'disable']);
     Route::post('/security/recovery-codes', [SecurityController::class, 'regenerateRecoveryCodes']);
 
+    Route::get('/activity-log', [ActivityLogController::class, 'index']);
+
     Route::get('/business-setup', [BusinessSetupController::class, 'index']);
     Route::get('/business-setup/units-of-measure', [BusinessSetupController::class, 'units']);
     Route::post('/business-setup/units-of-measure', [BusinessSetupController::class, 'storeUnit']);
@@ -405,6 +409,18 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/suppliers/{id}/documents/{docId}/delete', [SupplierController::class, 'destroyDocument']);
     Route::post('/suppliers/{id}/ratings', [SupplierController::class, 'storeRating']);
     Route::get('/suppliers/{id}', [SupplierController::class, 'show']);
+
+    Route::get('/rfqs', [RfqController::class, 'index']);
+    Route::get('/rfqs/create', [RfqController::class, 'create']);
+    Route::post('/rfqs', [RfqController::class, 'store']);
+    Route::get('/rfqs/{id}/edit', [RfqController::class, 'edit']);
+    Route::post('/rfqs/{id}', [RfqController::class, 'update']);
+    Route::post('/rfqs/{id}/delete', [RfqController::class, 'destroy']);
+    Route::post('/rfqs/{id}/items', [RfqController::class, 'addItem']);
+    Route::post('/rfqs/{id}/items/{itemId}/delete', [RfqController::class, 'removeItem']);
+    Route::post('/rfqs/{id}/quotes', [RfqController::class, 'recordQuote']);
+    Route::post('/rfqs/{id}/quotes/{quoteId}/award', [RfqController::class, 'award']);
+    Route::get('/rfqs/{id}', [RfqController::class, 'show']);
 
     Route::get('/equipment', [EquipmentController::class, 'index']);
     Route::get('/equipment/create', [EquipmentController::class, 'create']);

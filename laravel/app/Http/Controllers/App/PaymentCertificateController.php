@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\BoqItem;
 use App\Models\Client;
 use App\Models\Company;
@@ -151,6 +152,7 @@ class PaymentCertificateController extends Controller
 
             return $certificate;
         });
+        AuditLog::recordForCompany(Auth::user(), 'payment_certificate_create', 'payment_certificate', $certificate->id, "Payment certificate #{$certificate->certificate_number} created (draft) — " . number_format((float) $certificate->net_payable, 2) . ' SAR');
 
         $this->flash('success', t('user.payment_certificates.flash_created_draft', ['number' => $certificate->certificate_number]));
         return redirect('/app/payment-certificates/' . $certificate->id);
@@ -263,6 +265,7 @@ class PaymentCertificateController extends Controller
                 PaymentCertificateLine::create(['payment_certificate_id' => $certificate->id, ...$line]);
             }
         });
+        AuditLog::recordForCompany(Auth::user(), 'payment_certificate_update', 'payment_certificate', $certificate->id, "Payment certificate #{$certificate->certificate_number} updated — " . number_format((float) $certificate->net_payable, 2) . ' SAR');
 
         // Any later draft certificate for this project computed its own previous_cumulative_qty
         // and cumulative_certified from this one at ITS creation time — those snapshots are not
@@ -390,6 +393,7 @@ class PaymentCertificateController extends Controller
 
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
         WebhookDispatcher::dispatch($companyId, 'payment_certificate.certified', $certificate->fresh()->toArray());
+        AuditLog::recordForCompany(Auth::user(), 'payment_certificate_certified', 'payment_certificate', $certificate->id, "Payment certificate #{$certificate->certificate_number} certified — invoice {$invoice->invoice_number} generated for " . number_format($total, 2) . ' SAR');
 
         $this->flash('success', t('user.payment_certificates.flash_certified', ['number' => $certificate->certificate_number, 'invoice' => $invoice->invoice_number]));
         return redirect('/app/payment-certificates/' . $certificate->id);

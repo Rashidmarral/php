@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Project;
 use App\Models\Subcontract;
@@ -91,6 +92,7 @@ class SubcontractController extends Controller
             'project_id' => $project->id,
             ...$data,
         ]);
+        AuditLog::recordForCompany(Auth::user(), 'subcontract_create', 'subcontract', $subcontract->id, "Subcontract \"{$subcontract->title}\" created — " . number_format((float) $subcontract->contract_value, 2) . ' SAR');
 
         $this->flash('success', t('user.subcontracts.flash_created'));
         return redirect('/app/subcontracts/' . $subcontract->id);
@@ -158,6 +160,7 @@ class SubcontractController extends Controller
         }
 
         $subcontract->update($data);
+        AuditLog::recordForCompany(Auth::user(), 'subcontract_update', 'subcontract', $subcontract->id, "Subcontract \"{$subcontract->title}\" updated — " . number_format((float) $subcontract->contract_value, 2) . ' SAR');
 
         $this->flash('success', t('user.subcontracts.flash_updated'));
         return redirect('/app/subcontracts/' . $subcontract->id);
