@@ -58,6 +58,10 @@
   <div class="main">
     <div class="topbar">
       <div class="who">{{ auth()->user()->name }} · <span class="badge badge-blue">{{ auth()->user()->roleShortLabel() }}</span></div>
+      <form class="topbar-search" method="get" action="{{ url('/app/search') }}" data-search-endpoint="{{ url('/app/search') }}" autocomplete="off">
+        <input type="search" name="q" value="{{ request('q') }}" placeholder="{{ t('search.placeholder') }}" aria-label="{{ t('search.placeholder') }}">
+        <div class="search-dropdown" hidden data-no-results="{{ t('common.no_results') }}"></div>
+      </form>
       <div class="header-actions">
         <a class="lang-switch" href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'EN' : 'AR' }}</a>
         <form method="post" action="{{ url('/logout') }}" style="margin:0">
@@ -92,6 +96,7 @@
   </div>
 </div>
 <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
+<script src="{{ asset('assets/js/global-search.js') }}" defer></script>
 <script>
   // Field supervisors work from a phone on site — installable + a safe static-asset cache
   // makes the panel launchable like an app and keeps loading fast on a weak connection.

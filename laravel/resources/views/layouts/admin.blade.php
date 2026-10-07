@@ -53,6 +53,10 @@
   <div class="main">
     <div class="topbar">
       <div class="who"><a href="{{ url('/admin/profile') }}" style="color:inherit;text-decoration:none;">{{ auth()->user()->name }}</a> · <span class="badge badge-gray">{{ auth()->user()->isSuperAdmin() ? t('aside.super_admin_badge') : \App\Models\User::ADMIN_ROLES['support_admin'] }}</span></div>
+      <form class="topbar-search" method="get" action="{{ url('/admin/search') }}" data-search-endpoint="{{ url('/admin/search') }}" autocomplete="off">
+        <input type="search" name="q" value="{{ request('q') }}" placeholder="{{ t('search.placeholder_admin') }}" aria-label="{{ t('search.placeholder_admin') }}">
+        <div class="search-dropdown" hidden data-no-results="{{ t('common.no_results') }}"></div>
+      </form>
       <div class="header-actions">
         <a class="lang-switch" href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'EN' : 'AR' }}</a>
         <form method="post" action="{{ url('/logout') }}" style="margin:0">
@@ -78,5 +82,6 @@
   </div>
 </div>
 <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
+<script src="{{ asset('assets/js/global-search.js') }}" defer></script>
 </body>
 </html>

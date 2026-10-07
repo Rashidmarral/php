@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PageSectionController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\QuickEstimateAdminController;
+use App\Http\Controllers\Admin\SearchController as AdminSearchController;
 use App\Http\Controllers\Admin\SecurityController as AdminSecurityController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
@@ -60,6 +61,7 @@ use App\Http\Controllers\App\ProjectController;
 use App\Http\Controllers\App\ProjectPhotoController;
 use App\Http\Controllers\App\PunchListController;
 use App\Http\Controllers\App\ScheduleController;
+use App\Http\Controllers\App\SearchController;
 use App\Http\Controllers\App\SecurityController;
 use App\Http\Controllers\App\SiteLogController;
 use App\Http\Controllers\App\InvoiceTemplateController;
@@ -138,6 +140,7 @@ Route::post('/reset-password/{token}', [AuthController::class, 'resetPassword'])
 */
 Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
+    Route::get('/search', [SearchController::class, 'search']);
 
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::get('/projects/create', [ProjectController::class, 'create']);
@@ -447,6 +450,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
 */
 Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index']);
+    Route::get('/search', [AdminSearchController::class, 'search']);
     Route::get('/reports', [AdminReportController::class, 'index']);
     Route::get('/usage', [UsageController::class, 'index']);
     Route::get('/audit-log', [AuditLogController::class, 'index']);
