@@ -392,6 +392,8 @@ input[type=file]::file-selector-button:hover { opacity: .9; }
 .kpi .delta { font-size: 12.5px; color: var(--success); font-weight: 600; }
 .kpi .delta.down { color: var(--danger); }
 
+.chart-box { position: relative; height: 220px; }
+
 table.data { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
 table.data th, table.data td { padding: 13px 16px; text-align: left; font-size: 13.5px; border-bottom: 1px solid var(--border); }
 html[dir="rtl"] table.data th, html[dir="rtl"] table.data td { text-align: right; }

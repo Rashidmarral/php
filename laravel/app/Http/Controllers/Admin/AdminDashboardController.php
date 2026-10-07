@@ -51,6 +51,22 @@ class AdminDashboardController extends Controller
 
         $zatcaActive = Company::where('zatca_status', 'onboarded')->count();
 
+        // Last 6 months of paid-revenue, oldest first, for the dashboard trend line.
+        // Explicit per-month whereBetween (not a GROUP BY date-function) to stay
+        // identical across sqlite (tests) and mysql (production), matching the
+        // revenueThisMonth/revenueLastMonth pattern above.
+        $revenueTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthStart = now()->subMonthsNoOverflow($i)->startOfMonth();
+            $monthEnd = now()->subMonthsNoOverflow($i)->endOfMonth();
+            $revenueTrend[] = [
+                'label' => $monthStart->format('M'),
+                'total' => (float) Payment::where('status', 'paid')
+                    ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->sum('amount'),
+            ];
+        }
+
         $recentCompanies = Company::orderByDesc('created_at')->limit(6)->get(['id', 'name', 'status', 'created_at']);
         $recentPayments = DB::table('payments as pm')
             ->leftJoin('companies as c', 'c.id', '=', 'pm.company_id')
@@ -71,6 +87,7 @@ class AdminDashboardController extends Controller
             'planCounts' => $planCounts,
             'maxPlanCount' => $maxPlanCount,
             'zatcaActive' => $zatcaActive,
+            'revenueTrend' => $revenueTrend,
             'recentCompanies' => $recentCompanies,
             'recentPayments' => $recentPayments,
         ]);

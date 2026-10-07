@@ -34,6 +34,25 @@
   <?php endif; ?>
 </div>
 
+<div class="grid grid-3" style="margin-bottom:24px;align-items:start;">
+  <div class="card">
+    <h3 style="margin-bottom:14px;"><?= t('user.dashboard.revenue_trend_title') ?></h3>
+    <div class="chart-box"><canvas id="chart-revenue-trend"></canvas></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:14px;"><?= t('user.dashboard.budget_overview_title') ?></h3>
+    <div class="chart-box"><canvas id="chart-budget-overview"></canvas></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:14px;"><?= t('user.dashboard.project_status_title') ?></h3>
+    <?php if (!empty($recentProjects) || $activeProjects > 0): ?>
+      <div class="chart-box"><canvas id="chart-project-status"></canvas></div>
+    <?php else: ?>
+      <p class="help-text"><?= t('user.dashboard.no_projects_yet') ?></p>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="grid grid-2">
   <div class="card">
     <h3><?= t('user.dashboard.recent_projects') ?></h3>
@@ -97,3 +116,94 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  if (typeof Chart === 'undefined') return;
+  var css = getComputedStyle(document.documentElement);
+  var brand = css.getPropertyValue('--brand').trim() || '#1f8a5f';
+  var accent = css.getPropertyValue('--accent').trim() || '#e0a526';
+  var danger = css.getPropertyValue('--danger').trim() || '#dc2626';
+  var muted = css.getPropertyValue('--muted').trim() || '#64708a';
+  var border = css.getPropertyValue('--border').trim() || '#e2e5ee';
+  Chart.defaults.font.family = "'Cairo', sans-serif";
+  Chart.defaults.color = muted;
+
+  var revenueTrend = @json($revenueTrend);
+  var revenueCanvas = document.getElementById('chart-revenue-trend');
+  if (revenueCanvas) {
+    new Chart(revenueCanvas, {
+      type: 'line',
+      data: {
+        labels: revenueTrend.map(function (r) { return r.label; }),
+        datasets: [{
+          data: revenueTrend.map(function (r) { return r.total; }),
+          borderColor: brand,
+          backgroundColor: brand + '22',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: brand,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: border }, ticks: { callback: function (v) { return v >= 1000 ? (v / 1000) + 'k' : v; } } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  var budgetCanvas = document.getElementById('chart-budget-overview');
+  if (budgetCanvas) {
+    new Chart(budgetCanvas, {
+      type: 'bar',
+      data: {
+        labels: [<?= json_encode(t('user.dashboard.total_budget')) ?>, <?= json_encode(t('user.dashboard.paid_this_month')) ?>, <?= json_encode(t('user.dashboard.outstanding')) ?>],
+        datasets: [{
+          data: [<?= (float) $totalBudget ?>, <?= (float) $paidThisMonth ?>, <?= (float) $outstanding ?>],
+          backgroundColor: [brand, accent, danger],
+          borderRadius: 6,
+          maxBarThickness: 46,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: border }, ticks: { callback: function (v) { return v >= 1000 ? (v / 1000) + 'k' : v; } } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  var statusCanvas = document.getElementById('chart-project-status');
+  if (statusCanvas) {
+    var statusCounts = @json($projectStatusCounts);
+    var statusColors = { planning: '#2563eb', in_progress: accent, on_hold: muted, completed: brand, cancelled: danger };
+    var keys = Object.keys(statusCounts);
+    new Chart(statusCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: keys.map(function (k) { return k.replace('_', ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }),
+        datasets: [{
+          data: keys.map(function (k) { return statusCounts[k]; }),
+          backgroundColor: keys.map(function (k) { return statusColors[k] || accent; }),
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } } },
+      },
+    });
+  }
+})();
+</script>
+@endpush

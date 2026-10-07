@@ -56,19 +56,19 @@
   </a>
 </div>
 
-<div class="grid grid-2" style="align-items:start;">
+<div class="grid grid-3" style="align-items:start;">
+  <div class="card">
+    <h3 style="margin-bottom:14px;">{{ t('admin.dashboard.revenue_trend_title') }}</h3>
+    <div class="chart-box"><canvas id="chart-revenue-trend"></canvas></div>
+  </div>
+
   <div class="card">
     <h3 style="margin-bottom:14px;">{{ t('admin.dashboard.plan_distribution') }}</h3>
-    @foreach ($planCounts as $p)
-      <div style="margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
-          <span>{{ $p->name }}</span><span style="color:var(--muted);">{{ $p->company_count }}</span>
-        </div>
-        <div style="background:var(--bg);border-radius:6px;height:8px;overflow:hidden;">
-          <div style="background:linear-gradient(90deg,var(--brand),var(--brand-dark));height:100%;width:{{ $maxPlanCount > 0 ? round($p->company_count / $maxPlanCount * 100) : 0 }}%;"></div>
-        </div>
-      </div>
-    @endforeach
+    @if ($planCounts->sum('company_count') > 0)
+      <div class="chart-box"><canvas id="chart-plan-distribution"></canvas></div>
+    @else
+      <p class="help-text">{{ t('admin.dashboard.no_companies') }}</p>
+    @endif
   </div>
 
   <div class="card">
@@ -82,13 +82,11 @@
         'cancelled' => t('admin.status.cancelled'),
       ];
     @endphp
-    @foreach ($statusMap as $status => $count)
-      @continue($count === 0 && $status !== 'active' && $status !== 'trial')
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
-        <span class="badge badge-{{ ['active'=>'green','trial'=>'blue','past_due'=>'yellow','suspended'=>'red','cancelled'=>'gray'][$status] ?? 'gray' }}">{{ $dashboardStatusLabels[$status] ?? ucfirst(str_replace('_',' ',$status)) }}</span>
-        <strong>{{ $count }}</strong>
-      </div>
-    @endforeach
+    @if ($totalCompanies > 0)
+      <div class="chart-box"><canvas id="chart-company-status"></canvas></div>
+    @else
+      <p class="help-text">{{ t('admin.dashboard.no_companies') }}</p>
+    @endif
   </div>
 </div>
 
@@ -129,3 +127,93 @@
   </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  if (typeof Chart === 'undefined') return;
+  var css = getComputedStyle(document.documentElement);
+  var brand = css.getPropertyValue('--brand').trim() || '#1f8a5f';
+  var brandDark = css.getPropertyValue('--brand-dark').trim() || '#0f5c3c';
+  var accent = css.getPropertyValue('--accent').trim() || '#e0a526';
+  var muted = css.getPropertyValue('--muted').trim() || '#64708a';
+  var border = css.getPropertyValue('--border').trim() || '#e2e5ee';
+  Chart.defaults.font.family = "'Cairo', sans-serif";
+  Chart.defaults.color = muted;
+
+  var revenueTrend = @json($revenueTrend);
+  var revenueCanvas = document.getElementById('chart-revenue-trend');
+  if (revenueCanvas) {
+    new Chart(revenueCanvas, {
+      type: 'line',
+      data: {
+        labels: revenueTrend.map(function (r) { return r.label; }),
+        datasets: [{
+          data: revenueTrend.map(function (r) { return r.total; }),
+          borderColor: brand,
+          backgroundColor: brand + '22',
+          fill: true,
+          tension: 0.35,
+          pointRadius: 3,
+          pointBackgroundColor: brand,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: border }, ticks: { callback: function (v) { return v >= 1000 ? (v / 1000) + 'k' : v; } } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  var planCanvas = document.getElementById('chart-plan-distribution');
+  if (planCanvas) {
+    var planLabels = @json($planCounts->pluck('name'));
+    var planData = @json($planCounts->pluck('company_count'));
+    new Chart(planCanvas, {
+      type: 'bar',
+      data: {
+        labels: planLabels,
+        datasets: [{ data: planData, backgroundColor: brand, borderRadius: 6, maxBarThickness: 28 }],
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: border } },
+          y: { grid: { display: false } },
+        },
+      },
+    });
+  }
+
+  var statusCanvas = document.getElementById('chart-company-status');
+  if (statusCanvas) {
+    var statusMap = @json($statusMap);
+    var statusLabels = @json($dashboardStatusLabels ?? []);
+    var statusColors = { active: '#1f9d55', trial: '#2563eb', past_due: '#e0a526', suspended: '#dc2626', cancelled: muted };
+    var entries = Object.keys(statusMap).filter(function (k) { return statusMap[k] > 0; });
+    new Chart(statusCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: entries.map(function (k) { return statusLabels[k] || k; }),
+        datasets: [{
+          data: entries.map(function (k) { return statusMap[k]; }),
+          backgroundColor: entries.map(function (k) { return statusColors[k] || accent; }),
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } } },
+      },
+    });
+  }
+})();
+</script>
+@endpush

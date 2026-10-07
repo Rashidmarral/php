@@ -83,5 +83,6 @@
 </div>
 <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
 <script src="{{ asset('assets/js/global-search.js') }}" defer></script>
+@stack('scripts')
 </body>
 </html>

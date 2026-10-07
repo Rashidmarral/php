@@ -49,6 +49,27 @@ class DashboardController extends Controller
         $upcomingTasks = ScheduleTask::where('company_id', $companyId)->where('status', '!=', 'done')->orderBy('start_date')->limit(6)->get()->toArray();
         $recentEstimates = Estimate::where('company_id', $companyId)->orderByDesc('created_at')->limit(5)->get()->toArray();
 
+        $projectStatusCounts = Project::where('company_id', $companyId)
+            ->selectRaw('status, COUNT(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status');
+
+        // Last 6 months of paid-invoice revenue, oldest first — same per-month
+        // whereBetween approach as the admin dashboard's trend, so it behaves
+        // identically on sqlite (tests) and mysql (production).
+        $revenueTrend = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $monthStart = now()->subMonthsNoOverflow($i)->startOfMonth();
+            $monthEnd = now()->subMonthsNoOverflow($i)->endOfMonth();
+            $revenueTrend[] = [
+                'label' => $monthStart->format('M'),
+                'total' => (float) Invoice::where('company_id', $companyId)
+                    ->where('status', 'paid')
+                    ->whereBetween('created_at', [$monthStart, $monthEnd])
+                    ->sum('total'),
+            ];
+        }
+
         return view('app.dashboard', [
             'activeProjects' => $activeProjects,
             'totalBudget' => $totalBudget,
@@ -62,6 +83,8 @@ class DashboardController extends Controller
             'currentPlan' => $currentPlan,
             'expiringDocs' => $expiringDocs,
             'openSafetyIncidents' => $openSafetyIncidents,
+            'projectStatusCounts' => $projectStatusCounts,
+            'revenueTrend' => $revenueTrend,
         ]);
     }
 }
