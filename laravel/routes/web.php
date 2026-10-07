@@ -118,6 +118,8 @@ Route::get('/quick-estimate/{id}/pdf', [SiteQuickEstimateController::class, 'pdf
 Route::get('/e/{token}', [ShareController::class, 'estimate']);
 Route::post('/e/{token}/sign', [ShareController::class, 'signEstimate']);
 Route::get('/e/{token}/pdf', [ShareController::class, 'estimatePdf']);
+Route::get('/ipc/{token}', [ShareController::class, 'paymentCertificate']);
+Route::post('/ipc/{token}/sign', [ShareController::class, 'signPaymentCertificate']);
 Route::get('/i/{token}', [ShareController::class, 'invoice']);
 Route::get('/i/{token}/pdf', [ShareController::class, 'invoicePdf']);
 Route::get('/i/{token}/pay', [ShareController::class, 'payInvoice']);

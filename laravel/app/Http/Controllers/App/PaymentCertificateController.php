@@ -166,6 +166,14 @@ class PaymentCertificateController extends Controller
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
         $company = Company::find($project->company_id);
 
+        // Same lazy share-token generation as EstimateController::show() — a certificate
+        // gets its token the first time its show page is opened, not at creation, so an
+        // internally-certified-but-never-sent certificate never needlessly carries one.
+        if (empty($certificate->share_token)) {
+            $certificate->update(['share_token' => bin2hex(random_bytes(20))]);
+        }
+        $shareUrl = rtrim((string) config('app.url'), '/') . '/ipc/' . $certificate->share_token;
+
         return view('app.payment-certificates.show', [
             'certificate' => $certificate->toArray(),
             'project' => $project->toArray(),
@@ -176,6 +184,7 @@ class PaymentCertificateController extends Controller
             // Stage 4 fix: see InvoiceController::show()'s identical comment —
             // hides the OLD template picker once it would be a no-op.
             'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('payment_certificate'),
+            'shareUrl' => $shareUrl,
         ]);
     }
 

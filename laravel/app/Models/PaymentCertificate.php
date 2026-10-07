@@ -26,6 +26,7 @@ class PaymentCertificate extends Model
             'net_payable' => 'decimal:2',
             'cumulative_certified' => 'decimal:2',
             'certified_at' => 'datetime',
+            'signed_at' => 'datetime:Y-m-d H:i:s',
         ];
     }
 

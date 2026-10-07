@@ -6,6 +6,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\Invoice;
+use App\Models\PaymentCertificate;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\User;
@@ -70,6 +71,24 @@ class Notifications
             $owner->name,
             "Estimate \"{$estimate->title}\" was signed",
             "Hi {$owner->name},\n\n{$signedByName} just signed and accepted the estimate \"{$estimate->title}\" (" . number_format((float) $estimate->total, 2) . " SAR).\n\nView it: " . rtrim((string) config('app.url'), '/') . "/app/estimates/{$estimate->id}"
+        );
+    }
+
+    public static function paymentCertificateSigned(int $certificateId, string $signedByName): void
+    {
+        $certificate = PaymentCertificate::find($certificateId);
+        if (!$certificate) {
+            return;
+        }
+        $owner = self::companyOwner($certificate->company_id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "Payment Certificate #{$certificate->certificate_number} was signed",
+            "Hi {$owner->name},\n\n{$signedByName} just signed off on Payment Certificate #{$certificate->certificate_number} (" . number_format((float) $certificate->net_payable, 2) . " SAR net payable).\n\nView it: " . rtrim((string) config('app.url'), '/') . "/app/payment-certificates/{$certificate->id}"
         );
     }
 
