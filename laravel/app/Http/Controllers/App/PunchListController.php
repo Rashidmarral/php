@@ -79,6 +79,34 @@ class PunchListController extends Controller
         return $this->redirectWithFlash('/app/projects/' . $item->project_id, 'success', t('user.punch_list.updated'));
     }
 
+    /**
+     * Punch-list-to-warranty-claim handoff: transitions an item straight to the
+     * 'warranty_claim' status and stamps warranty_claim_raised_at, instead of walking it
+     * through the ordinary open -> in_progress -> resolved flow. Only offered/allowed once
+     * the project is in its warranty period (see Project::isInWarrantyPeriod() for the
+     * exact reasoning) — a defect found while construction is still active is a normal
+     * punch item, not a warranty claim, so this is deliberately NOT a replacement for
+     * update()'s status dropdown during active construction.
+     */
+    public function raiseWarrantyClaim(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('punch_list')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $item = $this->findOwned($id);
+        $project = Project::find($item->project_id);
+
+        if (!$project || !$project->isInWarrantyPeriod()) {
+            return $this->redirectWithFlash('/app/projects/' . $item->project_id, 'error', t('user.punch_list.warranty_claim_not_available'));
+        }
+
+        $item->update(['status' => 'warranty_claim', 'warranty_claim_raised_at' => now()]);
+        return $this->redirectWithFlash('/app/projects/' . $item->project_id, 'success', t('user.punch_list.warranty_claim_raised'));
+    }
+
     public function destroy(int $id): RedirectResponse
     {
         if ($redirect = $this->requireFeature('punch_list')) {

@@ -309,6 +309,11 @@ class ProjectController extends Controller
             ->orderBy('due_date')
             ->orderByDesc('created_at')
             ->get();
+        // Warranty/DLP handoff surfaced on the project show page: how many punch-list items
+        // have already been raised as warranty claims, and whether raising a new one is even
+        // offered right now (see Project::isInWarrantyPeriod() for the gating reasoning).
+        $warrantyClaimCount = PunchListItem::where('project_id', $project->id)->where('status', 'warranty_claim')->count();
+        $warrantyClaimAllowed = $project->isInWarrantyPeriod();
         $rfis = Rfi::where('project_id', $project->id)->orderByDesc('rfi_number')->limit(5)->get();
         $rfiCount = Rfi::where('project_id', $project->id)->count();
         $submittals = Submittal::where('project_id', $project->id)->orderByDesc('submittal_number')->limit(5)->get();
@@ -388,6 +393,8 @@ class ProjectController extends Controller
             'punchListItems' => $punchListItems->toArray(),
             'punchListStatuses' => PunchListItem::STATUSES,
             'punchListPriorities' => PunchListItem::PRIORITIES,
+            'warrantyClaimCount' => $warrantyClaimCount,
+            'warrantyClaimAllowed' => $warrantyClaimAllowed,
             'rfis' => $rfis->toArray(),
             'rfiCount' => $rfiCount,
             'rfiStatuses' => Rfi::STATUSES,

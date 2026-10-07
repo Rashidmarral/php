@@ -10,6 +10,7 @@ use App\Models\EquipmentMaintenanceLog;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Project;
+use App\Models\PunchListItem;
 use App\Models\RecurringInvoice;
 use App\Models\Subscription;
 use App\Models\Supplier;
@@ -27,8 +28,8 @@ use Illuminate\Console\Command;
  * compliance-document expiry reminders, team-member-document (iqama, health
  * certificate, etc.) expiry reminders, supplier-document (CR, insurance,
  * classification certificate, etc.) expiry reminders, bank-guarantee/bond expiry
- * reminders, retention-release reminders, recurring invoice generation, and
- * equipment-maintenance-due reminders.
+ * reminders, retention-release reminders, recurring invoice generation,
+ * equipment-maintenance-due reminders, and defects-liability-period-ending reminders.
  * Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
@@ -271,6 +272,35 @@ class RunDailyTasks extends Command
             $maintenanceReminders++;
         }
         $this->info("Equipment maintenance reminders sent: {$maintenanceReminders}.");
+
+        // ---- 10. Remind companies when a project's defects liability period is approaching
+        //          (within 30 days) or has just passed (once per project) — a DIFFERENT
+        //          concern from block 8's retention reminder above: that one is about money
+        //          (retention release), this one is about defects — nudging the company to
+        //          walk the punch list and raise any outstanding warranty claims before the
+        //          window closes. Guarded by its own dlp_reminder_sent_at (never
+        //          retention_reminder_sent_at) since a project needs BOTH reminders
+        //          independently — they can, and do, fire separately for the same project. ----
+        $dlpCutoff = now()->addDays(30)->format('Y-m-d');
+        $dueDlpProjects = Project::whereNotNull('defects_liability_end_date')
+            ->where('defects_liability_end_date', '<=', $dlpCutoff)
+            ->whereNull('dlp_reminder_sent_at')
+            ->get();
+
+        $dlpReminders = 0;
+        foreach ($dueDlpProjects as $project) {
+            $company = Company::find($project->company_id);
+            if (!$company) {
+                continue;
+            }
+            $openPunchListCount = PunchListItem::where('project_id', $project->id)
+                ->whereIn('status', ['open', 'in_progress'])
+                ->count();
+            Notifications::defectsLiabilityPeriodEnding($company, $project, $openPunchListCount);
+            $project->update(['dlp_reminder_sent_at' => now()]);
+            $dlpReminders++;
+        }
+        $this->info("Defects liability period reminders sent: {$dlpReminders}.");
 
         $this->info('Daily tasks complete.');
         return self::SUCCESS;

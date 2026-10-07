@@ -541,9 +541,33 @@
 </div>
 <?php endif; ?>
 
+<div id="warranty-claims"></div>
 <div class="card" style="margin-top:24px;">
   <h3><?= t('user.punch_list.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.punch_list.hint') ?></p>
+
+  <?php if (!empty($project['defects_liability_end_date']) || $warrantyClaimCount > 0): ?>
+    <?php
+      $dlpEndDate = $project['defects_liability_end_date'] ?? null;
+      $dlpDaysLeft = $dlpEndDate ? (int) ceil((strtotime($dlpEndDate) - strtotime(date('Y-m-d'))) / 86400) : null;
+    ?>
+    <div style="background:var(--bg);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+      <?php if ($dlpEndDate): ?>
+        <span>
+          <?php if ($dlpDaysLeft !== null && $dlpDaysLeft >= 0): ?>
+            <?= t('user.punch_list.dlp_ends_on', ['date' => $dlpEndDate, 'days' => $dlpDaysLeft]) ?>
+          <?php else: ?>
+            <?= t('user.punch_list.dlp_ended_ago', ['date' => $dlpEndDate, 'days' => abs($dlpDaysLeft)]) ?>
+          <?php endif; ?>
+        </span>
+      <?php endif; ?>
+      <?php if ($warrantyClaimCount > 0): ?>
+        <a href="#warranty-claims" class="badge badge-blue" style="text-decoration:none;">
+          <?= t('user.punch_list.warranty_claim_count', ['count' => $warrantyClaimCount]) ?>
+        </a>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
 
   <?php if (!empty($punchListItems)): ?>
     <table class="data" style="margin-bottom:16px;">
@@ -551,7 +575,7 @@
       <tbody>
       <?php foreach ($punchListItems as $item):
         $priorityBadge = ['low' => 'gray', 'medium' => 'yellow', 'high' => 'red'][$item['priority']] ?? 'gray';
-        $statusBadge = ['open' => 'red', 'in_progress' => 'yellow', 'resolved' => 'green'][$item['status']] ?? 'gray';
+        $statusBadge = ['open' => 'red', 'in_progress' => 'yellow', 'resolved' => 'green', 'warranty_claim' => 'blue'][$item['status']] ?? 'gray';
         $overdue = $item['due_date'] && $item['status'] !== 'resolved' && $item['due_date'] < date('Y-m-d');
       ?>
         <tr>
@@ -585,7 +609,13 @@
             </form>
           </td>
           <td>
-            <form method="post" action="/app/punch-list/<?= $item['id'] ?>/delete" onsubmit="return confirm('<?= t('user.punch_list.remove_confirm') ?>');">
+            <?php if ($warrantyClaimAllowed && !in_array($item['status'], ['warranty_claim', 'resolved'], true)): ?>
+              <form method="post" action="/app/punch-list/<?= $item['id'] ?>/warranty-claim" style="display:inline;" onsubmit="return confirm('<?= t('user.punch_list.warranty_claim_confirm') ?>');">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-outline"><?= t('user.punch_list.raise_warranty_claim') ?></button>
+              </form>
+            <?php endif; ?>
+            <form method="post" action="/app/punch-list/<?= $item['id'] ?>/delete" onsubmit="return confirm('<?= t('user.punch_list.remove_confirm') ?>');" style="display:inline;">
               <?= csrf_field() ?>
               <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
             </form>

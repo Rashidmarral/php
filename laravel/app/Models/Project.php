@@ -22,6 +22,7 @@ class Project extends Model
             'advance_recovery_percent' => 'decimal:2',
             'defects_liability_end_date' => 'date:Y-m-d',
             'retention_reminder_sent_at' => 'datetime',
+            'dlp_reminder_sent_at' => 'datetime',
             'actual_completion_date' => 'date:Y-m-d',
             'ld_rate_per_day' => 'decimal:2',
             'ld_cap_percent' => 'decimal:2',
@@ -117,6 +118,28 @@ class Project extends Model
             ->where('retention_amount', '>', 0)
             ->where('retention_released', false)
             ->sum('retention_amount');
+    }
+
+    /**
+     * True once the project has actually finished (actual_completion_date is set) and
+     * today is on or after that date — i.e. we're inside the defects liability/warranty
+     * period itself, or past its end (defects_liability_end_date, once set) and a defect
+     * is only now surfacing. Deliberately NOT capped at defects_liability_end_date: a
+     * defect found just after the DLP has technically lapsed is still a warranty-period
+     * issue, not a fresh construction defect — RunDailyTasks' own DLP-ending reminder
+     * treats an already-passed end date the same way (still worth a nudge, same as its
+     * retention-release reminder does for an overdue DLP).
+     *
+     * This is what gates PunchListController::raiseWarrantyClaim(): a defect found
+     * before actual completion belongs to the ordinary open->in_progress->resolved flow,
+     * never to "raise as warranty claim", even on a project that already has a DLP date set.
+     */
+    public function isInWarrantyPeriod(): bool
+    {
+        if (!$this->actual_completion_date) {
+            return false;
+        }
+        return $this->actual_completion_date->lessThanOrEqualTo(\Carbon\Carbon::today());
     }
 
     public function approvedChangeOrdersTotal(): float

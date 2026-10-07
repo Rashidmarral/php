@@ -218,6 +218,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/punch-list', [PunchListController::class, 'store']);
     Route::post('/punch-list/{id}', [PunchListController::class, 'update']);
     Route::post('/punch-list/{id}/delete', [PunchListController::class, 'destroy']);
+    Route::post('/punch-list/{id}/warranty-claim', [PunchListController::class, 'raiseWarrantyClaim']);
     Route::get('/projects/{id}/rfis', [RfiController::class, 'index']);
     Route::get('/projects/{id}/rfis/new', [RfiController::class, 'create']);
     Route::post('/projects/{id}/rfis', [RfiController::class, 'store']);

@@ -214,6 +214,30 @@ class Notifications
         self::smsCompany($company, "Retention on \"{$project->name}\": " . number_format($retentionHeld, 2) . " SAR still held — its defects liability period " . ($dlpDate ? "ends {$dlpDate}" : 'is ending soon') . ".");
     }
 
+    /**
+     * Distinct concern from retentionReleaseDue() above: that one is about money (retention
+     * still held), this one is about defects — nudging the company to walk the punch list
+     * and raise any outstanding warranty claims before the defects liability period closes.
+     * Both reminders can fire independently for the same project, guarded by their own
+     * separate *_reminder_sent_at columns (see RunDailyTasks).
+     */
+    public static function defectsLiabilityPeriodEnding(Company $company, Project $project, int $openPunchListCount): void
+    {
+        $owner = self::companyOwner($company->id);
+        if (!$owner) {
+            return;
+        }
+        $dlpDate = $project->defects_liability_end_date?->format('Y-m-d');
+        $openNote = $openPunchListCount === 1 ? '1 unresolved punch-list item' : "{$openPunchListCount} unresolved punch-list items";
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "Defects liability period on \"{$project->name}\" is ending soon",
+            "Hi {$owner->name},\n\nThe defects liability period on \"{$project->name}\" " . ($dlpDate ? "ends on {$dlpDate}" : 'is ending soon') . ", and there " . ($openPunchListCount === 1 ? 'is' : 'are') . " {$openNote} still open. Walk the site and raise any outstanding defects as warranty claims before the window closes.\n\nView the project: " . rtrim((string) config('app.url'), '/') . "/app/projects/{$project->id}"
+        );
+        self::smsCompany($company, "\"{$project->name}\": defects liability period " . ($dlpDate ? "ends {$dlpDate}" : 'is ending soon') . " — {$openNote} still open.");
+    }
+
     public static function equipmentMaintenanceDue(Company $company, \App\Models\Equipment $equipment, \App\Models\EquipmentMaintenanceLog $log): void
     {
         $owner = self::companyOwner($company->id);

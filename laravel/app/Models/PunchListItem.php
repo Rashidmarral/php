@@ -10,6 +10,11 @@ class PunchListItem extends Model
         'open' => 'Open',
         'in_progress' => 'In Progress',
         'resolved' => 'Resolved',
+        // The punch-list-to-warranty-claim handoff: an item found during the project's
+        // defects liability period (see Project::isInWarrantyPeriod()) rather than during
+        // active construction. Reachable only via PunchListController::raiseWarrantyClaim(),
+        // never from the ordinary status dropdown's normal open->in_progress->resolved flow.
+        'warranty_claim' => 'Warranty Claim',
     ];
 
     public const PRIORITIES = [
@@ -28,6 +33,7 @@ class PunchListItem extends Model
         return [
             'due_date' => 'date:Y-m-d',
             'resolved_at' => 'datetime',
+            'warranty_claim_raised_at' => 'datetime',
         ];
     }
 
