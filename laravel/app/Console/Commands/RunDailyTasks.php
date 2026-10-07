@@ -10,6 +10,8 @@ use App\Models\Plan;
 use App\Models\Project;
 use App\Models\RecurringInvoice;
 use App\Models\Subscription;
+use App\Models\Supplier;
+use App\Models\SupplierDocument;
 use App\Models\TeamMemberDocument;
 use App\Models\User;
 use App\Support\Moyasar;
@@ -21,8 +23,9 @@ use Illuminate\Console\Command;
 /**
  * Daily background jobs — subscription auto-renewal, trial-ending reminders,
  * compliance-document expiry reminders, team-member-document (iqama, health
- * certificate, etc.) expiry reminders, bank-guarantee/bond expiry reminders,
- * retention-release reminders, and recurring invoice generation.
+ * certificate, etc.) expiry reminders, supplier-document (CR, insurance,
+ * classification certificate, etc.) expiry reminders, bank-guarantee/bond expiry
+ * reminders, retention-release reminders, and recurring invoice generation.
  * Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
@@ -153,7 +156,30 @@ class RunDailyTasks extends Command
         }
         $this->info("Team member document reminders sent: {$memberDocReminders}.");
 
-        // ---- 5. Remind companies about active bank guarantees/bonds expiring within 30 days
+        // ---- 5. Remind companies about supplier pre-qualification documents (CR, insurance,
+        //         classification certificate, etc.) expiring within 30 days (once per document)
+        //         — the same mechanical shape as blocks 3/4 above, just one more entity with the
+        //         same "compliance documents with expiry dates" pattern. ----
+        $supplierDocCutoff = now()->addDays(30)->format('Y-m-d');
+        $expiringSupplierDocs = SupplierDocument::whereNotNull('expiry_date')
+            ->where('expiry_date', '<=', $supplierDocCutoff)
+            ->whereNull('reminder_sent_at')
+            ->get();
+
+        $supplierDocReminders = 0;
+        foreach ($expiringSupplierDocs as $doc) {
+            $company = Company::find($doc->company_id);
+            $supplier = Supplier::find($doc->supplier_id);
+            if (!$company || !$supplier) {
+                continue;
+            }
+            Notifications::supplierDocumentExpiring($company, $supplier, $doc);
+            $doc->update(['reminder_sent_at' => now()]);
+            $supplierDocReminders++;
+        }
+        $this->info("Supplier document reminders sent: {$supplierDocReminders}.");
+
+        // ---- 6. Remind companies about active bank guarantees/bonds expiring within 30 days
         //         (once per guarantee) — released, claimed, or already-expired ones don't need renewing ----
         $guaranteeCutoff = now()->addDays(30)->format('Y-m-d');
         $expiringGuarantees = BankGuarantee::where('status', 'active')
@@ -174,7 +200,7 @@ class RunDailyTasks extends Command
         }
         $this->info("Bank guarantee reminders sent: {$guaranteeReminders}.");
 
-        // ---- 6. Generate real invoices from active recurring invoice templates whose
+        // ---- 7. Generate real invoices from active recurring invoice templates whose
         //         next_run_date is due. Idempotent: generateInvoice() advances next_run_date
         //         (by one frequency period) in the SAME DB transaction that creates the
         //         invoice, so a template no longer matches this query the moment it commits
@@ -192,7 +218,7 @@ class RunDailyTasks extends Command
         }
         $this->info("Recurring invoices generated: {$recurringGenerated}.");
 
-        // ---- 7. Remind companies about retention coming up for release (once per project):
+        // ---- 8. Remind companies about retention coming up for release (once per project):
         //         the project's defects liability end date is within 30 days OR already
         //         passed (a contractor behind on releasing retention still needs the nudge,
         //         not just one looking ahead) and it actually still has retention held —

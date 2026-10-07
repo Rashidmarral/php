@@ -22,6 +22,33 @@
   <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" value="<?= e($supplier['email'] ?? '') ?>"></div>
   <div class="form-group"><label><?= t('common.address') ?></label><input type="text" name="address" value="<?= e($supplier['address'] ?? '') ?>"></div>
   <div class="form-group"><label><?= t('common.notes') ?></label><textarea name="notes"><?= e($supplier['notes'] ?? '') ?></textarea></div>
+
+  <h3 style="font-size:14px;margin-top:24px;"><?= t('user.suppliers.prequalification') ?></h3>
+  <p class="help-text" style="margin-top:-8px;"><?= t('user.suppliers.prequalification_hint') ?></p>
+  <div class="form-row">
+    <div class="form-group"><label><?= t('user.suppliers.trade_category') ?></label><input type="text" name="trade_category" placeholder="e.g. Electrical, Plumbing, Steel Fabrication" value="<?= e($supplier['trade_category'] ?? '') ?>"></div>
+    <div class="form-group">
+      <label><?= t('user.settings.classification_grade') ?></label>
+      <select name="classification_grade">
+        <option value=""><?= t('user.settings.not_classified') ?></option>
+        <?php foreach ($classificationGrades ?? ['1', '2', '3', '4', '5'] as $val): ?>
+          <option value="<?= $val ?>" <?= ($supplier['classification_grade'] ?? '') === $val ? 'selected' : '' ?>><?= t('user.settings.classification_grade_option', ['n' => $val]) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label><?= t('user.suppliers.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($supplier['cr_number'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.suppliers.vat_number') ?></label><input type="text" name="vat_number" value="<?= e($supplier['vat_number'] ?? '') ?>"></div>
+  </div>
+  <div class="form-group">
+    <label style="display:inline-flex;align-items:center;gap:6px;">
+      <input type="checkbox" name="is_approved_vendor" value="1" <?= !empty($supplier['is_approved_vendor']) ? 'checked' : '' ?>>
+      <?= t('user.suppliers.is_approved_vendor') ?>
+    </label>
+  </div>
+  <div class="form-group"><label><?= t('user.suppliers.approved_vendor_notes') ?></label><textarea name="approved_vendor_notes" placeholder="<?= t('user.suppliers.approved_vendor_notes_placeholder') ?>"><?= e($supplier['approved_vendor_notes'] ?? '') ?></textarea></div>
+
   <button type="submit" class="btn btn-primary"><?= $supplier ? t('common.save_changes') : t('user.suppliers.add_supplier') ?></button>
 </form>
 

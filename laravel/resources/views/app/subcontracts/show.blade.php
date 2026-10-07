@@ -40,6 +40,50 @@
   </div>
 <?php endif; ?>
 
+<div class="card" style="margin-bottom:20px;">
+  <h3 style="font-size:14px;"><?= t('user.subcontracts.rating_title') ?></h3>
+  <p class="help-text" style="margin-top:-8px;"><?= t('user.subcontracts.rating_hint') ?></p>
+
+  <p style="font-size:18px;margin:8px 0 16px;">
+    <?= $averageRating !== null ? str_repeat('★', (int) round($averageRating)) . str_repeat('☆', 5 - (int) round($averageRating)) . ' (' . $averageRating . ')' : t('user.suppliers.no_ratings_yet') ?>
+  </p>
+
+  <?php if (auth()->user()->can('write')): ?>
+  <form method="post" action="/app/suppliers/<?= $subcontract['supplier_id'] ?>/ratings" style="margin-bottom:16px;">
+    <?= csrf_field() ?>
+    <input type="hidden" name="subcontract_id" value="<?= $subcontract['id'] ?>">
+    <div class="form-row">
+      <div class="form-group">
+        <label><?= t('user.suppliers.score') ?></label>
+        <select name="score" required>
+          <?php foreach ([5, 4, 3, 2, 1] as $n): ?>
+            <option value="<?= $n ?>"><?= str_repeat('★', $n) . str_repeat('☆', 5 - $n) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
+    </div>
+    <button type="submit" class="btn btn-primary"><?= t('user.suppliers.add_rating_btn') ?></button>
+  </form>
+  <?php endif; ?>
+
+  <?php if (!empty($ratings)): ?>
+    <table class="data">
+      <thead><tr><th><?= t('user.suppliers.score') ?></th><th><?= t('user.suppliers.rated_by') ?></th><th><?= t('common.date') ?></th><th><?= t('common.notes') ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($ratings as $r): ?>
+        <tr>
+          <td><?= str_repeat('★', (int) $r['score']) . str_repeat('☆', 5 - (int) $r['score']) ?></td>
+          <td><?= e($r['rater_name']) ?></td>
+          <td><?= e($r['created_at'] ? substr($r['created_at'], 0, 10) : '—') ?></td>
+          <td><?= e($r['notes'] ?: '—') ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+</div>
+
 <div class="card">
   <h3 style="font-size:14px;"><?= t('user.subcontract_payments.title') ?></h3>
   <?php if (empty($payments)): ?>

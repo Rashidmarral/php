@@ -63,4 +63,25 @@ class Subcontract extends Model
     {
         return $this->payments()->where('status', 'certified')->exists();
     }
+
+    /**
+     * Design decision: a subcontract does NOT get its own parallel rating system. A
+     * Subcontract IS a Supplier hired under this specific project (see supplier() above), so
+     * "rating the subcontractor's performance on this subcontract" is exactly the same thing
+     * as "rating the Supplier, with project_id set to this subcontract's project_id" — the
+     * identical SupplierRating row a company would create from the Supplier's own rating form.
+     * This scopes the shared supplier_ratings table to (supplier_id, project_id) instead of
+     * introducing a subcontract_ratings table that would just duplicate it.
+     */
+    public function ratings(): \Illuminate\Database\Eloquent\Builder
+    {
+        return SupplierRating::where('supplier_id', $this->supplier_id)->where('project_id', $this->project_id);
+    }
+
+    /** Live-computed average of this subcontract's own ratings (same rules as Supplier::averageRating()). */
+    public function averageRating(): ?float
+    {
+        $average = $this->ratings()->avg('score');
+        return $average !== null ? round((float) $average, 1) : null;
+    }
 }

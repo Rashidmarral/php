@@ -368,6 +368,12 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/suppliers/{id}/edit', [SupplierController::class, 'edit']);
     Route::post('/suppliers/{id}', [SupplierController::class, 'update']);
     Route::post('/suppliers/{id}/delete', [SupplierController::class, 'destroy']);
+    Route::post('/suppliers/{id}/toggle-approved', [SupplierController::class, 'toggleApprovedVendor']);
+    Route::post('/suppliers/{id}/documents', [SupplierController::class, 'storeDocument']);
+    Route::post('/suppliers/{id}/documents/{docId}', [SupplierController::class, 'updateDocument']);
+    Route::post('/suppliers/{id}/documents/{docId}/delete', [SupplierController::class, 'destroyDocument']);
+    Route::post('/suppliers/{id}/ratings', [SupplierController::class, 'storeRating']);
+    Route::get('/suppliers/{id}', [SupplierController::class, 'show']);
 
     Route::get('/materials', [MaterialController::class, 'index']);
     Route::get('/materials/create', [MaterialController::class, 'create']);

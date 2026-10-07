@@ -103,6 +103,15 @@ class SubcontractController extends Controller
         $supplier = Supplier::find($subcontract->supplier_id);
         $payments = SubcontractPayment::where('subcontract_id', $subcontract->id)->orderByDesc('payment_number')->get();
 
+        // A subcontract's own rating is just the shared Supplier rating system scoped to
+        // (supplier_id, project_id) — see Subcontract::ratings()'s design note.
+        $ratings = $subcontract->ratings()->orderByDesc('created_at')->get();
+        $raters = \App\Models\User::whereIn('id', $ratings->pluck('rated_by')->filter()->unique()->all())->get()->keyBy('id');
+        $ratingRows = $ratings->map(fn ($r) => [
+            ...$r->toArray(),
+            'rater_name' => $raters->get($r->rated_by)->name ?? '—',
+        ])->all();
+
         return view('app.subcontracts.show', [
             'subcontract' => $subcontract->toArray(),
             'project' => $project->toArray(),
@@ -113,6 +122,8 @@ class SubcontractController extends Controller
             'remaining' => max(0, round((float) $subcontract->contract_value - $subcontract->cumulativePaid(), 2)),
             'hasCertifiedPayment' => $subcontract->hasCertifiedPayment(),
             'hasAnyPayment' => $subcontract->hasAnyPayment(),
+            'ratings' => $ratingRows,
+            'averageRating' => $subcontract->averageRating(),
         ]);
     }
 

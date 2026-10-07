@@ -148,6 +148,21 @@ class Notifications
         self::smsCompany($company, "{$member->name}'s {$document->name} expires on {$document->expiry_date?->format('Y-m-d')} — renew it soon.");
     }
 
+    public static function supplierDocumentExpiring(Company $company, \App\Models\Supplier $supplier, \App\Models\SupplierDocument $document): void
+    {
+        $owner = self::companyOwner($company->id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "{$supplier->name}'s {$document->name} expires soon",
+            "Hi {$owner->name},\n\n{$supplier->name}'s \"{$document->name}\" is due to expire on {$document->expiry_date?->format('Y-m-d')}. Renew it soon to keep this supplier's pre-qualification current.\n\nView the supplier: " . rtrim((string) config('app.url'), '/') . "/app/suppliers/{$supplier->id}"
+        );
+        self::smsCompany($company, "{$supplier->name}'s {$document->name} expires on {$document->expiry_date?->format('Y-m-d')} — renew it soon.");
+    }
+
     public static function bankGuaranteeExpiring(Company $company, \App\Models\BankGuarantee $guarantee): void
     {
         $owner = self::companyOwner($company->id);
