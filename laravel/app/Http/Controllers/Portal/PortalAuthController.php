@@ -39,7 +39,7 @@ class PortalAuthController extends Controller
             && Feature::allowsForCompany('client_portal', $company);
 
         if (!$ok) {
-            return $this->redirectWithFlash('/portal/login', 'error', 'Invalid email or password, or portal access is not enabled for this account.');
+            return $this->redirectWithFlash('/portal/login', 'error', t('portal.login_failed'));
         }
 
         Auth::guard('client')->login($client);

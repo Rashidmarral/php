@@ -43,7 +43,7 @@ class SupportTicketController extends Controller
         $category = array_key_exists((string) $request->input('category'), SupportTicket::CATEGORIES) ? $request->input('category') : 'general';
 
         if ($subject === '' || $message === '') {
-            return $this->redirectWithFlash('/portal/support/new', 'error', 'Please enter a subject and describe your issue.');
+            return $this->redirectWithFlash('/portal/support/new', 'error', t('portal.support_subject_required'));
         }
 
         $ticket = SupportTicket::create([
@@ -72,7 +72,7 @@ class SupportTicketController extends Controller
             'attachment_name' => $attachment['name'],
         ]);
 
-        $this->flash('success', 'Your message has been sent to the company — they will respond soon.');
+        $this->flash('success', t('portal.support_message_sent'));
         return redirect('/portal/support/' . $ticket->id);
     }
 
@@ -89,7 +89,7 @@ class SupportTicketController extends Controller
         $ticket = $this->findOwned($id);
         $message = trim((string) $request->input('message'));
         if ($message === '') {
-            return $this->redirectWithFlash('/portal/support/' . $id, 'error', 'Please enter a reply message.');
+            return $this->redirectWithFlash('/portal/support/' . $id, 'error', t('portal.support_reply_required'));
         }
 
         $attachment = TicketAttachment::store($request->file('attachment'), $ticket->id);
@@ -110,7 +110,7 @@ class SupportTicketController extends Controller
 
         $ticket->update(['last_message_at' => now(), 'status' => 'open']);
 
-        $this->flash('success', 'Reply sent.');
+        $this->flash('success', t('portal.support_reply_sent'));
         return redirect('/portal/support/' . $id);
     }
 

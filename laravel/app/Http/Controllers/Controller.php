@@ -44,7 +44,7 @@ abstract class Controller
             return null;
         }
         $label = auth()->user()->roleLabel();
-        return $this->redirectWithFlash('/app', 'error', "Your role ({$label}) does not have permission to do that.");
+        return $this->redirectWithFlash('/app', 'error', t('common.no_permission', ['role' => $label]));
     }
 
     /** Mirrors the original App\Core\Feature::requireOrRedirect(): redirects to Billing if the plan lacks $key. */
@@ -54,7 +54,7 @@ abstract class Controller
             return null;
         }
         $label = array_key_exists($key, Feature::ALL) ? t('feature.' . $key) : $key;
-        return $this->redirectWithFlash('/app/billing', 'error', "{$label} isn't included in your current plan. Upgrade to unlock it.");
+        return $this->redirectWithFlash('/app/billing', 'error', t('common.feature_not_in_plan', ['feature' => $label]));
     }
 
     /**

@@ -198,7 +198,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect('/app')->with('flash.success', ['Welcome to ' . Setting::siteName() . '! Your ' . $trialDays . '-day trial has started.']);
+        return redirect('/app')->with('flash.success', [t('auth.trial_welcome', ['site' => Setting::siteName(), 'days' => $trialDays])]);
     }
 
     public function logout(Request $request): RedirectResponse
@@ -224,7 +224,7 @@ class AuthController extends Controller
 
         // Always show the same message whether or not the account exists — confirming/denying
         // an email's existence here would let anyone enumerate registered accounts.
-        $genericMessage = "If an account exists for {$email}, we've sent a password reset link to it.";
+        $genericMessage = t('auth.password_reset_sent', ['email' => $email]);
 
         $user = filter_var($email, FILTER_VALIDATE_EMAIL) ? User::where('email', $email)->first() : null;
         if ($user && $user->status === 'active') {
@@ -252,7 +252,7 @@ class AuthController extends Controller
     public function showResetPassword(string $token): View|RedirectResponse
     {
         if (!PasswordReset::findValid($token)) {
-            return $this->redirectWithFlash('/forgot-password', 'error', 'This password reset link is invalid or has expired. Please request a new one.');
+            return $this->redirectWithFlash('/forgot-password', 'error', t('auth.reset_link_invalid'));
         }
         return view('auth.reset-password', ['pageTitle' => 'Set a new password', 'token' => $token]);
     }
@@ -261,16 +261,16 @@ class AuthController extends Controller
     {
         $reset = PasswordReset::findValid($token);
         if (!$reset) {
-            return $this->redirectWithFlash('/forgot-password', 'error', 'This password reset link is invalid or has expired. Please request a new one.');
+            return $this->redirectWithFlash('/forgot-password', 'error', t('auth.reset_link_invalid'));
         }
 
         $password = (string) $request->input('password');
         $confirm = (string) $request->input('password_confirm');
         if (strlen($password) < 8) {
-            return $this->redirectWithFlash('/reset-password/' . $token, 'error', 'Password must be at least 8 characters.');
+            return $this->redirectWithFlash('/reset-password/' . $token, 'error', t('auth.password_min_length'));
         }
         if ($password !== $confirm) {
-            return $this->redirectWithFlash('/reset-password/' . $token, 'error', 'Passwords do not match.');
+            return $this->redirectWithFlash('/reset-password/' . $token, 'error', t('auth.passwords_mismatch'));
         }
 
         $user = User::where('email', $reset->email)->first();
@@ -279,6 +279,6 @@ class AuthController extends Controller
         }
         $reset->update(['used_at' => now()]);
 
-        return $this->redirectWithFlash('/login', 'success', 'Your password has been reset — you can now log in.');
+        return $this->redirectWithFlash('/login', 'success', t('auth.password_reset_success'));
     }
 }
