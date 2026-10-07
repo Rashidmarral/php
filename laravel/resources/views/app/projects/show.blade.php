@@ -75,7 +75,12 @@
       <tbody>
       <?php foreach ($changeOrders as $co): ?>
         <tr>
-          <td><?= e(local($co, 'title')) ?><?php if ($co['description']): ?><br><span class="help-text"><?= e(local($co, 'description')) ?></span><?php endif; ?></td>
+          <td>
+            <a href="/app/change-orders/<?= $co['id'] ?>"><?= e(local($co, 'title')) ?></a>
+            <?php if (!empty($co['time_impact_days'])): ?> <span class="badge badge-gray"><?= t('user.change_orders.days_impact_badge', ['days' => $co['time_impact_days']]) ?></span><?php endif; ?>
+            <?php if (!empty($co['signed_at'])): ?> <span class="badge badge-green"><?= t('user.change_orders.client_signed_badge') ?></span><?php endif; ?>
+            <?php if ($co['description']): ?><br><span class="help-text"><?= e(local($co, 'description')) ?></span><?php endif; ?>
+          </td>
           <td><?= (float)$co['amount'] >= 0 ? '+' : '' ?><?= money((float)$co['amount']) ?></td>
           <td><span class="badge badge-<?= $co['status']==='approved'?'green':($co['status']==='rejected'?'red':'yellow') ?>"><?= e(ucfirst($co['status'])) ?></span></td>
           <td style="display:flex;gap:6px;">
@@ -105,6 +110,7 @@
     <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label><?= t('common.title_en') ?></label><input type="text" name="title" placeholder="e.g. Additional glazing" required></div>
     <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label><?= t('common.title_ar') ?></label><input type="text" name="title_ar" dir="rtl" placeholder="العنوان بالعربية"></div>
     <div class="form-group" style="margin:0;width:160px;"><label><?= t('user.projects.amount_sar') ?></label><input type="number" step="0.01" name="amount" placeholder="e.g. 15000 or -5000" required></div>
+    <div class="form-group" style="margin:0;width:140px;"><label><?= t('user.change_orders.time_impact_days') ?></label><input type="number" step="1" name="time_impact_days" placeholder="0"></div>
     <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label><?= t('common.description_en') ?></label><input type="text" name="description"></div>
     <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label><?= t('common.description_ar') ?></label><input type="text" name="description_ar" dir="rtl"></div>
     <button type="submit" class="btn btn-outline"><?= t('user.projects.add_change_order') ?></button>

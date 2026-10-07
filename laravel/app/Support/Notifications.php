@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
@@ -89,6 +90,24 @@ class Notifications
             $owner->name,
             "Payment Certificate #{$certificate->certificate_number} was signed",
             "Hi {$owner->name},\n\n{$signedByName} just signed off on Payment Certificate #{$certificate->certificate_number} (" . number_format((float) $certificate->net_payable, 2) . " SAR net payable).\n\nView it: " . rtrim((string) config('app.url'), '/') . "/app/payment-certificates/{$certificate->id}"
+        );
+    }
+
+    public static function changeOrderSigned(int $changeOrderId, string $signedByName): void
+    {
+        $changeOrder = ChangeOrder::find($changeOrderId);
+        if (!$changeOrder) {
+            return;
+        }
+        $owner = self::companyOwner($changeOrder->company_id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "Change order \"{$changeOrder->title}\" was signed",
+            "Hi {$owner->name},\n\n{$signedByName} just signed the change order \"{$changeOrder->title}\" (" . number_format((float) $changeOrder->amount, 2) . " SAR).\n\nView it: " . rtrim((string) config('app.url'), '/') . "/app/change-orders/{$changeOrder->id}"
         );
     }
 

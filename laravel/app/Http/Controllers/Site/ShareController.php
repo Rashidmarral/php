@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\App\EstimateController;
 use App\Http\Controllers\Controller;
+use App\Models\ChangeOrder;
+use App\Models\ChangeOrderItem;
 use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
@@ -261,6 +263,60 @@ class ShareController extends Controller
         WebhookDispatcher::dispatch($certificate->company_id, 'payment_certificate.signed', $certificate->fresh()->toArray());
         $this->flash('success', t('site.share.certificate_signed'));
         return redirect('/ipc/' . $token);
+    }
+
+    /**
+     * Client-facing view of a Change Order — same token-only access model as
+     * estimate()/paymentCertificate() above. A change order's internal
+     * pending/approved/rejected status cycle (ChangeOrderController::
+     * updateStatus()) is untouched by this; signing here is a separate,
+     * additional client sign-off step.
+     */
+    public function changeOrder(string $token): View
+    {
+        $changeOrder = ChangeOrder::where('share_token', $token)->first();
+        abort_if(!$changeOrder, 404, 'This link is invalid or has expired.');
+
+        $project = Project::find($changeOrder->project_id);
+        $client = $project?->client_id ? Client::find($project->client_id) : null;
+        $company = Company::find($changeOrder->company_id);
+        $items = ChangeOrderItem::where('change_order_id', $changeOrder->id)->orderBy('id')->get()->toArray();
+
+        return view('site.share-change-order', [
+            'pageTitle' => $changeOrder->title,
+            'changeOrder' => $changeOrder->toArray(),
+            'items' => $items,
+            'client' => $client,
+            'company' => $company,
+            'companyLogoUrl' => $company->logo_path ?: null,
+            'project' => $project?->toArray(),
+        ]);
+    }
+
+    public function signChangeOrder(Request $request, string $token): RedirectResponse
+    {
+        $changeOrder = ChangeOrder::where('share_token', $token)->first();
+        abort_if(!$changeOrder, 404, 'This link is invalid or has expired.');
+        if ($changeOrder->signed_at !== null) {
+            return redirect('/co/' . $token);
+        }
+
+        $signedByName = trim((string) $request->input('signed_by_name'));
+        $signatureData = (string) $request->input('signature_data');
+        if ($signedByName === '' || !str_starts_with($signatureData, 'data:image/')) {
+            return $this->redirectWithFlash('/co/' . $token, 'error', t('site.share.change_order_signature_required'));
+        }
+
+        $changeOrder->update([
+            'signed_at' => now(),
+            'signed_by_name' => $signedByName,
+            'signature_data' => $signatureData,
+            'signed_ip' => $request->ip() ?? '',
+        ]);
+        Notifications::changeOrderSigned($changeOrder->id, $signedByName);
+        WebhookDispatcher::dispatch($changeOrder->company_id, 'change_order.signed', $changeOrder->fresh()->toArray());
+        $this->flash('success', t('site.share.change_order_signed'));
+        return redirect('/co/' . $token);
     }
 
     public function invoice(string $token): View
