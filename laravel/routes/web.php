@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\TenderAdminController;
 use App\Http\Controllers\Admin\UsageController;
+use App\Http\Controllers\App\AccountingExportController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
 use App\Http\Controllers\App\BankGuaranteeController;
@@ -408,6 +409,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/reports/profit', [ReportController::class, 'costVariance']);
     Route::get('/reports/tax', [ReportController::class, 'tax']);
     Route::get('/reports/retention', [ReportController::class, 'retention']);
+    Route::get('/reports/accounting-export', [AccountingExportController::class, 'index']);
+    Route::get('/reports/accounting-export/download', [AccountingExportController::class, 'export']);
 
     Route::get('/zakat', [ZakatController::class, 'index']);
     Route::get('/zakat/create', [ZakatController::class, 'create']);

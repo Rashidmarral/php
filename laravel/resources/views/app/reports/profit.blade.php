@@ -10,6 +10,7 @@
   <a href="/app/reports/profit" class="active"><?= t('user.reports.tab_cost_variance') ?></a>
   <a href="/app/reports/tax"><?= t('user.reports.tab_tax') ?></a>
   <a href="/app/reports/retention"><?= t('user.reports.tab_retention') ?></a>
+  <a href="/app/reports/accounting-export"><?= t('user.reports.tab_accounting_export') ?></a>
 </div>
 
 <p class="help-text" style="max-width:820px;margin-bottom:16px;"><?= t('user.reports.cost_variance_hint') ?></p>
