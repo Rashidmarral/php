@@ -30,6 +30,7 @@ class Feature
         'change_orders' => 'Change Orders',
         'bank_guarantees' => 'Bank Guarantees & Bonds',
         'purchase_orders' => 'Purchase Orders',
+        'rfq_quotes' => 'RFQ / Multi-Supplier Quotes',
         'payment_certificates' => 'Payment Certificates (IPC)',
         'subcontractors' => 'Subcontractor Management',
         'ld_eot_tracking' => 'Liquidated Damages & EOT Tracking',
