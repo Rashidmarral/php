@@ -14,6 +14,7 @@ use App\Models\InvoicePayment;
 use App\Models\Setting;
 use App\Support\Moyasar;
 use App\Support\Notifications;
+use App\Support\PhoneNumber;
 use App\Support\Feature;
 use App\Support\WebhookDispatcher;
 use App\Support\Zatca\QrGenerator;
@@ -283,6 +284,49 @@ class ShareController extends Controller
             'token' => $token,
             'moyasarPublishableKey' => (string) $company->moyasar_publishable_key,
         ]);
+    }
+
+    /**
+     * Real STC Pay (mobile wallet) checkout for a client-facing invoice — a distinct
+     * Moyasar `source.type: "stcpay"` payment, not the hosted card widget's
+     * `data-methods` list — charged into the company's own Moyasar merchant account.
+     * Redirects to Moyasar's returned authentication URL; Moyasar redirects back to the
+     * existing invoicePaymentCallback() route afterwards, exactly like the card flow.
+     */
+    public function payInvoiceWithStcPay(Request $request, string $token): RedirectResponse
+    {
+        $invoice = Invoice::where('share_token', $token)->first();
+        abort_if(!$invoice, 404, 'This link is invalid or has expired.');
+        $company = Company::find($invoice->company_id);
+        $payUrl = '/i/' . $token . '/pay';
+
+        if ($invoice->status === 'paid') {
+            return redirect('/i/' . $token);
+        }
+        if (!Moyasar::isConfiguredForCompany($company?->toArray()) || !Feature::allowsForCompany('online_invoice_payments', $company)) {
+            return $this->redirectWithFlash('/i/' . $token, 'error', t('site.share.online_payment_unavailable', ['company' => $company->name ?? t('site.share.the_company')]));
+        }
+
+        $mobile = (string) $request->input('stc_pay_mobile', '');
+        if (PhoneNumber::normalizeSaudi($mobile) === null) {
+            return $this->redirectWithFlash($payUrl, 'error', t('site.share.stc_pay_invalid_mobile'));
+        }
+
+        $callbackUrl = url('/i/' . $token . '/pay/callback');
+        $payment = Moyasar::createStcPayPaymentForCompany(
+            $company->toArray(),
+            (int) round((float) $invoice->total * 100),
+            'Invoice ' . $invoice->invoice_number,
+            $mobile,
+            $callbackUrl
+        );
+
+        $transactionUrl = $payment['source']['transaction_url'] ?? null;
+        if (!$transactionUrl || !is_string($transactionUrl)) {
+            return $this->redirectWithFlash($payUrl, 'error', t('site.share.stc_pay_failed'));
+        }
+
+        return redirect()->away($transactionUrl);
     }
 
     public function invoicePaymentCallback(Request $request, string $token): RedirectResponse

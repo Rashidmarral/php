@@ -110,6 +110,7 @@ Route::get('/e/{token}/pdf', [ShareController::class, 'estimatePdf']);
 Route::get('/i/{token}', [ShareController::class, 'invoice']);
 Route::get('/i/{token}/pdf', [ShareController::class, 'invoicePdf']);
 Route::get('/i/{token}/pay', [ShareController::class, 'payInvoice']);
+Route::post('/i/{token}/pay/stc-pay', [ShareController::class, 'payInvoiceWithStcPay']);
 Route::get('/i/{token}/pay/callback', [ShareController::class, 'invoicePaymentCallback']);
 
 /*
@@ -302,6 +303,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/billing/upgrade', [BillingController::class, 'upgrade']);
     Route::get('/billing/checkout', [BillingController::class, 'checkout']);
     Route::post('/billing/bank-transfer', [BillingController::class, 'requestBankTransfer']);
+    Route::post('/billing/stc-pay', [BillingController::class, 'payWithStcPay']);
     Route::get('/billing/moyasar-callback', [BillingController::class, 'moyasarCallback']);
 
     Route::get('/settings', [SettingsController::class, 'index']);

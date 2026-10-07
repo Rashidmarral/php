@@ -17,6 +17,12 @@ use App\Models\Setting;
  *  - Per-company (Company > Integrations): used so a contractor's own clients can pay
  *    invoices directly into *that contractor's own* Moyasar merchant account — the
  *    platform never touches that money.
+ *
+ * Both scopes share the exact same Moyasar publishable/secret key pair for every source
+ * type Moyasar supports — card, Apple Pay, and STC Pay alike. STC Pay here means a real,
+ * distinct `source.type: "stcpay"` payment (a mobile-number + OTP wallet charge created
+ * server-side via createStcPayPayment()/createStcPayPaymentForCompany()), not merely one
+ * of the methods listed on the hosted card-checkout widget's `data-methods` attribute.
  */
 class Moyasar
 {
@@ -60,6 +66,20 @@ class Moyasar
         ]);
     }
 
+    /**
+     * Creates a genuine STC Pay (mobile wallet) payment — a real `source.type: "stcpay"`
+     * payment source (mobile number + OTP wallet charge), not a card token — using the
+     * platform's own Moyasar credentials. See createStcPayPaymentForCompany() for the
+     * per-company equivalent. Returns Moyasar's response (including whatever
+     * redirect/transaction-url field it put on `source` for the customer to complete the
+     * OTP/app confirmation), or null if the mobile number doesn't normalize to a Saudi
+     * MSISDN or the request itself fails.
+     */
+    public static function createStcPayPayment(int $amountHalalas, string $description, string $mobile, string $callbackUrl): ?array
+    {
+        return self::createStcPayPaymentWithSecret(self::secretKey(), $amountHalalas, $description, $mobile, $callbackUrl);
+    }
+
     // ---------------- Per-company (invoice payments) ----------------
 
     public static function isConfiguredForCompany(?array $company): bool
@@ -73,6 +93,55 @@ class Moyasar
     public static function fetchPaymentForCompany(string $paymentId, array $company): ?array
     {
         return self::fetchPaymentWithSecret($paymentId, (string) ($company['moyasar_secret_key'] ?? ''));
+    }
+
+    /** Same as createStcPayPayment(), but charged into the company's own Moyasar merchant account. */
+    public static function createStcPayPaymentForCompany(array $company, int $amountHalalas, string $description, string $mobile, string $callbackUrl): ?array
+    {
+        return self::createStcPayPaymentWithSecret((string) ($company['moyasar_secret_key'] ?? ''), $amountHalalas, $description, $mobile, $callbackUrl);
+    }
+
+    /**
+     * Shared by both STC Pay scopes above. Normalizes the mobile number first — refusing to
+     * ever call out to Moyasar with something that isn't a real Saudi MSISDN — then builds
+     * the request payload as a pure, separately-testable step (buildStcPayPayload()) before
+     * posting it.
+     */
+    private static function createStcPayPaymentWithSecret(string $secret, int $amountHalalas, string $description, string $mobile, string $callbackUrl): ?array
+    {
+        $normalizedMobile = PhoneNumber::normalizeSaudi($mobile);
+        if ($normalizedMobile === null) {
+            return null;
+        }
+
+        return self::post(
+            'https://api.moyasar.com/v1/payments',
+            $secret,
+            self::buildStcPayPayload($amountHalalas, $description, $normalizedMobile, $callbackUrl)
+        );
+    }
+
+    /**
+     * Builds the exact JSON body sent to POST https://api.moyasar.com/v1/payments for an
+     * STC Pay source — kept as a pure function (no curl, no credentials) so the request
+     * shape can be asserted on directly in tests without calling Moyasar's real API.
+     * $normalizedMobile is expected to already be a normalizeSaudi() MSISDN (digits only,
+     * e.g. "966501234567"); Moyasar's documented `source.mobile` format is E.164 with a
+     * leading "+", so that's added here.
+     */
+    public static function buildStcPayPayload(int $amountHalalas, string $description, string $normalizedMobile, string $callbackUrl): array
+    {
+        return [
+            'amount' => $amountHalalas,
+            'currency' => 'SAR',
+            'description' => $description,
+            'callback_url' => $callbackUrl,
+            'source' => [
+                'type' => 'stcpay',
+                'mobile' => '+' . $normalizedMobile,
+                'cashier' => mb_substr($description, 0, 40),
+            ],
+        ];
     }
 
     private static function fetchPaymentWithSecret(string $paymentId, string $secret): ?array

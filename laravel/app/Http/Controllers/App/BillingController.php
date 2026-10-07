@@ -10,6 +10,7 @@ use App\Models\Setting;
 use App\Models\Subscription;
 use App\Support\Billing;
 use App\Support\Moyasar;
+use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -114,6 +115,49 @@ class BillingController extends Controller
 
         $this->flash('success', $receiptAttached ? t('user.billing.bank_transfer_submitted_with_receipt') : t('user.billing.bank_transfer_submitted'));
         return redirect('/app/billing');
+    }
+
+    /**
+     * Real STC Pay (mobile wallet) checkout — a distinct Moyasar `source.type: "stcpay"`
+     * payment, not the card widget's `data-methods` list. Creates the payment server-side,
+     * then redirects the browser to whatever authentication URL Moyasar returned so the
+     * customer can confirm via their STC Pay app/SMS OTP; Moyasar redirects back to the
+     * existing moyasarCallback() route afterwards, exactly like the card flow.
+     */
+    public function payWithStcPay(Request $request): RedirectResponse
+    {
+        $plan = Plan::where('slug', (string) $request->input('plan'))->first();
+        if (!$plan) {
+            return $this->redirectWithFlash('/app/billing', 'error', t('user.billing.invalid_plan'));
+        }
+        $cycle = $request->input('cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
+        $checkoutUrl = '/app/billing/checkout?plan=' . urlencode($plan->slug) . '&cycle=' . $cycle;
+
+        if (!Moyasar::isConfigured()) {
+            return $this->redirectWithFlash($checkoutUrl, 'error', t('user.billing.stc_pay_unavailable'));
+        }
+
+        $mobile = (string) $request->input('stc_pay_mobile', '');
+        if (PhoneNumber::normalizeSaudi($mobile) === null) {
+            return $this->redirectWithFlash($checkoutUrl, 'error', t('user.billing.stc_pay_invalid_mobile'));
+        }
+
+        $amount = (float) ($cycle === 'yearly' ? $plan->price_yearly : $plan->price_monthly);
+        $callbackUrl = url('/app/billing/moyasar-callback?plan=' . urlencode($plan->slug) . '&cycle=' . $cycle);
+
+        $payment = Moyasar::createStcPayPayment(
+            (int) round($amount * 100),
+            $plan->name . ' plan (' . $cycle . ')',
+            $mobile,
+            $callbackUrl
+        );
+
+        $transactionUrl = $payment['source']['transaction_url'] ?? null;
+        if (!$transactionUrl || !is_string($transactionUrl)) {
+            return $this->redirectWithFlash($checkoutUrl, 'error', t('user.billing.stc_pay_failed'));
+        }
+
+        return redirect()->away($transactionUrl);
     }
 
     public function moyasarCallback(Request $request): RedirectResponse

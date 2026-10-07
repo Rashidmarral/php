@@ -16,6 +16,7 @@
   <a href="#bank" class="tab-link active" data-tab="bank"><?= t('user.billing.bank_transfer') ?></a>
   <?php if ($moyasarConfigured): ?>
     <a href="#card" class="tab-link" data-tab="card"><?= t('user.billing.card_option') ?></a>
+    <a href="#stcpay" class="tab-link" data-tab="stcpay"><?= t('user.billing.stc_pay_option') ?></a>
   <?php endif; ?>
 </div>
 
@@ -64,6 +65,22 @@
   </div>
 </div>
 <link rel="stylesheet" href="https://cdn.moyasar.com/mpf/1.15.0/moyasar.css">
+
+<div id="tab-stcpay" class="tab-panel" style="display:none;">
+  <div class="card" style="max-width:520px;">
+    <p class="help-text" style="margin-bottom:14px;"><?= t('user.billing.stc_pay_hint') ?></p>
+    <form method="post" action="/app/billing/stc-pay">
+      <?= csrf_field() ?>
+      <input type="hidden" name="plan" value="<?= e($plan['slug']) ?>">
+      <input type="hidden" name="cycle" value="<?= e($cycle) ?>">
+      <div class="form-group">
+        <label><?= t('user.billing.stc_pay_mobile_label') ?></label>
+        <input type="tel" name="stc_pay_mobile" placeholder="05XXXXXXXX" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block"><?= t('user.billing.stc_pay_submit') ?></button>
+    </form>
+  </div>
+</div>
 <?php endif; ?>
 
 <script>
