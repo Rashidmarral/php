@@ -90,7 +90,7 @@
           $overBudget = $est > 0 && $act > $est;
         ?>
           <tr>
-            <td><?= e($label) ?></td>
+            <td><?= e($label) ?><?php if ($key === 'labor' && $r['timesheetHours'] > 0): ?><br><span class="help-text" style="font-weight:normal;"><?= t('user.reports.labor_includes_hours', ['hours' => number_format($r['timesheetHours'], 2)]) ?></span><?php endif; ?></td>
             <td><?= money($est) ?></td>
             <td><?= money($act) ?></td>
             <td style="color:<?= $variance > 0 ? 'var(--danger)' : 'var(--success)' ?>;font-weight:600;"><?= ($variance > 0 ? '+' : '') . number_format($variance, 2) ?></td>

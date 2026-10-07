@@ -883,4 +883,48 @@
   <?php endif; ?>
 </div>
 
+<div class="card" style="margin-top:24px;">
+  <h3><?= t('user.timesheets.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.timesheets.hint') ?></p>
+
+  <?php if (empty($timesheetEntries)): ?>
+    <p class="help-text"><?= t('user.timesheets.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th><?= t('common.date') ?></th><th><?= t('user.timesheets.worker') ?></th><th><?= t('user.timesheets.hours') ?></th><th><?= t('common.cost') ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($timesheetEntries as $entry): ?>
+        <tr>
+          <td><?= e($entry['work_date']) ?></td>
+          <td><?= e($entry['worker_name']) ?></td>
+          <td><?= number_format((float) $entry['hours'], 2) ?></td>
+          <td><?php if ($entry['cost'] !== null): ?><?= money((float) $entry['cost']) ?><?php else: ?><span class="badge badge-gray"><?= t('user.timesheets.rate_not_set') ?></span><?php endif; ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/timesheets" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:12px;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;min-width:170px;">
+      <label><?= t('user.timesheets.worker') ?></label>
+      <select name="user_id" required>
+        <option value=""><?= t('user.timesheets.select_worker') ?></option>
+        <?php foreach ($teamMembers as $member): ?><option value="<?= $member['id'] ?>"><?= e($member['name']) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('common.date') ?></label><input type="date" name="work_date" value="<?= date('Y-m-d') ?>"></div>
+    <div class="form-group" style="margin:0;width:100px;"><label><?= t('user.timesheets.hours') ?></label><input type="number" step="0.25" min="0.25" max="24" name="hours" required></div>
+    <div class="form-group" style="margin:0;flex:1;min-width:160px;"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.timesheets.add_entry_btn') ?></button>
+  </form>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <?php if ($timesheetCount > count($timesheetEntries)): ?>
+      <a href="/app/projects/<?= $project['id'] ?>/timesheets" class="btn btn-outline"><?= t('user.timesheets.view_all', ['count' => $timesheetCount]) ?></a>
+    <?php endif; ?>
+  </div>
+</div>
+
 @endsection

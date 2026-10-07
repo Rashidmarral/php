@@ -27,6 +27,7 @@ use App\Models\SiteLog;
 use App\Models\Subcontract;
 use App\Models\Submittal;
 use App\Models\Supplier;
+use App\Models\TimesheetEntry;
 use App\Models\ToolboxTalk;
 use App\Models\User;
 use App\Models\VendorBill;
@@ -314,6 +315,17 @@ class ProjectController extends Controller
         $safetyIncidentCount = SafetyIncident::where('project_id', $project->id)->count();
         $toolboxTalks = ToolboxTalk::where('project_id', $project->id)->orderByDesc('talk_date')->orderByDesc('created_at')->limit(5)->get();
         $toolboxTalkCount = ToolboxTalk::where('project_id', $project->id)->count();
+        $timesheetEntries = TimesheetEntry::where('project_id', $project->id)
+            ->orderByDesc('work_date')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
+        $timesheetCount = TimesheetEntry::where('project_id', $project->id)->count();
+        $timesheetWorkers = User::whereIn('id', $timesheetEntries->pluck('user_id')->unique())->get()->keyBy('id');
+        $timesheetRows = $timesheetEntries->map(fn (TimesheetEntry $t) => [
+            ...$t->toArray(),
+            'worker_name' => $timesheetWorkers->get($t->user_id)->name ?? '—',
+        ])->all();
         $eotRequests = ExtensionOfTimeRequest::where('project_id', $project->id)->orderByDesc('created_at')->get();
         $eotUserIds = $eotRequests->pluck('requested_by')->merge($eotRequests->pluck('reviewed_by'))->filter()->unique();
         $eotUsers = User::whereIn('id', $eotUserIds)->get()->keyBy('id');
@@ -387,6 +399,8 @@ class ProjectController extends Controller
             'safetyIncidentSuggestedTypes' => SafetyIncident::SUGGESTED_TYPES,
             'toolboxTalks' => $toolboxTalks->toArray(),
             'toolboxTalkCount' => $toolboxTalkCount,
+            'timesheetEntries' => $timesheetRows,
+            'timesheetCount' => $timesheetCount,
             'teamMembers' => $teamMembers->toArray(),
             'actualCostTotal' => $actualCostTotal,
             'revisedBudget' => $revisedBudget,

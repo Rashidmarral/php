@@ -144,7 +144,7 @@ class TeamController extends Controller
         }
 
         $amounts = [];
-        foreach (['basic_salary', 'housing_allowance', 'other_earnings'] as $field) {
+        foreach (['basic_salary', 'housing_allowance', 'other_earnings', 'hourly_rate'] as $field) {
             $value = trim((string) $request->input($field, ''));
             if ($value !== '' && (!is_numeric($value) || (float) $value < 0)) {
                 return $this->redirectWithFlash($redirectPath, 'error', t('user.team.salary_amounts_invalid'));

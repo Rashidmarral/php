@@ -54,6 +54,8 @@ class RfiSubmittalDocumentVersionTest extends TestCase
                 // Task #57: safety tracking, exercised by this file's own
                 // "every section renders" test alongside RFI/Submittals/Equipment.
                 'safety_tracking' => true,
+                // Task #58: project timesheets, same "every section renders" test.
+                'timesheets' => true,
             ]),
         ]);
 
@@ -304,6 +306,13 @@ class RfiSubmittalDocumentVersionTest extends TestCase
             'talk_date' => now()->format('Y-m-d'),
             'topic' => 'Show-page Toolbox Talk',
         ]);
+        // Task #58: a timesheet entry, via the Timesheets card added to this same page —
+        // same surgical-addition check this test already does.
+        $this->actingAs($owner)->post('/app/projects/' . $project->id . '/timesheets', [
+            'user_id' => $owner->id,
+            'work_date' => now()->format('Y-m-d'),
+            'hours' => 8,
+        ]);
 
         // en: check existing + new section labels/content resolve and render.
         $en = $this->actingAs($owner)->get('/app/projects/' . $project->id . '?lang=en');
@@ -326,6 +335,7 @@ class RfiSubmittalDocumentVersionTest extends TestCase
         $en->assertSeeText(t('user.safety.title'));
         $en->assertSeeText(t('user.safety_incidents.title'));
         $en->assertSeeText(t('user.toolbox_talks.title'));
+        $en->assertSeeText(t('user.timesheets.title'));
         $en->assertSee('Show-page RFI');
         $en->assertSee('Show-page Submittal');
         $en->assertSee('Show-page Excavator');
@@ -341,6 +351,7 @@ class RfiSubmittalDocumentVersionTest extends TestCase
         $ar->assertSeeText(t('user.safety.title'));
         $ar->assertSeeText(t('user.safety_incidents.title'));
         $ar->assertSeeText(t('user.toolbox_talks.title'));
+        $ar->assertSeeText(t('user.timesheets.title'));
     }
 
     // ---------------------------------------------------------------

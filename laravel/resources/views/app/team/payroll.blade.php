@@ -35,6 +35,12 @@
     </div>
     <p class="help-text"><?= t('user.team_payroll.wps_hint') ?></p>
 
+    <h3 style="font-size:13px;"><?= t('user.team_payroll.project_costing') ?></h3>
+    <div class="form-row">
+      <div class="form-group"><label><?= t('user.team_payroll.hourly_rate') ?></label><input type="number" step="0.01" min="0" name="hourly_rate" value="<?= e($member['hourly_rate'] ?? '') ?>"></div>
+    </div>
+    <p class="help-text"><?= t('user.team_payroll.hourly_rate_hint') ?></p>
+
     <button type="submit" class="btn btn-primary"><?= t('user.team_payroll.save') ?></button>
   </form>
 </div>

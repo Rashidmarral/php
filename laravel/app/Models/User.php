@@ -37,7 +37,7 @@ class User extends Authenticatable
     protected $fillable = [
         'company_id', 'name', 'email', 'password', 'role', 'status',
         'national_id', 'nationality', 'bank_iban', 'bank_name',
-        'basic_salary', 'housing_allowance', 'other_earnings',
+        'basic_salary', 'housing_allowance', 'other_earnings', 'hourly_rate',
     ];
 
     protected $hidden = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
@@ -49,6 +49,10 @@ class User extends Authenticatable
             'basic_salary' => 'decimal:2',
             'housing_allowance' => 'decimal:2',
             'other_earnings' => 'decimal:2',
+            // Project-timesheet costing rate — a distinct concept/unit from the monthly
+            // basic_salary/housing_allowance/other_earnings fields above (see the
+            // add_hourly_rate_to_users_table migration docblock).
+            'hourly_rate' => 'decimal:2',
             // Encrypted at rest — a TOTP secret or recovery codes leaking from a DB dump/backup
             // would otherwise be as good as a permanently-compromised second factor.
             'two_factor_secret' => 'encrypted',

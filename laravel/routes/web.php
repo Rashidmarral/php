@@ -76,6 +76,7 @@ use App\Http\Controllers\App\SupportTicketController;
 use App\Http\Controllers\App\TeamController;
 use App\Http\Controllers\App\TeamMemberDocumentController;
 use App\Http\Controllers\App\TenderController;
+use App\Http\Controllers\App\TimesheetController;
 use App\Http\Controllers\App\ZakatController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Portal\PortalAuthController;
@@ -234,6 +235,9 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/projects/{id}/toolbox-talks', [ToolboxTalkController::class, 'index']);
     Route::post('/projects/{id}/toolbox-talks', [ToolboxTalkController::class, 'store']);
     Route::post('/toolbox-talks/{id}/delete', [ToolboxTalkController::class, 'destroy']);
+    Route::get('/projects/{id}/timesheets', [TimesheetController::class, 'index']);
+    Route::post('/projects/{id}/timesheets', [TimesheetController::class, 'store']);
+    Route::post('/timesheets/{id}/delete', [TimesheetController::class, 'destroy']);
 
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/create', [ClientController::class, 'create']);

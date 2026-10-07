@@ -37,6 +37,7 @@ class Feature
         'submittals' => 'Submittals Management',
         'equipment_management' => 'Equipment & Fleet Management',
         'safety_tracking' => 'HSE Safety Incident & Toolbox Talk Tracking',
+        'timesheets' => 'Project Labor Timesheets',
         'recurring_invoices' => 'Recurring Invoices',
         'approval_workflow' => 'Approval Workflow',
         'project_photos' => 'Project Photo Gallery',

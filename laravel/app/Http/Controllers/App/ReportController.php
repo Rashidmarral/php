@@ -7,6 +7,7 @@ use App\Models\ChangeOrder;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\TimesheetEntry;
 use App\Models\VendorBill;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -87,6 +88,13 @@ class ReportController extends Controller
      * actualCostTotal (Task #10's committed-cost tracking), so this report agrees with the project
      * page's own numbers instead of inventing a second definition of "actual cost".
      *
+     * Task #58: project-level timesheets (TimesheetEntry) add a SECOND source into the 'labor'
+     * actual-cost bucket specifically — SUM(timesheet_entries.cost) (only entries with a resolvable
+     * cost; a null-rate entry contributes 0 to the sum, never a wrong charge) is summed per project
+     * and ADDED on top of whatever VendorBill-based labor cost that project already has. This is
+     * purely additive: a project with zero timesheet entries sees this add exactly 0.0, so its
+     * dashboard output is byte-identical to before this feature existed.
+     *
      * A project with no accepted estimate has no cost baseline to compare against, so it is flagged
      * 'no estimate baseline' rather than showing misleading zeros for estimated cost / profit.
      */
@@ -131,6 +139,18 @@ class ReportController extends Controller
             ->groupBy('project_id')
             ->pluck('total', 'project_id');
 
+        // Task #58: timesheet-derived labor cost/hours, summed separately from VendorBill above —
+        // added into actualByCategory['labor'] below, never replacing the VendorBill sum.
+        $timesheetCostByProject = TimesheetEntry::where('company_id', $companyId)
+            ->whereNotNull('cost')
+            ->select('project_id', DB::raw('SUM(cost) as total'))
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+        $timesheetHoursByProject = TimesheetEntry::where('company_id', $companyId)
+            ->select('project_id', DB::raw('SUM(hours) as total'))
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+
         $rows = [];
         $totals = ['contractValue' => 0.0, 'estimatedCost' => 0.0, 'actualCost' => 0.0, 'expectedProfit' => 0.0, 'actualProfit' => 0.0];
         $alertCount = 0;
@@ -150,6 +170,12 @@ class ReportController extends Controller
                     $actualByCategory[$r->category] = (float) $r->total;
                 }
             }
+            // Task #58: add timesheet-derived labor cost ON TOP of the VendorBill labor sum above —
+            // a project with no timesheet entries adds exactly 0.0 here (pluck() default), so its
+            // 'labor' bucket (and every total derived from it below) is unchanged from before.
+            $timesheetLaborCost = (float) ($timesheetCostByProject[$p->id] ?? 0);
+            $actualByCategory['labor'] += $timesheetLaborCost;
+            $timesheetHours = (float) ($timesheetHoursByProject[$p->id] ?? 0);
 
             $estimatedCostTotal = array_sum($estimatedByCategory);
             $actualCostTotal = array_sum($actualByCategory);
@@ -190,6 +216,7 @@ class ReportController extends Controller
                 'actualProfit' => $actualProfit,
                 'erosion' => $erosion,
                 'alert' => $alert,
+                'timesheetHours' => $timesheetHours,
             ];
         }
 
