@@ -36,6 +36,7 @@ class Feature
         'rfi' => 'RFI (Request for Information) Tracking',
         'submittals' => 'Submittals Management',
         'equipment_management' => 'Equipment & Fleet Management',
+        'safety_tracking' => 'HSE Safety Incident & Toolbox Talk Tracking',
         'recurring_invoices' => 'Recurring Invoices',
         'approval_workflow' => 'Approval Workflow',
         'project_photos' => 'Project Photo Gallery',

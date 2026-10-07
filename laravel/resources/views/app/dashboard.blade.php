@@ -29,6 +29,9 @@
   <div class="kpi"><div class="label"><?= t('user.dashboard.total_budget') ?></div><div class="value"><?= money($totalBudget) ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.dashboard.outstanding') ?></div><div class="value"><?= money($outstanding) ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.dashboard.paid_this_month') ?></div><div class="value"><?= money($paidThisMonth) ?></div></div>
+  <?php if ($openSafetyIncidents !== null): ?>
+    <div class="kpi"><div class="label"><?= t('user.dashboard.open_safety_incidents') ?></div><div class="value"><?= $openSafetyIncidents ?></div></div>
+  <?php endif; ?>
 </div>
 
 <div class="grid grid-2">

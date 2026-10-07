@@ -54,7 +54,9 @@ use App\Http\Controllers\App\MaterialStockController;
 use App\Http\Controllers\App\QuickEstimateController;
 use App\Http\Controllers\App\ReportController;
 use App\Http\Controllers\App\RfiController;
+use App\Http\Controllers\App\SafetyIncidentController;
 use App\Http\Controllers\App\SubmittalController;
+use App\Http\Controllers\App\ToolboxTalkController;
 use App\Http\Controllers\App\TakeoffController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EstimateController;
@@ -225,6 +227,13 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/submittals/{id}/revisions', [SubmittalController::class, 'uploadRevision']);
     Route::post('/submittals/{id}/status', [SubmittalController::class, 'updateStatus']);
     Route::post('/submittals/{id}/delete', [SubmittalController::class, 'destroy']);
+    Route::get('/projects/{id}/safety-incidents', [SafetyIncidentController::class, 'index']);
+    Route::post('/projects/{id}/safety-incidents', [SafetyIncidentController::class, 'store']);
+    Route::post('/safety-incidents/{id}/status', [SafetyIncidentController::class, 'updateStatus']);
+    Route::post('/safety-incidents/{id}/delete', [SafetyIncidentController::class, 'destroy']);
+    Route::get('/projects/{id}/toolbox-talks', [ToolboxTalkController::class, 'index']);
+    Route::post('/projects/{id}/toolbox-talks', [ToolboxTalkController::class, 'store']);
+    Route::post('/toolbox-talks/{id}/delete', [ToolboxTalkController::class, 'destroy']);
 
     Route::get('/clients', [ClientController::class, 'index']);
     Route::get('/clients/create', [ClientController::class, 'create']);

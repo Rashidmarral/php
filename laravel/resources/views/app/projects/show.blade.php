@@ -619,6 +619,131 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.safety.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.safety.hint') ?></p>
+
+  <h4 style="font-size:14px;margin-bottom:8px;"><?= t('user.safety_incidents.title') ?></h4>
+  <?php if (empty($safetyIncidents)): ?>
+    <p class="help-text"><?= t('user.safety_incidents.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th>#</th><th><?= t('user.safety_incidents.type') ?></th><th><?= t('user.safety_incidents.severity') ?></th><th><?= t('common.date') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($safetyIncidents as $incident):
+        $severityBadge = ['low' => 'gray', 'medium' => 'yellow', 'high' => 'red', 'critical' => 'red'][$incident['severity']] ?? 'gray';
+        $incidentStatusBadge = ['open' => 'red', 'under_investigation' => 'yellow', 'closed' => 'green'][$incident['status']] ?? 'gray';
+      ?>
+        <tr>
+          <td>INC-<?= str_pad((string)$incident['incident_number'], 3, '0', STR_PAD_LEFT) ?></td>
+          <td>
+            <?= e($incident['incident_type']) ?>
+            <?php if ($incident['photo_path']): ?><br><a href="<?= e($incident['photo_path']) ?>" target="_blank"><?= t('user.punch_list.view_photo') ?></a><?php endif; ?>
+          </td>
+          <td><span class="badge badge-<?= $severityBadge ?>"><?= e($safetyIncidentSeverities[$incident['severity']] ?? ucfirst($incident['severity'])) ?></span></td>
+          <td><?= e($incident['incident_date']) ?></td>
+          <td>
+            <form method="post" action="/app/safety-incidents/<?= $incident['id'] ?>/status" style="display:inline;">
+              <?= csrf_field() ?>
+              <select name="status" onchange="this.form.submit()" class="badge badge-<?= $incidentStatusBadge ?>" style="border:none;padding:4px 8px;">
+                <?php foreach ($safetyIncidentStatuses as $key => $label): ?>
+                  <option value="<?= $key ?>" <?= $incident['status'] === $key ? 'selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="/app/safety-incidents/<?= $incident['id'] ?>/delete" onsubmit="return confirm('<?= t('user.safety_incidents.remove_confirm') ?>');">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+  <?php if ($safetyIncidentCount > count($safetyIncidents)): ?>
+    <p style="margin:0 0 12px;"><a href="/app/projects/<?= $project['id'] ?>/safety-incidents"><?= t('user.safety_incidents.view_all', ['count' => $safetyIncidentCount]) ?></a></p>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/safety-incidents" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-bottom:20px;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;width:160px;"><label><?= t('common.date') ?></label><input type="date" name="incident_date" value="<?= date('Y-m-d') ?>"></div>
+    <div class="form-group" style="margin:0;width:170px;"><label><?= t('user.safety_incidents.type') ?></label>
+      <select name="incident_type" class="safety-incident-type-select" required>
+        <?php foreach ($safetyIncidentSuggestedTypes as $type): ?><option value="<?= e($type) ?>"><?= e($type) ?></option><?php endforeach; ?>
+        <option value="other"><?= t('user.safety_incidents.other_type') ?></option>
+      </select>
+      <input type="text" name="incident_type_other" class="safety-incident-type-other" placeholder="<?= t('user.safety_incidents.other_type_placeholder') ?>" style="display:none;margin-top:6px;">
+    </div>
+    <div class="form-group" style="margin:0;width:130px;"><label><?= t('user.safety_incidents.severity') ?></label>
+      <select name="severity">
+        <?php foreach ($safetyIncidentSeverities as $key => $label): ?><option value="<?= $key ?>" <?= $key==='low'?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.punch_list.location') ?></label><input type="text" name="location" placeholder="e.g. 3rd floor"></div>
+    <div class="form-group" style="margin:0;width:170px;"><label><?= t('user.safety_incidents.injured_person') ?></label><input type="text" name="injured_person_name"></div>
+    <div class="form-group" style="margin:0;flex:2;min-width:220px;"><label><?= t('common.description') ?></label><input type="text" name="description" required></div>
+    <div class="form-group" style="margin:0;min-width:170px;"><label><?= t('user.punch_list.photo_optional') ?></label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.safety_incidents.log_incident') ?></button>
+  </form>
+
+  <h4 style="font-size:14px;margin-bottom:8px;"><?= t('user.toolbox_talks.title') ?></h4>
+  <?php if (empty($toolboxTalks)): ?>
+    <p class="help-text"><?= t('user.toolbox_talks.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th><?= t('common.date') ?></th><th><?= t('user.toolbox_talks.topic') ?></th><th><?= t('user.toolbox_talks.attendee_count') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($toolboxTalks as $talk): ?>
+        <tr>
+          <td><?= e($talk['talk_date']) ?></td>
+          <td>
+            <?= e($talk['topic']) ?>
+            <?php if ($talk['photo_path']): ?><br><a href="<?= e($talk['photo_path']) ?>" target="_blank"><?= t('user.punch_list.view_photo') ?></a><?php endif; ?>
+          </td>
+          <td><?= $talk['attendee_count'] !== null ? e((string)$talk['attendee_count']) : '—' ?></td>
+          <td>
+            <form method="post" action="/app/toolbox-talks/<?= $talk['id'] ?>/delete" onsubmit="return confirm('<?= t('user.toolbox_talks.remove_confirm') ?>');">
+              <?= csrf_field() ?>
+              <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+  <?php if ($toolboxTalkCount > count($toolboxTalks)): ?>
+    <p style="margin:0 0 12px;"><a href="/app/projects/<?= $project['id'] ?>/toolbox-talks"><?= t('user.toolbox_talks.view_all', ['count' => $toolboxTalkCount]) ?></a></p>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/toolbox-talks" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;width:160px;"><label><?= t('common.date') ?></label><input type="date" name="talk_date" value="<?= date('Y-m-d') ?>"></div>
+    <div class="form-group" style="margin:0;flex:1;min-width:200px;"><label><?= t('user.toolbox_talks.topic') ?></label><input type="text" name="topic" placeholder="e.g. Ladder safety" required></div>
+    <div class="form-group" style="margin:0;width:140px;"><label><?= t('user.toolbox_talks.attendee_count') ?></label><input type="number" min="0" name="attendee_count"></div>
+    <div class="form-group" style="margin:0;flex:2;min-width:200px;"><label><?= t('user.toolbox_talks.notes') ?></label><input type="text" name="notes"></div>
+    <div class="form-group" style="margin:0;min-width:170px;"><label><?= t('user.punch_list.photo_optional') ?></label><input type="file" name="photo" accept="image/jpeg,image/png,image/webp"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.toolbox_talks.log_talk') ?></button>
+  </form>
+</div>
+
+<script>
+(function() {
+  // Select+Other escape hatch for the safety incident type field — same convention as
+  // Supplier's trade_category free-text field, but with suggested options via a select.
+  document.querySelectorAll('.safety-incident-type-select').forEach(function(select) {
+    var other = select.parentElement.querySelector('.safety-incident-type-other');
+    if (!other) { return; }
+    function sync() { other.style.display = select.value === 'other' ? 'block' : 'none'; }
+    select.addEventListener('change', sync);
+    sync();
+  });
+})();
+</script>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.rfi.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.rfi.hint') ?></p>
 

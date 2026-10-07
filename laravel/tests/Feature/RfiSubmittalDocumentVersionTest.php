@@ -51,6 +51,9 @@ class RfiSubmittalDocumentVersionTest extends TestCase
                 'submittals' => $withRfiSubmittals,
                 'documents' => true,
                 'equipment_management' => true,
+                // Task #57: safety tracking, exercised by this file's own
+                // "every section renders" test alongside RFI/Submittals/Equipment.
+                'safety_tracking' => true,
             ]),
         ]);
 
@@ -261,11 +264,12 @@ class RfiSubmittalDocumentVersionTest extends TestCase
     // ---------------------------------------------------------------
 
     /**
-     * Confirms the new RFI/Submittals sections slot cleanly into the project show page
-     * without disturbing any existing section — every pre-existing card (Change Orders,
-     * Purchase Orders, Bank Guarantees, Budget vs Actual, Site Log, Payment Certificates,
-     * Subcontracts, LD/EOT, Punch List, Site Photo Diary, Schedule) must still render,
-     * alongside the two new RFI/Submittals cards — in both English and Arabic.
+     * Confirms the new RFI/Submittals/Equipment/Safety sections slot cleanly into the
+     * project show page without disturbing any existing section — every pre-existing
+     * card (Change Orders, Purchase Orders, Bank Guarantees, Budget vs Actual, Site Log,
+     * Payment Certificates, Subcontracts, LD/EOT, Punch List, Site Photo Diary, Schedule)
+     * must still render, alongside the newer RFI/Submittals/Equipment/Safety cards — in
+     * both English and Arabic.
      */
     public function test_project_show_page_renders_every_existing_section_plus_the_new_ones_in_both_locales(): void
     {
@@ -289,6 +293,17 @@ class RfiSubmittalDocumentVersionTest extends TestCase
             'equipment_id' => $equipment->id,
             'assigned_date' => now()->format('Y-m-d'),
         ]);
+        // Task #57: a safety incident and a toolbox talk, via the combined Safety (HSE)
+        // card added to this same page — same surgical-addition check this test already does.
+        $this->actingAs($owner)->post('/app/projects/' . $project->id . '/safety-incidents', [
+            'incident_date' => now()->format('Y-m-d'),
+            'incident_type' => 'Near Miss',
+            'description' => 'Show-page safety incident description.',
+        ]);
+        $this->actingAs($owner)->post('/app/projects/' . $project->id . '/toolbox-talks', [
+            'talk_date' => now()->format('Y-m-d'),
+            'topic' => 'Show-page Toolbox Talk',
+        ]);
 
         // en: check existing + new section labels/content resolve and render.
         $en = $this->actingAs($owner)->get('/app/projects/' . $project->id . '?lang=en');
@@ -308,9 +323,14 @@ class RfiSubmittalDocumentVersionTest extends TestCase
         $en->assertSeeText(t('user.rfi.title'));
         $en->assertSeeText(t('user.submittals.title'));
         $en->assertSeeText(t('user.equipment.project_card_title'));
+        $en->assertSeeText(t('user.safety.title'));
+        $en->assertSeeText(t('user.safety_incidents.title'));
+        $en->assertSeeText(t('user.toolbox_talks.title'));
         $en->assertSee('Show-page RFI');
         $en->assertSee('Show-page Submittal');
         $en->assertSee('Show-page Excavator');
+        $en->assertSee('Near Miss');
+        $en->assertSee('Show-page Toolbox Talk');
 
         // ar: same locale-switched page must also render without errors, old + new sections intact.
         $ar = $this->actingAs($owner)->get('/app/projects/' . $project->id . '?lang=ar');
@@ -318,6 +338,9 @@ class RfiSubmittalDocumentVersionTest extends TestCase
         $ar->assertSeeText(t('user.rfi.title'));
         $ar->assertSeeText(t('user.submittals.title'));
         $ar->assertSeeText(t('user.equipment.project_card_title'));
+        $ar->assertSeeText(t('user.safety.title'));
+        $ar->assertSeeText(t('user.safety_incidents.title'));
+        $ar->assertSeeText(t('user.toolbox_talks.title'));
     }
 
     // ---------------------------------------------------------------

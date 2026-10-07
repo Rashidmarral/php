@@ -21,11 +21,13 @@ use App\Models\PunchListItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Rfi;
+use App\Models\SafetyIncident;
 use App\Models\ScheduleTask;
 use App\Models\SiteLog;
 use App\Models\Subcontract;
 use App\Models\Submittal;
 use App\Models\Supplier;
+use App\Models\ToolboxTalk;
 use App\Models\User;
 use App\Models\VendorBill;
 use App\Support\Feature;
@@ -308,6 +310,10 @@ class ProjectController extends Controller
         $rfiCount = Rfi::where('project_id', $project->id)->count();
         $submittals = Submittal::where('project_id', $project->id)->orderByDesc('submittal_number')->limit(5)->get();
         $submittalCount = Submittal::where('project_id', $project->id)->count();
+        $safetyIncidents = SafetyIncident::where('project_id', $project->id)->orderByDesc('incident_number')->limit(5)->get();
+        $safetyIncidentCount = SafetyIncident::where('project_id', $project->id)->count();
+        $toolboxTalks = ToolboxTalk::where('project_id', $project->id)->orderByDesc('talk_date')->orderByDesc('created_at')->limit(5)->get();
+        $toolboxTalkCount = ToolboxTalk::where('project_id', $project->id)->count();
         $eotRequests = ExtensionOfTimeRequest::where('project_id', $project->id)->orderByDesc('created_at')->get();
         $eotUserIds = $eotRequests->pluck('requested_by')->merge($eotRequests->pluck('reviewed_by'))->filter()->unique();
         $eotUsers = User::whereIn('id', $eotUserIds)->get()->keyBy('id');
@@ -374,6 +380,13 @@ class ProjectController extends Controller
             'submittals' => $submittals->toArray(),
             'submittalCount' => $submittalCount,
             'submittalStatuses' => Submittal::STATUSES,
+            'safetyIncidents' => $safetyIncidents->toArray(),
+            'safetyIncidentCount' => $safetyIncidentCount,
+            'safetyIncidentStatuses' => SafetyIncident::STATUSES,
+            'safetyIncidentSeverities' => SafetyIncident::SEVERITIES,
+            'safetyIncidentSuggestedTypes' => SafetyIncident::SUGGESTED_TYPES,
+            'toolboxTalks' => $toolboxTalks->toArray(),
+            'toolboxTalkCount' => $toolboxTalkCount,
             'teamMembers' => $teamMembers->toArray(),
             'actualCostTotal' => $actualCostTotal,
             'revisedBudget' => $revisedBudget,
@@ -654,6 +667,26 @@ class ProjectController extends Controller
                 }
             }
             PunchListItem::where('project_id', $project->id)->delete();
+
+            foreach (SafetyIncident::where('project_id', $project->id)->get() as $incident) {
+                if ($incident->photo_path) {
+                    $file = public_path($incident->photo_path);
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+            SafetyIncident::where('project_id', $project->id)->delete();
+
+            foreach (ToolboxTalk::where('project_id', $project->id)->get() as $talk) {
+                if ($talk->photo_path) {
+                    $file = public_path($talk->photo_path);
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+            }
+            ToolboxTalk::where('project_id', $project->id)->delete();
 
             foreach (ProjectPhoto::where('project_id', $project->id)->get() as $photo) {
                 if ($photo->file_path) {
