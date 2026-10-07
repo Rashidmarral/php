@@ -6,6 +6,8 @@
 </div>
 <p class="help-text" style="max-width:760px;margin-top:-8px;margin-bottom:20px;"><?= t('admin.backups.intro') ?></p>
 
+<div class="alert alert-success" style="max-width:760px;"><?= t('admin.backups.auto_enabled', ['count' => $autoBackupRetention]) ?></div>
+
 <div class="card" style="max-width:760px;margin-bottom:20px;">
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <h3 style="margin:0;"><?= t('admin.backups.create_backup') ?></h3>
@@ -30,7 +32,7 @@
       <tbody>
       @foreach ($backups as $backup)
         <tr>
-          <td>{{ $backup['name'] }}</td>
+          <td>{{ $backup['name'] }} <span class="badge {{ $backup['auto'] ? 'badge-blue' : 'badge-gray' }}">{{ $backup['auto'] ? t('admin.backups.auto_badge') : t('admin.backups.manual_badge') }}</span></td>
           <td class="help-text">{{ formatBytes($backup['size']) }}</td>
           <td class="help-text">{{ date('Y-m-d H:i', $backup['modified']) }}</td>
           <td style="display:flex;gap:6px;">

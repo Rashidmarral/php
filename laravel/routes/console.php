@@ -9,3 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('app:daily-tasks')->dailyAt('03:00');
+
+// Offset from the 03:00 daily-tasks run so a slow mysqldump never delays those
+// time-sensitive reminders/renewals, and vice versa.
+Schedule::command('app:backup-database')->dailyAt('03:30');
