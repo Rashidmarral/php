@@ -7,8 +7,11 @@ use App\Models\ChangeOrder;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Project;
+use App\Models\PurchaseOrder;
+use App\Models\SubcontractPayment;
 use App\Models\TimesheetEntry;
 use App\Models\VendorBill;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -288,6 +291,146 @@ class ReportController extends Controller
             'rows' => $rows,
             'outstanding' => $outstanding,
             'released' => $released,
+        ]);
+    }
+
+    /** How many months the forecast covers, including the current month. */
+    private const CASH_FLOW_HORIZON_MONTHS = 6;
+
+    /**
+     * An invoice/PO/subcontract-payment with no date on file to bucket by assumes this many
+     * days from its created_at before it's considered due/payable — a standard payment-term
+     * assumption, so it still lands in a sensible bucket rather than being dropped silently.
+     */
+    private const CASH_FLOW_ASSUMED_TERM_DAYS = 30;
+
+    /**
+     * Cash-flow forecast: projected cash IN (currently-unpaid invoices, timed by due_date)
+     * against projected cash OUT over the next CASH_FLOW_HORIZON_MONTHS months (this month
+     * plus the following 5), oldest/soonest first, with a distinct "overdue" bucket for
+     * anything already past due today rather than folding it into "this month".
+     *
+     * Money IN timing: an unpaid invoice's due_date. "Already past due" reuses
+     * Invoice::isOverdue()'s own definition exactly (a hand-flagged 'overdue' status always
+     * counts, regardless of due_date) so this report never disagrees with the invoice list
+     * about which invoices are overdue. An invoice with no due_date on file assumes
+     * CASH_FLOW_ASSUMED_TERM_DAYS from its created_at instead of being dropped.
+     *
+     * Money OUT timing, two sources, matching PurchaseOrderController/
+     * SubcontractPaymentController's own status vocabulary:
+     *  - Open purchase orders (status draft/issued — not yet received or cancelled): the
+     *    remaining UNINVOICED balance (po.total minus any vendor_bills already raised
+     *    against it via vendor_bills.purchase_order_id) is projected around its
+     *    expected_delivery_date (falling back to issue_date, then the assumed term from
+     *    created_at, when no delivery date is on file). A PO that's already fully invoiced
+     *    (remaining <= 0) contributes nothing — there's no more cash left to go out on it.
+     *  - Pending subcontract payments (status='draft' — a 'certified' payment already has a
+     *    real VendorBill expense behind it, so it's a past actual, not a forecast item):
+     *    net_payable, timed by payment_date.
+     *
+     * A date that falls beyond the forecast horizon (further out than the 6th month) folds
+     * into that final month bucket instead of vanishing from the totals.
+     *
+     * The running balance is a cumulative net (in - out) across the buckets in chronological
+     * order (overdue first, then oldest to soonest), starting from today's point at exactly
+     * 0 — it shows the projected TREND in the company's cash position from today onward, not
+     * an absolute bank balance (this report has no bank-balance data source to start from).
+     */
+    public function cashFlow(): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('reports')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+
+        $monthKeys = [];
+        for ($i = 0; $i < self::CASH_FLOW_HORIZON_MONTHS; $i++) {
+            $monthKeys[] = now()->startOfMonth()->addMonths($i)->format('Y-m');
+        }
+        $lastMonthKey = end($monthKeys);
+
+        $buckets = ['overdue' => ['in' => 0.0, 'out' => 0.0]];
+        foreach ($monthKeys as $key) {
+            $buckets[$key] = ['in' => 0.0, 'out' => 0.0];
+        }
+
+        $bucketKey = function (Carbon $date, bool $isOverdue) use ($monthKeys, $lastMonthKey): string {
+            if ($isOverdue) {
+                return 'overdue';
+            }
+            $key = $date->format('Y-m');
+
+            return in_array($key, $monthKeys, true) ? $key : $lastMonthKey;
+        };
+
+        // Money IN: currently-unpaid invoices, by due date.
+        $invoices = Invoice::where('company_id', $companyId)->where('status', '!=', 'paid')
+            ->get(['total', 'due_date', 'status', 'created_at']);
+        foreach ($invoices as $invoice) {
+            $date = $invoice->due_date ?? $invoice->created_at->copy()->addDays(self::CASH_FLOW_ASSUMED_TERM_DAYS);
+            $key = $bucketKey($date, $invoice->isOverdue());
+            $buckets[$key]['in'] += (float) $invoice->total;
+        }
+
+        // Money OUT, source 1: remaining uninvoiced balance on open (draft/issued) purchase orders.
+        $openPurchaseOrders = PurchaseOrder::where('company_id', $companyId)
+            ->whereIn('status', ['draft', 'issued'])
+            ->get(['id', 'total', 'expected_delivery_date', 'issue_date', 'created_at']);
+        $invoicedByPurchaseOrder = VendorBill::where('company_id', $companyId)
+            ->whereIn('purchase_order_id', $openPurchaseOrders->pluck('id'))
+            ->select('purchase_order_id', DB::raw('SUM(amount) as total'))
+            ->groupBy('purchase_order_id')
+            ->pluck('total', 'purchase_order_id');
+        foreach ($openPurchaseOrders as $po) {
+            $invoiced = (float) ($invoicedByPurchaseOrder[$po->id] ?? 0);
+            $remaining = round((float) $po->total - $invoiced, 2);
+            if ($remaining <= 0) {
+                continue;
+            }
+            $date = $po->expected_delivery_date ?? $po->issue_date
+                ?? $po->created_at->copy()->addDays(self::CASH_FLOW_ASSUMED_TERM_DAYS);
+            $key = $bucketKey($date, $date->isPast());
+            $buckets[$key]['out'] += $remaining;
+        }
+
+        // Money OUT, source 2: pending (not yet certified) subcontract payments.
+        $pendingPayments = SubcontractPayment::where('company_id', $companyId)
+            ->where('status', 'draft')
+            ->get(['net_payable', 'payment_date']);
+        foreach ($pendingPayments as $payment) {
+            $date = $payment->payment_date;
+            $key = $bucketKey($date, $date->isPast());
+            $buckets[$key]['out'] += (float) $payment->net_payable;
+        }
+
+        // Ordered rows (overdue, then oldest-to-soonest month) with a running cumulative
+        // balance — today's point starts at exactly 0.
+        $rows = [];
+        $cumulative = 0.0;
+        $totals = ['overdueIn' => 0.0, 'overdueOut' => 0.0, 'forecastIn' => 0.0, 'forecastOut' => 0.0];
+        foreach (array_merge(['overdue'], $monthKeys) as $key) {
+            $in = round($buckets[$key]['in'], 2);
+            $out = round($buckets[$key]['out'], 2);
+            $net = round($in - $out, 2);
+            $cumulative = round($cumulative + $net, 2);
+            $rows[] = ['key' => $key, 'in' => $in, 'out' => $out, 'net' => $net, 'cumulative' => $cumulative];
+
+            if ($key === 'overdue') {
+                $totals['overdueIn'] = $in;
+                $totals['overdueOut'] = $out;
+            } else {
+                $totals['forecastIn'] += $in;
+                $totals['forecastOut'] += $out;
+            }
+        }
+        $totals['forecastIn'] = round($totals['forecastIn'], 2);
+        $totals['forecastOut'] = round($totals['forecastOut'], 2);
+        $totals['netForecast'] = round($totals['forecastIn'] - $totals['forecastOut'], 2);
+        $totals['endingBalance'] = end($rows)['cumulative'];
+
+        return view('app.reports.cash-flow', [
+            'rows' => $rows,
+            'totals' => $totals,
         ]);
     }
 }
