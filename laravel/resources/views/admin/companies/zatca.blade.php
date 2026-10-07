@@ -3,22 +3,22 @@
 @section('content')
 <?php
 $statusLabels = [
-    'not_started' => ['ZATCA onboarding not started', 'gray'],
-    'csr_generated' => ['CSR generated — awaiting compliance CSID', 'yellow'],
-    'compliance_pending' => ['Compliance CSID issued — run compliance checks', 'yellow'],
-    'compliance_verified' => ['Compliance checks passed — awaiting production CSID', 'yellow'],
-    'onboarded' => ['Live — can submit invoices to ZATCA', 'green'],
-    'error' => ['ZATCA request failed', 'red'],
-    'failed' => ['ZATCA request failed', 'red'],
+    'not_started' => [t('admin.zatca.status_not_started'), 'gray'],
+    'csr_generated' => [t('admin.zatca.status_csr_generated'), 'yellow'],
+    'compliance_pending' => [t('admin.zatca.status_compliance_pending'), 'yellow'],
+    'compliance_verified' => [t('admin.zatca.status_compliance_verified'), 'yellow'],
+    'onboarded' => [t('admin.zatca.status_onboarded'), 'green'],
+    'error' => [t('admin.zatca.status_error'), 'red'],
+    'failed' => [t('admin.zatca.status_error'), 'red'],
 ];
 $status = $company['zatca_status'] ?: 'not_started';
 [$statusLabel, $statusColor] = $statusLabels[$status] ?? [$status, 'gray'];
-$envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation', 'production' => 'Production (live)'];
+$envLabels = ['developer' => t('admin.zatca.env_developer'), 'simulation' => t('admin.zatca.env_simulation'), 'production' => t('admin.zatca.env_production')];
 ?>
 <div class="page-head">
   <div>
     <h1><?= t('admin.zatca.title') ?> — <?= e($company['name']) ?></h1>
-    <p class="help-text" style="margin-top:4px;">Onboard this company for ZATCA Phase 1 (QR code, already active on every invoice) and Phase 2 (Fatoora integration, XAdES-signed XML clearance/reporting).</p>
+    <p class="help-text" style="margin-top:4px;"><?= t('admin.zatca.intro') ?></p>
   </div>
   <a href="/admin/companies/<?= $company['id'] ?>" class="btn btn-secondary">← <?= t('admin.zatca.back_to_company') ?></a>
 </div>
@@ -49,14 +49,14 @@ $envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation'
 <div class="card" style="margin-bottom:24px;max-width:640px;">
   <h3><?= t('admin.zatca.step1') ?></h3>
   <p class="help-text">
-    <strong>Phase 1 (QR code)</strong> is already fully active — every invoice PDF this company generates includes a compliant ZATCA QR code with seller name, VAT number, timestamp and totals, no setup required.
+    <strong><?= t('admin.zatca.phase1_label') ?></strong> <?= t('admin.zatca.phase1_desc') ?>
   </p>
   <p class="help-text">
-    <strong>Phase 2 (Fatoora integration)</strong> requires this company to be onboarded with ZATCA directly: a cryptographic certificate is issued to their VAT number, every invoice's UBL XML is XAdES-signed and hash-chained to the previous one, and it is reported to ZATCA's servers. That onboarding needs a one-time OTP generated from <em>this company's own</em> ZATCA Fatoora portal account — it cannot be skipped or simulated. Get the OTP from the company, then complete the steps below.
+    <strong><?= t('admin.zatca.phase2_label') ?></strong> <?= t('admin.zatca.phase2_desc') ?>
   </p>
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/test-connection" style="margin-top:10px;">
     <?= csrf_field() ?>
-    <button type="submit" class="btn btn-secondary">Test ZATCA gateway connectivity</button>
+    <button type="submit" class="btn btn-secondary"><?= t('admin.zatca.test_connectivity') ?></button>
   </form>
 </div>
 
@@ -67,30 +67,30 @@ $envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation'
     <div class="form-group">
       <label><?= t('admin.zatca.env_select') ?></label>
       <select name="zatca_environment">
-        <option value="developer" <?= ($company['zatca_environment'] ?: 'developer') === 'developer' ? 'selected' : '' ?>>Developer (sandbox / developer-portal)</option>
-        <option value="simulation" <?= $company['zatca_environment'] === 'simulation' ? 'selected' : '' ?>>Simulation</option>
-        <option value="production" <?= $company['zatca_environment'] === 'production' ? 'selected' : '' ?>>Production (live)</option>
+        <option value="developer" <?= ($company['zatca_environment'] ?: 'developer') === 'developer' ? 'selected' : '' ?>><?= t('admin.zatca.env_developer_full') ?></option>
+        <option value="simulation" <?= $company['zatca_environment'] === 'simulation' ? 'selected' : '' ?>><?= t('admin.zatca.env_simulation') ?></option>
+        <option value="production" <?= $company['zatca_environment'] === 'production' ? 'selected' : '' ?>><?= t('admin.zatca.env_production') ?></option>
       </select>
     </div>
     <div style="display:flex;gap:20px;margin:10px 0;">
-      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="zatca_sync_b2b" value="1" <?= !empty($company['zatca_sync_b2b']) ? 'checked' : '' ?>> Standard (B2B) invoices</label>
-      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="zatca_sync_b2c" value="1" <?= !empty($company['zatca_sync_b2c']) ? 'checked' : '' ?>> Simplified (B2C) invoices</label>
+      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="zatca_sync_b2b" value="1" <?= !empty($company['zatca_sync_b2b']) ? 'checked' : '' ?>> <?= t('admin.zatca.standard_b2b') ?></label>
+      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" name="zatca_sync_b2c" value="1" <?= !empty($company['zatca_sync_b2c']) ? 'checked' : '' ?>> <?= t('admin.zatca.simplified_b2c') ?></label>
     </div>
     <div class="form-group">
-      <label>EGS serial number</label>
+      <label><?= t('admin.zatca.egs_serial') ?></label>
       <input type="text" name="zatca_egs_serial" value="<?= e($company['zatca_egs_serial'] ?? '') ?>" placeholder="1-BuildXact|2-1.0.0|3-<?= $company['id'] ?>">
     </div>
     <div class="form-group">
-      <label>Common name (CSR)</label>
+      <label><?= t('admin.zatca.common_name') ?></label>
       <input type="text" name="zatca_common_name" value="<?= e($company['zatca_common_name'] ?? '') ?>" placeholder="<?= e($company['name']) ?>">
     </div>
     <div class="form-group">
-      <label>Organization unit name (CSR)</label>
+      <label><?= t('admin.zatca.org_unit_name') ?></label>
       <input type="text" name="zatca_organization_unit_name" value="<?= e($company['zatca_organization_unit_name'] ?? '') ?>" placeholder="<?= e($company['name']) ?>">
     </div>
     <div class="form-group">
-      <label>Business category (CSR)</label>
-      <input type="text" name="zatca_business_category" value="<?= e($company['zatca_business_category'] ?? '') ?>" placeholder="Construction / Contracting">
+      <label><?= t('admin.zatca.business_category') ?></label>
+      <input type="text" name="zatca_business_category" value="<?= e($company['zatca_business_category'] ?? '') ?>" placeholder="<?= t('admin.zatca.business_category_placeholder') ?>">
     </div>
     <button type="submit" class="btn btn-secondary"><?= t('common.save') ?></button>
   </form>
@@ -98,8 +98,8 @@ $envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation'
 
 <div class="card" style="margin-bottom:24px;max-width:640px;">
   <h3><?= t('admin.zatca.step3') ?></h3>
-  <p class="help-text">Generates an EC (secp256k1) key pair and a ZATCA-formatted CSR (with the custom certificateTemplateName/subjectAltName extensions ZATCA's onboarding requires) for this company. Requires the company's VAT number to be set first (Company Settings).</p>
-  <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/csr" onsubmit="return confirm('Generating a new CSR will replace any existing one. Continue?');">
+  <p class="help-text"><?= t('admin.zatca.generate_csr_hint') ?></p>
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/csr" onsubmit="return confirm('<?= t('admin.zatca.generate_csr_confirm') ?>');">
     <?= csrf_field() ?>
     <button type="submit" class="btn btn-primary" <?= empty($company['vat_number']) ? 'disabled' : '' ?>><?= t('admin.zatca.generate_csr') ?></button>
   </form>
@@ -113,12 +113,12 @@ $envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation'
 
 <div class="card" style="margin-bottom:24px;max-width:640px;">
   <h3><?= t('admin.zatca.step4') ?></h3>
-  <p class="help-text">Enter the OTP the company generated from their own Fatoora portal account (Fatoora → onboard EGS unit) to exchange the CSR for a compliance CSID.</p>
+  <p class="help-text"><?= t('admin.zatca.compliance_csid_hint') ?></p>
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/compliance-csid" style="display:flex;gap:8px;align-items:end;">
     <?= csrf_field() ?>
     <div class="form-group" style="margin:0;flex:1;">
       <label><?= t('admin.zatca.otp') ?></label>
-      <input type="text" name="otp" placeholder="6-digit OTP from Fatoora portal" <?= empty($company['zatca_csr']) ? 'disabled' : '' ?>>
+      <input type="text" name="otp" placeholder="<?= t('admin.zatca.otp_placeholder') ?>" <?= empty($company['zatca_csr']) ? 'disabled' : '' ?>>
     </div>
     <button type="submit" class="btn btn-primary" <?= empty($company['zatca_csr']) ? 'disabled' : '' ?>><?= t('admin.zatca.request_compliance_csid') ?></button>
   </form>
@@ -128,20 +128,20 @@ $envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation'
 </div>
 
 <div class="card" style="margin-bottom:24px;max-width:640px;">
-  <h3>5. Run compliance checks</h3>
-  <p class="help-text">ZATCA requires the EGS to prove it can generate valid sample invoices for every declared profile (Standard/Simplified) before it will issue a production CSID. This submits one signed sample per enabled profile above.</p>
+  <h3><?= t('admin.zatca.step_compliance_checks') ?></h3>
+  <p class="help-text"><?= t('admin.zatca.compliance_checks_hint') ?></p>
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/compliance-check">
     <?= csrf_field() ?>
-    <button type="submit" class="btn btn-primary" <?= empty($company['zatca_compliance_csid']) ? 'disabled' : '' ?>>Run compliance checks</button>
+    <button type="submit" class="btn btn-primary" <?= empty($company['zatca_compliance_csid']) ? 'disabled' : '' ?>><?= t('admin.zatca.run_compliance_checks') ?></button>
   </form>
   <?php if (($company['zatca_status'] ?? null) === 'compliance_verified' || in_array($company['zatca_status'] ?? null, ['onboarded'], true)): ?>
-    <p class="help-text" style="margin-top:10px;color:var(--success);">Compliance checks passed.</p>
+    <p class="help-text" style="margin-top:10px;color:var(--success);"><?= t('admin.zatca.compliance_checks_passed') ?></p>
   <?php endif; ?>
 </div>
 
 <div class="card" style="margin-bottom:24px;max-width:640px;">
   <h3><?= t('admin.zatca.step5') ?></h3>
-  <p class="help-text">Once the compliance checks have passed, exchange the compliance CSID for the production CSID. This activates live invoice reporting.</p>
+  <p class="help-text"><?= t('admin.zatca.production_csid_hint') ?></p>
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/production-csid">
     <?= csrf_field() ?>
     <button type="submit" class="btn btn-primary" <?= empty($company['zatca_compliance_csid']) ? 'disabled' : '' ?>><?= t('admin.zatca.request_production_csid') ?></button>
@@ -152,11 +152,11 @@ $envLabels = ['developer' => 'Developer (sandbox)', 'simulation' => 'Simulation'
 </div>
 
 <div class="card" style="margin-bottom:24px;max-width:640px;">
-  <h3>Reset onboarding</h3>
-  <p class="help-text">Clears the CSR, private key, and every CSID/secret for this company so onboarding can be restarted from scratch. Does not affect already-submitted invoices.</p>
-  <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/reset" onsubmit="return confirm('This clears the CSR, private key, and all CSIDs for this company. Continue?');">
+  <h3><?= t('admin.zatca.reset_onboarding') ?></h3>
+  <p class="help-text"><?= t('admin.zatca.reset_onboarding_hint') ?></p>
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/zatca/reset" onsubmit="return confirm('<?= t('admin.zatca.reset_onboarding_confirm') ?>');">
     <?= csrf_field() ?>
-    <button type="submit" class="btn btn-secondary">Reset onboarding</button>
+    <button type="submit" class="btn btn-secondary"><?= t('admin.zatca.reset_onboarding') ?></button>
   </form>
 </div>
 

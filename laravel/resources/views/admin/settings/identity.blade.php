@@ -8,10 +8,7 @@
 @include('admin.settings.partials.tabs', ['active' => 'identity'])
 
 <p class="help-text" style="max-width:680px;margin-bottom:16px;">
-  This is <?= e(\App\Models\Setting::siteName()) ?>'s own legal identity as the platform operator — shown in the public
-  website footer (VAT/CR) and used for the platform's own brand logo. This is separate from any
-  subscriber company's profile, which they manage from their own Settings page (or you can edit on
-  their behalf from Companies → a company → Edit company profile).
+  <?= t('admin.settings.identity_intro', ['site' => e(\App\Models\Setting::siteName())]) ?>
 </p>
 
 <form method="post" action="/admin/settings/identity" enctype="multipart/form-data" class="card" style="max-width:680px;">
@@ -24,7 +21,7 @@
       <div style="margin-bottom:8px;"><img src="<?= e($settings['platform_logo_path']) ?>" alt="Logo" style="height:56px;border-radius:8px;border:1px solid var(--border);"></div>
     <?php endif; ?>
     <input type="file" name="logo" accept="image/png,image/jpeg,image/webp">
-    <p class="help-text">Replaces the "BX" mark in the site header/footer once uploaded. JPG, PNG, or WEBP, up to 3MB.</p>
+    <p class="help-text"><?= t('admin.settings.platform_logo_hint') ?></p>
   </div>
 
   <h3 style="font-size:14px;margin-top:20px;"><?= t('admin.settings.legal_entity') ?></h3>
@@ -68,7 +65,7 @@
       <input type="file" name="vat_document" accept="application/pdf,image/png,image/jpeg">
     </div>
   </div>
-  <p class="help-text">PDF, JPG, or PNG, up to 10MB each. Kept on file for your own records — not shown publicly.</p>
+  <p class="help-text"><?= t('admin.settings.legal_documents_hint') ?></p>
 
   <button type="submit" class="btn btn-primary" style="margin-top:8px;"><?= t('common.save') ?></button>
 </form>

@@ -6,7 +6,7 @@
   <a href="/admin/pages/create" class="btn btn-primary">+ <?= t('admin.pages.new') ?></a>
 </div>
 <p class="help-text" style="margin-top:-14px;margin-bottom:20px;">
-  Custom pages you write live at <code>/p/&lt;slug&gt;</code> and can optionally appear in the site header nav and/or footer.
+  <?= t('admin.pages.intro_before') ?> <code>/p/&lt;slug&gt;</code> <?= t('admin.pages.intro_after') ?>
 </p>
 
 <?php if (empty($pages)): ?>

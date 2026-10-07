@@ -8,29 +8,26 @@
 @include('admin.settings.partials.tabs', ['active' => 'header'])
 
 <p class="help-text" style="margin-top:-8px;margin-bottom:20px;max-width:680px;">
-  Leave any field blank to keep the site's default wording. Manage which custom pages appear
-  in the nav/footer from <a href="/admin/pages">Website Pages</a>, edit any other on-page
-  text from <a href="/admin/translations">Translations</a>, and upload images/videos to use below
-  from the <a href="/admin/media">Media Library</a>.
+  <?= t('admin.settings.header_intro_before') ?> <a href="/admin/pages"><?= t('admin.pages.title') ?></a>, <?= t('admin.settings.header_intro_mid') ?> <a href="/admin/translations"><?= t('admin.settings.translations_title') ?></a>, <?= t('admin.settings.header_intro_after') ?>
+  <a href="/admin/media"><?= t('admin.media.title') ?></a>.
 </p>
 
 <form method="post" action="/admin/settings/header" class="card" style="max-width:680px;">
   <?= csrf_field() ?>
 
-  <h3 style="font-size:14px;">Website content — hero images &amp; video</h3>
+  <h3 style="font-size:14px;"><?= t('admin.settings.hero_content_title') ?></h3>
   <p class="help-text">
-    Add a background image or video to any marketing page's top banner. Upload it to the
-    <a href="/admin/media" target="_blank" rel="noopener">Media Library</a> first, then paste its URL here.
-    If a video URL is set it takes priority over the image. Leave both blank to keep the default design.
+    <?= t('admin.settings.hero_content_before') ?>
+    <a href="/admin/media" target="_blank" rel="noopener"><?= t('admin.media.title') ?></a> <?= t('admin.settings.hero_content_after') ?>
   </p>
   <?php foreach ($heroPages as $key => $label): ?>
     <div class="form-row" style="margin-bottom:4px;">
       <div class="form-group">
-        <label><?= e($label) ?> — image URL</label>
+        <label><?= e($label) ?> <?= t('admin.settings.image_url_suffix') ?></label>
         <input type="text" name="hero_image_<?= $key ?>" value="<?= e($settings["hero_image_{$key}"] ?? '') ?>" placeholder="/uploads/media/....jpg">
       </div>
       <div class="form-group">
-        <label><?= e($label) ?> — video URL</label>
+        <label><?= e($label) ?> <?= t('admin.settings.video_url_suffix') ?></label>
         <input type="text" name="hero_video_<?= $key ?>" value="<?= e($settings["hero_video_{$key}"] ?? '') ?>" placeholder="https://...">
       </div>
     </div>

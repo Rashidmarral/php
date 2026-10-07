@@ -18,7 +18,7 @@
 
 <div class="card" style="margin-bottom:20px;">
   <h3 style="font-size:14px;"><?= t('admin.settings.add_new_key') ?></h3>
-  <p class="help-text" style="margin-top:-6px;">Use this to add copy for a spot you've referenced with <code>t('your.key')</code> in a custom template.</p>
+  <p class="help-text" style="margin-top:-6px;"><?= t('admin.settings.add_new_key_hint_before') ?> <code>t('your.key')</code> <?= t('admin.settings.add_new_key_hint_after') ?></p>
   <form method="post" action="/admin/translations/store" style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;">
     <?= csrf_field() ?>
     <div class="form-group" style="margin:0;flex:1;min-width:180px;"><label><?= t('admin.settings.key') ?></label><input type="text" name="new_key" placeholder="e.g. custom.banner.title" required></div>
@@ -32,7 +32,7 @@
   <div class="empty-state card"><p><?= t('admin.settings.no_keys_match', ['q' => $search]) ?></p></div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th style="width:22%;"><?= t('admin.settings.key') ?></th><th>English</th><th>Arabic</th><th></th></tr></thead>
+    <thead><tr><th style="width:22%;"><?= t('admin.settings.key') ?></th><th><?= t('common.english') ?></th><th><?= t('common.arabic') ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($rows as $r): $fid = 'tr-' . md5($r['key']); ?>
       <form id="<?= $fid ?>" method="post" action="/admin/translations/update">
@@ -45,8 +45,8 @@
           <code style="font-size:12px;"><?= e($r['key']) ?></code>
           <?php if ($r['is_custom']): ?><br><span class="badge badge-blue" style="margin-top:4px;"><?= t('admin.settings.custom') ?></span><?php endif; ?>
         </td>
-        <td><input form="<?= $fid ?>" type="text" name="en_value" value="<?= e($r['en_value']) ?>" style="min-width:220px;" title="Default: <?= e($r['en_default']) ?>"></td>
-        <td><input form="<?= $fid ?>" type="text" name="ar_value" value="<?= e($r['ar_value']) ?>" dir="rtl" style="min-width:220px;" title="Default: <?= e($r['ar_default']) ?>"></td>
+        <td><input form="<?= $fid ?>" type="text" name="en_value" value="<?= e($r['en_value']) ?>" style="min-width:220px;" title="<?= t('admin.settings.default_value_prefix') ?> <?= e($r['en_default']) ?>"></td>
+        <td><input form="<?= $fid ?>" type="text" name="ar_value" value="<?= e($r['ar_value']) ?>" dir="rtl" style="min-width:220px;" title="<?= t('admin.settings.default_value_prefix') ?> <?= e($r['ar_default']) ?>"></td>
         <td style="display:flex;gap:6px;">
           <button form="<?= $fid ?>" type="submit" class="btn btn-sm btn-light"><?= t('common.save') ?></button>
           <?php if ($r['is_overridden']): ?>

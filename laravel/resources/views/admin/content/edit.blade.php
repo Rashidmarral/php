@@ -4,8 +4,8 @@
 <div class="page-head">
   <h1>{{ $config['label'] }}</h1>
   <div style="display:flex;gap:8px;">
-    <a href="{{ $config['url'] }}" target="_blank" rel="noopener" class="btn btn-light btn-sm">View live page ↗</a>
-    <a href="/admin/content" class="btn btn-light btn-sm">← All pages</a>
+    <a href="{{ $config['url'] }}" target="_blank" rel="noopener" class="btn btn-light btn-sm">{{ t('admin.content.view_live_page') }}</a>
+    <a href="/admin/content" class="btn btn-light btn-sm">← {{ t('admin.content.all_pages') }}</a>
   </div>
 </div>
 
@@ -16,7 +16,7 @@
       <label style="margin-bottom:10px;">{{ $f['label'] }}</label>
       <div class="form-row">
         <div class="form-group" style="margin:0;">
-          <label class="help-text" style="font-weight:600;">English</label>
+          <label class="help-text" style="font-weight:600;">{{ t('common.english') }}</label>
           @if($f['multiline'])
             <textarea name="en[{{ $f['key'] }}]" rows="3">{{ $f['en_value'] }}</textarea>
           @else
@@ -24,7 +24,7 @@
           @endif
         </div>
         <div class="form-group" style="margin:0;">
-          <label class="help-text" style="font-weight:600;">العربية</label>
+          <label class="help-text" style="font-weight:600;">{{ t('common.arabic') }}</label>
           @if($f['multiline'])
             <textarea name="ar[{{ $f['key'] }}]" rows="3" dir="rtl">{{ $f['ar_value'] }}</textarea>
           @else
@@ -35,6 +35,6 @@
     </div>
   @endforeach
 
-  <button type="submit" class="btn btn-primary" style="position:sticky;bottom:16px;">Save all changes</button>
+  <button type="submit" class="btn btn-primary" style="position:sticky;bottom:16px;">{{ t('admin.content.save_all_changes') }}</button>
 </form>
 @endsection

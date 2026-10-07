@@ -16,7 +16,7 @@
       <div class="form-group">
         <label><?= t('admin.pages.slug') ?></label>
         <input type="text" name="slug" value="<?= e($page['slug'] ?? '') ?>" placeholder="e.g. careers" required>
-        <p class="help-text">Page will be published at /p/&lt;slug&gt;</p>
+        <p class="help-text"><?= t('admin.pages.slug_url_hint') ?></p>
       </div>
       <div class="form-group">
         <label><?= t('admin.pages.nav_order') ?></label>
@@ -42,7 +42,7 @@
       <div class="form-group">
         <label><?= t('admin.pages.body_html') ?></label>
         <textarea name="content_en" rows="16" style="font-family:monospace;font-size:13px;"><?= e($page['content_en'] ?? '') ?></textarea>
-        <p class="help-text">Basic HTML tags supported: &lt;p&gt;, &lt;h2&gt;, &lt;h3&gt;, &lt;ul&gt;/&lt;li&gt;, &lt;a&gt;, &lt;strong&gt;, &lt;img&gt;.</p>
+        <p class="help-text"><?= t('admin.pages.body_html_hint') ?></p>
       </div>
     </div>
     <div class="card">

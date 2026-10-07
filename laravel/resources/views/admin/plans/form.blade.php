@@ -34,16 +34,16 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
   <div class="form-group" style="max-width:260px;">
     <label><?= t('admin.plan.consultations_month') ?></label>
     <input type="number" min="0" name="consultation_quota_monthly" value="<?= e((string)($plan['consultation_quota_monthly'] ?? 0)) ?>">
-    <p class="help-text">How many live consultations with our engineers companies on this plan get each month. 0 disables the feature for this plan.</p>
+    <p class="help-text"><?= t('admin.plan.consultations_month_hint') ?></p>
   </div>
   <div class="form-group">
     <label><?= t('admin.plan.features_line') ?></label>
     <textarea name="features" rows="6"><?= e($features) ?></textarea>
-    <p class="help-text">Shown as marketing bullet points on the pricing page.</p>
+    <p class="help-text"><?= t('admin.plan.features_line_hint') ?></p>
   </div>
   <div class="form-group">
     <label><?= t('admin.plan.module_access') ?></label>
-    <p class="help-text" style="margin-top:-2px;">Controls which parts of the user panel companies on this plan can actually use. Core features (projects, estimates, invoices, clients, schedule, team) are always included and aren't listed here.</p>
+    <p class="help-text" style="margin-top:-2px;"><?= t('admin.plan.module_access_hint') ?></p>
     <?php
       $featureGroups = [
         t('admin.plan.group_estimating') => ['ai_estimate_generator', 'estimate_templates', 'quick_estimate', 'leads'],

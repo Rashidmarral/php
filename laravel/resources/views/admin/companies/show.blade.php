@@ -187,7 +187,7 @@
   <div style="margin-top:16px;">
     <h3 style="font-size:14px;"><?= t('admin.company.delete_permanently') ?></h3>
     <p class="help-text"><?= t('admin.company.delete_warning') ?></p>
-    <form method="post" action="/admin/companies/<?= $company['id'] ?>/hard-delete" onsubmit="return confirm('This permanently deletes all of ' + <?= json_encode($company['name']) ?> + '\'s data. This cannot be undone. Continue?');">
+    <form method="post" action="/admin/companies/<?= $company['id'] ?>/hard-delete" onsubmit="return confirm('<?= t('admin.company.hard_delete_confirm_before') ?> ' + <?= json_encode($company['name']) ?> + '<?= t('admin.company.hard_delete_confirm_after') ?>');">
       <?= csrf_field() ?>
       <div class="form-group">
         <label><?= t('admin.company.confirm_name_prompt') ?> (<strong><?= e($company['name']) ?></strong>)</label>

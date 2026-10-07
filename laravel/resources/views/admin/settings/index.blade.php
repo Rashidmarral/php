@@ -102,13 +102,7 @@
 
 <div class="card" style="max-width:680px;margin-top:20px;">
   <h3><?= t('admin.settings.what_this_controls') ?></h3>
-  <p class="help-text">
-    Trial length now lives on the Signup tab. VAT rate is used on the Quick Estimate calculator and
-    can be reflected on new invoices going forward. Date format is wired into a couple of
-    business-facing summary pages today (Company → Integrations and Admin → Tenders) — adopting it
-    everywhere a date is shown across the app is a follow-up, not done here. Time format is stored
-    for future use; no business-facing time display exists yet to plug it into.
-  </p>
+  <p class="help-text"><?= t('admin.settings.general_controls_hint') ?></p>
 </div>
 
 @endsection

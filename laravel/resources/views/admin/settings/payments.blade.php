@@ -14,7 +14,7 @@
     <h3 style="margin:0;">🏦 <?= t('admin.settings.bank_transfer') ?></h3>
     <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="bank_transfer_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['bank_transfer_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
   </div>
-  <p class="help-text">Companies see these details when they choose "Bank Transfer" to pay for a subscription. Payments are held as pending until you approve them from Admin → Payments.</p>
+  <p class="help-text"><?= t('admin.settings.bank_transfer_details_hint') ?></p>
   <div class="form-row">
     <div class="form-group"><label><?= t('admin.settings.bank_name') ?></label><input type="text" name="bank_name" value="<?= e($settings['bank_name'] ?? '') ?>"></div>
     <div class="form-group"><label><?= t('admin.settings.account_name') ?></label><input type="text" name="bank_account_name" value="<?= e($settings['bank_account_name'] ?? '') ?>"></div>
@@ -25,20 +25,17 @@
   </div>
 
   <h3 style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;">
-    💳 Moyasar (mada / Visa / Mastercard / Apple Pay / STC Pay)
+    💳 <?= t('admin.settings.moyasar_title') ?>
     <label style="font-weight:400;font-size:14px;"><input type="checkbox" name="moyasar_enabled" value="1" style="width:auto;display:inline-block;" <?= !empty($settings['moyasar_enabled']) ? 'checked' : '' ?>> <?= t('admin.settings.enabled') ?></label>
   </h3>
   <p class="help-text">
-    <a href="https://moyasar.com" target="_blank" rel="noopener">Moyasar</a> is a Saudi payment
-    gateway supporting mada natively alongside Visa/Mastercard, Apple Pay, and STC Pay — the
-    broadest single-provider coverage for Saudi customers. Get your API keys from the Moyasar
-    dashboard. Card payments stay disabled site-wide until both keys are set and this is enabled.
+    <a href="https://moyasar.com" target="_blank" rel="noopener">Moyasar</a> <?= t('admin.settings.moyasar_desc') ?>
   </p>
   <div class="form-group"><label><?= t('admin.settings.publishable_key') ?></label><input type="text" name="moyasar_publishable_key" value="<?= e($settings['moyasar_publishable_key'] ?? '') ?>" placeholder="pk_live_..."></div>
   <div class="form-group">
     <label><?= t('admin.settings.secret_key') ?></label>
     <div class="password-field">
-      <input type="password" name="moyasar_secret_key" placeholder="<?= !empty($settings['moyasar_secret_key']) ? '••••••••••••••••  (leave blank to keep current)' : 'sk_live_...' ?>">
+      <input type="password" name="moyasar_secret_key" placeholder="<?= !empty($settings['moyasar_secret_key']) ? t('admin.settings.secret_masked_placeholder') : 'sk_live_...' ?>">
       <?= passwordToggle() ?>
     </div>
   </div>
