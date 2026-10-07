@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Feature;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Company extends Model
 {
@@ -82,6 +83,26 @@ class Company extends Model
     public function requiresInvoiceApproval(): bool
     {
         return (bool) $this->require_invoice_approval && Feature::allowsForCompany('approval_workflow', $this);
+    }
+
+    public function approvalChainSteps(): HasMany
+    {
+        return $this->hasMany(ApprovalChainStep::class);
+    }
+
+    /**
+     * This company's configured multi-step approval chain for one document
+     * type ('estimate'|'invoice'), ordered by step_order. Empty for the
+     * (large majority of) companies that never configured one — callers
+     * must treat an empty collection as "no chain, use the original
+     * single-step approve_documents Gate flow", never as an error.
+     */
+    public function approvalChainFor(string $documentType): Collection
+    {
+        return $this->approvalChainSteps()
+            ->where('document_type', $documentType)
+            ->orderBy('step_order')
+            ->get();
     }
 
     /**

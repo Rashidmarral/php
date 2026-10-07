@@ -11,6 +11,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Support\ApprovalChain;
 use App\Support\Sms;
 use App\Support\WebhookDispatcher;
 use App\Support\WhatsApp;
@@ -207,6 +208,13 @@ class InvoiceController extends Controller
         $creditNotes = CreditNote::where('invoice_id', $invoice->id)->orderByDesc('id')->get()->toArray();
         $debitNotes = DebitNote::where('invoice_id', $invoice->id)->orderByDesc('id')->get()->toArray();
 
+        // Null when this invoice has no configured multi-step chain — the view falls
+        // back to the original flat "awaiting approval" badge in that (common) case.
+        $approvalChain = ApprovalChain::progressFor($company, 'invoice', $invoice->id);
+        $canActOnApproval = $approvalChain
+            ? ApprovalChain::canActOnCurrentStep(Auth::user(), 'invoice', $invoice->id)
+            : Auth::user()->can('approve_documents');
+
         return view('app.invoices.show', [
             'invoice' => $invoice->toArray(),
             'items' => $items,
@@ -231,6 +239,8 @@ class InvoiceController extends Controller
             'creditNotes' => $creditNotes,
             'debitNotes' => $debitNotes,
             'remainingCreditable' => $invoice->remainingCreditableTotal(),
+            'approvalChain' => $approvalChain,
+            'canActOnApproval' => $canActOnApproval,
         ]);
     }
 
@@ -409,9 +419,36 @@ class InvoiceController extends Controller
         return redirect('/app/invoices/' . $invoice->id);
     }
 
-    /** Owner/admin sign-off that clears a pending invoice to reach the client. A non-pending invoice is left untouched. */
+    /**
+     * Owner/admin sign-off that clears a pending invoice to reach the client — OR,
+     * when the company has a configured multi-step approval chain for invoices
+     * (ApprovalChain::hasChain()), sign-off from whoever holds the role required
+     * for the CURRENT pending step instead of the generic 'approve_documents' Gate.
+     * A non-pending invoice is left untouched either way.
+     *
+     * Same hasChain()-first dispatch as EstimateController::approve() — see that
+     * method's docblock for why a company with no chain configured takes the
+     * exact same path as before this feature existed.
+     */
     public function approve(int $id): RedirectResponse
     {
+        if (ApprovalChain::hasChain('invoice', $id)) {
+            $invoice = $this->findOwned($id);
+            if ($invoice->approval_status !== 'pending') {
+                $this->flash('error', t('user.invoices.not_awaiting_approval'));
+                return redirect('/app/invoices/' . $invoice->id);
+            }
+            if (!ApprovalChain::canActOnCurrentStep(Auth::user(), 'invoice', $invoice->id)) {
+                $this->flash('error', t('user.invoices.not_your_approval_step'));
+                return redirect('/app/invoices/' . $invoice->id);
+            }
+            if (ApprovalChain::approveCurrentStep(Auth::user(), 'invoice', $invoice->id) === 'done') {
+                $invoice->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+            }
+            $this->flash('success', t('user.invoices.approved'));
+            return redirect('/app/invoices/' . $invoice->id);
+        }
+
         if ($redirect = $this->requireAbility('approve_documents')) {
             return $redirect;
         }
@@ -425,8 +462,31 @@ class InvoiceController extends Controller
         return redirect('/app/invoices/' . $invoice->id);
     }
 
+    /** Mirrors approve() above: chain-aware rejection when a chain is configured, otherwise the exact original single-step flow. Rejecting at ANY step kills the whole document immediately (see ApprovalChain::rejectCurrentStep()). */
     public function reject(Request $request, int $id): RedirectResponse
     {
+        if (ApprovalChain::hasChain('invoice', $id)) {
+            $invoice = $this->findOwned($id);
+            if ($invoice->approval_status !== 'pending') {
+                $this->flash('error', t('user.invoices.not_awaiting_approval'));
+                return redirect('/app/invoices/' . $invoice->id);
+            }
+            if (!ApprovalChain::canActOnCurrentStep(Auth::user(), 'invoice', $invoice->id)) {
+                $this->flash('error', t('user.invoices.not_your_approval_step'));
+                return redirect('/app/invoices/' . $invoice->id);
+            }
+            $reason = trim((string) $request->input('reason', '')) ?: null;
+            ApprovalChain::rejectCurrentStep(Auth::user(), 'invoice', $invoice->id, $reason);
+            $invoice->update([
+                'approval_status' => 'rejected',
+                'rejection_reason' => $reason,
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
+            $this->flash('success', t('user.invoices.rejected'));
+            return redirect('/app/invoices/' . $invoice->id);
+        }
+
         if ($redirect = $this->requireAbility('approve_documents')) {
             return $redirect;
         }

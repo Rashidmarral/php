@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ApprovalChain;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -11,6 +12,32 @@ class Estimate extends Model
     const UPDATED_AT = null;
 
     protected $guarded = ['id'];
+
+    /**
+     * Single choke point for starting a multi-step approval chain: every
+     * place that creates an Estimate already goes through ::create() (see
+     * EstimateController's several approvalFieldsForNewEstimate() call
+     * sites and QuickEstimateController's own conversion), so hooking the
+     * model's `created` event here — rather than touching each call site —
+     * guarantees a chained company's step log is always started the moment
+     * one enters approval_status='pending', with no risk of a new creation
+     * path forgetting to call it. A no-op for the vast majority of
+     * estimates, which are never 'pending' in the first place (no approval
+     * required) or whose company has no chain configured for 'estimate'
+     * (see ApprovalChain::startIfChained()).
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Estimate $estimate) {
+            if ($estimate->approval_status !== 'pending') {
+                return;
+            }
+            $company = Company::find($estimate->company_id);
+            if ($company) {
+                ApprovalChain::startIfChained($company, 'estimate', $estimate);
+            }
+        });
+    }
 
     protected function casts(): array
     {

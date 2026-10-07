@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ApprovalChain;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -11,6 +12,26 @@ class Invoice extends Model
     const UPDATED_AT = null;
 
     protected $guarded = ['id'];
+
+    /**
+     * Same single-choke-point reasoning as Estimate::booted() — every place
+     * that creates an Invoice with approval_status='pending' (InvoiceController,
+     * EstimateController::convertToInvoice(), PaymentCertificateController)
+     * goes through ::create(), so this is the one place a chained company's
+     * step log needs to start, with no per-controller call to remember.
+     */
+    protected static function booted(): void
+    {
+        static::created(function (Invoice $invoice) {
+            if ($invoice->approval_status !== 'pending') {
+                return;
+            }
+            $company = Company::find($invoice->company_id);
+            if ($company) {
+                ApprovalChain::startIfChained($company, 'invoice', $invoice);
+            }
+        });
+    }
 
     protected function casts(): array
     {

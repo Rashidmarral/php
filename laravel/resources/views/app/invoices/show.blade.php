@@ -18,8 +18,19 @@
 <?php if ($invoice['approval_status'] === 'pending'): ?>
   <div class="alert" style="max-width:820px;background:#fdf3e0;color:var(--warning);border:1px solid #e8c76b;">
     <strong><?= t('user.invoices.approval_pending') ?></strong>
-    <p class="help-text" style="margin-top:4px;color:inherit;"><?= t('user.invoices.approval_pending_hint') ?></p>
-    <?php if (auth()->user()->can('approve_documents')): ?>
+    <?php if ($approvalChain): ?>
+      <p class="help-text" style="margin-top:4px;color:inherit;">
+        <?= t('user.approvals.step_progress', ['position' => $approvalChain['position'], 'total' => $approvalChain['total'], 'label' => $approvalChain['currentLabel']]) ?>
+      </p>
+      <ul style="margin:8px 0 0;padding-<?= app()->getLocale() === 'ar' ? 'right' : 'left' ?>:18px;">
+        <?php foreach ($approvalChain['steps'] as $step): ?>
+          <li><?= e($step->label) ?> — <?= t('user.approvals.status_' . $step->status) ?></li>
+        <?php endforeach; ?>
+      </ul>
+    <?php else: ?>
+      <p class="help-text" style="margin-top:4px;color:inherit;"><?= t('user.invoices.approval_pending_hint') ?></p>
+    <?php endif; ?>
+    <?php if ($canActOnApproval): ?>
       <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:12px;">
         <form method="post" action="/app/invoices/<?= $invoice['id'] ?>/approve">
           <?= csrf_field() ?>

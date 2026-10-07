@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\ApprovalChainStep;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -112,10 +113,15 @@ class SettingsController extends Controller
         return redirect('/app/settings/legal');
     }
 
-    /** Business tab: pricing defaults, client portal, and the feature-gated approval-workflow toggles. */
+    /** Business tab: pricing defaults, client portal, and the feature-gated approval-workflow toggles (plus each toggle's optional multi-step chain refinement). */
     public function business(): View
     {
-        return view('app.settings.business', ['company' => Company::find(Auth::user()->company_id)->toArray()]);
+        $company = Company::find(Auth::user()->company_id);
+        return view('app.settings.business', [
+            'company' => $company->toArray(),
+            'estimateChainSteps' => $company->approvalChainFor('estimate'),
+            'invoiceChainSteps' => $company->approvalChainFor('invoice'),
+        ]);
     }
 
     public function updateBusiness(Request $request): RedirectResponse
@@ -142,6 +148,75 @@ class SettingsController extends Controller
         }
 
         Company::whereKey($companyId)->update($data);
+
+        $this->flash('success', t('user.settings.company_updated'));
+        return redirect('/app/settings/business');
+    }
+
+    /**
+     * Saves each document type's ordered chain of approval steps — a purely
+     * additive refinement of the require_estimate_approval/require_invoice_approval
+     * toggles above, never a separate on/off switch: a document type's posted
+     * steps are only ever persisted when that type's own toggle is on and the
+     * plan still includes approval_workflow, exactly like updateBusiness()'s own
+     * guard around those toggles. Posting an empty/all-blank set of steps for a
+     * document type is how a company goes back to the plain single-step flow for
+     * it, which already behaves correctly on its own (ApprovalChain::startIfChained()
+     * no-ops whenever approvalChainFor() comes back empty).
+     */
+    public function updateApprovalChain(Request $request): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('manage_company_settings')) {
+            return $redirect;
+        }
+
+        $companyId = Auth::user()->company_id;
+        $company = Company::find($companyId);
+        $planAllows = \App\Support\Feature::allows('approval_workflow');
+
+        $requiresApproval = [
+            'estimate' => $planAllows && $company->requiresEstimateApproval(),
+            'invoice' => $planAllows && $company->requiresInvoiceApproval(),
+        ];
+
+        foreach ($requiresApproval as $documentType => $enabled) {
+            ApprovalChainStep::where('company_id', $companyId)->where('document_type', $documentType)->delete();
+
+            if (!$enabled) {
+                continue;
+            }
+
+            $roles = (array) $request->input($documentType . '_step_role', []);
+            $labels = (array) $request->input($documentType . '_step_label', []);
+            $labelsAr = (array) $request->input($documentType . '_step_label_ar', []);
+
+            $now = now();
+            $rows = [];
+            $order = 1;
+            foreach ($roles as $i => $role) {
+                if ($order > ApprovalChainStep::MAX_STEPS) {
+                    break;
+                }
+                $role = trim((string) $role);
+                if (!in_array($role, ApprovalChainStep::ROLES, true)) {
+                    continue;
+                }
+                $rows[] = [
+                    'company_id' => $companyId,
+                    'document_type' => $documentType,
+                    'step_order' => $order,
+                    'role_required' => $role,
+                    'label' => trim((string) ($labels[$i] ?? '')) ?: null,
+                    'label_ar' => trim((string) ($labelsAr[$i] ?? '')) ?: null,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+                $order++;
+            }
+            if ($rows) {
+                ApprovalChainStep::insert($rows);
+            }
+        }
 
         $this->flash('success', t('user.settings.company_updated'));
         return redirect('/app/settings/business');

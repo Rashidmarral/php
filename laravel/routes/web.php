@@ -316,6 +316,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/settings/legal', [SettingsController::class, 'updateLegal']);
     Route::get('/settings/business', [SettingsController::class, 'business']);
     Route::post('/settings/business', [SettingsController::class, 'updateBusiness']);
+    Route::post('/settings/business/approval-chain', [SettingsController::class, 'updateApprovalChain']);
     Route::post('/settings/invoice-templates/use-preset', [InvoiceTemplateController::class, 'useTemplate']);
     Route::get('/settings/invoice-templates/template/{id}/edit', [InvoiceTemplateController::class, 'edit'])->where('id', '[0-9]+');
     Route::post('/settings/invoice-templates/template/{id}', [InvoiceTemplateController::class, 'update'])->where('id', '[0-9]+');

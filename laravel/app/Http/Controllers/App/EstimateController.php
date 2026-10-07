@@ -17,6 +17,7 @@ use App\Models\Setting;
 use App\Models\TaxRate;
 use App\Models\UnitOfMeasure;
 use App\Support\AiEstimateGenerator;
+use App\Support\ApprovalChain;
 use App\Support\EstimateCalc;
 use App\Support\Sms;
 use App\Support\SpreadsheetBoqImporter;
@@ -905,6 +906,13 @@ class EstimateController extends Controller
             $approverWhatsappLink = WhatsApp::shareLink($company->phone, $this->approverPingMessage($estimate, $company));
         }
 
+        // Null when this estimate has no configured multi-step chain — the view falls
+        // back to the original flat "awaiting approval" badge in that (common) case.
+        $approvalChain = ApprovalChain::progressFor($company, 'estimate', $estimate->id);
+        $canActOnApproval = $approvalChain
+            ? ApprovalChain::canActOnCurrentStep(Auth::user(), 'estimate', $estimate->id)
+            : Auth::user()->can('approve_documents');
+
         return view('app.estimates.show', [
             'estimate' => $estimate->toArray(),
             'items' => $items,
@@ -924,6 +932,8 @@ class EstimateController extends Controller
             'isExpired' => $estimate->isExpired(),
             'taxRates' => TaxRate::where('company_id', $estimate->company_id)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
             'convertedInvoice' => Invoice::where('source_estimate_id', $estimate->id)->first()?->toArray(),
+            'approvalChain' => $approvalChain,
+            'canActOnApproval' => $canActOnApproval,
         ]);
     }
 
@@ -975,9 +985,37 @@ class EstimateController extends Controller
         return redirect('/app/estimates/' . $estimate->id);
     }
 
-    /** Owner/admin sign-off that clears a pending estimate to reach the client. A non-pending estimate is left untouched. */
+    /**
+     * Owner/admin sign-off that clears a pending estimate to reach the client — OR,
+     * when the company has a configured multi-step approval chain for estimates
+     * (ApprovalChain::hasChain()), sign-off from whoever holds the role required
+     * for the CURRENT pending step instead of the generic 'approve_documents' Gate.
+     * A non-pending estimate is left untouched either way.
+     *
+     * hasChain() is checked by the bare $id BEFORE findOwned()/requireAbility() so a
+     * company that never configured a chain (the common case) takes the exact same
+     * requireAbility('approve_documents') → findOwned() → update() path as before
+     * this feature existed — see this app's own regression test for that property.
+     */
     public function approve(int $id): RedirectResponse
     {
+        if (ApprovalChain::hasChain('estimate', $id)) {
+            $estimate = $this->findOwned($id);
+            if ($estimate->approval_status !== 'pending') {
+                $this->flash('error', t('user.estimates.not_awaiting_approval'));
+                return redirect('/app/estimates/' . $estimate->id);
+            }
+            if (!ApprovalChain::canActOnCurrentStep(Auth::user(), 'estimate', $estimate->id)) {
+                $this->flash('error', t('user.estimates.not_your_approval_step'));
+                return redirect('/app/estimates/' . $estimate->id);
+            }
+            if (ApprovalChain::approveCurrentStep(Auth::user(), 'estimate', $estimate->id) === 'done') {
+                $estimate->update(['approval_status' => 'approved', 'approved_by' => Auth::id(), 'approved_at' => now()]);
+            }
+            $this->flash('success', t('user.estimates.approved'));
+            return redirect('/app/estimates/' . $estimate->id);
+        }
+
         if ($redirect = $this->requireAbility('approve_documents')) {
             return $redirect;
         }
@@ -991,8 +1029,31 @@ class EstimateController extends Controller
         return redirect('/app/estimates/' . $estimate->id);
     }
 
+    /** Mirrors approve() above: chain-aware rejection when a chain is configured, otherwise the exact original single-step flow. Rejecting at ANY step kills the whole document immediately (see ApprovalChain::rejectCurrentStep()). */
     public function reject(Request $request, int $id): RedirectResponse
     {
+        if (ApprovalChain::hasChain('estimate', $id)) {
+            $estimate = $this->findOwned($id);
+            if ($estimate->approval_status !== 'pending') {
+                $this->flash('error', t('user.estimates.not_awaiting_approval'));
+                return redirect('/app/estimates/' . $estimate->id);
+            }
+            if (!ApprovalChain::canActOnCurrentStep(Auth::user(), 'estimate', $estimate->id)) {
+                $this->flash('error', t('user.estimates.not_your_approval_step'));
+                return redirect('/app/estimates/' . $estimate->id);
+            }
+            $reason = trim((string) $request->input('reason', '')) ?: null;
+            ApprovalChain::rejectCurrentStep(Auth::user(), 'estimate', $estimate->id, $reason);
+            $estimate->update([
+                'approval_status' => 'rejected',
+                'rejection_reason' => $reason,
+                'approved_by' => null,
+                'approved_at' => null,
+            ]);
+            $this->flash('success', t('user.estimates.rejected'));
+            return redirect('/app/estimates/' . $estimate->id);
+        }
+
         if ($redirect = $this->requireAbility('approve_documents')) {
             return $redirect;
         }
