@@ -8,6 +8,8 @@ use App\Models\BoqItem;
 use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Equipment;
+use App\Models\EquipmentAssignment;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\ExtensionOfTimeRequest;
@@ -271,6 +273,25 @@ class ProjectController extends Controller
             ->orderByRaw('expiry_date IS NULL')
             ->orderBy('expiry_date')
             ->get();
+        // Currently-assigned (unreturned) equipment for this project — the quick
+        // utilization card on the project show page, same "join the owning entity's
+        // name in" convention as $subcontracts above.
+        $equipmentAssignments = EquipmentAssignment::where('project_id', $project->id)
+            ->whereNull('returned_date')
+            ->orderByDesc('assigned_date')
+            ->get();
+        $assignedEquipment = Equipment::where('company_id', $project->company_id)
+            ->whereIn('id', $equipmentAssignments->pluck('equipment_id'))
+            ->get()
+            ->keyBy('id');
+        $projectEquipment = $equipmentAssignments->map(fn (EquipmentAssignment $a) => [
+            ...$a->toArray(),
+            'equipment_name' => $assignedEquipment->get($a->equipment_id)->name ?? '—',
+        ])->all();
+        $availableEquipment = Equipment::where('company_id', $project->company_id)
+            ->where('status', '!=', 'retired')
+            ->orderBy('name')
+            ->get();
         $siteLogs = SiteLog::where('project_id', $project->id)
             ->orderByDesc('log_date')
             ->orderByDesc('created_at')
@@ -340,6 +361,8 @@ class ProjectController extends Controller
             'ldExposure' => $ldExposure,
             'bankGuarantees' => $bankGuarantees->toArray(),
             'bankGuaranteeTypes' => BankGuarantee::TYPES,
+            'projectEquipment' => $projectEquipment,
+            'availableEquipment' => $availableEquipment->toArray(),
             'siteLogs' => $siteLogs->toArray(),
             'siteLogCount' => $siteLogCount,
             'punchListItems' => $punchListItems->toArray(),

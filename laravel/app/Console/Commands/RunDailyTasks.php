@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use App\Models\BankGuarantee;
 use App\Models\Company;
 use App\Models\ComplianceDocument;
+use App\Models\Equipment;
+use App\Models\EquipmentMaintenanceLog;
 use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Project;
@@ -25,7 +27,8 @@ use Illuminate\Console\Command;
  * compliance-document expiry reminders, team-member-document (iqama, health
  * certificate, etc.) expiry reminders, supplier-document (CR, insurance,
  * classification certificate, etc.) expiry reminders, bank-guarantee/bond expiry
- * reminders, retention-release reminders, and recurring invoice generation.
+ * reminders, retention-release reminders, recurring invoice generation, and
+ * equipment-maintenance-due reminders.
  * Scheduled once a day (see routes/console.php).
  *
  * Safe to run more than once a day — every action here checks state before acting
@@ -244,6 +247,30 @@ class RunDailyTasks extends Command
             $retentionReminders++;
         }
         $this->info("Retention release reminders sent: {$retentionReminders}.");
+
+        // ---- 9. Remind companies about equipment maintenance due within the next 7 days
+        //         (once per log entry) — the same mechanical shape as blocks 3/4/5/6 above,
+        //         just one more entity with the same "has a date, reminder_sent_at guards it"
+        //         pattern, applied to EquipmentMaintenanceLog.next_due_date instead of an
+        //         expiry_date. ----
+        $maintenanceCutoff = now()->addDays(7)->format('Y-m-d');
+        $dueMaintenanceLogs = EquipmentMaintenanceLog::whereNotNull('next_due_date')
+            ->where('next_due_date', '<=', $maintenanceCutoff)
+            ->whereNull('reminder_sent_at')
+            ->get();
+
+        $maintenanceReminders = 0;
+        foreach ($dueMaintenanceLogs as $log) {
+            $company = Company::find($log->company_id);
+            $equipment = Equipment::find($log->equipment_id);
+            if (!$company || !$equipment) {
+                continue;
+            }
+            Notifications::equipmentMaintenanceDue($company, $equipment, $log);
+            $log->update(['reminder_sent_at' => now()]);
+            $maintenanceReminders++;
+        }
+        $this->info("Equipment maintenance reminders sent: {$maintenanceReminders}.");
 
         $this->info('Daily tasks complete.');
         return self::SUCCESS;

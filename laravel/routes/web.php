@@ -45,6 +45,7 @@ use App\Http\Controllers\App\ConsultationController;
 use App\Http\Controllers\App\CreditNoteController;
 use App\Http\Controllers\App\DebitNoteController;
 use App\Http\Controllers\App\DocumentController;
+use App\Http\Controllers\App\EquipmentController;
 use App\Http\Controllers\App\ImpersonationController;
 use App\Http\Controllers\App\IntegrationController;
 use App\Http\Controllers\App\LeadController;
@@ -391,6 +392,18 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/suppliers/{id}/documents/{docId}/delete', [SupplierController::class, 'destroyDocument']);
     Route::post('/suppliers/{id}/ratings', [SupplierController::class, 'storeRating']);
     Route::get('/suppliers/{id}', [SupplierController::class, 'show']);
+
+    Route::get('/equipment', [EquipmentController::class, 'index']);
+    Route::get('/equipment/create', [EquipmentController::class, 'create']);
+    Route::post('/equipment', [EquipmentController::class, 'store']);
+    Route::get('/equipment/{id}/edit', [EquipmentController::class, 'edit']);
+    Route::post('/equipment/{id}', [EquipmentController::class, 'update']);
+    Route::post('/equipment/{id}/delete', [EquipmentController::class, 'destroy']);
+    Route::post('/equipment/{id}/maintenance', [EquipmentController::class, 'storeMaintenanceLog']);
+    Route::post('/equipment/{id}/assignments', [EquipmentController::class, 'storeAssignment']);
+    Route::get('/equipment/{id}', [EquipmentController::class, 'show']);
+    Route::post('/equipment-assignments/{id}/return', [EquipmentController::class, 'returnAssignment']);
+    Route::post('/projects/{id}/equipment-assignments', [EquipmentController::class, 'assignToProject']);
 
     Route::get('/materials', [MaterialController::class, 'index']);
     Route::get('/materials/create', [MaterialController::class, 'create']);

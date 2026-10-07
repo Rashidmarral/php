@@ -309,6 +309,47 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.equipment.project_card_title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.equipment.project_card_hint') ?></p>
+
+  <?php if (empty($projectEquipment)): ?>
+    <p class="help-text"><?= t('user.equipment.none_assigned') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:16px;">
+      <thead><tr><th><?= t('common.name') ?></th><th><?= t('user.equipment.assigned_date') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($projectEquipment as $pe): ?>
+        <tr>
+          <td><a href="/app/equipment/<?= $pe['equipment_id'] ?>"><?= e($pe['equipment_name']) ?></a></td>
+          <td><?= e($pe['assigned_date'] ?: '—') ?></td>
+          <td>
+            <form method="post" action="/app/equipment-assignments/<?= $pe['id'] ?>/return" style="display:inline;">
+              <?= csrf_field() ?>
+              <input type="hidden" name="from" value="project">
+              <button type="submit" class="btn btn-sm btn-outline"><?= t('user.equipment.return_btn') ?></button>
+            </form>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <form method="post" action="/app/projects/<?= $project['id'] ?>/equipment-assignments" style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+    <?= csrf_field() ?>
+    <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+      <label><?= t('user.equipment.title') ?></label>
+      <select name="equipment_id" required>
+        <option value=""><?= t('user.equipment.select_equipment') ?></option>
+        <?php foreach ($availableEquipment as $eq): ?><option value="<?= $eq['id'] ?>"><?= e(local($eq, 'name')) ?></option><?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group" style="margin:0;width:160px;"><label><?= t('user.equipment.assigned_date') ?></label><input type="date" name="assigned_date" value="<?= date('Y-m-d') ?>"></div>
+    <button type="submit" class="btn btn-outline"><?= t('user.equipment.assign_btn') ?></button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.site_log.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.site_log.card_hint') ?></p>
 

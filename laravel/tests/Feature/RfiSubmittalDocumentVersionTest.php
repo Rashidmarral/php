@@ -50,6 +50,7 @@ class RfiSubmittalDocumentVersionTest extends TestCase
                 'rfi' => $withRfiSubmittals,
                 'submittals' => $withRfiSubmittals,
                 'documents' => true,
+                'equipment_management' => true,
             ]),
         ]);
 
@@ -266,7 +267,7 @@ class RfiSubmittalDocumentVersionTest extends TestCase
      * Subcontracts, LD/EOT, Punch List, Site Photo Diary, Schedule) must still render,
      * alongside the two new RFI/Submittals cards — in both English and Arabic.
      */
-    public function test_project_show_page_renders_every_existing_section_plus_the_two_new_ones_in_both_locales(): void
+    public function test_project_show_page_renders_every_existing_section_plus_the_new_ones_in_both_locales(): void
     {
         $company = $this->makeCompany('PG');
         $owner = $this->makeUser($company, 'owner', 'PG');
@@ -280,6 +281,13 @@ class RfiSubmittalDocumentVersionTest extends TestCase
         $this->actingAs($owner)->post('/app/projects/' . $project->id . '/submittals', [
             'title' => 'Show-page Submittal',
             'file' => UploadedFile::fake()->create('s.pdf', 10, 'application/pdf'),
+        ]);
+        // Task #56: equipment assigned to this project, via the Equipment card added to
+        // this same page — surgical addition, same section-count check this test already does.
+        $equipment = \App\Models\Equipment::create(['company_id' => $company->id, 'name' => 'Show-page Excavator', 'status' => 'available']);
+        $this->actingAs($owner)->post('/app/projects/' . $project->id . '/equipment-assignments', [
+            'equipment_id' => $equipment->id,
+            'assigned_date' => now()->format('Y-m-d'),
         ]);
 
         // en: check existing + new section labels/content resolve and render.
@@ -299,14 +307,17 @@ class RfiSubmittalDocumentVersionTest extends TestCase
         $en->assertSeeText(t('user.projects.site_photo_diary'));
         $en->assertSeeText(t('user.rfi.title'));
         $en->assertSeeText(t('user.submittals.title'));
+        $en->assertSeeText(t('user.equipment.project_card_title'));
         $en->assertSee('Show-page RFI');
         $en->assertSee('Show-page Submittal');
+        $en->assertSee('Show-page Excavator');
 
         // ar: same locale-switched page must also render without errors, old + new sections intact.
         $ar = $this->actingAs($owner)->get('/app/projects/' . $project->id . '?lang=ar');
         $ar->assertOk();
         $ar->assertSeeText(t('user.rfi.title'));
         $ar->assertSeeText(t('user.submittals.title'));
+        $ar->assertSeeText(t('user.equipment.project_card_title'));
     }
 
     // ---------------------------------------------------------------

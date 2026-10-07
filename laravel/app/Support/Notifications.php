@@ -195,6 +195,21 @@ class Notifications
         self::smsCompany($company, "Retention on \"{$project->name}\": " . number_format($retentionHeld, 2) . " SAR still held — its defects liability period " . ($dlpDate ? "ends {$dlpDate}" : 'is ending soon') . ".");
     }
 
+    public static function equipmentMaintenanceDue(Company $company, \App\Models\Equipment $equipment, \App\Models\EquipmentMaintenanceLog $log): void
+    {
+        $owner = self::companyOwner($company->id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "{$equipment->name}'s maintenance is due soon",
+            "Hi {$owner->name},\n\n\"{$equipment->name}\" has maintenance due on {$log->next_due_date?->format('Y-m-d')}. Schedule it before the asset is next needed on site.\n\nView the asset: " . rtrim((string) config('app.url'), '/') . "/app/equipment/{$equipment->id}"
+        );
+        self::smsCompany($company, "\"{$equipment->name}\" has maintenance due on {$log->next_due_date?->format('Y-m-d')} — schedule it soon.");
+    }
+
     private static function companyOwner(int $companyId): ?User
     {
         return User::where('company_id', $companyId)->where('role', 'owner')->first();

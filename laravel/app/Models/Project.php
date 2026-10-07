@@ -88,6 +88,11 @@ class Project extends Model
         return $this->hasMany(ExtensionOfTimeRequest::class);
     }
 
+    public function equipmentAssignments(): HasMany
+    {
+        return $this->hasMany(EquipmentAssignment::class);
+    }
+
     /** Sum of every BOQ line's contract value — the total contract sum this project's certificates claim against. */
     public function boqContractValue(): float
     {

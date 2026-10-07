@@ -35,6 +35,7 @@ class Feature
         'ld_eot_tracking' => 'Liquidated Damages & EOT Tracking',
         'rfi' => 'RFI (Request for Information) Tracking',
         'submittals' => 'Submittals Management',
+        'equipment_management' => 'Equipment & Fleet Management',
         'recurring_invoices' => 'Recurring Invoices',
         'approval_workflow' => 'Approval Workflow',
         'project_photos' => 'Project Photo Gallery',
