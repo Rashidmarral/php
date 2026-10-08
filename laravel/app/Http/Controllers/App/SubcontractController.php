@@ -121,6 +121,7 @@ class SubcontractController extends Controller
             'payments' => $payments->toArray(),
             'cumulativePaid' => $subcontract->cumulativePaid(),
             'retentionHeld' => $subcontract->retentionHeld(),
+            'contractValueInSar' => $subcontract->contractValueInSar(),
             'remaining' => max(0, round((float) $subcontract->contract_value - $subcontract->cumulativePaid(), 2)),
             'hasCertifiedPayment' => $subcontract->hasCertifiedPayment(),
             'hasAnyPayment' => $subcontract->hasAnyPayment(),
@@ -216,7 +217,31 @@ class SubcontractController extends Controller
             'status' => $status,
             'start_date' => $request->input('start_date') ?: null,
             'end_date' => $request->input('end_date') ?: null,
+            ...$this->currencyFields($request),
         ], null];
+    }
+
+    /**
+     * currency is forced to a 3-letter uppercase code (default SAR when blank/invalid), and
+     * exchange_rate_to_sar is forced to exactly 1.0 whenever currency is SAR — a data-integrity
+     * rule enforced here server-side, never just trusted from the form — or defaulted to 1.0
+     * when blank/non-positive for any other currency.
+     */
+    private function currencyFields(Request $request): array
+    {
+        $currency = strtoupper(trim((string) $request->input('currency', '')));
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            $currency = 'SAR';
+        }
+        if ($currency === 'SAR') {
+            $rate = 1.0;
+        } else {
+            $rate = (float) $request->input('exchange_rate_to_sar', 0);
+            if ($rate <= 0) {
+                $rate = 1.0;
+            }
+        }
+        return ['currency' => $currency, 'exchange_rate_to_sar' => $rate];
     }
 
     /** Only returns the supplier if it belongs to $companyId — never trust a raw supplier_id from the request. */

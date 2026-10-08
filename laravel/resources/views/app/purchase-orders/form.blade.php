@@ -20,6 +20,21 @@
     <div class="form-group"><label><?= t('user.projects.issue_date') ?></label><input type="date" name="issue_date" value="<?= date('Y-m-d') ?>"></div>
     <div class="form-group"><label><?= t('user.purchase_orders.expected_delivery_date') ?></label><input type="date" name="expected_delivery_date"></div>
   </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label><?= t('user.purchase_orders.currency') ?></label>
+      <select name="currency" id="po-currency">
+        <?php foreach (['SAR', 'USD', 'EUR', 'GBP', 'AED', 'CNY'] as $cur): ?>
+          <option value="<?= $cur ?>" <?= $cur === 'SAR' ? 'selected' : '' ?>><?= $cur ?></option>
+        <?php endforeach; ?>
+      </select>
+      <p class="help-text" style="margin-top:4px;"><?= t('user.purchase_orders.currency_hint') ?></p>
+    </div>
+    <div class="form-group">
+      <label><?= t('user.purchase_orders.exchange_rate_to_sar') ?></label>
+      <input type="number" step="0.0001" min="0.0001" name="exchange_rate_to_sar" id="po-exchange-rate" value="1.0000" disabled>
+    </div>
+  </div>
   <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
 
   <label><?= t('user.invoices.line_items') ?></label>
@@ -47,7 +62,8 @@
     <?= t('common.subtotal') ?>: <span id="grand-subtotal">0.00</span> SAR<br>
     <?= t('common.vat') ?>: <span id="grand-vat">0.00</span> SAR
   </div>
-  <div class="total-row"><?= t('common.total') ?>: <span id="grand-total">0.00</span> SAR</div>
+  <div class="total-row"><?= t('common.total') ?>: <span id="grand-total">0.00</span> <span id="grand-total-currency">SAR</span></div>
+  <p class="help-text" id="sar-equivalent-row" style="display:none;margin-top:-8px;"><?= t('user.purchase_orders.sar_equivalent') ?>: <span id="grand-total-sar">0.00</span> SAR</p>
 
   <div style="display:flex;gap:8px;margin-top:16px;">
     <button type="submit" name="status" value="draft" class="btn btn-light"><?= t('user.purchase_orders.save_draft') ?></button>
@@ -64,6 +80,20 @@
   const grandVat = document.getElementById('grand-vat');
   const applyVat = document.getElementById('apply-vat');
   const vatRate = <?= json_encode($vatRate) ?>;
+  const currencySelect = document.getElementById('po-currency');
+  const rateInput = document.getElementById('po-exchange-rate');
+  const grandTotalCurrency = document.getElementById('grand-total-currency');
+  const sarEquivalentRow = document.getElementById('sar-equivalent-row');
+  const grandTotalSar = document.getElementById('grand-total-sar');
+
+  function syncCurrencyFields() {
+    const isSar = currencySelect.value === 'SAR';
+    rateInput.disabled = isSar;
+    if (isSar) rateInput.value = '1.0000';
+    grandTotalCurrency.textContent = currencySelect.value;
+    sarEquivalentRow.style.display = isSar ? 'none' : 'block';
+    recalc();
+  }
 
   function rowTemplate() {
     const tr = document.createElement('tr');
@@ -86,9 +116,12 @@
       subtotal += lineTotal;
     });
     const vat = applyVat.checked ? subtotal * vatRate / 100 : 0;
+    const total = subtotal + vat;
     grandSubtotal.textContent = subtotal.toFixed(2);
     grandVat.textContent = vat.toFixed(2);
-    grandTotal.textContent = (subtotal + vat).toFixed(2);
+    grandTotal.textContent = total.toFixed(2);
+    const rate = parseFloat(rateInput.value) || 1;
+    grandTotalSar.textContent = (total * rate).toFixed(2);
   }
 
   addBtn.addEventListener('click', () => { body.appendChild(rowTemplate()); recalc(); });
@@ -101,7 +134,9 @@
     }
   });
 
-  recalc();
+  currencySelect.addEventListener('change', syncCurrencyFields);
+  rateInput.addEventListener('input', recalc);
+  syncCurrencyFields();
 })();
 </script>
 @endsection

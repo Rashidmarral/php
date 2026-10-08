@@ -22,7 +22,7 @@
   </div>
 <?php else: ?>
   <table class="data">
-    <thead><tr><th><?= t('common.name') ?></th><th><?= t('common.contact') ?></th><th><?= t('common.email') ?></th><th><?= t('common.phone') ?></th><th><?= t('common.category') ?></th><th><?= t('user.suppliers.classification_grade_col') ?></th><th><?= t('user.suppliers.rating_col') ?></th><th></th></tr></thead>
+    <thead><tr><th><?= t('common.name') ?></th><th><?= t('common.contact') ?></th><th><?= t('common.email') ?></th><th><?= t('common.phone') ?></th><th><?= t('common.category') ?></th><th><?= t('user.suppliers.currency') ?></th><th><?= t('user.suppliers.classification_grade_col') ?></th><th><?= t('user.suppliers.rating_col') ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($suppliers as $s): ?>
       <tr>
@@ -34,6 +34,7 @@
         <td><?= e($s['email']) ?></td>
         <td><?= e($s['phone']) ?></td>
         <td><?php if ($s['category']): ?><span class="badge badge-gray"><?= e($s['category']) ?></span><?php endif; ?></td>
+        <td><?php if (($s['currency'] ?? 'SAR') !== 'SAR'): ?><span class="badge badge-gray"><?= e($s['currency']) ?></span><?php else: ?>—<?php endif; ?></td>
         <td><?php if ($s['classification_grade']): ?><span class="badge badge-gray"><?= t('user.settings.classification_grade_option', ['n' => $s['classification_grade']]) ?></span><?php endif; ?></td>
         <td><?= $s['average_rating'] !== null ? str_repeat('★', (int) round($s['average_rating'])) . str_repeat('☆', 5 - (int) round($s['average_rating'])) . ' (' . $s['average_rating'] . ')' : '—' ?></td>
         <td style="display:flex;gap:8px;">

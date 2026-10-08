@@ -95,6 +95,7 @@ class PurchaseOrderController extends Controller
             'subtotal' => $subtotal,
             'vat_amount' => $vatAmount,
             'total' => $total,
+            ...$this->currencyFields($request),
         ]);
 
         foreach ($items as $item) {
@@ -250,5 +251,28 @@ class PurchaseOrderController extends Controller
         }
         $supplier = Supplier::find($id);
         return ($supplier && $supplier->company_id === $companyId) ? $supplier : null;
+    }
+
+    /**
+     * currency is forced to a 3-letter uppercase code (default SAR when blank/invalid), and
+     * exchange_rate_to_sar is forced to exactly 1.0 whenever currency is SAR — a data-integrity
+     * rule enforced here server-side, never just trusted from the form — or defaulted to 1.0
+     * when blank/non-positive for any other currency.
+     */
+    private function currencyFields(Request $request): array
+    {
+        $currency = strtoupper(trim((string) $request->input('currency', '')));
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            $currency = 'SAR';
+        }
+        if ($currency === 'SAR') {
+            $rate = 1.0;
+        } else {
+            $rate = (float) $request->input('exchange_rate_to_sar', 0);
+            if ($rate <= 0) {
+                $rate = 1.0;
+            }
+        }
+        return ['currency' => $currency, 'exchange_rate_to_sar' => $rate];
     }
 }

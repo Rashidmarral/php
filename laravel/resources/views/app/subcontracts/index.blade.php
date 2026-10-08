@@ -41,7 +41,7 @@
           <td><a href="/app/subcontracts/<?= $s['id'] ?>"><?= e($s['title']) ?></a></td>
           <td><?= e($s['supplier_name']) ?></td>
           <td><span class="badge <?= $s['status'] === 'active' ? 'badge-green' : ($s['status'] === 'terminated' ? 'badge-red' : 'badge-gray') ?>"><?= e($statuses[$s['status']] ?? ucfirst($s['status'])) ?></span></td>
-          <td><?= money((float)$s['contract_value']) ?></td>
+          <td><?= money((float)$s['contract_value'], $s['currency'] ?? 'SAR') ?></td>
           <td><?= money((float)$s['cumulative_paid']) ?></td>
           <td><?= money((float)$s['retention_held']) ?></td>
           <td><a href="/app/subcontracts/<?= $s['id'] ?>" class="btn btn-sm btn-light"><?= t('common.view') ?></a></td>

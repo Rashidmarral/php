@@ -21,6 +21,22 @@
   </div>
   <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" value="<?= e($supplier['email'] ?? '') ?>"></div>
   <div class="form-group"><label><?= t('common.address') ?></label><input type="text" name="address" value="<?= e($supplier['address'] ?? '') ?>"></div>
+  <div class="form-row">
+    <div class="form-group">
+      <label><?= t('user.suppliers.currency') ?></label>
+      <select name="currency" id="supplier-currency">
+        <?php $supplierCurrency = $supplier['currency'] ?? 'SAR'; ?>
+        <?php foreach (['SAR', 'USD', 'EUR', 'GBP', 'AED', 'CNY'] as $cur): ?>
+          <option value="<?= $cur ?>" <?= $supplierCurrency === $cur ? 'selected' : '' ?>><?= $cur ?></option>
+        <?php endforeach; ?>
+      </select>
+      <p class="help-text" style="margin-top:4px;"><?= t('user.suppliers.currency_hint') ?></p>
+    </div>
+    <div class="form-group">
+      <label><?= t('user.suppliers.exchange_rate_to_sar') ?></label>
+      <input type="number" step="0.0001" min="0.0001" name="exchange_rate_to_sar" id="supplier-exchange-rate" value="<?= e((string) ($supplier['exchange_rate_to_sar'] ?? 1.0)) ?>">
+    </div>
+  </div>
   <div class="form-group"><label><?= t('common.notes') ?></label><textarea name="notes"><?= e($supplier['notes'] ?? '') ?></textarea></div>
 
   <h3 style="font-size:14px;margin-top:24px;"><?= t('user.suppliers.prequalification') ?></h3>
@@ -51,5 +67,21 @@
 
   <button type="submit" class="btn btn-primary"><?= $supplier ? t('common.save_changes') : t('user.suppliers.add_supplier') ?></button>
 </form>
+
+<script>
+(function() {
+  const currencySelect = document.getElementById('supplier-currency');
+  const rateInput = document.getElementById('supplier-exchange-rate');
+
+  function syncRateField() {
+    const isSar = currencySelect.value === 'SAR';
+    rateInput.disabled = isSar;
+    if (isSar) rateInput.value = '1.0000';
+  }
+
+  currencySelect.addEventListener('change', syncRateField);
+  syncRateField();
+})();
+</script>
 
 @endsection

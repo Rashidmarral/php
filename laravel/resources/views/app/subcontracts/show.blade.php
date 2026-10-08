@@ -27,7 +27,12 @@
 <?php endif; ?>
 
 <div class="kpi-grid" style="margin-bottom:20px;">
-  <div class="kpi"><div class="label"><?= t('user.subcontracts.contract_value') ?></div><div class="value" style="font-size:18px;"><?= money((float)$subcontract['contract_value']) ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.subcontracts.contract_value') ?></div><div class="value" style="font-size:18px;">
+    <?= money((float)$subcontract['contract_value'], $subcontract['currency'] ?? 'SAR') ?>
+    <?php if (($subcontract['currency'] ?? 'SAR') !== 'SAR'): ?>
+      <div class="help-text" style="font-size:12px;margin-top:2px;">&asymp; <?= money($contractValueInSar) ?></div>
+    <?php endif; ?>
+  </div></div>
   <div class="kpi"><div class="label"><?= t('user.subcontracts.cumulative_paid') ?></div><div class="value" style="font-size:18px;"><?= money($cumulativePaid) ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.subcontracts.remaining') ?></div><div class="value" style="font-size:18px;"><?= money($remaining) ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.subcontracts.retention_held') ?></div><div class="value" style="font-size:18px;"><?= money($retentionHeld) ?></div></div>

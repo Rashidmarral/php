@@ -31,6 +31,12 @@
   <div class="kpi"><div class="label"><?= t('user.suppliers.rating_col') ?></div><div class="value" style="font-size:18px;"><?= $averageRating !== null ? str_repeat('★', (int) round($averageRating)) . str_repeat('☆', 5 - (int) round($averageRating)) . ' (' . $averageRating . ')' : t('user.suppliers.no_ratings_yet') ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.suppliers.cr_number') ?></div><div class="value" style="font-size:18px;"><?= e($supplier['cr_number'] ?: '—') ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.suppliers.vat_number') ?></div><div class="value" style="font-size:18px;"><?= e($supplier['vat_number'] ?: '—') ?></div></div>
+  <div class="kpi"><div class="label"><?= t('user.suppliers.currency') ?></div><div class="value" style="font-size:18px;">
+    <?= e($supplier['currency'] ?? 'SAR') ?>
+    <?php if (($supplier['currency'] ?? 'SAR') !== 'SAR'): ?>
+      <div class="help-text" style="font-size:12px;margin-top:2px;"><?= t('user.suppliers.quotes_in_currency', ['currency' => $supplier['currency'], 'rate' => number_format((float) ($supplier['exchange_rate_to_sar'] ?? 1), 4)]) ?></div>
+    <?php endif; ?>
+  </div></div>
 </div>
 
 <?php if (!empty($supplier['approved_vendor_notes'])): ?>

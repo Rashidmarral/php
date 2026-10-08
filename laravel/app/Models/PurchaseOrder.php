@@ -25,9 +25,22 @@ class PurchaseOrder extends Model
             'subtotal' => 'decimal:2',
             'vat_amount' => 'decimal:2',
             'total' => 'decimal:2',
+            'exchange_rate_to_sar' => 'decimal:4',
             'issue_date' => 'date:Y-m-d',
             'expected_delivery_date' => 'date:Y-m-d',
         ];
+    }
+
+    /**
+     * This purchase order's total converted to SAR using its own exchange_rate_to_sar — for a
+     * SAR purchase order (the default for every pre-existing row) the rate is exactly 1.0, so
+     * this is a complete no-op and simply equals total. Informational/commitment-tracking only
+     * — never fed into Project::actualCostTotal()/revisedBudget() or the cost-variance report,
+     * which stay keyed on VendorBill.amount alone.
+     */
+    public function totalInSar(): float
+    {
+        return (float) $this->total * (float) $this->exchange_rate_to_sar;
     }
 
     public function company(): BelongsTo

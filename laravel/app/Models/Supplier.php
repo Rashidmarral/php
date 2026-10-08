@@ -17,6 +17,7 @@ class Supplier extends Model
         return [
             'is_approved_vendor' => 'boolean',
             'rating' => 'decimal:2',
+            'exchange_rate_to_sar' => 'decimal:4',
         ];
     }
 

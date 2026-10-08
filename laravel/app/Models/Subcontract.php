@@ -19,9 +19,22 @@ class Subcontract extends Model
         return [
             'contract_value' => 'decimal:2',
             'retention_percent' => 'decimal:2',
+            'exchange_rate_to_sar' => 'decimal:4',
             'start_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
         ];
+    }
+
+    /**
+     * This subcontract's contract_value converted to SAR using its own exchange_rate_to_sar —
+     * for a SAR subcontract (the default for every pre-existing row) the rate is exactly 1.0,
+     * so this is a complete no-op and simply equals contract_value. Informational/commitment-
+     * tracking only — never fed into Project::actualCostTotal()/revisedBudget() or the
+     * cost-variance report, which stay keyed on VendorBill.amount alone.
+     */
+    public function contractValueInSar(): float
+    {
+        return (float) $this->contract_value * (float) $this->exchange_rate_to_sar;
     }
 
     public function project(): BelongsTo

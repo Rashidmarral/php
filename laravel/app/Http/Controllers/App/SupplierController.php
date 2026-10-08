@@ -75,6 +75,7 @@ class SupplierController extends Controller
             'category' => $request->input('category', ''),
             'notes' => $request->input('notes', ''),
             ...$this->qualificationFields($request),
+            ...$this->currencyFields($request),
         ]);
         $this->flash('success', t('user.suppliers.added'));
         return redirect('/app/suppliers');
@@ -144,6 +145,7 @@ class SupplierController extends Controller
             'category' => $request->input('category', ''),
             'notes' => $request->input('notes', ''),
             ...$this->qualificationFields($request),
+            ...$this->currencyFields($request),
         ]);
         $this->flash('success', t('user.suppliers.updated'));
         return redirect('/app/suppliers');
@@ -343,6 +345,29 @@ class SupplierController extends Controller
             'is_approved_vendor' => $request->boolean('is_approved_vendor'),
             'approved_vendor_notes' => trim((string) $request->input('approved_vendor_notes', '')) ?: null,
         ];
+    }
+
+    /**
+     * Shared by store()/update(): currency is forced to a 3-letter uppercase code (default
+     * SAR when blank/invalid), and exchange_rate_to_sar is forced to exactly 1.0 whenever
+     * currency is SAR — a data-integrity rule enforced here server-side, never just trusted
+     * from the form — or defaulted to 1.0 when blank/non-positive for any other currency.
+     */
+    private function currencyFields(Request $request): array
+    {
+        $currency = strtoupper(trim((string) $request->input('currency', '')));
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            $currency = 'SAR';
+        }
+        if ($currency === 'SAR') {
+            $rate = 1.0;
+        } else {
+            $rate = (float) $request->input('exchange_rate_to_sar', 0);
+            if ($rate <= 0) {
+                $rate = 1.0;
+            }
+        }
+        return ['currency' => $currency, 'exchange_rate_to_sar' => $rate];
     }
 
     /** Only returns the project id if it belongs to $companyId — never trust a raw project_id from the request. */
