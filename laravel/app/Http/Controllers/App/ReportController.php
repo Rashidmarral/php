@@ -341,6 +341,9 @@ class ReportController extends Controller
         if ($redirect = $this->requireFeature('reports')) {
             return $redirect;
         }
+        if ($redirect = $this->requireFeature('cash_flow_forecasting')) {
+            return $redirect;
+        }
         $companyId = Auth::user()->company_id;
 
         $monthKeys = [];

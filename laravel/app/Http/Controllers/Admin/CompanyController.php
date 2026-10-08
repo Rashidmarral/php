@@ -10,6 +10,7 @@ use App\Models\Plan;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\Billing;
+use App\Support\Feature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -142,6 +143,45 @@ class CompanyController extends Controller
         AuditLog::record($request->user(), 'company_plan_override', 'company', $company->id, "{$company->name} → {$plan->name}");
 
         return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.plan_changed', ['plan' => $plan->name]));
+    }
+
+    /**
+     * Admin override: grant or deny one Feature::ALL key for this ONE company beyond/instead
+     * of whatever its subscribed plan's feature_flags says. Mirrors
+     * TeamController::updatePermissions()'s exact tri-state (default/allow/deny) parsing —
+     * 'default' (or anything unrecognized) leaves that key out of the stored map entirely, so
+     * it keeps falling through to the plan default, exactly like a per-user permission
+     * override falls through to the role default. The stored feature_overrides JSON is kept
+     * minimal: only keys explicitly set to true or false are ever written, never nulls.
+     */
+    public function updateFeatures(Request $request, int $id): RedirectResponse
+    {
+        $company = Company::findOrFail($id);
+
+        $overrides = [];
+        foreach (Feature::ALL as $key => $label) {
+            $choice = (string) $request->input("overrides.{$key}", 'default');
+            if ($choice === 'allow') {
+                $overrides[$key] = true;
+            } elseif ($choice === 'deny') {
+                $overrides[$key] = false;
+            }
+            // anything else ('default', or an unrecognized value) leaves this feature out of
+            // the map entirely, so it keeps falling through to the plan default.
+        }
+
+        $company->update(['feature_overrides' => $overrides === [] ? null : $overrides]);
+
+        $summary = $overrides === []
+            ? "{$company->name}: all feature overrides cleared"
+            : "{$company->name}: " . implode(', ', array_map(
+                fn ($key, $on) => $key . ' → ' . ($on ? 'on' : 'off'),
+                array_keys($overrides),
+                $overrides
+            ));
+        AuditLog::record($request->user(), 'company_feature_override', 'company', $company->id, $summary);
+
+        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.features_updated'));
     }
 
     /** Log the admin in as this company's owner, for support/debugging. Ends via /app/end-impersonation. */

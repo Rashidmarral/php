@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
@@ -27,11 +28,33 @@ class ActivityLogTest extends TestCase
 {
     use DatabaseTransactions;
 
-    private function makeCompanyWithOwner(string $tag): array
+    /** See RfiSubmittalDocumentVersionTest's own docblock on why this reset is needed. */
+    protected function setUp(): void
     {
+        parent::setUp();
+        $ref = new \ReflectionClass(\App\Support\Feature::class);
+        $ref->setStaticPropertyValue('cachedPlan', null);
+        $ref->setStaticPropertyValue('planResolved', false);
+        $ref->setStaticPropertyValue('cachedFlags', null);
+    }
+
+    /**
+     * $activityLog defaults to true: every test below except the dedicated gating test
+     * exercises the Activity Log page itself, which now requires the activity_log plan
+     * feature on top of the manage_team ability.
+     */
+    private function makeCompanyWithOwner(string $tag, bool $activityLog = true): array
+    {
+        $plan = Plan::create([
+            'slug' => 'plan-activity-log-' . strtolower($tag) . '-' . bin2hex(random_bytes(4)),
+            'name' => "Activity Log Plan {$tag}",
+            'feature_flags' => json_encode(['activity_log' => $activityLog]),
+        ]);
+
         $company = Company::create([
             'name' => "Acme {$tag} Holding",
             'email' => strtolower($tag) . '@example.com',
+            'plan_id' => $plan->id,
         ]);
 
         $owner = User::create([
@@ -178,5 +201,15 @@ class ActivityLogTest extends TestCase
         $response = $this->actingAs($estimator)->get('/app/activity-log');
 
         $response->assertRedirect('/app');
+    }
+
+    /** An owner (who does have manage_team) is still redirected to Billing when the company's plan lacks the activity_log feature. */
+    public function test_owner_is_redirected_to_billing_when_plan_lacks_activity_log_feature(): void
+    {
+        $a = $this->makeCompanyWithOwner('ActNoFeat', activityLog: false);
+
+        $response = $this->actingAs($a['owner'])->get('/app/activity-log');
+
+        $response->assertRedirect('/app/billing');
     }
 }

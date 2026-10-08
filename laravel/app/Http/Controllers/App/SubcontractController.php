@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Subcontract;
 use App\Models\SubcontractPayment;
 use App\Models\Supplier;
+use App\Support\Feature;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -226,9 +227,17 @@ class SubcontractController extends Controller
      * exchange_rate_to_sar is forced to exactly 1.0 whenever currency is SAR — a data-integrity
      * rule enforced here server-side, never just trusted from the form — or defaulted to 1.0
      * when blank/non-positive for any other currency.
+     *
+     * When the acting company's plan doesn't include the multi_currency feature, this is
+     * forced to SAR / 1.0 regardless of what was submitted, same "server-side forcing"
+     * pattern, so a downgraded/never-upgraded plan just silently stays SAR-only instead of
+     * erroring on a currency field it never had access to.
      */
     private function currencyFields(Request $request): array
     {
+        if (!Feature::allows('multi_currency')) {
+            return ['currency' => 'SAR', 'exchange_rate_to_sar' => 1.0];
+        }
         $currency = strtoupper(trim((string) $request->input('currency', '')));
         if (!preg_match('/^[A-Z]{3}$/', $currency)) {
             $currency = 'SAR';

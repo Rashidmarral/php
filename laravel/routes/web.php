@@ -612,6 +612,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::middleware('admin.super')->group(function () {
         Route::post('/companies/{id}/status', [CompanyController::class, 'updateStatus']);
         Route::post('/companies/{id}/plan', [CompanyController::class, 'updatePlan']);
+        Route::post('/companies/{id}/features', [CompanyController::class, 'updateFeatures']);
         Route::post('/companies/{id}/profile', [CompanyController::class, 'updateProfile']);
         Route::post('/companies/{id}/impersonate', [CompanyController::class, 'impersonate']);
         Route::post('/companies/{id}/hard-delete', [CompanyController::class, 'hardDelete']);

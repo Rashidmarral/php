@@ -39,12 +39,12 @@ class CashFlowReportTest extends TestCase
         $ref->setStaticPropertyValue('cachedFlags', null);
     }
 
-    private function makeCompany(string $tag): Company
+    private function makeCompany(string $tag, bool $cashFlowForecasting = true): Company
     {
         $plan = Plan::create([
             'slug' => 'plan-' . strtolower($tag) . '-' . bin2hex(random_bytes(4)),
             'name' => "Plan {$tag}",
-            'feature_flags' => json_encode(['reports' => true]),
+            'feature_flags' => json_encode(['reports' => true, 'cash_flow_forecasting' => $cashFlowForecasting]),
         ]);
 
         return Company::create([
@@ -254,5 +254,16 @@ class CashFlowReportTest extends TestCase
         $totals = $response->viewData('totals');
         $this->assertSame($expectedA['overdueIn'], $totals['overdueIn']);
         $this->assertSame($expectedA['overdueOut'], $totals['overdueOut']);
+    }
+
+    /** An owner with the 'reports' feature but WITHOUT cash_flow_forecasting is still redirected to Billing. */
+    public function test_owner_is_redirected_to_billing_when_plan_lacks_cash_flow_forecasting_feature(): void
+    {
+        $company = $this->makeCompany('NoCashFlow', cashFlowForecasting: false);
+        $owner = $this->makeUser($company, 'NoCashFlow');
+
+        $response = $this->actingAs($owner)->get('/app/reports/cash-flow');
+
+        $response->assertRedirect('/app/billing');
     }
 }

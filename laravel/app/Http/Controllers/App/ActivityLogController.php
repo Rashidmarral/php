@@ -30,6 +30,9 @@ class ActivityLogController extends Controller
         if ($redirect = $this->requireAbility('manage_team')) {
             return $redirect;
         }
+        if ($redirect = $this->requireFeature('activity_log')) {
+            return $redirect;
+        }
 
         $companyId = Auth::user()->company_id;
         $actionFilter = trim((string) $request->query('action', ''));

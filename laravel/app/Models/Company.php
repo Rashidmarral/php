@@ -39,7 +39,26 @@ class Company extends Model
             'zatca_sync_b2c' => 'boolean',
             'zatca_linked_at' => 'datetime',
             'zatca_last_sync_at' => 'datetime',
+            'feature_overrides' => 'array',
         ];
+    }
+
+    /**
+     * The company-level analog of User::permissionOverride(): returns true/false when this
+     * ONE company's feature_overrides map has an explicit entry for $key (a super-admin
+     * escape hatch overriding the company's subscribed plan for a one-off deal, pilot, or
+     * support case), or null when there is no override — meaning the caller must fall
+     * through to whatever the plan's feature_flags says, exactly as if this feature didn't
+     * exist. See App\Support\Feature::allows()/allowsForCompany(), the only callers.
+     */
+    public function featureOverride(string $key): ?bool
+    {
+        $overrides = $this->feature_overrides;
+        if (!is_array($overrides) || !array_key_exists($key, $overrides)) {
+            return null;
+        }
+        $value = $overrides[$key];
+        return $value === null ? null : (bool) $value;
     }
 
     /**

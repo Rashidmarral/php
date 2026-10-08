@@ -140,6 +140,30 @@
   </form>
 </div>
 
+<div class="card" style="margin-bottom:24px;max-width:760px;">
+  <h3><?= t('admin.company.feature_overrides') ?></h3>
+  <p class="help-text"><?= t('admin.company.feature_overrides_hint') ?></p>
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/features">
+    <?= csrf_field() ?>
+    <div class="grid grid-2" style="gap:8px;">
+      <?php foreach (\App\Support\Feature::ALL as $key => $label):
+        $current = $company['feature_overrides'][$key] ?? null;
+        $selected = $current === true ? 'allow' : ($current === false ? 'deny' : 'default');
+      ?>
+        <div class="form-group" style="margin-bottom:8px;">
+          <label><?= e($label) ?></label>
+          <select name="overrides[<?= $key ?>]" style="width:auto;display:inline-block;padding:4px 8px;font-size:12.5px;">
+            <option value="default" <?= $selected === 'default' ? 'selected' : '' ?>><?= t('common.default') ?></option>
+            <option value="allow" <?= $selected === 'allow' ? 'selected' : '' ?>><?= t('admin.company.feature_enable') ?></option>
+            <option value="deny" <?= $selected === 'deny' ? 'selected' : '' ?>><?= t('admin.company.feature_disable') ?></option>
+          </select>
+        </div>
+      <?php endforeach; ?>
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-top:8px;"><?= t('admin.company.save_feature_overrides') ?></button>
+  </form>
+</div>
+
 <div class="grid grid-2">
   <div class="card">
     <h3><?= t('admin.company.team_members') ?></h3>

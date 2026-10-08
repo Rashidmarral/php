@@ -18,6 +18,14 @@
       <div class="card feature-card"><div class="icon">🏗️</div><h3>Project management</h3><p>Track every project from planning through handover with statuses, budgets, and timelines in one place.</p></div>
       <div class="card feature-card"><div class="icon">📄</div><h3>ZATCA-ready invoicing</h3><p>Issue invoices formatted for Saudi VAT compliance, with sequential numbering per company.</p></div>
       <div class="card feature-card"><div class="icon">🌐</div><h3>Arabic &amp; English</h3><p>A fully bilingual interface with right-to-left support so your whole team can work comfortably.</p></div>
+      <div class="card feature-card"><div class="icon">📋</div><h3>{{ t('features.rfq.title') }}</h3><p>{{ t('features.rfq.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">📉</div><h3>{{ t('features.cashflow.title') }}</h3><p>{{ t('features.cashflow.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">🕵️</div><h3>{{ t('features.activitylog.title') }}</h3><p>{{ t('features.activitylog.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">✍️</div><h3>{{ t('features.changeorders.title') }}</h3><p>{{ t('features.changeorders.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">🧾</div><h3>{{ t('features.paymentcert.title') }}</h3><p>{{ t('features.paymentcert.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">🛡️</div><h3>{{ t('features.warranty.title') }}</h3><p>{{ t('features.warranty.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">🔐</div><h3>{{ t('features.permissions.title') }}</h3><p>{{ t('features.permissions.desc') }}</p></div>
+      <div class="card feature-card"><div class="icon">💱</div><h3>{{ t('features.multicurrency.title') }}</h3><p>{{ t('features.multicurrency.desc') }}</p></div>
     </div>
   </div>
 </section>

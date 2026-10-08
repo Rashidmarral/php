@@ -48,10 +48,10 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
       $featureGroups = [
         t('admin.plan.group_estimating') => ['ai_estimate_generator', 'estimate_templates', 'quick_estimate', 'leads'],
         t('admin.plan.group_delivery') => ['takeoff', 'change_orders', 'project_photos', 'site_logs', 'punch_list', 'documents'],
-        t('admin.plan.group_money') => ['online_invoice_payments', 'zatca_phase2', 'reports'],
-        t('admin.plan.group_vendors') => ['suppliers', 'materials'],
+        t('admin.plan.group_money') => ['online_invoice_payments', 'zatca_phase2', 'reports', 'cash_flow_forecasting'],
+        t('admin.plan.group_vendors') => ['suppliers', 'materials', 'multi_currency'],
         t('admin.plan.group_compliance') => ['compliance', 'client_portal'],
-        t('admin.plan.group_platform') => ['integrations'],
+        t('admin.plan.group_platform') => ['integrations', 'activity_log', 'granular_permissions'],
       ];
       $grouped = array_merge(...array_values($featureGroups));
       $ungrouped = array_diff(array_keys($allFeatures), $grouped);

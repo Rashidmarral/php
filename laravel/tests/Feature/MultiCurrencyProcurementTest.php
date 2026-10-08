@@ -37,7 +37,13 @@ class MultiCurrencyProcurementTest extends TestCase
         $ref->setStaticPropertyValue('cachedFlags', null);
     }
 
-    private function makeCompany(string $tag): Company
+    /**
+     * $multiCurrency defaults to true: the large majority of tests below exercise the
+     * foreign-currency path, which requires the multi_currency plan feature to be on. The
+     * one test proving the OPPOSITE — a plan without multi_currency forces SAR regardless
+     * of what's submitted — passes false explicitly.
+     */
+    private function makeCompany(string $tag, bool $multiCurrency = true): Company
     {
         $plan = Plan::create([
             'slug' => 'plan-' . strtolower($tag) . '-' . bin2hex(random_bytes(4)),
@@ -46,6 +52,7 @@ class MultiCurrencyProcurementTest extends TestCase
                 'suppliers' => true,
                 'purchase_orders' => true,
                 'subcontractors' => true,
+                'multi_currency' => $multiCurrency,
             ]),
         ]);
 
@@ -377,5 +384,78 @@ class MultiCurrencyProcurementTest extends TestCase
         ]);
 
         $this->assertSame(200.00, $project->actualCostTotal());
+    }
+
+    // --- (6) Feature-gated forcing: a plan WITHOUT multi_currency silently stays SAR-only ---
+
+    /**
+     * A company whose plan does not include multi_currency must have currency/exchange_rate_to_sar
+     * forced to SAR / 1.0 regardless of what's submitted — same server-side forcing already proven
+     * above for "currency=SAR forces rate to 1.0", but now gated on the plan feature itself. This
+     * must fail silently (the record is still created, just SAR-only), never error.
+     */
+    public function test_purchase_order_without_multi_currency_feature_forces_sar_regardless_of_input(): void
+    {
+        $company = $this->makeCompany('NOMC', multiCurrency: false);
+        $owner = $this->makeUser($company, 'NOMC');
+        $project = $this->makeProject($company, 'NOMC');
+        $supplier = $this->makeSupplier($company, 'NOMC');
+
+        $response = $this->actingAs($owner)->post('/app/projects/' . $project->id . '/purchase-orders', [
+            'supplier_id' => $supplier->id,
+            'item_description' => ['Imported pumps'],
+            'item_qty' => [1],
+            'item_price' => [4000],
+            'apply_vat' => '0',
+            'status' => 'draft',
+            'currency' => 'USD',
+            'exchange_rate_to_sar' => 3.75,
+        ]);
+        $response->assertRedirect();
+
+        $po = PurchaseOrder::where('company_id', $company->id)->first();
+        $this->assertNotNull($po);
+        $this->assertSame('SAR', $po->currency);
+        $this->assertSame(1.0, (float) $po->exchange_rate_to_sar);
+    }
+
+    public function test_subcontract_without_multi_currency_feature_forces_sar_regardless_of_input(): void
+    {
+        $company = $this->makeCompany('NOMCS', multiCurrency: false);
+        $owner = $this->makeUser($company, 'NOMCS');
+        $project = $this->makeProject($company, 'NOMCS');
+        $supplier = $this->makeSupplier($company, 'NOMCS');
+
+        $response = $this->actingAs($owner)->post('/app/projects/' . $project->id . '/subcontracts', [
+            'supplier_id' => $supplier->id,
+            'title' => 'Imported curtain wall subcontract',
+            'contract_value' => 20000,
+            'currency' => 'EUR',
+            'exchange_rate_to_sar' => 4.10,
+        ]);
+        $response->assertRedirect();
+
+        $subcontract = Subcontract::where('company_id', $company->id)->first();
+        $this->assertNotNull($subcontract);
+        $this->assertSame('SAR', $subcontract->currency);
+        $this->assertSame(1.0, (float) $subcontract->exchange_rate_to_sar);
+    }
+
+    public function test_supplier_without_multi_currency_feature_forces_sar_regardless_of_input(): void
+    {
+        $company = $this->makeCompany('NOMCU', multiCurrency: false);
+        $owner = $this->makeUser($company, 'NOMCU');
+
+        $response = $this->actingAs($owner)->post('/app/suppliers', [
+            'name' => 'Imported Steel Co',
+            'currency' => 'USD',
+            'exchange_rate_to_sar' => 3.75,
+        ]);
+        $response->assertRedirect();
+
+        $supplier = Supplier::where('company_id', $company->id)->first();
+        $this->assertNotNull($supplier);
+        $this->assertSame('SAR', $supplier->currency);
+        $this->assertSame(1.0, (float) $supplier->exchange_rate_to_sar);
     }
 }

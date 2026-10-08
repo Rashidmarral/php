@@ -49,11 +49,28 @@ class Feature
         'estimate_templates' => 'Estimate Template Library',
         'online_invoice_payments' => 'Client Online Invoice Payments (Moyasar)',
         'priority_support' => 'Priority Support (faster ticket response)',
+        'cash_flow_forecasting' => 'Cash-Flow Forecasting',
+        'activity_log' => 'Company Activity Log',
+        'multi_currency' => 'Multi-Currency Procurement',
+        'granular_permissions' => 'Granular Team Permissions',
     ];
 
     private static ?Plan $cachedPlan = null;
     private static bool $planResolved = false;
     private static ?array $cachedFlags = null;
+
+    /**
+     * The current session's Company row (not just its plan) — deliberately NOT cached in a
+     * static property like currentPlan()/flags() are, since it's only used by allows() to
+     * read a company's feature_overrides, and keeping it uncached avoids having to add yet
+     * another static-cache reset to every test that already resets cachedPlan/planResolved/
+     * cachedFlags via reflection between assertions.
+     */
+    private static function currentCompany(): ?Company
+    {
+        $companyId = Auth::user()?->company_id;
+        return $companyId ? Company::find($companyId) : null;
+    }
 
     public static function currentPlan(): ?Plan
     {
@@ -62,11 +79,7 @@ class Feature
         }
         self::$planResolved = true;
 
-        $companyId = Auth::user()?->company_id;
-        if (!$companyId) {
-            return self::$cachedPlan = null;
-        }
-        $company = Company::find($companyId);
+        $company = self::currentCompany();
         return self::$cachedPlan = ($company && $company->plan_id) ? Plan::find($company->plan_id) : null;
     }
 
@@ -79,18 +92,42 @@ class Feature
         return self::$cachedFlags = $plan ? (json_decode((string) $plan->feature_flags, true) ?: []) : [];
     }
 
+    /**
+     * $key is allowed when the current user's company has it on, in this order: (1) super
+     * admins always pass, (2) the company's own feature_overrides entry for $key when one is
+     * explicitly set (true grants it even if the plan doesn't include it, false denies it
+     * even if the plan does), and only when there is no override (3) whatever the plan's
+     * feature_flags says. See Company::featureOverride() for the same null-means-fall-through
+     * convention User::permissionOverride() uses for per-user ability overrides.
+     */
     public static function allows(string $key): bool
     {
         if (Auth::user()?->isSuperAdmin()) {
             return true;
         }
+        $override = self::currentCompany()?->featureOverride($key);
+        if ($override !== null) {
+            return $override;
+        }
         return !empty(self::flags()[$key]);
     }
 
-    /** Same check as allows(), but for an arbitrary company (e.g. on public client-facing pages with no session). */
+    /**
+     * Same check as allows(), but for an arbitrary company (e.g. on public client-facing
+     * pages with no session). Checks that company's feature_overrides first, exactly like
+     * allows() does for the session's company, and only falls through to its plan's
+     * feature_flags when no override is explicitly set.
+     */
     public static function allowsForCompany(string $key, ?Company $company): bool
     {
-        if (!$company || !$company->plan_id) {
+        if (!$company) {
+            return false;
+        }
+        $override = $company->featureOverride($key);
+        if ($override !== null) {
+            return $override;
+        }
+        if (!$company->plan_id) {
             return false;
         }
         $plan = Plan::find($company->plan_id);

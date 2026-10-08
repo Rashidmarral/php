@@ -30,12 +30,17 @@ class PermissionOverrideTest extends TestCase
         $ref->setStaticPropertyValue('cachedFlags', null);
     }
 
-    private function makeCompany(string $tag): Company
+    /**
+     * $granularPermissions defaults to true: every test below except the dedicated gating
+     * test exercises the updatePermissions() route itself, which now requires the
+     * granular_permissions plan feature on top of the manage_team ability.
+     */
+    private function makeCompany(string $tag, bool $granularPermissions = true): Company
     {
         $plan = Plan::create([
             'slug' => 'plan-' . strtolower($tag) . '-' . bin2hex(random_bytes(4)),
             'name' => "Plan {$tag}",
-            'feature_flags' => json_encode([]),
+            'feature_flags' => json_encode(['granular_permissions' => $granularPermissions]),
         ]);
 
         return Company::create([
@@ -264,5 +269,21 @@ class PermissionOverrideTest extends TestCase
         foreach (TeamController::OVERRIDABLE_ABILITIES as $ability) {
             $this->assertTrue($superAdmin->can($ability), "super_admin must still bypass {$ability} even with a false override stored");
         }
+    }
+
+    /** An owner/admin (who does have manage_team) is still redirected to Billing when the company's plan lacks the granular_permissions feature. */
+    public function test_route_rejects_setting_overrides_when_plan_lacks_granular_permissions_feature(): void
+    {
+        $company = $this->makeCompany('NOGRAN', granularPermissions: false);
+        $owner = $this->makeUser($company, 'owner', 'NOGRAN');
+        $estimator = $this->makeUser($company, 'estimator', 'NOGRANE');
+
+        $response = $this->actingAs($owner)->post("/app/team/{$estimator->id}/permissions", [
+            'overrides' => ['approve_documents' => 'allow'],
+        ]);
+        $response->assertRedirect('/app/billing');
+
+        $estimator->refresh();
+        $this->assertNull($estimator->permission_overrides);
     }
 }

@@ -147,6 +147,9 @@ class TeamController extends Controller
         if ($redirect = $this->requireAbility('manage_team')) {
             return $redirect;
         }
+        if ($redirect = $this->requireFeature('granular_permissions')) {
+            return $redirect;
+        }
         $member = $this->findOwned($id);
 
         if ($member->role === 'owner') {
