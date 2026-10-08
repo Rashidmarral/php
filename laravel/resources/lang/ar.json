@@ -3225,5 +3225,18 @@
     "user.change_orders.share_link_label": "رابط توقيع العميل",
     "user.change_orders.signed_by_on": "وقّع :name في :date.",
     "site.share.change_order_signature_required": "يرجى كتابة اسمك ورسم توقيعك قبل الإرسال.",
-    "site.share.change_order_signed": "شكرًا لك — تم توقيع أمر التغيير."
+    "site.share.change_order_signed": "شكرًا لك — تم توقيع أمر التغيير.",
+    "user.team_permissions.nav_link": "الصلاحيات",
+    "user.team_permissions.hint": "تجاوز صلاحيات محددة لهذا العضو بما يتجاوز دوره. اتركها على \"افتراضي\" لاستخدام صلاحيات الدور المعتادة.",
+    "user.team_permissions.ability_write": "إنشاء وتعديل السجلات (صلاحية الكتابة)",
+    "user.team_permissions.ability_manage_team": "إدارة أعضاء الفريق",
+    "user.team_permissions.ability_manage_company_settings": "إدارة إعدادات الشركة",
+    "user.team_permissions.ability_manage_business_setup": "إدارة التأسيس التجاري",
+    "user.team_permissions.ability_approve_documents": "اعتماد المستندات",
+    "user.team_permissions.ability_manage_billing": "إدارة الفوترة",
+    "user.team_permissions.option_allow": "السماح",
+    "user.team_permissions.option_deny": "الرفض",
+    "user.team_permissions.owner_not_overridable": "صلاحيات مالك الحساب ثابتة ولا يمكن تجاوزها.",
+    "user.team_permissions.cannot_edit_own": "لا يمكنك تعديل صلاحياتك الخاصة.",
+    "user.team_permissions.updated": "تم تحديث الصلاحيات لـ :name."
 }

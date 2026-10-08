@@ -20,6 +20,16 @@ class TeamController extends Controller
     /** Saudi IBAN: 'SA' + 22 digits (24 characters total) — see IBAN Registry / SAMA format. */
     private const IBAN_PATTERN = '/^SA\d{22}$/';
 
+    /**
+     * The exact 6 abilities Gate::define()s in AppServiceProvider — the only abilities a
+     * per-user permission_overrides entry may touch. Keep this in lockstep with that file;
+     * this is deliberately NOT a general-purpose ability registry.
+     */
+    public const OVERRIDABLE_ABILITIES = [
+        'write', 'manage_team', 'manage_company_settings',
+        'manage_business_setup', 'approve_documents', 'manage_billing',
+    ];
+
     public function index(): View
     {
         $companyId = Auth::user()->company_id;
@@ -119,6 +129,47 @@ class TeamController extends Controller
         }
         $member->delete();
         $this->flash('success', t('user.team.removed'));
+        return redirect('/app/team');
+    }
+
+    /**
+     * Sets this one member's permission_overrides — the per-user escape hatch that can
+     * grant or deny one of the 6 fixed Gate abilities beyond what their role normally
+     * allows (see AppServiceProvider::boot()/User::permissionOverride()). Two hard
+     * security guards, both non-negotiable: findOwned() already confines $id to the
+     * caller's own company (tenant isolation), and the 'owner' role is never overridable
+     * — its abilities are fixed/always-everything. A non-owner is also blocked from
+     * setting overrides on their OWN record, so e.g. an admin (who already has
+     * manage_team) can't use this route to quietly grant themselves manage_billing.
+     */
+    public function updatePermissions(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('manage_team')) {
+            return $redirect;
+        }
+        $member = $this->findOwned($id);
+
+        if ($member->role === 'owner') {
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team_permissions.owner_not_overridable'));
+        }
+        if ($member->id === Auth::id()) {
+            return $this->redirectWithFlash('/app/team', 'error', t('user.team_permissions.cannot_edit_own'));
+        }
+
+        $overrides = [];
+        foreach (self::OVERRIDABLE_ABILITIES as $ability) {
+            $choice = (string) $request->input("overrides.{$ability}", 'default');
+            if ($choice === 'allow') {
+                $overrides[$ability] = true;
+            } elseif ($choice === 'deny') {
+                $overrides[$ability] = false;
+            }
+            // anything else ('default', or an unrecognized value) leaves this ability
+            // out of the map entirely, so it keeps falling through to the role default.
+        }
+
+        $member->update(['permission_overrides' => $overrides === [] ? null : $overrides]);
+        $this->flash('success', t('user.team_permissions.updated', ['name' => $member->name]));
         return redirect('/app/team');
     }
 

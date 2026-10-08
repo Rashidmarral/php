@@ -3225,5 +3225,18 @@
     "user.change_orders.share_link_label": "Client signature link",
     "user.change_orders.signed_by_on": "Signed by :name on :date.",
     "site.share.change_order_signature_required": "Please type your name and draw your signature before submitting.",
-    "site.share.change_order_signed": "Thank you — the change order has been signed."
+    "site.share.change_order_signed": "Thank you — the change order has been signed.",
+    "user.team_permissions.nav_link": "Permissions",
+    "user.team_permissions.hint": "Override specific permissions for this member beyond their role. Leave as \"Default\" to use their role's normal access.",
+    "user.team_permissions.ability_write": "Create & edit records (write access)",
+    "user.team_permissions.ability_manage_team": "Manage team members",
+    "user.team_permissions.ability_manage_company_settings": "Manage company settings",
+    "user.team_permissions.ability_manage_business_setup": "Manage business setup",
+    "user.team_permissions.ability_approve_documents": "Approve documents",
+    "user.team_permissions.ability_manage_billing": "Manage billing",
+    "user.team_permissions.option_allow": "Allow",
+    "user.team_permissions.option_deny": "Deny",
+    "user.team_permissions.owner_not_overridable": "The account owner's permissions are fixed and cannot be overridden.",
+    "user.team_permissions.cannot_edit_own": "You cannot edit your own permission overrides.",
+    "user.team_permissions.updated": "Permissions updated for :name."
 }

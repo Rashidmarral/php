@@ -38,6 +38,7 @@ class User extends Authenticatable
         'company_id', 'name', 'email', 'password', 'role', 'status',
         'national_id', 'nationality', 'bank_iban', 'bank_name',
         'basic_salary', 'housing_allowance', 'other_earnings', 'hourly_rate',
+        'permission_overrides',
     ];
 
     protected $hidden = ['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'];
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'datetime',
+            'permission_overrides' => 'array',
         ];
     }
 
@@ -85,6 +87,27 @@ class User extends Authenticatable
     public function isCompanyOwner(): bool
     {
         return $this->role === 'owner';
+    }
+
+    /**
+     * Per-user escape hatch on top of the fixed-role Gate::define() closures in
+     * AppServiceProvider: returns true/false when this user has an explicit override
+     * for $ability (e.g. an estimator personally granted 'approve_documents'), or null
+     * when there's no override and the caller should fall through to the normal role
+     * logic — the same null-means-"use the default" convention as
+     * Company::approvalChainFor()/the openSafetyIncidents null-vs-0 tile on the
+     * dashboard. The 'owner' role is never subject to overrides (see
+     * TeamController::updatePermissions()), but that guard lives at the write side —
+     * this read-side helper just reports whatever is actually stored.
+     */
+    public function permissionOverride(string $ability): ?bool
+    {
+        $overrides = $this->permission_overrides;
+        if (!is_array($overrides) || !array_key_exists($ability, $overrides)) {
+            return null;
+        }
+        $value = $overrides[$ability];
+        return $value === null ? null : (bool) $value;
     }
 
     /**

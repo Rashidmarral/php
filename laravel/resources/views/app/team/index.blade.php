@@ -74,6 +74,31 @@
         <?php endif; ?>
         <a href="/app/team/<?= $m['id'] ?>/documents" class="btn btn-sm btn-light"><?= t('user.team_docs.nav_link') ?></a>
         <?php if (auth()->user()->can('manage_team') && (int)$m['id'] !== (int)auth()->id() && $m['role'] !== 'owner'): ?>
+        <details style="display:inline-block;">
+          <summary class="btn btn-sm btn-light" style="cursor:pointer;display:inline-block;"><?= t('user.team_permissions.nav_link') ?></summary>
+          <div class="card" style="margin-top:8px;min-width:320px;">
+            <p class="help-text" style="margin-top:0;"><?= t('user.team_permissions.hint') ?></p>
+            <form method="post" action="/app/team/<?= $m['id'] ?>/permissions">
+              <?= csrf_field() ?>
+              <?php foreach (\App\Http\Controllers\App\TeamController::OVERRIDABLE_ABILITIES as $ability):
+                $current = $m['permission_overrides'][$ability] ?? null;
+                $selected = $current === true ? 'allow' : ($current === false ? 'deny' : 'default');
+              ?>
+                <div class="form-group" style="margin-bottom:8px;">
+                  <label><?= t('user.team_permissions.ability_' . $ability) ?></label>
+                  <select name="overrides[<?= $ability ?>]" style="width:auto;display:inline-block;padding:4px 8px;font-size:12.5px;">
+                    <option value="default" <?= $selected === 'default' ? 'selected' : '' ?>><?= t('common.default') ?></option>
+                    <option value="allow" <?= $selected === 'allow' ? 'selected' : '' ?>><?= t('user.team_permissions.option_allow') ?></option>
+                    <option value="deny" <?= $selected === 'deny' ? 'selected' : '' ?>><?= t('user.team_permissions.option_deny') ?></option>
+                  </select>
+                </div>
+              <?php endforeach; ?>
+              <button type="submit" class="btn btn-primary btn-sm"><?= t('common.save') ?></button>
+            </form>
+          </div>
+        </details>
+        <?php endif; ?>
+        <?php if (auth()->user()->can('manage_team') && (int)$m['id'] !== (int)auth()->id() && $m['role'] !== 'owner'): ?>
         <form method="post" action="/app/team/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.team.remove_member_confirm') ?>');">
           <?= csrf_field() ?>
           <button type="submit" class="btn btn-sm btn-light"><?= t('common.remove') ?></button>
