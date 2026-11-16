@@ -193,11 +193,22 @@ CNF;
     }
 
     /**
-     * The very first invoice in a company's chain hashes an empty string
-     * per ZATCA's documented base-case, exactly like a genesis block.
+     * The very first invoice in a company's chain (and the first invoice
+     * from a newly re-registered EGS/device) must carry this exact,
+     * ZATCA-documented constant as its Previous Invoice Hash — the
+     * base64 encoding of the SHA-256 HEX-STRING digest of the single
+     * character "0" (not an empty string, and not the raw binary digest).
+     * Confirmed by direct computation against the well-known published
+     * value `NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5
+     * MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==` (decodes to the hex string
+     * "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+     * i.e. hash('sha256', '0', false) — getting either part wrong (hashing
+     * '' instead of '0', or base64-encoding the raw 32 bytes instead of
+     * the 64-character hex string) produces a different value and fails
+     * ZATCA's PIH check on every company's very first submitted document.
      */
     public function genesisHash(): string
     {
-        return base64_encode(hash('sha256', '', true));
+        return base64_encode(hash('sha256', '0', false));
     }
 }
