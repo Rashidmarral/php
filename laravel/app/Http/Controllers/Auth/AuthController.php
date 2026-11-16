@@ -149,14 +149,19 @@ class AuthController extends Controller
 
         $data = $request->validate([
             'company_name' => ['required', 'string', 'max:150'],
+            'company_name_ar' => ['nullable', 'string', 'max:150'],
             'name' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'plan' => ['required', 'exists:plans,slug'],
             'phone' => ['nullable', 'string', 'max:30'],
             'city' => ['nullable', 'string', 'max:100'],
             'cr_number' => ['nullable', 'string', 'max:50'],
             'team_size' => ['nullable', 'string', 'max:20'],
+            'terms' => ['accepted'],
+        ], [
+            'password.confirmed' => t('auth.passwords_mismatch'),
+            'terms.accepted' => t('auth.must_accept_terms'),
         ]);
 
         $plan = Plan::where('slug', $data['plan'])->firstOrFail();
@@ -165,6 +170,7 @@ class AuthController extends Controller
         [$company, $user] = DB::transaction(function () use ($data, $plan, $trialDays) {
             $company = Company::create([
                 'name' => $data['company_name'],
+                'name_ar' => $data['company_name_ar'] ?? null,
                 'email' => strtolower(trim($data['email'])),
                 'phone' => $data['phone'] ?? null,
                 'city' => $data['city'] ?? null,
