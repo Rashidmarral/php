@@ -49,15 +49,22 @@ class CompanyZatcaController extends Controller
             return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'error', t('admin.zatca.b2b_b2c_required'));
         }
 
-        $company->update([
-            'zatca_environment' => $environment,
+        // Preserve each environment's own onboarding progress (CSR,
+        // CSIDs, hash chain, ICV counter) across a Developer/Simulation/
+        // Production switch, via the company's zatca_environment_credentials
+        // save slots, instead of letting the flat zatca_* columns silently
+        // carry over one environment's state under a different one's name.
+        // A no-op when $environment already matches the current one.
+        $company->switchZatcaEnvironment($environment);
+
+        $company->fill([
             'zatca_sync_b2b' => $syncB2b,
             'zatca_sync_b2c' => $syncB2c,
             'zatca_egs_serial' => trim((string) $request->input('zatca_egs_serial')) ?: null,
             'zatca_common_name' => trim((string) $request->input('zatca_common_name')) ?: null,
             'zatca_organization_unit_name' => trim((string) $request->input('zatca_organization_unit_name')) ?: null,
             'zatca_business_category' => trim((string) $request->input('zatca_business_category')) ?: null,
-        ]);
+        ])->save();
 
         return $this->redirectWithFlash('/admin/companies/' . $company->id . '/zatca', 'success', t('admin.zatca.settings_updated'));
     }

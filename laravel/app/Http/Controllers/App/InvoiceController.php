@@ -124,6 +124,12 @@ class InvoiceController extends Controller
 
         $company = Company::find($companyId);
         $this->chainZatca($invoice->fresh(), $company, $client, $items, $zatcaSync);
+        // Queued, asynchronous ZATCA submission — fires in the background
+        // for a company that's already onboarded; a no-op otherwise. The
+        // explicit "Submit to ZATCA" button (submitZatca() below) remains
+        // the synchronous manual retry/"Sync now" action — see
+        // App\Jobs\SyncInvoiceToZatca's docblock.
+        \App\Jobs\SyncInvoiceToZatca::dispatch($invoice->id);
         WebhookDispatcher::dispatch($companyId, 'invoice.created', $invoice->fresh()->toArray());
         AuditLog::recordForCompany(Auth::user(), 'invoice_create', 'invoice', $invoice->id, "Invoice {$invoice->invoice_number} created — " . number_format((float) $invoice->total, 2) . ' SAR');
 

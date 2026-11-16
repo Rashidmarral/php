@@ -35,6 +35,7 @@ class Company extends Model
             'default_markup_percent' => 'decimal:2',
             'default_retention_percent' => 'decimal:2',
             'zatca_last_icv' => 'integer',
+            'zatca_icv_counter' => 'integer',
             'zatca_sync_b2b' => 'boolean',
             'zatca_sync_b2c' => 'boolean',
             'zatca_linked_at' => 'datetime',
@@ -87,6 +88,90 @@ class Company extends Model
     public function zatcaSecretFor(): ?string
     {
         return $this->zatca_production_secret;
+    }
+
+    public function zatcaEnvironmentCredentials(): HasMany
+    {
+        return $this->hasMany(ZatcaEnvironmentCredential::class);
+    }
+
+    /**
+     * The fields switchZatcaEnvironment() moves between this company's own
+     * flat zatca_* columns (the "currently active environment" cache
+     * every other read site depends on) and that environment's save slot
+     * in zatca_environment_credentials. Keys are this table's own column
+     * names; values are the matching Company column name. icv_counter is
+     * included deliberately — it's scoped per environment exactly like
+     * the PIH hash chain, so it must be stashed/restored the same way, or
+     * switching environments could hand the one being entered a counter
+     * left over from the one being left.
+     *
+     * @return array<string, string>
+     */
+    private function zatcaEnvironmentSlotFields(): array
+    {
+        return [
+            'onboarding_status' => 'zatca_status',
+            'egs_serial' => 'zatca_egs_serial',
+            'common_name' => 'zatca_common_name',
+            'organization_unit_name' => 'zatca_organization_unit_name',
+            'business_category' => 'zatca_business_category',
+            'csr' => 'zatca_csr',
+            'private_key' => 'zatca_private_key',
+            'compliance_request_id' => 'zatca_compliance_request_id',
+            'compliance_csid' => 'zatca_compliance_csid',
+            'compliance_secret' => 'zatca_compliance_secret',
+            'production_request_id' => 'zatca_production_request_id',
+            'production_csid' => 'zatca_production_csid',
+            'production_secret' => 'zatca_production_secret',
+            'last_invoice_hash' => 'zatca_last_invoice_hash',
+            'linked_at' => 'zatca_linked_at',
+            'last_sync_at' => 'zatca_last_sync_at',
+            'icv_counter' => 'zatca_icv_counter',
+        ];
+    }
+
+    /**
+     * Switches this company's "currently active" ZATCA environment
+     * without losing either environment's onboarding progress: the
+     * environment being left has its live flat zatca_* columns saved into
+     * its own zatca_environment_credentials row, then the row for
+     * $newEnvironment (or a blank 'not_started'/0 default, if it has
+     * never been onboarded) is loaded back onto those same flat columns.
+     *
+     * Ported from Daftri's Company::switchZatcaEnvironment() — field
+     * names adapted to BuildXact's own zatca_* columns via
+     * zatcaEnvironmentSlotFields() above. Only fills the in-memory model
+     * (via fill(), same as the original) — the caller is responsible for
+     * save()/update() once it has also set whatever else it needs to
+     * persist (see CompanyZatcaController::updateSettings(), the only
+     * caller), exactly as Daftri's version leaves it too.
+     */
+    public function switchZatcaEnvironment(string $newEnvironment): void
+    {
+        if ($newEnvironment === $this->zatca_environment) {
+            return;
+        }
+
+        $fields = $this->zatcaEnvironmentSlotFields();
+
+        ZatcaEnvironmentCredential::updateOrCreate(
+            ['company_id' => $this->id, 'environment' => $this->zatca_environment],
+            collect($fields)->mapWithKeys(fn ($companyField, $slotField) => [$slotField => $this->{$companyField}])->all()
+        );
+
+        $slot = ZatcaEnvironmentCredential::where('company_id', $this->id)->where('environment', $newEnvironment)->first();
+
+        $this->fill(
+            collect($fields)->mapWithKeys(fn ($companyField, $slotField) => [
+                $companyField => match ($slotField) {
+                    'onboarding_status' => $slot?->onboarding_status ?? 'not_started',
+                    'icv_counter' => $slot?->icv_counter ?? 0,
+                    default => $slot?->{$slotField},
+                },
+            ])->all()
+        );
+        $this->zatca_environment = $newEnvironment;
     }
 
     /**

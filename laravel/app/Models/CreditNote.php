@@ -48,6 +48,12 @@ class CreditNote extends Model
         return $this->hasMany(CreditNoteItem::class);
     }
 
+    /** The full historical record of every ZATCA clearance/reporting attempt for this credit note — see ZatcaCreditNoteLog's docblock. */
+    public function zatcaCreditNoteLogs(): HasMany
+    {
+        return $this->hasMany(ZatcaCreditNoteLog::class);
+    }
+
     /** Same immutability rule as Invoice::isZatcaLocked() — once cleared/reported, a note can no longer be voided. */
     public function isZatcaLocked(): bool
     {

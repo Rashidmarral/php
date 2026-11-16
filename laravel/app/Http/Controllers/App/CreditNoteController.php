@@ -140,6 +140,10 @@ class CreditNoteController extends Controller
         });
 
         $this->chainZatcaCreditNote($creditNote->fresh(), $company, $invoice, $client, $items, $zatcaSync);
+        // See InvoiceController::store()'s identical comment — queued,
+        // asynchronous ZATCA submission; the manual "Submit to ZATCA"
+        // button stays synchronous.
+        \App\Jobs\SyncCreditNoteToZatca::dispatch($creditNote->id);
 
         $this->flash('success', t('user.credit_notes.issued'));
         return redirect('/app/credit-notes/' . $creditNote->id);

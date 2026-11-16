@@ -50,6 +50,12 @@ class DebitNote extends Model
         return $this->hasMany(DebitNoteItem::class);
     }
 
+    /** The full historical record of every ZATCA clearance/reporting attempt for this debit note — see ZatcaDebitNoteLog's docblock. */
+    public function zatcaDebitNoteLogs(): HasMany
+    {
+        return $this->hasMany(ZatcaDebitNoteLog::class);
+    }
+
     /** Same immutability rule as Invoice::isZatcaLocked() — once cleared/reported, a note can no longer be voided. */
     public function isZatcaLocked(): bool
     {

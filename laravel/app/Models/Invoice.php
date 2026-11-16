@@ -81,6 +81,12 @@ class Invoice extends Model
         return $this->hasMany(DebitNote::class);
     }
 
+    /** The full historical record of every ZATCA clearance/reporting attempt for this invoice — see ZatcaInvoiceLog's docblock. */
+    public function zatcaInvoiceLogs(): HasMany
+    {
+        return $this->hasMany(ZatcaInvoiceLog::class);
+    }
+
     public function creditedTotal(): float
     {
         return (float) $this->creditNotes()->where('status', 'issued')->sum('total');

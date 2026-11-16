@@ -118,6 +118,10 @@ class DebitNoteController extends Controller
         });
 
         $this->chainZatcaDebitNote($debitNote->fresh(), $company, $invoice, $client, $items, $zatcaSync);
+        // See InvoiceController::store()'s identical comment — queued,
+        // asynchronous ZATCA submission; the manual "Submit to ZATCA"
+        // button stays synchronous.
+        \App\Jobs\SyncDebitNoteToZatca::dispatch($debitNote->id);
 
         $this->flash('success', t('user.debit_notes.issued'));
         return redirect('/app/debit-notes/' . $debitNote->id);
