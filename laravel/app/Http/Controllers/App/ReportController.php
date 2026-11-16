@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\ChangeOrder;
+use App\Models\CostCode;
 use App\Models\Estimate;
 use App\Models\Invoice;
 use App\Models\Project;
@@ -433,6 +434,151 @@ class ReportController extends Controller
 
         return view('app.reports.cash-flow', [
             'rows' => $rows,
+            'totals' => $totals,
+        ]);
+    }
+
+    /**
+     * NEW, purely additive report — closes the gap that the flat
+     * EstimateItem.item_type / VendorBill.category model (costVariance()
+     * above) has no drillable, hierarchical cost-code breakdown. This
+     * method never reads or changes anything costVariance()/
+     * Project::actualCostTotal()/Project::revisedBudget() already compute —
+     * it only adds a second, OPTIONAL lens over the same base data, keyed by
+     * the new cost_codes hierarchy instead of the flat category.
+     *
+     * Company-wide (summed across every one of this company's projects, not
+     * per project — same "whole company" scope as overview()/costVariance()'s
+     * own totals row). For each top-level division: "estimated" = SUM of
+     * estimate_items.total for items coded to that division itself OR any of
+     * its sub-codes, restricted to this company's ACCEPTED estimates only —
+     * the exact same base query costVariance() already uses for its own
+     * estimatedCost, just grouped by cost_code_id instead of item_type.
+     * "actual" = SUM of vendor_bills.amount for bills coded to that division
+     * or a sub-code — again the same unfiltered-by-status VendorBill query
+     * costVariance() already uses for actualCost, just regrouped.
+     *
+     * Every item/bill with cost_code_id = null (every row that exists today,
+     * since the column is brand new and nullable) falls into the distinct
+     * "Uncoded" bucket instead of silently vanishing. Because this is the
+     * SAME base estimate_items/vendor_bills totals costVariance() already
+     * sums, a company that has never assigned a single cost code sees this
+     * report's Uncoded totals equal exactly what costVariance() already
+     * shows as that company's portfolio totals — proof this feature changes
+     * nothing about the existing dashboard.
+     */
+    public function costByCode(): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('reports')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+
+        $acceptedEstimateIds = Estimate::where('company_id', $companyId)
+            ->where('status', 'accepted')
+            ->whereNotNull('project_id')
+            ->pluck('id');
+
+        // Every division (level 1) this company may see, with its sub-codes
+        // (level 2) already eager-loaded — platform-wide plus this
+        // company's own custom divisions, if any (see CostCode::selectableFor()).
+        $divisions = CostCode::selectableFor($companyId);
+
+        // Maps ANY cost_code_id (a division's own id, or one of its sub-codes'
+        // ids) to the top-level division id it rolls up into, so a bill/item
+        // coded at either level lands in the right division bucket.
+        $divisionIdByCodeId = [];
+        foreach ($divisions as $division) {
+            $divisionIdByCodeId[$division->id] = $division->id;
+            foreach ($division->children as $child) {
+                $divisionIdByCodeId[$child->id] = $division->id;
+            }
+        }
+
+        $estimatedRows = DB::table('estimate_items')
+            ->whereIn('estimate_id', $acceptedEstimateIds)
+            ->select('cost_code_id', DB::raw('SUM(total) as total'))
+            ->groupBy('cost_code_id')
+            ->get();
+
+        $actualRows = VendorBill::where('company_id', $companyId)
+            ->select('cost_code_id', DB::raw('SUM(amount) as total'))
+            ->groupBy('cost_code_id')
+            ->get();
+
+        // Exact per-code totals (not yet rolled up) — used to show each
+        // sub-code's own figure, and to compute the Uncoded bucket.
+        $estimatedByCodeId = [];
+        $uncodedEstimated = 0.0;
+        foreach ($estimatedRows as $r) {
+            if ($r->cost_code_id === null) {
+                $uncodedEstimated += (float) $r->total;
+            } else {
+                $estimatedByCodeId[$r->cost_code_id] = (float) $r->total;
+            }
+        }
+
+        $actualByCodeId = [];
+        $uncodedActual = 0.0;
+        foreach ($actualRows as $r) {
+            if ($r->cost_code_id === null) {
+                $uncodedActual += (float) $r->total;
+            } else {
+                $actualByCodeId[$r->cost_code_id] = (float) $r->total;
+            }
+        }
+
+        // Roll sub-code totals up into their parent division's total — a bill
+        // coded directly to the division (not one of its sub-codes) also
+        // lands here via $divisionIdByCodeId mapping the division's own id to
+        // itself.
+        $divisionIds = $divisions->pluck('id')->all();
+        $estimatedByDivision = array_fill_keys($divisionIds, 0.0);
+        $actualByDivision = array_fill_keys($divisionIds, 0.0);
+        foreach ($estimatedByCodeId as $codeId => $amount) {
+            if (isset($divisionIdByCodeId[$codeId])) {
+                $estimatedByDivision[$divisionIdByCodeId[$codeId]] += $amount;
+            }
+        }
+        foreach ($actualByCodeId as $codeId => $amount) {
+            if (isset($divisionIdByCodeId[$codeId])) {
+                $actualByDivision[$divisionIdByCodeId[$codeId]] += $amount;
+            }
+        }
+
+        $tree = [];
+        foreach ($divisions as $division) {
+            $children = [];
+            foreach ($division->children as $child) {
+                $children[] = [
+                    'id' => $child->id,
+                    'code' => $child->code,
+                    'description' => $child->description,
+                    'description_ar' => $child->description_ar,
+                    'estimated' => $estimatedByCodeId[$child->id] ?? 0.0,
+                    'actual' => $actualByCodeId[$child->id] ?? 0.0,
+                ];
+            }
+            $tree[] = [
+                'id' => $division->id,
+                'code' => $division->code,
+                'description' => $division->description,
+                'description_ar' => $division->description_ar,
+                'estimated' => $estimatedByDivision[$division->id],
+                'actual' => $actualByDivision[$division->id],
+                'children' => $children,
+            ];
+        }
+
+        $totals = [
+            'estimated' => round(array_sum($estimatedByDivision) + $uncodedEstimated, 2),
+            'actual' => round(array_sum($actualByDivision) + $uncodedActual, 2),
+            'uncodedEstimated' => round($uncodedEstimated, 2),
+            'uncodedActual' => round($uncodedActual, 2),
+        ];
+
+        return view('app.reports.cost-by-code', [
+            'tree' => $tree,
             'totals' => $totals,
         ]);
     }

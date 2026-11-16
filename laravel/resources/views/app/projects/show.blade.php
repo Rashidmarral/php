@@ -260,14 +260,16 @@
 
   <?php if (!empty($vendorBills)): ?>
     <table class="data" style="margin:16px 0;">
-      <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.category') ?></th><th><?= t('common.date') ?></th><th><?= t('common.amount') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
+      <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.category') ?></th><th><?= t('user.cost_codes.column') ?></th><th><?= t('common.date') ?></th><th><?= t('common.amount') ?></th><th><?= t('common.status') ?></th><th></th></tr></thead>
       <tbody>
       <?php foreach ($vendorBills as $vb):
         $vbPo = $vb['purchase_order_id'] ? collect($purchaseOrders)->firstWhere('id', $vb['purchase_order_id']) : null;
+        $vbCostCode = $vb['cost_code_id'] ? collect($costCodeDivisions)->flatMap(fn ($d) => array_merge([$d], $d['children']))->firstWhere('id', $vb['cost_code_id']) : null;
       ?>
         <tr>
           <td><?= e($vb['description']) ?><?php if ($vb['reference']): ?><br><span class="help-text"><?= e($vb['reference']) ?></span><?php endif; ?><?php if ($vbPo): ?><br><span class="help-text"><?= t('user.purchase_orders.linked_po') ?>: <?= e($vbPo['po_number']) ?></span><?php endif; ?></td>
           <td><span class="badge badge-gray"><?= e(ucfirst($vb['category'])) ?></span></td>
+          <td><?= $vbCostCode ? e($vbCostCode['code']) : '<span class="help-text">' . t('user.cost_codes.none') . '</span>' ?></td>
           <td><?= e($vb['bill_date']) ?></td>
           <td><?= money((float)$vb['amount']) ?></td>
           <td><span class="badge badge-<?= $vb['status']==='paid'?'green':'yellow' ?>"><?= e(ucfirst($vb['status'])) ?></span></td>
@@ -310,6 +312,9 @@
     <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.projects.bill_date') ?></label><input type="date" name="bill_date"></div>
     <div class="form-group" style="margin:0;width:150px;"><label><?= t('user.projects.reference_number') ?></label><input type="text" name="reference" placeholder="<?= t('user.projects.reference_placeholder') ?>"></div>
     <div class="form-group" style="margin:0;min-width:180px;"><label><?= t('user.projects.receipt_optional') ?></label><input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png"></div>
+    <div class="form-group" style="margin:0;width:200px;"><label><?= t('user.cost_codes.column') ?></label>
+      @include('app.partials.cost-code-select', ['costCodeDivisions' => $costCodeDivisions, 'name' => 'cost_code_id', 'selected' => null])
+    </div>
     <button type="submit" class="btn btn-outline"><?= t('user.projects.add_vendor_bill') ?></button>
   </form>
 </div>

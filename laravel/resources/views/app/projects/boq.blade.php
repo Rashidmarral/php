@@ -31,6 +31,7 @@
           <th><?= t('user.boq.qty') ?></th>
           <th><?= t('user.boq.unit_price') ?></th>
           <th><?= t('user.boq.total') ?></th>
+          <th><?= t('user.cost_codes.column') ?></th>
           <th></th>
         </tr>
       </thead>
@@ -38,7 +39,7 @@
         <?php $lastSection = null; ?>
         <?php foreach ($items as $item): $fid = 'boq-' . $item['id']; ?>
           <?php if (!empty($item['section_title']) && $item['section_title'] !== $lastSection): $lastSection = $item['section_title']; ?>
-            <tr><td colspan="8" style="background:var(--bg);font-weight:700;"><?= e(local($item, 'section_title')) ?></td></tr>
+            <tr><td colspan="9" style="background:var(--bg);font-weight:700;"><?= e(local($item, 'section_title')) ?></td></tr>
           <?php endif; ?>
           <?php if (!$locked): ?>
             <form id="<?= $fid ?>" method="post" action="/app/boq/<?= $item['id'] ?>"><?= csrf_field() ?></form>
@@ -51,6 +52,14 @@
             <td style="min-width:90px;"><input form="<?= $fid ?>" type="number" step="0.01" name="qty" value="<?= e((string)$item['qty']) ?>" <?= $locked ? 'disabled' : '' ?> style="width:85px;"></td>
             <td style="min-width:100px;"><input form="<?= $fid ?>" type="number" step="0.01" name="unit_price" value="<?= e((string)$item['unit_price']) ?>" <?= $locked ? 'disabled' : '' ?> style="width:95px;"></td>
             <td style="white-space:nowrap;"><?= money((float)$item['total']) ?></td>
+            <td style="min-width:150px;">
+              <?php if ($locked): ?>
+                <?php $assignedCode = collect($costCodeDivisions)->flatMap(fn ($d) => array_merge([$d], $d['children']))->firstWhere('id', $item['cost_code_id']); ?>
+                <?= $assignedCode ? e($assignedCode['code'] . ' ' . local($assignedCode, 'description')) : t('user.cost_codes.none') ?>
+              <?php else: ?>
+                @include('app.partials.cost-code-select', ['costCodeDivisions' => $costCodeDivisions, 'name' => 'cost_code_id', 'selected' => $item['cost_code_id'] ?? null, 'form' => $fid])
+              <?php endif; ?>
+            </td>
             <td style="white-space:nowrap;display:flex;gap:6px;">
               <?php if (!$locked): ?>
                 <button form="<?= $fid ?>" type="submit" class="btn btn-sm btn-light"><?= t('common.save') ?></button>
@@ -91,6 +100,11 @@
       <div class="form-group"><label><?= t('user.boq.uom') ?></label><input type="text" name="uom" placeholder="e.g. m3" required></div>
       <div class="form-group"><label><?= t('user.boq.qty') ?></label><input type="number" step="0.01" name="qty" value="0" required></div>
       <div class="form-group"><label><?= t('user.boq.unit_price') ?></label><input type="number" step="0.01" name="unit_price" value="0" required></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="max-width:280px;"><label><?= t('user.cost_codes.column') ?></label>
+        @include('app.partials.cost-code-select', ['costCodeDivisions' => $costCodeDivisions, 'name' => 'cost_code_id', 'selected' => null])
+      </div>
     </div>
     <button type="submit" class="btn btn-primary"><?= t('user.boq.add_line') ?></button>
   </form>

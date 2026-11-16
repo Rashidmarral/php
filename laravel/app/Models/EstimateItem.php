@@ -25,4 +25,10 @@ class EstimateItem extends Model
     {
         return $this->belongsTo(Estimate::class);
     }
+
+    /** Optional CSI-MasterFormat-style cost code — null (the default for every existing row) means "uncoded", see CostCode's docblock. */
+    public function costCode(): BelongsTo
+    {
+        return $this->belongsTo(CostCode::class);
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\CostCode;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\VendorBill;
@@ -54,6 +55,7 @@ class VendorBillController extends Controller
             'reference' => trim((string) $request->input('reference', '')),
             'status' => in_array($request->input('status'), ['unpaid', 'paid'], true) ? $request->input('status') : 'unpaid',
             'file_path' => $filePath,
+            'cost_code_id' => CostCode::ownedById($request->input('cost_code_id') ?: null, $companyId)?->id,
         ]);
 
         // A bill arriving against a PO is the natural signal the goods/services showed up — flip it to

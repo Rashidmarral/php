@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\BoqItem;
+use App\Models\CostCode;
 use App\Models\Project;
 use App\Support\SpreadsheetBoqImporter;
 use Illuminate\Http\RedirectResponse;
@@ -37,6 +38,7 @@ class BoqController extends Controller
             'items' => $items->toArray(),
             'contractValue' => (float) $items->sum('total'),
             'locked' => $project->hasAnyPaymentCertificate(),
+            'costCodeDivisions' => CostCode::selectableFor($project->company_id)->toArray(),
         ]);
     }
 
@@ -72,6 +74,7 @@ class BoqController extends Controller
             'unit_price' => $unitPrice,
             'total' => round($qty * $unitPrice, 2),
             'sort_order' => $maxSortOrder + 1,
+            'cost_code_id' => CostCode::ownedById($request->input('cost_code_id') ?: null, $project->company_id)?->id,
         ]);
 
         return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', t('user.boq.added'));
@@ -165,6 +168,7 @@ class BoqController extends Controller
             'qty' => $qty,
             'unit_price' => $unitPrice,
             'total' => round($qty * $unitPrice, 2),
+            'cost_code_id' => CostCode::ownedById($request->input('cost_code_id') ?: null, $project->company_id)?->id,
         ]);
 
         return $this->redirectWithFlash('/app/projects/' . $project->id . '/boq', 'success', t('user.boq.updated'));

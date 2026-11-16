@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\BuildingType;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\CostCode;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\EstimateTemplate;
@@ -371,6 +372,7 @@ class EstimateController extends Controller
             'taxRates' => TaxRate::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
             'defaultMarkupPercent' => $markupPercent,
             'defaultTaxRateId' => $taxRateId,
+            'costCodeDivisions' => CostCode::selectableFor($companyId)->toArray(),
         ]);
     }
 
@@ -394,6 +396,7 @@ class EstimateController extends Controller
         $uoms = $request->input('item_uom', []);
         $costs = $request->input('item_cost', []);
         $optionals = $request->input('item_optional', []);
+        $costCodes = $request->input('item_cost_code', []);
 
         $subtotal = 0;
         $items = [];
@@ -427,6 +430,7 @@ class EstimateController extends Controller
                 'unit_cost' => $cost,
                 'total' => $lineTotal,
                 'is_optional' => $isOptional,
+                'cost_code_id' => CostCode::ownedById(isset($costCodes[$i]) ? (int) $costCodes[$i] : null, $companyId)?->id,
             ];
         }
 
@@ -488,6 +492,7 @@ class EstimateController extends Controller
             'units' => UnitOfMeasure::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
             'taxRates' => TaxRate::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
             'prefillItems' => $this->prefillItemRows($estimate),
+            'costCodeDivisions' => CostCode::selectableFor($companyId)->toArray(),
         ]);
     }
 
@@ -516,6 +521,7 @@ class EstimateController extends Controller
                 'uom' => $item->uom,
                 'unit_cost' => (float) $item->unit_cost,
                 'is_optional' => (bool) $item->is_optional,
+                'cost_code_id' => $item->cost_code_id,
             ];
         }
         return $rows;
@@ -545,6 +551,7 @@ class EstimateController extends Controller
         $uoms = $request->input('item_uom', []);
         $costs = $request->input('item_cost', []);
         $optionals = $request->input('item_optional', []);
+        $costCodes = $request->input('item_cost_code', []);
 
         $subtotal = 0;
         $items = [];
@@ -577,6 +584,7 @@ class EstimateController extends Controller
                 'unit_cost' => $cost,
                 'total' => $lineTotal,
                 'is_optional' => $isOptional,
+                'cost_code_id' => CostCode::ownedById(isset($costCodes[$i]) ? (int) $costCodes[$i] : null, $companyId)?->id,
             ];
         }
 
@@ -734,6 +742,7 @@ class EstimateController extends Controller
                 // is unsigned, so it defaults to the column's null ("not yet
                 // decided"), same reasoning as the signed_* fields above.
                 'is_optional' => $item->is_optional,
+                'cost_code_id' => $item->cost_code_id,
             ]);
         }
         WebhookDispatcher::dispatch($companyId, 'estimate.created', $estimate->toArray());

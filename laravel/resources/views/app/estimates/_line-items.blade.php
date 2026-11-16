@@ -14,6 +14,7 @@
       'uom' => '',
       'unit_cost' => 0,
       'is_optional' => false,
+      'cost_code_id' => null,
   ]];
   $itemTypes = ['material' => 'Material', 'labor' => 'Labor', 'equipment' => 'Equipment', 'subcontractor' => 'Subcontractor', 'other' => 'Other'];
 @endphp
@@ -32,6 +33,7 @@
     <th style="width:10%">{{ t('common.unit_cost') }} (SAR)</th>
     <th style="width:10%">{{ t('user.invoices.line_total') }}</th>
     <th style="width:9%">{{ t('user.estimates.optional_addon') }}</th>
+    <th style="width:14%">{{ t('user.cost_codes.column') }}</th>
     <th></th>
   </tr></thead>
   <tbody id="items-body">
@@ -66,6 +68,7 @@
         <input type="hidden" name="item_optional[]" value="{{ !empty($row['is_optional']) ? '1' : '0' }}" class="optional-flag">
         <input type="checkbox" class="optional-checkbox" {{ !empty($row['is_optional']) ? 'checked' : '' }} title="{{ t('user.estimates.optional_addon_hint') }}">
       </td>
+      <td>@include('app.partials.cost-code-select', ['costCodeDivisions' => $costCodeDivisions, 'name' => 'item_cost_code[]', 'selected' => $row['cost_code_id'] ?? null])</td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
     </tr>
     @endforeach
@@ -113,6 +116,26 @@
   const taxSelect = document.getElementById('tax-rate-select');
   const unitOptions = {!! json_encode(array_column($units, 'code')) !!};
   const optionalHint = {!! json_encode(t('user.estimates.optional_addon_hint')) !!};
+  const costCodeDivisions = {!! json_encode($costCodeDivisions) !!};
+  const costCodeLocale = {!! json_encode(app()->getLocale()) !!};
+  const costCodeNoneLabel = {!! json_encode(t('user.cost_codes.none')) !!};
+
+  function costCodeLabel(row) {
+    return (costCodeLocale === 'ar' && row.description_ar) ? row.description_ar : row.description;
+  }
+
+  function costCodeOptionsHtml() {
+    let html = `<option value="">${costCodeNoneLabel}</option>`;
+    costCodeDivisions.forEach((division) => {
+      html += `<optgroup label="${division.code} ${costCodeLabel(division)}">`;
+      html += `<option value="${division.id}">${division.code} — ${costCodeLabel(division)}</option>`;
+      (division.children || []).forEach((child) => {
+        html += `<option value="${child.id}">&nbsp;&nbsp;${child.code} — ${costCodeLabel(child)}</option>`;
+      });
+      html += '</optgroup>';
+    });
+    return html;
+  }
 
   function rowTemplate() {
     const tr = document.createElement('tr');
@@ -138,6 +161,7 @@
         <input type="hidden" name="item_optional[]" value="0" class="optional-flag">
         <input type="checkbox" class="optional-checkbox" title="${optionalHint}">
       </td>
+      <td><select name="item_cost_code[]" class="cost-code-select">${costCodeOptionsHtml()}</select></td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;
   }
