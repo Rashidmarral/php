@@ -62,7 +62,11 @@ $footerNote = $footerNote ?? '';
 // A locale-explicit translate — 'pdf.*'/'common.*' keys via tFor() rather
 // than t(), because a bilingual document's label language is a property of
 // the layout/language_mode, never the current viewer's own app locale.
-$L = fn (string $key) => tFor($key, $primaryLocale);
+// Routed through pdfText() so an arabic_only template's labels get the same
+// glyph-shaping/joining its data values already get — tFor() on its own
+// returns plain logical-order Arabic, which dompdf renders as disconnected,
+// unjoined letters instead of proper cursive script.
+$L = fn (string $key) => pdfText(tFor($key, $primaryLocale), $primaryLocale);
 
 // The document-type title shown in the card/letterhead layouts' badge —
 // $docType itself was already localized by the calling controller to

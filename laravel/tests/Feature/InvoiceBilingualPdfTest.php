@@ -7,7 +7,9 @@ use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\InvoiceTemplate;
+use App\Models\Translation;
 use App\Models\User;
+use App\Support\Pdf\ArabicText;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -185,5 +187,18 @@ class InvoiceBilingualPdfTest extends TestCase
         // Amount-in-words and the authorized-signature line.
         $this->assertStringContainsString('itpl-bl-words', $html);
         $this->assertStringContainsString('itpl-bl-sign-table', $html);
+
+        // Every translated Arabic LABEL (VAT, Subtotal, Total, ...) must be
+        // glyph-shaped/joined the same way Arabic DATA values (the company
+        // name, the client name) already are — tFor() on its own returns
+        // plain logical-order Arabic, which dompdf renders as disconnected,
+        // unjoined letters rather than proper cursive script. This was a
+        // real bug: $biLabel/$biStack and several direct tFor(..., 'ar')
+        // calls in itpl-bilingual.blade.php (and the shared $L in
+        // document-v2.blade.php/payment-certificate-v2.blade.php) called
+        // tFor() without ever routing it through pdfText()/ArabicText::shape().
+        $vatLabelAr = Translation::overridesFor('ar')['common.vat'] ?? __('common.vat', [], 'ar');
+        $this->assertStringNotContainsString($vatLabelAr, $html, 'the Arabic VAT label must not appear in its raw, unshaped form');
+        $this->assertStringContainsString(ArabicText::shape($vatLabelAr), $html, 'the Arabic VAT label must be glyph-shaped (joined) like every other Arabic label on the document');
     }
 }

@@ -38,23 +38,31 @@ $vatRateDisplay = rtrim(rtrim(number_format((float) $vatRate, 2), '0'), '.');
 $titleEn = $documentType ? tFor('pdf.doctype.' . $documentType, 'en') : ($rtl ? '' : $docType);
 $titleAr = $documentType ? tFor('pdf.doctype.' . $documentType, 'ar') : ($rtl ? $docType : '');
 
+// A locale-explicit translate routed through pdfText(), so an Arabic label
+// gets the same glyph-shaping/joining its data values already get — tFor()
+// on its own returns plain logical-order Arabic, which dompdf renders as
+// disconnected, unjoined letters instead of proper cursive script. Every
+// tFor() call in this file (below and inside $biLabel/$biStack) goes
+// through this instead of calling tFor() directly.
+$T = fn (string $key, string $locale) => pdfText(tFor($key, $locale), $locale);
+
 // Bilingual EN/AR header label, "EN / AR" respecting $showEn/$showAr — used
 // for the totals-table row labels, exactly like Daftari's own $lbl() helper
 // (which combines both languages onto the SAME line for those rows, unlike
 // the info-table/items-table labels below, which get their own column/line).
-$biLabel = function (string $key) use ($showEn, $showAr): string {
-    $out = $showEn ? tFor($key, 'en') : '';
+$biLabel = function (string $key) use ($showEn, $showAr, $T): string {
+    $out = $showEn ? $T($key, 'en') : '';
     if ($showEn && $showAr) {
         $out .= ' / ';
     }
-    return $out . ($showAr ? tFor($key, 'ar') : '');
+    return $out . ($showAr ? $T($key, 'ar') : '');
 };
 // The items-table header's stacked EN-line / smaller-AR-line pair (see
 // .itpl-bl-items-table th .ar-text in InvoiceTemplateStyles::bilingualChrome()).
-$biStack = function (string $key) use ($showEn, $showAr): string {
-    $out = $showEn ? tFor($key, 'en') : '';
+$biStack = function (string $key) use ($showEn, $showAr, $T): string {
+    $out = $showEn ? $T($key, 'en') : '';
     if ($showAr) {
-        $out .= '<span class="ar-text">' . tFor($key, 'ar') . '</span>';
+        $out .= '<span class="ar-text">' . $T($key, 'ar') . '</span>';
     }
     return $out;
 };
@@ -95,8 +103,8 @@ $statusPill = $pillColors[$statusKey] ?? null;
   <?php if ($showEn): ?>
     <td style="width:<?= $showAr ? '35%' : '70%' ?>">
       <div class="itpl-bl-company-en"><?= pdfText($issuer['name'] ?? '', 'en') ?></div>
-      <?php if ($showPartyVat && !empty($company->vat_number)): ?><div class="itpl-bl-meta"><?= tFor('common.vat', 'en') ?>: <?= pdfText($company->vat_number, 'en') ?></div><?php endif; ?>
-      <?php if (!empty($company->cr_number)): ?><div class="itpl-bl-meta"><?= tFor('pdf.cr_number', 'en') ?>: <?= pdfText($company->cr_number, 'en') ?></div><?php endif; ?>
+      <?php if ($showPartyVat && !empty($company->vat_number)): ?><div class="itpl-bl-meta"><?= $T('common.vat', 'en') ?>: <?= pdfText($company->vat_number, 'en') ?></div><?php endif; ?>
+      <?php if (!empty($company->cr_number)): ?><div class="itpl-bl-meta"><?= $T('pdf.cr_number', 'en') ?>: <?= pdfText($company->cr_number, 'en') ?></div><?php endif; ?>
     </td>
   <?php endif; ?>
   <?php if ($showLogo && !empty($companyLogo)): ?>
@@ -105,8 +113,8 @@ $statusPill = $pillColors[$statusKey] ?? null;
   <?php if ($showAr): ?>
     <td style="width:<?= $showEn ? '35%' : '70%' ?>">
       <div class="itpl-bl-company-ar"><?= !empty($companyNameAr) ? pdfText($companyNameAr, 'ar') : e($issuer['name'] ?? '') ?></div>
-      <?php if ($showPartyVat && !empty($company->vat_number)): ?><div class="itpl-bl-meta ar"><?= tFor('common.vat', 'ar') ?>: <?= pdfText($company->vat_number, 'ar') ?></div><?php endif; ?>
-      <?php if (!empty($company->cr_number)): ?><div class="itpl-bl-meta ar"><?= tFor('pdf.cr_number', 'ar') ?>: <?= pdfText($company->cr_number, 'ar') ?></div><?php endif; ?>
+      <?php if ($showPartyVat && !empty($company->vat_number)): ?><div class="itpl-bl-meta ar"><?= $T('common.vat', 'ar') ?>: <?= pdfText($company->vat_number, 'ar') ?></div><?php endif; ?>
+      <?php if (!empty($company->cr_number)): ?><div class="itpl-bl-meta ar"><?= $T('pdf.cr_number', 'ar') ?>: <?= pdfText($company->cr_number, 'ar') ?></div><?php endif; ?>
     </td>
   <?php endif; ?>
 </tr></table>
@@ -125,25 +133,25 @@ $statusPill = $pillColors[$statusKey] ?? null;
 
 <table class="itpl-bl-info-table">
 <?= $infoRow(
-    tFor('common.number', 'en'),
-    tFor('common.number', 'ar'),
+    $T('common.number', 'en'),
+    $T('common.number', 'ar'),
     pdfText((string) $docNumber, $primaryLocale) . '&nbsp;|&nbsp;' . pdfText((string) $docDate, $primaryLocale)
 ) ?>
 <?php if (!$statusPill && (!empty($status) || !empty($validUntil))): ?>
 <?= $infoRow(
-    !empty($status) ? tFor('common.status', 'en') : tFor('pdf.valid_until', 'en'),
-    !empty($status) ? tFor('common.status', 'ar') : tFor('pdf.valid_until', 'ar'),
+    !empty($status) ? $T('common.status', 'en') : $T('pdf.valid_until', 'en'),
+    !empty($status) ? $T('common.status', 'ar') : $T('pdf.valid_until', 'ar'),
     pdfText((string) ($status ?: $validUntil), $primaryLocale)
 ) ?>
 <?php endif; ?>
 <?php if (!empty($billTo)): ?>
 <?= $infoRow(
-    tFor($partyLabelKey, 'en'),
-    tFor($partyLabelKey, 'ar'),
+    $T($partyLabelKey, 'en'),
+    $T($partyLabelKey, 'ar'),
     pdfText($billTo['name'] ?? '', $primaryLocale) . (!empty($partyNameAr) && $partyNameAr !== ($billTo['name'] ?? null) ? '<div class="ar-text">' . pdfText($partyNameAr, 'ar') . '</div>' : '')
 ) ?>
 <?php if ($showPartyVat && !empty($partyVat)): ?>
-<?= $infoRow(tFor('common.vat', 'en'), tFor('common.vat', 'ar'), pdfText($partyVat, $primaryLocale)) ?>
+<?= $infoRow($T('common.vat', 'en'), $T('common.vat', 'ar'), pdfText($partyVat, $primaryLocale)) ?>
 <?php endif; ?>
 <?php endif; ?>
 </table>
@@ -195,7 +203,7 @@ $statusPill = $pillColors[$statusKey] ?? null;
       <div class="itpl-bl-bank">
         <strong><?= $L('pdf.bank_details') ?>:</strong><br>
         <?= $L('pdf.bank_name') ?>: <?= pdfText($company->bank_name, $primaryLocale) ?>
-        <?php if (!empty($company->iban ?? null)): ?> &nbsp; <?= tFor('common.iban', $primaryLocale) ?>: <?= pdfText($company->iban, $primaryLocale) ?><?php endif; ?>
+        <?php if (!empty($company->iban ?? null)): ?> &nbsp; <?= $T('common.iban', $primaryLocale) ?>: <?= pdfText($company->iban, $primaryLocale) ?><?php endif; ?>
         <?php if (!empty($company->account_number ?? null)): ?> &nbsp; <?= $L('pdf.account_number') ?>: <?= pdfText($company->account_number, $primaryLocale) ?><?php endif; ?>
       </div>
     <?php endif; ?>
@@ -224,7 +232,7 @@ $statusPill = $pillColors[$statusKey] ?? null;
     <td style="width:50%;vertical-align:top;">
       <?php if (!empty($qrCode)): ?>
         <?php if (!empty($zatcaStatus)): ?>
-          <div class="itpl-bl-zatca-pill"><?= $zatcaStatus === 'cleared' ? tFor('pdf.zatca_cleared', $primaryLocale) : tFor('pdf.zatca_reported', $primaryLocale) ?></div><br>
+          <div class="itpl-bl-zatca-pill"><?= $zatcaStatus === 'cleared' ? $T('pdf.zatca_cleared', $primaryLocale) : $T('pdf.zatca_reported', $primaryLocale) ?></div><br>
         <?php endif; ?>
         <img src="<?= $qrCode ?>" width="90" height="90">
       <?php endif; ?>
