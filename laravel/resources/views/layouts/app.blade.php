@@ -59,6 +59,12 @@
     </div>
   </aside>
   <div class="main">
+    @php
+      // Cheap unread count for the bell icon below — a fresh page load recomputing this
+      // is enough for v1 (no JS polling/real-time), matching this app's plain-MPA
+      // convention. Company-wide, same scope as every notifications-table read.
+      $unreadNotificationsCount = \App\Models\Notification::where('company_id', auth()->user()->company_id)->whereNull('read_at')->count();
+    @endphp
     <div class="topbar">
       <div class="who">{{ auth()->user()->name }} · <span class="badge badge-blue">{{ auth()->user()->roleShortLabel() }}</span></div>
       <form class="topbar-search" method="get" action="{{ url('/app/search') }}" data-search-endpoint="{{ url('/app/search') }}" autocomplete="off">
@@ -66,6 +72,12 @@
         <div class="search-dropdown" hidden data-no-results="{{ t('common.no_results') }}"></div>
       </form>
       <div class="header-actions">
+        <a href="{{ url('/app/notifications') }}" class="bell-link" style="position:relative;text-decoration:none;font-size:18px;" title="{{ t('user.notifications.title') }}" aria-label="{{ t('user.notifications.title') }}">
+          🔔
+          @if($unreadNotificationsCount > 0)
+            <span class="badge badge-blue" style="position:absolute;top:-8px;right:-10px;border-radius:50%;background:var(--danger);color:#fff;font-size:10px;line-height:1;padding:2px 5px;min-width:16px;text-align:center;">{{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}</span>
+          @endif
+        </a>
         <a class="lang-switch" href="?lang={{ app()->getLocale() === 'ar' ? 'en' : 'ar' }}">{{ app()->getLocale() === 'ar' ? 'EN' : 'AR' }}</a>
         <form method="post" action="{{ url('/logout') }}" style="margin:0">
           @csrf
