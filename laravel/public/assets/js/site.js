@@ -24,7 +24,7 @@
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   if (!window.matchMedia || !window.matchMedia('(hover: hover)').matches) return;
 
-  var cards = document.querySelectorAll('.pricing-card, .feature-card, .testi-card');
+  var cards = document.querySelectorAll('.pricing-card, .feature-card, .testi-card, .role-card, .feature-mini-card');
   cards.forEach(function (card) {
     card.style.transformStyle = 'preserve-3d';
     card.style.willChange = 'transform';

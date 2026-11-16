@@ -14,11 +14,28 @@
       </div>
     </div>
     <div class="hero-visual">
-      <div class="kpi-grid" style="grid-template-columns:1fr 1fr;margin-bottom:0;">
-        <div class="kpi"><div class="label">Active Projects</div><div class="value count-up">18</div><div class="delta">+3 this month</div></div>
-        <div class="kpi"><div class="label">Est. Accuracy</div><div class="value count-up">96%</div><div class="delta">+4% vs manual</div></div>
-        <div class="kpi"><div class="label">Outstanding</div><div class="value count-up">SAR 128K</div></div>
-        <div class="kpi"><div class="label">Paid this month</div><div class="value count-up">SAR 412K</div></div>
+      <div class="app-mockup">
+        <div class="mockup-bar">
+          <span class="mockup-dot"></span><span class="mockup-dot"></span><span class="mockup-dot"></span>
+          <span class="mockup-tab">{{ t('hero.mockup.tab') }}</span>
+        </div>
+        <div class="mockup-body">
+          <div class="mockup-kpis">
+            <div class="mockup-kpi"><div class="mk-label">{{ t('hero.mockup.kpi1_label') }}</div><div class="mk-value">{{ t('hero.mockup.kpi1_value') }}</div></div>
+            <div class="mockup-kpi"><div class="mk-label">{{ t('hero.mockup.kpi2_label') }}</div><div class="mk-value">{{ t('hero.mockup.kpi2_value') }}</div></div>
+            <div class="mockup-kpi"><div class="mk-label">{{ t('hero.mockup.kpi3_label') }}</div><div class="mk-value">{{ t('hero.mockup.kpi3_value') }}</div></div>
+          </div>
+          <div class="mockup-chart" aria-hidden="true">
+            <span style="height:42%"></span>
+            <span style="height:58%"></span>
+            <span style="height:37%"></span>
+            <span style="height:71%"></span>
+            <span style="height:54%"></span>
+            <span style="height:85%"></span>
+            <span style="height:66%"></span>
+            <span style="height:93%"></span>
+          </div>
+        </div>
       </div>
       <div class="stat-row">
         <div><strong class="count-up">2,400+</strong><span>{{ t('hero.stat1') }}</span></div>
@@ -29,7 +46,23 @@
   </div>
 </section>
 
-<section class="section">
+<section class="section reveal-section">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">{{ t('roles.eyebrow') }}</div>
+      <h2>{{ t('roles.title') }}</h2>
+      <p style="color:var(--muted)">{{ t('roles.subtitle') }}</p>
+    </div>
+    <div class="grid grid-4 reveal-stagger">
+      <div class="role-card reveal"><div class="role-icon">🏗️</div><h3>{{ t('roles.gc.title') }}</h3><p>{{ t('roles.gc.desc') }}</p></div>
+      <div class="role-card reveal"><div class="role-icon">🧑‍🔧</div><h3>{{ t('roles.subs.title') }}</h3><p>{{ t('roles.subs.desc') }}</p></div>
+      <div class="role-card reveal"><div class="role-icon">🏢</div><h3>{{ t('roles.owners.title') }}</h3><p>{{ t('roles.owners.desc') }}</p></div>
+      <div class="role-card reveal"><div class="role-icon">📐</div><h3>{{ t('roles.qs.title') }}</h3><p>{{ t('roles.qs.desc') }}</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:#fff;border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
   <div class="container">
     <div class="section-head">
       <div class="eyebrow">{{ t('features.eyebrow') }}</div>
