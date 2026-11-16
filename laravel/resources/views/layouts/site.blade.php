@@ -145,6 +145,14 @@ try {
         </ul>
       </div>
       <div>
+        <h4>{{ t('footer.solutions') }}</h4>
+        <ul>
+          <li><a href="{{ url('/features#estimating') }}">{{ t('footer.solutions_contractors') }}</a></li>
+          <li><a href="{{ url('/features#delivery') }}">{{ t('footer.solutions_subcontractors') }}</a></li>
+          <li><a href="{{ url('/features#compliance') }}">{{ t('footer.solutions_developers') }}</a></li>
+        </ul>
+      </div>
+      <div>
         <h4>{{ t('footer.legal') }}</h4>
         <ul>
           <li><a href="{{ url('/privacy') }}">{{ t('footer.privacy') }}</a></li>
@@ -152,6 +160,10 @@ try {
           <li><a href="{{ url('/security') }}">{{ t('nav.security') }}</a></li>
         </ul>
       </div>
+    </div>
+    <div class="footer-vision-strip">
+      <span class="vision2030-badge">🇸🇦 {{ t('footer.vision_badge') }}</span>
+      <span>{{ t('footer.vision_note') }}</span>
     </div>
     <div class="footer-bottom">
       <span>
