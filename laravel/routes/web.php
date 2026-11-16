@@ -471,6 +471,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::post('/documents/{id}/version', [DocumentController::class, 'uploadVersion']);
     Route::post('/documents/{id}/delete', [DocumentController::class, 'destroy']);
+    Route::get('/documents/{id}/viewer', [DocumentController::class, 'viewer']);
+    Route::post('/documents/{id}/pins', [DocumentController::class, 'storePin']);
 
     Route::get('/integrations', [IntegrationController::class, 'index']);
     Route::post('/integrations/google-sheets', [IntegrationController::class, 'updateGoogleSheets']);

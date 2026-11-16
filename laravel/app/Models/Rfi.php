@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * Project-scoped threaded Q&A, built on the exact SupportTicket/SupportTicketMessage
@@ -53,6 +54,12 @@ class Rfi extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(RfiMessage::class, 'rfi_id')->orderBy('created_at');
+    }
+
+    /** Markers pinning this RFI to a point on a drawing/plan Document — see DocumentPin. */
+    public function documentPins(): MorphMany
+    {
+        return $this->morphMany(DocumentPin::class, 'pinnable');
     }
 
     /** Display number, e.g. "RFI-001" — zero-padded to 3 digits, same formatting as other sequential doc numbers in this app. */

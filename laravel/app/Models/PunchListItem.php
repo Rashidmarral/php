@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class PunchListItem extends Model
 {
@@ -50,5 +51,11 @@ class PunchListItem extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    /** Markers pinning this item to a point on a drawing/plan Document — see DocumentPin. */
+    public function documentPins(): MorphMany
+    {
+        return $this->morphMany(DocumentPin::class, 'pinnable');
     }
 }

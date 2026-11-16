@@ -9,6 +9,8 @@ use App\Models\BoqItem;
 use App\Models\ChangeOrder;
 use App\Models\Client;
 use App\Models\Company;
+use App\Models\CostCode;
+use App\Models\Document;
 use App\Models\Equipment;
 use App\Models\EquipmentAssignment;
 use App\Models\Estimate;
@@ -314,6 +316,15 @@ class ProjectController extends Controller
         // offered right now (see Project::isInWarrantyPeriod() for the gating reasoning).
         $warrantyClaimCount = PunchListItem::where('project_id', $project->id)->where('status', 'warranty_claim')->count();
         $warrantyClaimAllowed = $project->isInWarrantyPeriod();
+        // Image-type documents on this project — offered as the "pin to drawing"
+        // target picker on punch-list rows below, and as the Documents card's own
+        // "View on plan" links. Only the current version of each one.
+        $projectImageDocuments = Document::where('company_id', $project->company_id)
+            ->where('project_id', $project->id)
+            ->currentVersion()
+            ->get()
+            ->filter(fn (Document $d) => $d->isPinnableImage())
+            ->values();
         $rfis = Rfi::where('project_id', $project->id)->orderByDesc('rfi_number')->limit(5)->get();
         $rfiCount = Rfi::where('project_id', $project->id)->count();
         $submittals = Submittal::where('project_id', $project->id)->orderByDesc('submittal_number')->limit(5)->get();
@@ -395,6 +406,7 @@ class ProjectController extends Controller
             'punchListPriorities' => PunchListItem::PRIORITIES,
             'warrantyClaimCount' => $warrantyClaimCount,
             'warrantyClaimAllowed' => $warrantyClaimAllowed,
+            'projectImageDocuments' => $projectImageDocuments->toArray(),
             'rfis' => $rfis->toArray(),
             'rfiCount' => $rfiCount,
             'rfiStatuses' => Rfi::STATUSES,
@@ -417,6 +429,7 @@ class ProjectController extends Controller
             'availableBudget' => $availableBudget,
             'budgetVariance' => $revisedBudget - $actualCostTotal,
             'budgetUsedPercent' => $revisedBudget > 0 ? min(999, round($actualCostTotal / $revisedBudget * 100)) : 0,
+            'costCodeDivisions' => CostCode::selectableFor($project->company_id)->toArray(),
         ]);
     }
 

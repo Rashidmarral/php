@@ -116,9 +116,19 @@ class RfiController extends Controller
         $rfi = $this->findOwned($id);
         $rfi->load(['messages', 'raisedByUser', 'assignee', 'document', 'project']);
 
+        // Image-type documents on this RFI's project — offered as the "pin to drawing"
+        // target picker, same convention as the punch-list rows on projects.show.
+        $projectImageDocuments = Document::where('company_id', $rfi->company_id)
+            ->where('project_id', $rfi->project_id)
+            ->currentVersion()
+            ->get()
+            ->filter(fn (Document $d) => $d->isPinnableImage())
+            ->values();
+
         return view('app.rfis.show', [
             'rfi' => $rfi,
             'statuses' => Rfi::STATUSES,
+            'projectImageDocuments' => $projectImageDocuments,
         ]);
     }
 

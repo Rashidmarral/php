@@ -40,6 +40,18 @@
       <p class="help-text">{{ t('user.rfi.reference_document') }}: <a href="{{ $rfi->document->file_path }}" target="_blank">{{ local($rfi->document, 'name') }}</a></p>
     @endif
 
+    @if($projectImageDocuments->isNotEmpty())
+      <div class="form-group">
+        <label>{{ t('user.rfi.pin_to_drawing') }}</label>
+        <select onchange="if(this.value) window.location.href=this.value;">
+          <option value="">📍 {{ t('user.rfi.pin_to_drawing') }}</option>
+          @foreach($projectImageDocuments as $doc)
+            <option value="/app/documents/{{ $doc->id }}/viewer?pin_type=rfi&pin_id={{ $rfi->id }}">{{ local($doc, 'name') }}</option>
+          @endforeach
+        </select>
+      </div>
+    @endif
+
     <form method="post" action="/app/rfis/{{ $rfi->id }}/status">
       @csrf
       <div class="form-group">

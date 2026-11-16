@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Document extends Model
 {
+    /** Extensions that documents.viewer can draw on a canvas for pinning — anything else shows a "can't preview" message instead. */
+    public const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
     public $timestamps = true;
     const UPDATED_AT = null;
 
@@ -43,6 +46,17 @@ class Document extends Model
     public function supersededBy(): HasMany
     {
         return $this->hasMany(Document::class, 'supersedes_id');
+    }
+
+    public function pins(): HasMany
+    {
+        return $this->hasMany(DocumentPin::class);
+    }
+
+    /** Whether this document's file is a drawing/plan image documents.viewer can draw on a canvas for pinning. */
+    public function isPinnableImage(): bool
+    {
+        return in_array(strtolower((string) $this->file_type), self::IMAGE_EXTENSIONS, true);
     }
 
     /** Scope: only the current (latest) version of every document — the default for list views. */

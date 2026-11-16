@@ -4,7 +4,10 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\DocumentPin;
 use App\Models\Project;
+use App\Models\PunchListItem;
+use App\Models\Rfi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -189,5 +192,136 @@ class DocumentController extends Controller
 
         $this->flash('success', t('user.documents.version_uploaded'));
         return redirect('/app/documents');
+    }
+
+    /**
+     * Short URL-friendly slugs for DocumentPin::pinnable_type, used in query params
+     * and the pin-creation form instead of exposing the full namespaced class name.
+     *
+     * @var array<string, class-string>
+     */
+    private const PINNABLE_TYPES = [
+        'punch_list_item' => PunchListItem::class,
+        'rfi' => Rfi::class,
+    ];
+
+    /**
+     * The pinned-markup viewer: draws the document's image on a canvas (same
+     * canvasPoint() pixel-coordinate mechanic as takeoffs/show.blade.php) with every
+     * existing pin overlaid at its stored (x,y). When ?pin_type=&pin_id= names a
+     * PunchListItem/Rfi owned by this company, the view opens in "placing a pin"
+     * mode: the next canvas click is POSTed to storePin() below.
+     */
+    public function viewer(Request $request, int $id): View
+    {
+        if ($redirect = $this->requireFeature('documents')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+        $document = Document::find($id);
+        abort_if(!$document || $document->company_id !== $companyId, 404, 'Document not found.');
+
+        $pins = DocumentPin::where('document_id', $document->id)
+            ->where('company_id', $companyId)
+            ->orderBy('id')
+            ->get()
+            ->map(function (DocumentPin $pin) use ($companyId) {
+                $target = $this->findPinnable($pin->pinnable_type, $pin->pinnable_id, $companyId);
+                return [
+                    'id' => $pin->id,
+                    'x' => (float) $pin->x,
+                    'y' => (float) $pin->y,
+                    'label' => $pin->label,
+                    'link' => $target ? $this->pinnableLink($pin->pinnable_type, $target) : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $placing = null;
+        $pinType = $request->query('pin_type');
+        $pinId = (int) $request->query('pin_id');
+        if ($pinId && array_key_exists((string) $pinType, self::PINNABLE_TYPES)) {
+            $target = $this->findPinnable(self::PINNABLE_TYPES[$pinType], $pinId, $companyId);
+            if ($target) {
+                $placing = [
+                    'type' => $pinType,
+                    'id' => $target->id,
+                    'label' => $pinType === 'punch_list_item' ? $target->title : ($target->displayNumber() . ' — ' . $target->subject),
+                ];
+            }
+        }
+
+        return view('app.documents.viewer', [
+            'document' => $document,
+            'isImage' => $document->isPinnableImage(),
+            'pins' => $pins,
+            'placing' => $placing,
+        ]);
+    }
+
+    /** Places a new pin from a canvas click in documents.viewer's "placing a pin" mode. */
+    public function storePin(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('documents')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+        $document = Document::find($id);
+        abort_if(!$document || $document->company_id !== $companyId, 404, 'Document not found.');
+
+        $pinType = (string) $request->input('pinnable_type');
+        if (!array_key_exists($pinType, self::PINNABLE_TYPES)) {
+            return $this->redirectWithFlash('/app/documents/' . $document->id . '/viewer', 'error', t('user.documents.pin_invalid_target'));
+        }
+        $modelClass = self::PINNABLE_TYPES[$pinType];
+        $target = $this->findPinnable($modelClass, (int) $request->input('pinnable_id'), $companyId);
+        abort_if(!$target, 404, 'Linked record not found.');
+
+        $x = (float) $request->input('x');
+        $y = (float) $request->input('y');
+        if ($x < 0 || $x > 100 || $y < 0 || $y > 100) {
+            return $this->redirectWithFlash('/app/documents/' . $document->id . '/viewer', 'error', t('user.documents.pin_invalid_position'));
+        }
+
+        $label = trim((string) $request->input('label', ''));
+        if ($label === '') {
+            $label = $pinType === 'punch_list_item' ? $target->title : $target->displayNumber();
+        }
+
+        DocumentPin::create([
+            'document_id' => $document->id,
+            'company_id' => $companyId,
+            'x' => $x,
+            'y' => $y,
+            'pinnable_type' => $modelClass,
+            'pinnable_id' => $target->id,
+            'created_by' => Auth::id(),
+            'label' => $label,
+        ]);
+
+        $this->flash('success', t('user.documents.pin_created'));
+        return redirect('/app/documents/' . $document->id . '/viewer');
+    }
+
+    /** Finds a PunchListItem/Rfi by class+id, scoped to $companyId — never returns a cross-tenant row. */
+    private function findPinnable(string $modelClass, int $id, int $companyId): PunchListItem|Rfi|null
+    {
+        if (!$id || !in_array($modelClass, self::PINNABLE_TYPES, true)) {
+            return null;
+        }
+        /** @var PunchListItem|Rfi|null $target */
+        $target = $modelClass::find($id);
+        return ($target && $target->company_id === $companyId) ? $target : null;
+    }
+
+    private function pinnableLink(string $modelClass, PunchListItem|Rfi $target): string
+    {
+        return $modelClass === Rfi::class
+            ? '/app/rfis/' . $target->id
+            : '/app/projects/' . $target->project_id . '#punch-list';
     }
 }

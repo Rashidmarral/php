@@ -548,7 +548,7 @@
 <?php endif; ?>
 
 <div id="warranty-claims"></div>
-<div class="card" style="margin-top:24px;">
+<div id="punch-list" class="card" style="margin-top:24px;">
   <h3><?= t('user.punch_list.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.punch_list.hint') ?></p>
 
@@ -621,6 +621,14 @@
                 <button type="submit" class="btn btn-sm btn-outline"><?= t('user.punch_list.raise_warranty_claim') ?></button>
               </form>
             <?php endif; ?>
+            <?php if (!empty($projectImageDocuments)): ?>
+              <select onchange="if(this.value) window.location.href=this.value;" style="padding:4px 6px;display:inline-block;width:auto;" aria-label="<?= t('user.punch_list.pin_to_drawing') ?>">
+                <option value="">📍 <?= t('user.punch_list.pin_to_drawing') ?></option>
+                <?php foreach ($projectImageDocuments as $doc): ?>
+                  <option value="/app/documents/<?= $doc['id'] ?>/viewer?pin_type=punch_list_item&pin_id=<?= $item['id'] ?>"><?= e(local($doc, 'name')) ?></option>
+                <?php endforeach; ?>
+              </select>
+            <?php endif; ?>
             <form method="post" action="/app/punch-list/<?= $item['id'] ?>/delete" onsubmit="return confirm('<?= t('user.punch_list.remove_confirm') ?>');" style="display:inline;">
               <?= csrf_field() ?>
               <button type="submit" class="btn btn-sm btn-danger"><?= t('common.delete') ?></button>
@@ -653,6 +661,21 @@
     <button type="submit" class="btn btn-outline"><?= t('user.punch_list.add_item') ?></button>
   </form>
 </div>
+
+<?php if (!empty($projectImageDocuments)): ?>
+<div id="project-documents" class="card" style="margin-top:24px;">
+  <h3><?= t('user.documents.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.documents.view_on_plan_hint') ?></p>
+  <div class="card-list">
+    <?php foreach ($projectImageDocuments as $doc): ?>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:6px 0;">
+        <span><?= e(local($doc, 'name')) ?></span>
+        <a href="/app/documents/<?= $doc['id'] ?>/viewer" class="btn btn-sm btn-light">📍 <?= t('user.documents.view_on_plan') ?></a>
+      </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="card" style="margin-top:24px;">
   <h3><?= t('user.safety.title') ?></h3>
