@@ -229,12 +229,6 @@ class InvoiceController extends Controller
             'client' => $client,
             'project' => $project,
             'company' => $company,
-            'activeTemplate' => $company->activeInvoiceTemplate(),
-            // Stage 4 fix: the OLD 6-preset picker below is a no-op once this
-            // company has customized a per-document-type template (Stage 2's
-            // streamPdf() always renders that one, ignoring ?template=) — the
-            // view uses this to hide the picker instead of leaving a dead control.
-            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('invoice'),
             'zatcaQr' => $this->zatcaQrDataUri($invoice, $company),
             'whatsappLink' => $whatsappLink,
             'reminderWhatsappLink' => $reminderWhatsappLink,
@@ -552,20 +546,20 @@ class InvoiceController extends Controller
         return redirect('/app/invoices');
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $invoice = $this->findOwned($id);
         $items = InvoiceItem::where('invoice_id', $invoice->id)->orderBy('id')->get();
         $client = $this->ownedClient($invoice->client_id, $invoice->company_id);
         $company = Company::find($invoice->company_id);
-        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+        $template = $company->activeInvoiceTemplate();
         // Stage 2: a company that has customized a template for this document type
         // (Company::activeInvoiceTemplateFor()) renders through the new layout-family
         // system (Controller::streamPdf() picks pdf.document-v2 whenever this is
         // non-null) — every other company (the common case right after Stage 1)
         // falls straight through to the unchanged 6-preset system below.
         $invoiceTemplate = $company->activeInvoiceTemplateFor('invoice');
+        $lang = $this->pdfLangFor($invoiceTemplate);
 
         return $this->streamPdf([
             'template' => $template,

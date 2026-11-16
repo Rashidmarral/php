@@ -87,27 +87,8 @@
   </div>
 <?php endif; ?>
 
-<form method="get" action="/app/estimates/<?= $estimate['id'] ?>/pdf" target="_blank" style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;flex-wrap:wrap;">
-  <?php if (!$hasCustomTemplate): ?>
-    <div class="form-group" style="margin:0;">
-      <label><?= t('common.pdf_template') ?></label>
-      <select name="template">
-        <option value="modern" <?= $activeTemplate === 'modern' ? 'selected' : '' ?>><?= t('common.pdf_template_modern') ?></option>
-        <option value="classic" <?= $activeTemplate === 'classic' ? 'selected' : '' ?>><?= t('common.pdf_template_classic') ?></option>
-        <option value="minimal" <?= $activeTemplate === 'minimal' ? 'selected' : '' ?>><?= t('common.pdf_template_minimal') ?></option>
-        <option value="bold" <?= $activeTemplate === 'bold' ? 'selected' : '' ?>><?= t('common.pdf_template_bold') ?></option>
-        <option value="elegant" <?= $activeTemplate === 'elegant' ? 'selected' : '' ?>><?= t('common.pdf_template_elegant') ?></option>
-        <option value="saudi" <?= $activeTemplate === 'saudi' ? 'selected' : '' ?>><?= t('common.pdf_template_saudi') ?></option>
-      </select>
-    </div>
-  <?php else: ?>
-    <p class="help-text" style="margin:0;max-width:260px;"><?= t('common.pdf_custom_template_active', ['url' => '/app/settings/invoice-templates/estimate']) ?></p>
-  <?php endif; ?>
-  <div class="form-group" style="margin:0;">
-    <label><?= t('common.language') ?></label>
-    <select name="lang"><option value="en"><?= t('common.english') ?></option><option value="ar"><?= t('common.arabic') ?></option></select>
-  </div>
-  <button type="submit" class="btn btn-outline">⬇ <?= t('common.download_pdf') ?></button>
+<div style="display:flex;gap:8px;align-items:end;margin-bottom:20px;max-width:820px;flex-wrap:wrap;">
+  <a href="/app/estimates/<?= $estimate['id'] ?>/pdf" target="_blank" class="btn btn-outline">⬇ <?= t('common.download_pdf') ?></a>
   <?php if ($approvalBlocked): ?>
     <span class="help-text"><?= t('user.estimates.send_blocked_hint') ?></span>
   <?php else: ?>
@@ -118,7 +99,7 @@
       <button type="button" onclick="document.getElementById('sms-auto-form').submit();" class="btn btn-outline">📱 <?= t('user.estimates.send_sms') ?></button>
     <?php endif; ?>
   <?php endif; ?>
-</form>
+</div>
 <form id="sms-auto-form" method="post" action="/app/estimates/<?= $estimate['id'] ?>/send-sms" style="display:none;"><?= csrf_field() ?></form>
 
 <div class="card" style="max-width:820px;">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InvoiceTemplate;
 use App\Support\Feature;
 use App\Support\Pdf\Pdf;
 use App\Support\SpreadsheetBoqImporter;
@@ -67,6 +68,30 @@ abstract class Controller
      * the fallback every company with no InvoiceTemplate row yet (the common case
      * right after Stage 1) relies on to see the identical PDF it always has.
      */
+    /**
+     * The language a document PDF renders in — the per-download language
+     * picker is gone (the per-company InvoiceTemplate system replaced it),
+     * so this is the single place that decides. A company with a custom
+     * InvoiceTemplate for this document type is its own source of truth:
+     * 'arabic_only'/'english_only' render in that one language, and
+     * 'bilingual' (which shows both languages regardless) uses its own
+     * table_direction to decide which way the page mirrors. A company still
+     * on the old 6-preset system has no per-document language setting of
+     * its own, so $fallback (the viewer's current app locale by default)
+     * decides instead.
+     */
+    protected function pdfLangFor(?InvoiceTemplate $invoiceTemplate, ?string $fallback = null): string
+    {
+        if ($invoiceTemplate) {
+            return match ($invoiceTemplate->language_mode) {
+                'arabic_only' => 'ar',
+                'english_only' => 'en',
+                default => $invoiceTemplate->table_direction === 'rtl' ? 'ar' : 'en',
+            };
+        }
+        return $fallback ?? app()->getLocale();
+    }
+
     protected function streamPdf(array $data, string $filename): Response
     {
         $view = !empty($data['invoiceTemplate']) ? 'pdf.document-v2' : 'pdf.document';

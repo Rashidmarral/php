@@ -112,14 +112,15 @@ class ZakatController extends Controller
         return $this->redirectWithFlash('/app/zakat', 'success', t('user.zakat.deleted'));
     }
 
-    public function pdf(Request $request, int $id): Response|RedirectResponse
+    public function pdf(int $id): Response|RedirectResponse
     {
         if ($redirect = $this->requireFeature('zakat')) {
             return $redirect;
         }
         $calculation = $this->findOwned($id);
         $company = Company::find($calculation->company_id);
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+        $invoiceTemplate = $company->activeInvoiceTemplateFor('zakat');
+        $lang = $this->pdfLangFor($invoiceTemplate);
         $rateLabel = $calculation->rate_type === 'gregorian' ? '2.5775%' : '2.5%';
 
         $items = [
@@ -156,8 +157,6 @@ class ZakatController extends Controller
                 'total' => (float) $calculation->zakat_base,
             ],
         ];
-
-        $invoiceTemplate = $company->activeInvoiceTemplateFor('zakat');
 
         $notes = $lang === 'ar'
             ? "المستحق للزكاة = وعاء الزكاة × النسبة = " . number_format((float) $calculation->zakat_base, 2)

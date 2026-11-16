@@ -931,10 +931,6 @@ class EstimateController extends Controller
             'optionalItems' => $optionalItems,
             'client' => $client,
             'project' => $project,
-            'activeTemplate' => $company->activeInvoiceTemplate(),
-            // Stage 4 fix: see InvoiceController::show()'s identical comment —
-            // hides the OLD template picker once it would be a no-op.
-            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('estimate'),
             'whatsappLink' => $whatsappLink,
             'approverWhatsappLink' => $approverWhatsappLink,
             'whatsappApiConfigured' => WhatsApp::isConfigured(),
@@ -1139,14 +1135,14 @@ class EstimateController extends Controller
         return redirect('/app/estimates');
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $estimate = $this->findOwned($id);
         $client = $this->ownedClient($estimate->client_id, $estimate->company_id);
         $company = Company::find($estimate->company_id);
-        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+        $template = $company->activeInvoiceTemplate();
         $invoiceTemplate = $company->activeInvoiceTemplateFor('estimate');
+        $lang = $this->pdfLangFor($invoiceTemplate);
 
         // Client-facing figures must reconcile: line items are the sell price
         // (cost scaled by markup), and subtotal/VAT/total are derived from those

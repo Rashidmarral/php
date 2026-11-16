@@ -202,24 +202,20 @@ class QuickEstimateController extends Controller
             'addons' => $addons,
             'client' => $client?->toArray(),
             'vatRate' => (float) Setting::get('vat_rate', '15'),
-            'activeTemplate' => $company->activeInvoiceTemplate(),
-            // Stage 4 fix: see InvoiceController::show()'s identical comment —
-            // hides the OLD template picker once it would be a no-op.
-            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('quick_estimate'),
         ]);
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $estimate = $this->findOwned($id);
         $region = $estimate->region_id ? QuickEstimateRegion::find($estimate->region_id) : null;
         $foundation = $estimate->foundation_id ? QuickEstimateFoundation::find($estimate->foundation_id) : null;
         $qualityTier = $estimate->quality_tier_id ? QuickEstimateQualityTier::find($estimate->quality_tier_id) : null;
         $addons = json_decode((string) $estimate->addons_json, true) ?: [];
-        $lang = $request->input('lang') === 'ar' ? 'ar' : ($estimate->lang === 'ar' ? 'ar' : 'en');
         $company = Company::find($estimate->company_id);
-        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
+        $template = $company->activeInvoiceTemplate();
         $invoiceTemplate = $company->activeInvoiceTemplateFor('quick_estimate');
+        $lang = $this->pdfLangFor($invoiceTemplate, $estimate->lang === 'ar' ? 'ar' : 'en');
 
         $items = QuickEstimateCalc::pdfItems($estimate->toArray(), $region?->toArray(), $foundation?->toArray(), $addons, $lang, $qualityTier?->toArray());
 

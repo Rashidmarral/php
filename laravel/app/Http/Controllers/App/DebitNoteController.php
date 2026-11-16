@@ -169,23 +169,19 @@ class DebitNoteController extends Controller
             'items' => $items,
             'invoice' => $invoice,
             'client' => $client,
-            'activeTemplate' => $company->activeInvoiceTemplate(),
-            // Stage 4 fix: see InvoiceController::show()'s identical comment —
-            // hides the OLD template picker once it would be a no-op.
-            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('debit_note'),
         ]);
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $debitNote = $this->findOwned($id);
         $items = DebitNoteItem::where('debit_note_id', $debitNote->id)->orderBy('id')->get();
         $invoice = $this->ownedInvoice($debitNote->invoice_id, $debitNote->company_id);
         $client = $this->ownedClient($debitNote->client_id, $debitNote->company_id);
         $company = Company::find($debitNote->company_id);
-        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+        $template = $company->activeInvoiceTemplate();
         $invoiceTemplate = $company->activeInvoiceTemplateFor('debit_note');
+        $lang = $this->pdfLangFor($invoiceTemplate);
 
         $reference = ($lang === 'ar' ? 'مرجع الفاتورة: ' : 'Reference invoice: ') . $invoice->invoice_number . ($debitNote->reason ? ' — ' . $debitNote->reason : '');
 

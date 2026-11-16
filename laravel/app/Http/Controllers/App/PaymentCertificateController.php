@@ -180,10 +180,6 @@ class PaymentCertificateController extends Controller
             'lines' => $lines->toArray(),
             'invoice' => $invoice?->toArray(),
             'isLatestDraft' => $this->isLatestDraft($certificate),
-            'activeTemplate' => $company->activeInvoiceTemplate(),
-            // Stage 4 fix: see InvoiceController::show()'s identical comment —
-            // hides the OLD template picker once it would be a no-op.
-            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('payment_certificate'),
             'shareUrl' => $shareUrl,
         ]);
     }
@@ -408,27 +404,20 @@ class PaymentCertificateController extends Controller
         return redirect('/app/payment-certificates/' . $certificate->id);
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $certificate = $this->findOwned($id);
         $project = $this->findOwnedProject($certificate->project_id);
         $client = $project->client_id ? $this->ownedClient($project->client_id, $project->company_id) : null;
         $company = Company::find($project->company_id);
         $lines = PaymentCertificateLine::where('payment_certificate_id', $certificate->id)->orderBy('id')->get();
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
-        // Same 6-option whitelist InvoiceController::pdf() validates against, NOW including
-        // 'saudi' too — see payment-certificate.blade.php's own comment for the bilingual
-        // layout that template renders for a certificate (a previous pass had excluded it here
-        // as a poor fit; it's since been built properly with its own wider cumulative-billing
-        // columns instead of being force-fit onto the invoice template's simpler shape). Falls
-        // back to the company's activated default (see Company::activeInvoiceTemplate()) rather
-        // than always 'modern' when no ?template= override is given.
-        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
+        $template = $company->activeInvoiceTemplate();
         // Stage 2: same resolve-then-fallback pattern as every other document-PDF
         // controller (see InvoiceController::pdf()'s comment) — renders through
         // pdf.payment-certificate-v2 only when this company customized a template
         // for 'payment_certificate'; every other company keeps the unchanged view.
         $invoiceTemplate = $company->activeInvoiceTemplateFor('payment_certificate');
+        $lang = $this->pdfLangFor($invoiceTemplate);
 
         $invoice = $certificate->invoice_id ? Invoice::find($certificate->invoice_id) : null;
         // A certified certificate shows its real invoiced VAT/total; a draft one shows a live

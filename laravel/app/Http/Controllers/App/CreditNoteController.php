@@ -193,23 +193,19 @@ class CreditNoteController extends Controller
             'items' => $items,
             'invoice' => $invoice,
             'client' => $client,
-            'activeTemplate' => $company->activeInvoiceTemplate(),
-            // Stage 4 fix: see InvoiceController::show()'s identical comment —
-            // hides the OLD template picker once it would be a no-op.
-            'hasCustomTemplate' => (bool) $company->activeInvoiceTemplateFor('credit_note'),
         ]);
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $creditNote = $this->findOwned($id);
         $items = CreditNoteItem::where('credit_note_id', $creditNote->id)->orderBy('id')->get();
         $invoice = $this->ownedInvoice($creditNote->invoice_id, $creditNote->company_id);
         $client = $this->ownedClient($creditNote->client_id, $creditNote->company_id);
         $company = Company::find($creditNote->company_id);
-        $template = in_array($request->input('template'), Company::INVOICE_TEMPLATES, true) ? $request->input('template') : $company->activeInvoiceTemplate();
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
+        $template = $company->activeInvoiceTemplate();
         $invoiceTemplate = $company->activeInvoiceTemplateFor('credit_note');
+        $lang = $this->pdfLangFor($invoiceTemplate);
 
         $reference = ($lang === 'ar' ? 'مرجع الفاتورة: ' : 'Reference invoice: ') . $invoice->invoice_number . ($creditNote->reason ? ' — ' . $creditNote->reason : '');
 

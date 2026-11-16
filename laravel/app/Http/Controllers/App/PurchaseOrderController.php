@@ -190,14 +190,14 @@ class PurchaseOrderController extends Controller
         return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.purchase_orders.deleted'));
     }
 
-    public function pdf(Request $request, int $id): Response
+    public function pdf(int $id): Response
     {
         $purchaseOrder = $this->findOwned($id);
         $items = PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)->orderBy('id')->get();
         $supplier = $purchaseOrder->supplier_id ? $this->ownedSupplier($purchaseOrder->supplier_id, $purchaseOrder->company_id) : null;
         $company = Company::find($purchaseOrder->company_id);
-        $lang = $request->input('lang') === 'ar' ? 'ar' : app()->getLocale();
         $invoiceTemplate = $company->activeInvoiceTemplateFor('purchase_order');
+        $lang = $this->pdfLangFor($invoiceTemplate);
 
         return $this->streamPdf([
             'template' => $company->activeInvoiceTemplate(),
