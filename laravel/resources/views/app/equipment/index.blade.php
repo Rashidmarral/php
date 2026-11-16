@@ -3,7 +3,10 @@
 @section('content')
 <div class="page-head">
   <h1><?= t('user.equipment.title') ?></h1>
-  <a href="/app/equipment/create" class="btn btn-primary"><?= t('user.equipment.new') ?></a>
+  <div style="display:flex;gap:10px;">
+    <a href="/app/equipment/calendar" class="btn btn-light">📅 <?= t('user.equipment.calendar_nav_link') ?></a>
+    <a href="/app/equipment/create" class="btn btn-primary"><?= t('user.equipment.new') ?></a>
+  </div>
 </div>
 
 <form method="get" action="/app/equipment" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:16px;">

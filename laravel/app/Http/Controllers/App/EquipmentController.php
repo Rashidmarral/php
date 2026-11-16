@@ -240,6 +240,109 @@ class EquipmentController extends Controller
         return $this->createAssignment($request, $equipment, $project->id, '/app/projects/' . $project->id);
     }
 
+    /**
+     * Visual equipment/resource scheduling calendar — a Gantt-style timeline across all of the
+     * company's equipment, one row per asset, built the same way ScheduleController::index()
+     * builds its own project Gantt (see buildEquipmentGantt()). Each EquipmentAssignment renders
+     * as a bar spanning assigned_date..returned_date (or today, while still open).
+     */
+    public function calendar(): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('equipment_management')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+        $equipment = Equipment::where('company_id', $companyId)->orderBy('name')->get();
+
+        $assignmentModels = EquipmentAssignment::where('company_id', $companyId)
+            ->whereIn('equipment_id', $equipment->pluck('id'))
+            ->orderBy('assigned_date')
+            ->get();
+        $projectNames = Project::where('company_id', $companyId)
+            ->whereIn('id', $assignmentModels->pluck('project_id')->unique())
+            ->get()
+            ->keyBy('id');
+
+        $byEquipment = [];
+        foreach ($assignmentModels as $a) {
+            $byEquipment[$a->equipment_id][] = [
+                ...$a->toArray(),
+                'project_name' => $projectNames->get($a->project_id)->name ?? '—',
+            ];
+        }
+
+        return view('app.equipment.calendar', [
+            'equipment' => $equipment->toArray(),
+            'byEquipment' => $byEquipment,
+            'gantt' => $this->buildEquipmentGantt($byEquipment),
+        ]);
+    }
+
+    /**
+     * Reschedule an assignment's date range from the calendar — a tiny inline form (two date
+     * inputs) rather than drag-and-drop, matching this app's plain-form/full-reload convention.
+     */
+    public function rescheduleAssignment(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('equipment_management')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $assignment = $this->findOwnedAssignment($id);
+
+        $assignedDate = $request->input('assigned_date') ?: $assignment->assigned_date->format('Y-m-d');
+        $returnedDate = trim((string) $request->input('returned_date', '')) ?: null;
+
+        if ($returnedDate && $returnedDate < $assignedDate) {
+            return $this->redirectWithFlash('/app/equipment/calendar', 'error', t('user.equipment.reschedule_invalid_range'));
+        }
+
+        $assignment->update([
+            'assigned_date' => $assignedDate,
+            'returned_date' => $returnedDate,
+        ]);
+
+        $this->flash('success', t('user.equipment.rescheduled'));
+        return redirect('/app/equipment/calendar');
+    }
+
+    /**
+     * Mirrors ScheduleController::buildGantt(): computes a shared day-by-day timeline window
+     * sized the same way (±2 day padding around the earliest/latest assignment dates, capped at
+     * 120 days, defaulting to this week through 3 weeks out when there's no dated history yet).
+     * An open (unreturned) assignment counts as running through today for range purposes.
+     */
+    private function buildEquipmentGantt(array $byEquipment): array
+    {
+        $today = now()->format('Y-m-d');
+        $dated = [];
+        foreach ($byEquipment as $rows) {
+            foreach ($rows as $a) {
+                if (!empty($a['assigned_date'])) {
+                    $dated[] = ['start' => $a['assigned_date'], 'end' => $a['returned_date'] ?: $today];
+                }
+            }
+        }
+
+        if (empty($dated)) {
+            $rangeStart = now()->startOfWeek();
+            $rangeEnd = now()->addWeeks(3)->endOfWeek();
+        } else {
+            $rangeStart = min(array_map(fn ($d) => \Carbon\Carbon::parse($d['start']), $dated))->copy()->subDays(2);
+            $rangeEnd = max(array_map(fn ($d) => \Carbon\Carbon::parse($d['end']), $dated))->copy()->addDays(2);
+        }
+        $rangeEnd = $rangeStart->diffInDays($rangeEnd) > 120 ? $rangeStart->copy()->addDays(120) : $rangeEnd;
+
+        $days = [];
+        for ($d = $rangeStart->copy(); $d->lte($rangeEnd); $d->addDay()) {
+            $days[] = $d->copy();
+        }
+
+        return ['rangeStart' => $rangeStart, 'days' => $days];
+    }
+
     /** Sets returned_date = now() and flips the asset's status back to available. */
     public function returnAssignment(int $id): RedirectResponse
     {

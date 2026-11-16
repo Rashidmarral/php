@@ -440,8 +440,10 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/equipment/{id}/delete', [EquipmentController::class, 'destroy']);
     Route::post('/equipment/{id}/maintenance', [EquipmentController::class, 'storeMaintenanceLog']);
     Route::post('/equipment/{id}/assignments', [EquipmentController::class, 'storeAssignment']);
+    Route::get('/equipment/calendar', [EquipmentController::class, 'calendar']);
     Route::get('/equipment/{id}', [EquipmentController::class, 'show']);
     Route::post('/equipment-assignments/{id}/return', [EquipmentController::class, 'returnAssignment']);
+    Route::post('/equipment-assignments/{id}/reschedule', [EquipmentController::class, 'rescheduleAssignment']);
     Route::post('/projects/{id}/equipment-assignments', [EquipmentController::class, 'assignToProject']);
 
     Route::get('/materials', [MaterialController::class, 'index']);
