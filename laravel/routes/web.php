@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminProfileController;
 use App\Http\Controllers\Admin\AdminReportController;
 use App\Http\Controllers\Admin\AdminTranslationController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminZatcaLogController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\CertificateController;
@@ -40,6 +41,7 @@ use App\Http\Controllers\App\ExtensionOfTimeController;
 use App\Http\Controllers\App\SubcontractPaymentController;
 use App\Http\Controllers\App\VendorBillController;
 use App\Http\Controllers\App\ClientController;
+use App\Http\Controllers\App\ZatcaDashboardController;
 use App\Http\Controllers\App\ComplianceController;
 use App\Http\Controllers\App\ConsultationController;
 use App\Http\Controllers\App\CreditNoteController;
@@ -330,6 +332,9 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/debit-notes/{id}/submit-zatca', [DebitNoteController::class, 'submitZatca']);
     Route::post('/debit-notes/{id}/void', [DebitNoteController::class, 'void']);
 
+    Route::get('/zatca', [ZatcaDashboardController::class, 'dashboard']);
+    Route::get('/zatca/logs/{type}/{log}', [ZatcaDashboardController::class, 'showLog'])->where('type', 'invoice|credit_note|debit_note');
+
     Route::get('/schedule', [ScheduleController::class, 'index']);
     Route::post('/schedule', [ScheduleController::class, 'store']);
     Route::post('/schedule/{id}/status', [ScheduleController::class, 'updateStatus']);
@@ -618,6 +623,11 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/companies/export.csv', [CompanyController::class, 'exportCsv']);
     Route::get('/companies/{id}', [CompanyController::class, 'show']);
     Route::get('/companies/{id}/zatca', [CompanyZatcaController::class, 'show']);
+    Route::get('/companies/{id}/zatca/pending', [AdminZatcaLogController::class, 'pendingDocuments']);
+
+    Route::get('/zatca', [AdminZatcaLogController::class, 'index']);
+    Route::get('/zatca/logs', [AdminZatcaLogController::class, 'logs']);
+    Route::get('/zatca/logs/{type}/{log}', [AdminZatcaLogController::class, 'showLog'])->where('type', 'invoice|credit_note|debit_note');
 
     Route::get('/payments', [PaymentController::class, 'index']);
     Route::get('/payments/export.csv', [PaymentController::class, 'exportCsv']);
@@ -638,6 +648,8 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/companies/{id}/zatca/production-csid', [CompanyZatcaController::class, 'requestProductionCsid']);
         Route::post('/companies/{id}/zatca/test-connection', [CompanyZatcaController::class, 'testConnection']);
         Route::post('/companies/{id}/zatca/reset', [CompanyZatcaController::class, 'resetOnboarding']);
+
+        Route::post('/zatca/logs/{type}/{log}/retry', [AdminZatcaLogController::class, 'retry'])->where('type', 'invoice|credit_note|debit_note');
 
         Route::post('/payments/{id}/update', [PaymentController::class, 'update']);
         Route::post('/payments/{id}/apply-plan', [PaymentController::class, 'applyPlan']);
