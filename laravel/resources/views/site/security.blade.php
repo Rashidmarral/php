@@ -24,6 +24,9 @@
         ['icon' => '🔒', 'key' => 'card4'],
         ['icon' => '✍️', 'key' => 'card5'],
         ['icon' => '💾', 'key' => 'card6'],
+        ['icon' => '📲', 'key' => 'card7'],
+        ['icon' => '📜', 'key' => 'card8'],
+        ['icon' => '🗄️', 'key' => 'card9'],
       ] as $c)
         <div class="card feature-card reveal">
           <div class="icon">{{ $c['icon'] }}</div>

@@ -11,6 +11,13 @@
       <p style="color:var(--muted)">{{ t('pricing.subtitle') }}</p>
     </div>
 
+    <div class="trust-strip reveal-section reveal" style="margin-bottom:32px;">
+      <span class="trust-badge"><span class="tb-icon">🔒</span>{{ t('trust.encryption') }}</span>
+      <span class="trust-badge"><span class="tb-icon">🇸🇦</span>{{ t('trust.saudi') }}</span>
+      <span class="trust-badge"><span class="tb-icon">🗣️</span>{{ t('trust.bilingual') }}</span>
+      <span class="trust-badge"><span class="tb-icon">🧾</span>{{ t('trust.zatca') }}</span>
+    </div>
+
     <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:32px;">
       <span id="cycle-label-monthly" style="font-weight:700;">{{ t('pricing.monthly') }}</span>
       <label class="cycle-switch">

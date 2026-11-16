@@ -14,6 +14,12 @@
 
 <section class="section" style="padding-top:0;">
   <div class="container">
+    <div class="trust-strip reveal-section reveal" style="margin-bottom:32px;">
+      <span class="trust-badge"><span class="tb-icon">🔒</span>{{ t('trust.encryption') }}</span>
+      <span class="trust-badge"><span class="tb-icon">🇸🇦</span>{{ t('trust.saudi') }}</span>
+      <span class="trust-badge"><span class="tb-icon">🗣️</span>{{ t('trust.bilingual') }}</span>
+      <span class="trust-badge"><span class="tb-icon">🧾</span>{{ t('trust.zatca') }}</span>
+    </div>
     <div class="grid grid-3 reveal-stagger" style="max-width:920px;margin:0 auto 40px;">
       <div class="card feature-card reveal">
         <div class="icon">📧</div>

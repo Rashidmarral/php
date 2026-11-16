@@ -1,5 +1,7 @@
 @extends('layouts.site')
 
+@php($siteName = \App\Models\Setting::siteName())
+
 @section('content')
 <section class="hero" style="padding-bottom:40px;">
   @include('partials.hero-media', ['page' => 'about'])
@@ -56,6 +58,34 @@
         <p>{{ t('about.vision.desc') }}</p>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="section reveal-section reveal">
+  <div class="container">
+    <div class="vision2030-panel">
+      <span class="vision2030-badge">🇸🇦 {{ t('about.vision2030.badge') }}</span>
+      <h2>{{ t('about.vision2030.title') }}</h2>
+      <p class="lead">{{ t('about.vision2030.lead', ['site' => $siteName]) }}</p>
+      <div class="vision2030-pillars">
+        <div class="vision2030-pillar">
+          <span class="vp-icon">📈</span>
+          <h4>{{ t('about.vision2030.pillar1.title') }}</h4>
+          <p>{{ t('about.vision2030.pillar1.desc') }}</p>
+        </div>
+        <div class="vision2030-pillar">
+          <span class="vp-icon">🤝</span>
+          <h4>{{ t('about.vision2030.pillar2.title') }}</h4>
+          <p>{{ t('about.vision2030.pillar2.desc') }}</p>
+        </div>
+        <div class="vision2030-pillar">
+          <span class="vp-icon">🏛️</span>
+          <h4>{{ t('about.vision2030.pillar3.title') }}</h4>
+          <p>{{ t('about.vision2030.pillar3.desc') }}</p>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--muted);font-size:12px;margin-top:14px;font-style:italic;">{{ t('about.vision2030.disclaimer') }}</p>
   </div>
 </section>
 
