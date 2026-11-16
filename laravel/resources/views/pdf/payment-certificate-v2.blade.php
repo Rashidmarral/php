@@ -87,6 +87,8 @@ body {
 <div class="itpl-doc">
 <?php if ($layout === 'bilingual'): ?>
 
+  <table class="itpl-bl-topbar"><tr><td></td></tr></table>
+
   <table class="itpl-bl-header"><tr>
     <?php if ($showEn): ?>
       <td style="width:<?= $showAr ? '35%' : '70%' ?>">
@@ -108,34 +110,37 @@ body {
   </tr></table>
 
   <div class="itpl-bl-title-bar">
-    <?php if ($showEn): ?><?= strtoupper(tFor('pdf.doctype.payment_certificate', 'en')) ?><?php endif; ?>
-    <?php if ($showEn && $showAr): ?>&nbsp;|&nbsp;<?php endif; ?>
     <?php if ($showAr): ?><span class="ar-text"><?= pdfText(tFor('pdf.doctype.payment_certificate', 'ar'), 'ar') ?></span><?php endif; ?>
+    <?php if ($showEn && $showAr): ?>&nbsp;&nbsp;<?php endif; ?>
+    <?php if ($showEn): ?><?= pdfText(tFor('pdf.doctype.payment_certificate', 'en'), 'en') ?><?php endif; ?>
   </div>
 
-  <table class="itpl-bl-info-table"><tr>
-    <?php if ($showEn): ?><td class="label-en"><?= tFor('common.number', 'en') ?></td><td class="value"><?= pdfText((string) $certificate->certificate_number, 'en') ?></td><?php endif; ?>
-    <?php if ($showAr): ?><td class="label-ar"><?= tFor('common.number', 'ar') ?></td><td class="value ar-text"><?= pdfText((string) $certificate->certificate_number, 'ar') ?></td><?php endif; ?>
-  </tr><tr>
-    <?php if ($showEn): ?><td class="label-en"><?= tFor('common.status', 'en') ?></td><td class="value"><?= pdfText(ucfirst((string) $certificate->status), 'en') ?></td><?php endif; ?>
-    <?php if ($showAr): ?><td class="label-ar"><?= tFor('common.status', 'ar') ?></td><td class="value ar-text"><?= pdfText(ucfirst((string) $certificate->status), 'ar') ?></td><?php endif; ?>
-  </tr></table>
-
-  <table class="itpl-bl-info-table"><tr>
-    <?php if ($showEn): ?>
-      <td class="label-en"><?= tFor('common.date', 'en') ?></td>
-      <td class="value"><?= pdfText((string) $certificate->certificate_date, 'en') ?></td>
-    <?php endif; ?>
-    <?php if ($showAr): ?>
-      <td class="label-ar"><?= tFor('common.date', 'ar') ?></td>
-      <td class="value ar-text"><?= pdfText((string) $certificate->certificate_date, 'ar') ?></td>
-    <?php endif; ?>
-  </tr></table>
-
-  <table class="itpl-bl-info-table"><tr>
-    <?php if ($showEn): ?><td class="label-en">Project</td><td class="value" colspan="<?= $showAr ? 1 : 3 ?>"><?= pdfText($project->name ?? '', 'en') ?><?php if ($client): ?> — <?= pdfText($client->name ?? '', 'en') ?><?php endif; ?></td><?php endif; ?>
-    <?php if ($showAr): ?><td class="label-ar">المشروع</td><td class="value ar-text" colspan="<?= $showEn ? 1 : 3 ?>"><?= !empty($project->name_ar) ? pdfText($project->name_ar, 'ar') : e($project->name ?? '') ?><?php if ($client): ?> — <?= !empty($client->name_ar) ? pdfText($client->name_ar, 'ar') : e($client->name ?? '') ?><?php endif; ?></td><?php endif; ?>
-  </tr></table>
+  <?php
+    // One row: an EN label cell, a single shared value cell, and an AR
+    // label cell — the same 3-cell shape itpl-bilingual.blade.php's own
+    // $infoRow() builds, ported here since this file renders its own
+    // markup rather than including that partial (see this file's class
+    // docblock on why a certificate keeps its own view).
+    $infoRow = function (string $labelEn, string $labelAr, string $valueHtml) use ($showEn, $showAr): string {
+        $cells = $showEn ? '<td class="label-en">' . $labelEn . '</td>' : '';
+        $cells .= '<td class="value">' . $valueHtml . '</td>';
+        $cells .= $showAr ? '<td class="label-ar ar-text">' . $labelAr . '</td>' : '';
+        return '<tr>' . $cells . '</tr>';
+    };
+  ?>
+  <table class="itpl-bl-info-table">
+  <?= $infoRow(
+      tFor('common.number', 'en'),
+      tFor('common.number', 'ar'),
+      pdfText((string) $certificate->certificate_number, $primaryLocale) . '&nbsp;|&nbsp;' . pdfText((string) $certificate->certificate_date, $primaryLocale)
+  ) ?>
+  <?= $infoRow(tFor('common.status', 'en'), tFor('common.status', 'ar'), pdfText(ucfirst((string) $certificate->status), $primaryLocale)) ?>
+  <?= $infoRow(
+      tFor('common.project', 'en'),
+      tFor('common.project', 'ar'),
+      pdfText($project->name ?? '', $primaryLocale) . ($client ? ' — ' . pdfText($client->name ?? '', $primaryLocale) : '')
+  ) ?>
+  </table>
 
   <table class="itpl-bl-items-table dense" dir="<?= $tableDirection ?>">
     <thead>

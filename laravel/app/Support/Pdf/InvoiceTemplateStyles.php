@@ -125,50 +125,70 @@ class InvoiceTemplateStyles
     }
 
     /**
-     * The 'bilingual' layout: an upgrade of the existing 'saudi' bordered
-     * ZATCA template — new `.itpl-bl-*` classes (kept separate from the
-     * shared PdfTemplateStyles::saudiChrome()'s `.saudi-*` classes so the
-     * OLD 6-preset system's saudi template is never touched by this stage)
-     * with per-row bilingual info labels and a wider items table that
-     * splits taxable amount and VAT amount into their own columns.
+     * The 'bilingual' layout: ported from Daftari's real `bilingual_classic`
+     * mPDF template (daftari/resources/views/documents/print/pdf.blade.php)
+     * rather than the earlier from-scratch approximation this replaced —
+     * see itpl-bilingual.blade.php's own docblock for the structural
+     * decisions carried over (thin top accent rule instead of a boxed
+     * header, an unboxed EN|logo|AR header, a centered title under a
+     * border-bottom rule instead of a solid filled bar, row-separator
+     * table borders instead of a full grid box, and a two-column bank-
+     * details/totals footer block). `.itpl-bl-*` stays its own class
+     * namespace, separate from PdfTemplateStyles::saudiChrome()'s
+     * `.saudi-*` classes, so the OLD 6-preset system's saudi template is
+     * never touched by this stage. Also shared verbatim by
+     * payment-certificate-v2.blade.php's own `layout === 'bilingual'`
+     * branch (same class names, same CSS) — see that file's comment.
      */
     public static function bilingualChrome(?InvoiceTemplate $template, bool $rtl): string
     {
         $compact = self::density($template);
         $accent = $template->accent_color ?: '#16233f';
-        $headerColor = $template->table_header_color ?: $accent;
-        $cellPad = $compact ? '5px 6px' : '7px 9px';
+        $headerColor = $template->table_header_color ?: null;
+        $headerBg = $headerColor ? "background: {$headerColor};" : '';
+        $headerColorText = $headerColor ? '#fff' : '#0f172a';
+        $cellPad = $compact ? '4px 6px' : '6px 9px';
         $fontSize = $compact ? '9px' : '10px';
         $descAlign = $rtl ? 'right' : 'left';
         $totalsFloat = $rtl ? 'float: right;' : 'float: left;';
 
         return <<<CSS
-        .itpl-bl-header { border: 1.5px solid {$accent}; padding: 10px 14px; }
-        .itpl-bl-header td { vertical-align: middle; }
-        .itpl-bl-company-en { font-size: 13px; font-weight: 700; }
-        .itpl-bl-company-ar { font-size: 13px; font-weight: 700; direction: rtl; text-align: right; }
+        .itpl-bl-topbar { border: 1.5px solid {$accent}; margin-bottom: 10px; }
+        .itpl-bl-topbar td { height: 6px; padding: 0; }
+        .itpl-bl-header td { vertical-align: top; }
+        .itpl-bl-company-en { font-size: 13px; font-weight: 700; color: #0f172a; }
+        .itpl-bl-company-ar { font-size: 13px; font-weight: 700; direction: rtl; text-align: right; color: #0f172a; }
         .itpl-bl-meta { font-size: 9px; color: #444; margin-top: 2px; }
         .itpl-bl-meta.ar { direction: rtl; text-align: right; }
-        .itpl-bl-title-bar { text-align: center; background: {$accent}; color: #fff; border: 1.5px solid {$accent}; border-top: none; padding: 7px; font-weight: 700; font-size: 13px; }
-        .itpl-bl-info-table { border: 1px solid {$accent}; border-top: none; }
-        .itpl-bl-info-table td { border: 1px solid {$accent}; padding: {$cellPad}; font-size: {$fontSize}; vertical-align: top; }
-        .itpl-bl-info-table .label-en { font-weight: 700; width: 20%; }
-        .itpl-bl-info-table .value { width: 30%; }
-        .itpl-bl-info-table .label-ar { font-weight: 700; direction: rtl; text-align: right; width: 20%; }
-        .itpl-bl-items-table { margin-top: 0; border: 1px solid {$accent}; }
-        .itpl-bl-items-table th { border: 1px solid {$accent}; padding: {$cellPad}; font-size: {$fontSize}; background: {$headerColor}; color: #fff; text-align: center; }
-        .itpl-bl-items-table td { border: 1px solid {$accent}; padding: {$cellPad}; font-size: {$fontSize}; text-align: center; }
+        .itpl-bl-title-bar { text-align: center; border-bottom: 1.5px solid {$accent}; margin-top: 10px; padding-bottom: 6px; font-weight: 700; font-size: 16px; color: #0f172a; }
+        .itpl-bl-status-pill { display: inline-block; margin-top: 6px; padding: 2px 12px; border-radius: 10px; font-size: 9px; font-weight: 700; }
+        .itpl-bl-info-table { margin-top: 10px; border: 0.75px solid #cbd5e1; }
+        .itpl-bl-info-table td { border-bottom: 0.5px solid #cbd5e1; padding: {$cellPad}; font-size: {$fontSize}; vertical-align: top; }
+        .itpl-bl-info-table tr:last-child td { border-bottom: none; }
+        .itpl-bl-info-table .label-en { font-weight: 700; color: #475569; width: 20%; }
+        .itpl-bl-info-table .value { width: 60%; text-align: center; }
+        .itpl-bl-info-table .label-ar { font-weight: 700; color: #475569; direction: rtl; text-align: right; width: 20%; }
+        .itpl-bl-items-table { margin-top: 10px; border-bottom: 1.5px solid #16211f; }
+        .itpl-bl-items-table th { {$headerBg} border-bottom: 1.5px solid #16211f; border-right: 0.5px solid #e2e8f0; padding: {$cellPad}; font-size: {$fontSize}; color: {$headerColorText}; text-align: center; line-height: 1.3; }
+        .itpl-bl-items-table th:last-child { border-right: none; }
+        .itpl-bl-items-table th .ar-text { display: block; font-weight: 400; font-size: 8px; }
+        .itpl-bl-items-table td { border-bottom: 0.5px solid #e2e8f0; border-right: 0.5px solid #e2e8f0; padding: {$cellPad}; font-size: {$fontSize}; text-align: center; }
+        .itpl-bl-items-table td:last-child { border-right: none; }
+        .itpl-bl-items-table tr:last-child td { border-bottom: none; }
         .itpl-bl-items-table .desc { text-align: {$descAlign}; }
-        .itpl-bl-totals-table { margin-top: 10px; width: 320px; {$totalsFloat} }
-        .itpl-bl-totals-table td { border: 1px solid {$accent}; padding: 6px 10px; font-size: 10.5px; }
-        .itpl-bl-totals-table .label { background: #f2f1ec; font-weight: 700; }
-        .itpl-bl-totals-table .grand td { font-weight: 700; font-size: 12.5px; background: #f7f0dc; }
-        .itpl-bl-words { clear: both; margin-top: 8px; border: 1px solid {$accent}; background: {$accent}; color: #fff; padding: 7px 10px; font-size: 10px; text-align: center; }
+        .itpl-bl-footer-wrap { margin-top: 10px; }
+        .itpl-bl-words { font-size: {$fontSize}; color: #475569; }
+        .itpl-bl-words strong { color: #0f172a; }
+        .itpl-bl-bank { margin-top: 8px; font-size: {$fontSize}; color: #475569; line-height: 1.4; }
+        .itpl-bl-totals-table { width: 300px; {$totalsFloat} }
+        .itpl-bl-totals-table td { padding: 3px 0; font-size: 10px; color: #475569; }
+        .itpl-bl-totals-table .label { font-weight: 400; }
+        .itpl-bl-totals-table .grand td { font-weight: 700; font-size: 12.5px; padding-top: 6px; border-top: 1.5px solid #16211f; color: #16211f; }
         .itpl-bl-zatca-pill { display: inline-block; padding: 2px 9px; border-radius: 9px; background: #e5f6ec; color: #157347; font-size: 8.5px; font-weight: 700; margin-bottom: 4px; }
         .itpl-bl-stamp { text-align: center; }
-        .itpl-bl-sign-table { margin-top: 22px; }
-        .itpl-bl-sign-table td { font-size: 9.5px; padding-top: 26px; border-top: 0.75px solid #999; }
-        .itpl-bl-footer { margin-top: 16px; text-align: center; font-size: 9px; color: #555; border-top: 1px solid {$accent}; padding-top: 6px; }
+        .itpl-bl-sign-table { margin-top: 24px; }
+        .itpl-bl-sign-table td { font-size: 9.5px; padding-top: 24px; border-top: 0.75px solid #94a3b8; }
+        .itpl-bl-footer { margin-top: 14px; text-align: center; font-size: 9px; color: #94a3b8; border-top: 0.75px solid #cbd5e1; padding-top: 6px; }
         CSS . "\n";
     }
 
