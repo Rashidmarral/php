@@ -16,6 +16,9 @@ use App\Models\InvoicePayment;
 use App\Models\PaymentCertificate;
 use App\Models\PaymentCertificateLine;
 use App\Models\Project;
+use App\Models\Rfq;
+use App\Models\RfqItem;
+use App\Models\RfqQuote;
 use App\Models\Setting;
 use App\Support\Moyasar;
 use App\Support\Notifications;
@@ -317,6 +320,73 @@ class ShareController extends Controller
         WebhookDispatcher::dispatch($changeOrder->company_id, 'change_order.signed', $changeOrder->fresh()->toArray());
         $this->flash('success', t('site.share.change_order_signed'));
         return redirect('/co/' . $token);
+    }
+
+    /**
+     * Public, per-supplier bid submission page — same token-only access model as
+     * estimate()/paymentCertificate()/changeOrder() above, except the token lives on
+     * the RfqQuote row (one per invited supplier), not on the parent Rfq, so a
+     * supplier can only ever reach their own quote: never the RFQ's other quotes,
+     * who else was invited, or the RFQ's internal notes.
+     */
+    public function rfqBid(string $token): View
+    {
+        $quote = RfqQuote::where('invite_token', $token)->first();
+        abort_if(!$quote, 404, 'This link is invalid or has expired.');
+        $rfq = Rfq::find($quote->rfq_id);
+        abort_if(!$rfq, 404, 'This link is invalid or has expired.');
+
+        $company = Company::find($rfq->company_id);
+        $items = RfqItem::where('rfq_id', $rfq->id)->orderBy('id')->get()->toArray();
+
+        return view('site.rfq-bid', [
+            'pageTitle' => $rfq->title,
+            'rfq' => $rfq->toArray(),
+            'items' => $items,
+            'quote' => $quote->toArray(),
+            'company' => $company,
+            'companyLogoUrl' => $company->logo_path ?: null,
+            'token' => $token,
+        ]);
+    }
+
+    public function submitRfqBid(Request $request, string $token): RedirectResponse
+    {
+        $quote = RfqQuote::where('invite_token', $token)->first();
+        abort_if(!$quote, 404, 'This link is invalid or has expired.');
+        $rfq = Rfq::find($quote->rfq_id);
+        abort_if(!$rfq, 404, 'This link is invalid or has expired.');
+
+        // Once submitted, a quote is a fixed record the GC compares against other
+        // suppliers' bids — block a second submission rather than silently
+        // overwrite it, the same "already signed, don't let it be re-signed"
+        // judgment call signPaymentCertificate()/signChangeOrder() make above.
+        if ($quote->submitted_at !== null) {
+            return redirect('/rfq-bid/' . $token);
+        }
+
+        $totalAmount = (float) $request->input('total_amount');
+        if ($totalAmount <= 0) {
+            return $this->redirectWithFlash('/rfq-bid/' . $token, 'error', t('site.share.rfq_bid_amount_required'));
+        }
+
+        $quote->update([
+            'total_amount' => $totalAmount,
+            'lead_time_days' => $request->filled('lead_time_days') ? (int) $request->input('lead_time_days') : null,
+            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'submitted_at' => now()->format('Y-m-d'),
+        ]);
+
+        // Receiving a self-submitted quote moves a still-draft/sent RFQ into
+        // "comparing", exactly like RfqController::recordQuote()'s own manual path.
+        if (in_array($rfq->status, ['draft', 'sent'], true)) {
+            $rfq->update(['status' => 'comparing']);
+        }
+
+        Notifications::rfqQuoteSubmitted($quote->id);
+        WebhookDispatcher::dispatch($rfq->company_id, 'rfq.quote_submitted', $quote->fresh()->toArray());
+        $this->flash('success', t('site.share.rfq_bid_submitted'));
+        return redirect('/rfq-bid/' . $token);
     }
 
     public function invoice(string $token): View

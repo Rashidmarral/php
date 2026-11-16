@@ -85,23 +85,40 @@
   <p class="help-text" style="margin-top:-8px;"><?= t('user.rfqs.quotes_hint') ?></p>
 
   <?php if ($isEditable && auth()->user()->can('write')): ?>
-  <form method="post" action="/app/rfqs/<?= $rfq['id'] ?>/quotes" style="margin-bottom:20px;">
-    <?= csrf_field() ?>
-    <div class="form-row">
+  <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
+    <form method="post" action="/app/rfqs/<?= $rfq['id'] ?>/quotes" style="flex:2;min-width:320px;">
+      <?= csrf_field() ?>
+      <h4 style="margin-top:0;font-size:13px;"><?= t('user.rfqs.record_quote_heading') ?></h4>
+      <div class="form-row">
+        <div class="form-group">
+          <label><?= t('common.supplier') ?></label>
+          <select name="supplier_id" required>
+            <option value=""></option>
+            <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
+          </select>
+        </div>
+        <div class="form-group"><label><?= t('user.rfqs.total_amount') ?> (SAR)</label><input type="number" step="0.01" name="total_amount" required></div>
+        <div class="form-group"><label><?= t('user.rfqs.lead_time_days') ?></label><input type="number" step="1" name="lead_time_days"></div>
+        <div class="form-group"><label><?= t('common.date') ?></label><input type="date" name="submitted_at" value="<?= date('Y-m-d') ?>"></div>
+      </div>
+      <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
+      <button type="submit" class="btn btn-primary"><?= t('user.rfqs.record_quote_btn') ?></button>
+    </form>
+
+    <form method="post" action="/app/rfqs/<?= $rfq['id'] ?>/invite" style="flex:1;min-width:260px;">
+      <?= csrf_field() ?>
+      <h4 style="margin-top:0;font-size:13px;"><?= t('user.rfqs.invite_supplier_heading') ?></h4>
+      <p class="help-text" style="margin-top:-4px;"><?= t('user.rfqs.invite_supplier_hint') ?></p>
       <div class="form-group">
-        <label><?= t('common.supplier') ?></label>
+        <label><?= t('user.rfqs.invite_supplier_label') ?></label>
         <select name="supplier_id" required>
           <option value=""></option>
           <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
         </select>
       </div>
-      <div class="form-group"><label><?= t('user.rfqs.total_amount') ?> (SAR)</label><input type="number" step="0.01" name="total_amount" required></div>
-      <div class="form-group"><label><?= t('user.rfqs.lead_time_days') ?></label><input type="number" step="1" name="lead_time_days"></div>
-      <div class="form-group"><label><?= t('common.date') ?></label><input type="date" name="submitted_at" value="<?= date('Y-m-d') ?>"></div>
-    </div>
-    <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
-    <button type="submit" class="btn btn-primary"><?= t('user.rfqs.record_quote_btn') ?></button>
-  </form>
+      <button type="submit" class="btn btn-light"><?= t('user.rfqs.invite_supplier_btn') ?></button>
+    </form>
+  </div>
   <?php endif; ?>
 
   <?php if (empty($quotes)): ?>
@@ -111,6 +128,21 @@
       <thead><tr><th><?= t('common.supplier') ?></th><th><?= t('user.rfqs.total_amount') ?></th><th><?= t('user.rfqs.lead_time_days') ?></th><th><?= t('common.date') ?></th><th><?= t('common.notes') ?></th><th></th></tr></thead>
       <tbody>
       <?php foreach ($quotes as $q): ?>
+        <?php if ($q['submitted_at'] === null): ?>
+          <tr style="background:#fffaf0;">
+            <td><?= e($q['supplier_name']) ?></td>
+            <td colspan="4">
+              <span class="badge badge-yellow"><?= t('user.rfqs.invite_awaiting') ?></span>
+              <?php if (!empty($q['invite_url'])): ?>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+                  <input type="text" readonly value="<?= e($q['invite_url']) ?>" style="flex:1;min-width:220px;" onclick="this.select();">
+                  <button type="button" class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText('<?= e($q['invite_url']) ?>'); this.textContent='<?= t('common.copied') ?>';"><?= t('common.copy_link') ?></button>
+                </div>
+              <?php endif; ?>
+            </td>
+            <td></td>
+          </tr>
+        <?php else: ?>
         <tr<?= $q['is_awarded'] ? ' style="background:#eefbf0;"' : '' ?>>
           <td>
             <?= e($q['supplier_name']) ?>
@@ -135,6 +167,7 @@
             <?php endif; ?>
           </td>
         </tr>
+        <?php endif; ?>
       <?php endforeach; ?>
       </tbody>
     </table>

@@ -105,14 +105,22 @@ class RfqController extends Controller
         $quotes = RfqQuote::where('rfq_id', $rfq->id)->orderBy('total_amount')->get();
         $suppliers = Supplier::whereIn('id', $quotes->pluck('supplier_id')->unique())->get()->keyBy('id');
 
-        $cheapestId = $quotes->sortBy('total_amount')->first()?->id;
-        $fastestId = $quotes->whereNotNull('lead_time_days')->sortBy('lead_time_days')->first()?->id;
+        // Invited-but-not-yet-submitted quotes carry a placeholder total_amount of 0 —
+        // never let one of those win "cheapest"/"fastest" against real, submitted bids.
+        $submittedQuotes = $quotes->whereNotNull('submitted_at');
+        $cheapestId = $submittedQuotes->sortBy('total_amount')->first()?->id;
+        $fastestId = $submittedQuotes->whereNotNull('lead_time_days')->sortBy('lead_time_days')->first()?->id;
 
         $quoteRows = $quotes->map(fn (RfqQuote $q) => [
             ...$q->toArray(),
             'supplier_name' => $suppliers->get($q->supplier_id)->name ?? '—',
             'is_cheapest' => $q->id === $cheapestId,
             'is_fastest' => $fastestId !== null && $q->id === $fastestId,
+            // Only a still-pending invite has a usable bid link — once submitted,
+            // the token stays valid but there is nothing left to copy/send.
+            'invite_url' => ($q->submitted_at === null && !empty($q->invite_token))
+                ? rtrim((string) config('app.url'), '/') . '/rfq-bid/' . $q->invite_token
+                : null,
         ])->all();
 
         $project = $rfq->project_id ? Project::find($rfq->project_id) : null;
@@ -257,6 +265,46 @@ class RfqController extends Controller
         }
 
         $this->flash('success', t('user.rfqs.quote_added'));
+        return redirect('/app/rfqs/' . $rfq->id);
+    }
+
+    /**
+     * Self-service alternative to recordQuote(): instead of the GC typing in a
+     * supplier's number themselves, this invites the supplier to submit it directly
+     * via a private, token-based link (ShareController::rfqBid()/submitRfqBid()) —
+     * the same public-token-route shape as Estimate/PaymentCertificate/ChangeOrder's
+     * share links, except the token lives on the per-supplier RfqQuote row rather
+     * than on the parent Rfq, since one RFQ can invite several suppliers and each
+     * must only ever see/submit their own quote. Both paths keep working side by
+     * side and both end up as an ordinary RfqQuote row.
+     */
+    public function invite(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('rfq_quotes')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $rfq = $this->findOwned($id);
+
+        $supplier = $this->ownedSupplier($request->input('supplier_id') ?: null, $rfq->company_id);
+        if (!$supplier) {
+            return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.invite_supplier_required'));
+        }
+
+        RfqQuote::create([
+            'rfq_id' => $rfq->id,
+            'supplier_id' => $supplier->id,
+            'invite_token' => bin2hex(random_bytes(20)),
+            'total_amount' => 0,
+            'lead_time_days' => null,
+            'notes' => null,
+            'is_awarded' => false,
+            'submitted_at' => null,
+        ]);
+
+        $this->flash('success', t('user.rfqs.invite_created'));
         return redirect('/app/rfqs/' . $rfq->id);
     }
 

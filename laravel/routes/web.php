@@ -69,6 +69,7 @@ use App\Http\Controllers\App\PunchListController;
 use App\Http\Controllers\App\ScheduleController;
 use App\Http\Controllers\App\SearchController;
 use App\Http\Controllers\App\ActivityLogController;
+use App\Http\Controllers\App\NotificationController;
 use App\Http\Controllers\App\SecurityController;
 use App\Http\Controllers\App\SiteLogController;
 use App\Http\Controllers\App\InvoiceTemplateController;
@@ -122,6 +123,8 @@ Route::get('/ipc/{token}', [ShareController::class, 'paymentCertificate']);
 Route::post('/ipc/{token}/sign', [ShareController::class, 'signPaymentCertificate']);
 Route::get('/co/{token}', [ShareController::class, 'changeOrder']);
 Route::post('/co/{token}/sign', [ShareController::class, 'signChangeOrder']);
+Route::get('/rfq-bid/{token}', [ShareController::class, 'rfqBid']);
+Route::post('/rfq-bid/{token}/submit', [ShareController::class, 'submitRfqBid']);
 Route::get('/i/{token}', [ShareController::class, 'invoice']);
 Route::get('/i/{token}/pdf', [ShareController::class, 'invoicePdf']);
 Route::get('/i/{token}/pay', [ShareController::class, 'payInvoice']);
@@ -375,6 +378,10 @@ Route::prefix('app')->middleware('company.user')->group(function () {
 
     Route::get('/activity-log', [ActivityLogController::class, 'index']);
 
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->where('id', '[0-9]+');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+
     Route::get('/business-setup', [BusinessSetupController::class, 'index']);
     Route::get('/business-setup/units-of-measure', [BusinessSetupController::class, 'units']);
     Route::post('/business-setup/units-of-measure', [BusinessSetupController::class, 'storeUnit']);
@@ -430,6 +437,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/rfqs/{id}/items/{itemId}/delete', [RfqController::class, 'removeItem']);
     Route::post('/rfqs/{id}/quotes', [RfqController::class, 'recordQuote']);
     Route::post('/rfqs/{id}/quotes/{quoteId}/award', [RfqController::class, 'award']);
+    Route::post('/rfqs/{id}/invite', [RfqController::class, 'invite']);
     Route::get('/rfqs/{id}', [RfqController::class, 'show']);
 
     Route::get('/equipment', [EquipmentController::class, 'index']);

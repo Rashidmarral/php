@@ -7,9 +7,13 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\Invoice;
+use App\Models\Notification;
 use App\Models\PaymentCertificate;
 use App\Models\Project;
+use App\Models\Rfq;
+use App\Models\RfqQuote;
 use App\Models\Setting;
+use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -24,6 +28,11 @@ use Throwable;
  * ADDITIONAL channel alongside email, via smsCompany(). That's a best-effort add-on: a
  * missing company phone number or an unreachable/misconfigured SMS gateway is swallowed
  * silently so it never breaks the email send happening in the same method.
+ *
+ * Each method below also records an in-app notification row (record()) alongside its
+ * existing email/SMS sends — a purely additive third channel feeding the bell-icon
+ * notification center (App\Http\Controllers\App\NotificationController), never a
+ * replacement for the sends above.
  */
 class Notifications
 {
@@ -34,6 +43,7 @@ class Notifications
             return;
         }
         $company = Company::find($invoice->company_id);
+        self::record($invoice->company_id, 'invoice_paid', "Invoice {$invoice->invoice_number} was paid", number_format((float) $invoice->total, 2) . ' SAR', "/app/invoices/{$invoice->id}");
         $owner = self::companyOwner($invoice->company_id);
         if ($owner) {
             Mailer::send(
@@ -63,6 +73,7 @@ class Notifications
         if (!$estimate) {
             return;
         }
+        self::record($estimate->company_id, 'estimate_signed', "Estimate \"{$estimate->title}\" was signed", "{$signedByName} signed and accepted this estimate.", "/app/estimates/{$estimate->id}");
         $owner = self::companyOwner($estimate->company_id);
         if (!$owner) {
             return;
@@ -81,6 +92,7 @@ class Notifications
         if (!$certificate) {
             return;
         }
+        self::record($certificate->company_id, 'payment_certificate_signed', "Payment Certificate #{$certificate->certificate_number} was signed", "{$signedByName} signed off on this certificate.", "/app/payment-certificates/{$certificate->id}");
         $owner = self::companyOwner($certificate->company_id);
         if (!$owner) {
             return;
@@ -99,6 +111,7 @@ class Notifications
         if (!$changeOrder) {
             return;
         }
+        self::record($changeOrder->company_id, 'change_order_signed', "Change order \"{$changeOrder->title}\" was signed", "{$signedByName} signed this change order.", "/app/change-orders/{$changeOrder->id}");
         $owner = self::companyOwner($changeOrder->company_id);
         if (!$owner) {
             return;
@@ -111,8 +124,40 @@ class Notifications
         );
     }
 
+    /**
+     * Fired when a supplier submits their own bid through the public rfq-bid link
+     * (ShareController::submitRfqBid()) rather than the GC typing it in via
+     * RfqController::recordQuote() — the GC still needs to know a bid came in
+     * either way, so this is the self-service path's analog of estimateSigned()
+     * etc. above.
+     */
+    public static function rfqQuoteSubmitted(int $quoteId): void
+    {
+        $quote = RfqQuote::find($quoteId);
+        if (!$quote) {
+            return;
+        }
+        $rfq = Rfq::find($quote->rfq_id);
+        if (!$rfq) {
+            return;
+        }
+        $supplierName = Supplier::find($quote->supplier_id)->name ?? 'A supplier';
+        self::record($rfq->company_id, 'rfq_quote_submitted', "New quote submitted for \"{$rfq->title}\"", "{$supplierName} submitted their own quote: " . number_format((float) $quote->total_amount, 2) . ' SAR.', "/app/rfqs/{$rfq->id}");
+        $owner = self::companyOwner($rfq->company_id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "New quote submitted for \"{$rfq->title}\"",
+            "Hi {$owner->name},\n\n{$supplierName} just submitted their own quote for \"{$rfq->title}\" (" . number_format((float) $quote->total_amount, 2) . " SAR).\n\nCompare it: " . rtrim((string) config('app.url'), '/') . "/app/rfqs/{$rfq->id}"
+        );
+    }
+
     public static function trialEndingSoon(Company $company, int $daysLeft): void
     {
+        self::record($company->id, 'trial_ending_soon', "Your trial ends in {$daysLeft} day" . ($daysLeft === 1 ? '' : 's'), 'Choose a plan to keep using the platform without interruption.', '/app/billing');
         $owner = self::companyOwner($company->id);
         if (!$owner) {
             return;
@@ -129,6 +174,7 @@ class Notifications
 
     public static function subscriptionRenewed(Company $company, float $amount): void
     {
+        self::record($company->id, 'subscription_renewed', 'Your subscription was renewed', number_format($amount, 2) . ' SAR was charged to your card on file.', '/app/billing');
         $owner = self::companyOwner($company->id);
         if (!$owner) {
             return;
@@ -143,6 +189,7 @@ class Notifications
 
     public static function renewalFailed(Company $company, int $attempt): void
     {
+        self::record($company->id, 'renewal_failed', "We couldn't renew your subscription", "Payment attempt {$attempt} didn't go through — update your payment method to avoid losing access.", '/app/billing');
         $owner = self::companyOwner($company->id);
         if (!$owner) {
             return;
@@ -158,6 +205,7 @@ class Notifications
 
     public static function complianceDocumentExpiring(Company $company, \App\Models\ComplianceDocument $document): void
     {
+        self::record($company->id, 'compliance_document_expiring', "{$document->name} expires soon", "Due to expire on {$document->expiry_date?->format('Y-m-d')}.", '/app/business-setup/compliance');
         $owner = self::companyOwner($company->id);
         if (!$owner) {
             return;
@@ -173,6 +221,7 @@ class Notifications
 
     public static function teamMemberDocumentExpiring(Company $company, User $member, \App\Models\TeamMemberDocument $document): void
     {
+        self::record($company->id, 'team_member_document_expiring', "{$member->name}'s {$document->name} expires soon", "Due to expire on {$document->expiry_date?->format('Y-m-d')}.", "/app/team/{$member->id}/documents");
         $owner = self::companyOwner($company->id);
         if (!$owner) {
             return;
@@ -188,6 +237,7 @@ class Notifications
 
     public static function supplierDocumentExpiring(Company $company, \App\Models\Supplier $supplier, \App\Models\SupplierDocument $document): void
     {
+        self::record($company->id, 'supplier_document_expiring', "{$supplier->name}'s {$document->name} expires soon", "Due to expire on {$document->expiry_date?->format('Y-m-d')}.", "/app/suppliers/{$supplier->id}");
         $owner = self::companyOwner($company->id);
         if (!$owner) {
             return;
@@ -208,6 +258,7 @@ class Notifications
             return;
         }
         $typeLabel = \App\Models\BankGuarantee::TYPES[$guarantee->type] ?? 'bank guarantee';
+        self::record($company->id, 'bank_guarantee_expiring', "{$typeLabel} expires soon", "Due to expire on {$guarantee->expiry_date?->format('Y-m-d')}.", "/app/projects/{$guarantee->project_id}");
         Mailer::send(
             $owner->email,
             $owner->name,
@@ -224,6 +275,7 @@ class Notifications
             return;
         }
         $dlpDate = $project->defects_liability_end_date?->format('Y-m-d');
+        self::record($company->id, 'retention_release_due', "Retention on \"{$project->name}\" is due for release", number_format($retentionHeld, 2) . ' SAR still held — review and release what\'s due to the client.', "/app/projects/{$project->id}");
         Mailer::send(
             $owner->email,
             $owner->name,
@@ -248,6 +300,7 @@ class Notifications
         }
         $dlpDate = $project->defects_liability_end_date?->format('Y-m-d');
         $openNote = $openPunchListCount === 1 ? '1 unresolved punch-list item' : "{$openPunchListCount} unresolved punch-list items";
+        self::record($company->id, 'defects_liability_period_ending', "Defects liability period on \"{$project->name}\" is ending soon", ($dlpDate ? "Ends on {$dlpDate}" : 'Ending soon') . " — {$openNote} still open.", "/app/projects/{$project->id}");
         Mailer::send(
             $owner->email,
             $owner->name,
@@ -263,6 +316,7 @@ class Notifications
         if (!$owner) {
             return;
         }
+        self::record($company->id, 'equipment_maintenance_due', "{$equipment->name}'s maintenance is due soon", "Maintenance due on {$log->next_due_date?->format('Y-m-d')}.", "/app/equipment/{$equipment->id}");
         Mailer::send(
             $owner->email,
             $owner->name,
@@ -275,6 +329,24 @@ class Notifications
     private static function companyOwner(int $companyId): ?User
     {
         return User::where('company_id', $companyId)->where('role', 'owner')->first();
+    }
+
+    /**
+     * Low-level in-app notification writer: just creates one notifications row for the
+     * bell-icon notification center. Company-wide (not per-user), matching how the
+     * notifications table itself is scoped — see App\Models\Notification's docblock.
+     * Every public method above calls this once, purely additive alongside its existing
+     * email/SMS sends.
+     */
+    public static function record(int $companyId, string $type, string $title, ?string $message = null, ?string $link = null): void
+    {
+        Notification::create([
+            'company_id' => $companyId,
+            'type' => $type,
+            'title' => $title,
+            'message' => $message,
+            'link' => $link,
+        ]);
     }
 
     /**
