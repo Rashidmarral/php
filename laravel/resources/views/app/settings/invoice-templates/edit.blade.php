@@ -184,6 +184,11 @@
     </div>
 
     <?php if ($canManage): ?>
+      <form method="post" action="/app/settings/invoice-templates/template/<?= $template->id ?>/copy-to-all" style="margin-top:12px;" onsubmit="return confirm('<?= t('user.settings.copy_to_all_confirm') ?>');">
+        <?= csrf_field() ?>
+        <button type="submit" class="btn btn-primary" style="width:100%;">📋 <?= t('user.settings.copy_to_all_types') ?></button>
+        <p class="help-text" style="margin-top:6px;"><?= t('user.settings.copy_to_all_hint') ?></p>
+      </form>
       <form method="post" action="/app/settings/invoice-templates/template/<?= $template->id ?>/delete" style="margin-top:12px;" onsubmit="return confirm('<?= t('user.settings.delete_template_confirm') ?>');">
         <?= csrf_field() ?>
         <button type="submit" class="btn btn-light" style="width:100%;color:var(--danger);"><?= t('user.settings.delete_this_template') ?></button>

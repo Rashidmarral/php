@@ -10,6 +10,7 @@ use App\Support\Pdf\InvoiceTemplatePreview;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -277,6 +278,70 @@ class InvoiceTemplateController extends Controller
 
         $this->flash('success', t('user.settings.invoice_template_default_set'));
         return redirect('/app/settings/invoice-templates/' . $template->document_type);
+    }
+
+    /**
+     * "Use this design for every document type": the direct fix for the common confusion
+     * where a company customizes one document type's template (e.g. Estimate), expects
+     * every document to look the same, and is surprised when Invoices/Credit Notes/POs/etc.
+     * still render with the old plain 6-preset look because each document type's template
+     * is independently opt-in (see this controller's own class docblock) and nothing ever
+     * auto-propagates a customization to the other 7 types.
+     *
+     * Overwrites every visual field (everything update() accepts, PLUS layout/preset_key —
+     * safe here specifically because the WHOLE row is replaced atomically, so no mismatched
+     * family/markup combination is ever left half-updated) on each other type's current
+     * default template, or creates a fresh default template for a type that has none yet.
+     * document_type/name/name_ar are deliberately NOT copied — a type keeps its own identity,
+     * only the visual design is shared.
+     */
+    public function copyToAllTypes(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('manage_company_settings')) {
+            return $redirect;
+        }
+
+        $source = $this->findOwned($id);
+        $companyId = $source->company_id;
+
+        $sharedData = $source->only([
+            'accent_color', 'table_header_color', 'totals_color', 'density',
+            'language_mode', 'table_direction', 'page_size', 'watermark_opacity',
+            'notes_en', 'notes_ar', 'terms_en', 'terms_ar', 'show_logo',
+            'show_unit_labels', 'show_party_vat_number', 'show_item_description',
+            'show_vat_column', 'letterhead_path', 'footer_path', 'watermark_path',
+            'preset_key', 'layout',
+        ]);
+
+        DB::transaction(function () use ($companyId, $source, $sharedData) {
+            foreach (self::DOCUMENT_TYPES as $documentType) {
+                if ($documentType === $source->document_type) {
+                    continue;
+                }
+
+                $existingDefault = InvoiceTemplate::where('company_id', $companyId)
+                    ->where('document_type', $documentType)
+                    ->where('is_default', true)
+                    ->first();
+
+                if ($existingDefault) {
+                    $existingDefault->update($sharedData);
+                    continue;
+                }
+
+                InvoiceTemplate::where('company_id', $companyId)->where('document_type', $documentType)->update(['is_default' => false]);
+                InvoiceTemplate::create($sharedData + [
+                    'company_id' => $companyId,
+                    'document_type' => $documentType,
+                    'name' => $source->name,
+                    'name_ar' => $source->name_ar,
+                    'is_default' => true,
+                ]);
+            }
+        });
+
+        $this->flash('success', t('user.settings.copy_to_all_success'));
+        return redirect('/app/settings/invoice-templates/template/' . $source->id . '/edit');
     }
 
     private function findOwned(int $id): InvoiceTemplate

@@ -367,6 +367,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/settings/invoice-templates/template/{id}', [InvoiceTemplateController::class, 'update'])->where('id', '[0-9]+');
     Route::post('/settings/invoice-templates/template/{id}/delete', [InvoiceTemplateController::class, 'destroy'])->where('id', '[0-9]+');
     Route::post('/settings/invoice-templates/template/{id}/default', [InvoiceTemplateController::class, 'setDefault'])->where('id', '[0-9]+');
+    Route::post('/settings/invoice-templates/template/{id}/copy-to-all', [InvoiceTemplateController::class, 'copyToAllTypes'])->where('id', '[0-9]+');
     Route::get('/settings/invoice-templates/{documentType?}', [InvoiceTemplateController::class, 'index'])->where('documentType', '[a-z_]+');
     Route::get('/settings/security', [SettingsController::class, 'security']);
     Route::post('/settings/security', [SettingsController::class, 'updatePassword']);
