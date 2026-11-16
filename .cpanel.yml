@@ -10,3 +10,5 @@ deployment:
     - /usr/local/bin/php $DEPLOYPATH/artisan config:clear
     - /usr/local/bin/php $DEPLOYPATH/artisan view:clear
     - /usr/local/bin/php $DEPLOYPATH/artisan cache:clear
+    - rm -rf $DEPLOYPATH/storage/fonts/cache
+    - /usr/local/bin/php $DEPLOYPATH/artisan pdf:warm-fonts

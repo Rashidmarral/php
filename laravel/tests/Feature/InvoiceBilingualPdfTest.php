@@ -94,6 +94,37 @@ class InvoiceBilingualPdfTest extends TestCase
         $this->assertGreaterThan(1000, strlen($body), 'the PDF body should not be a near-empty/broken render');
     }
 
+    /**
+     * A production invoice once generated with its regular-weight Cairo font
+     * registered with no /FontDescriptor, no embedded /FontFile2, and no
+     * /Widths array at all — dompdf's lazy, unlocked font-cache registration
+     * had raced across two concurrent requests and left a corrupted cache
+     * entry (see Pdf::output()'s own comment). The result was still a
+     * well-formed, non-empty PDF (so the assertions above wouldn't have
+     * caught it) — every character just fell back to one uniform width,
+     * stretching the document's text out letter by letter. This inspects the
+     * raw PDF object structure to make sure every font actually used to draw
+     * text carries real embedded glyph data.
+     */
+    public function test_bilingual_invoice_pdf_embeds_real_glyph_data_for_every_font_weight_used(): void
+    {
+        ['owner' => $owner, 'invoice' => $invoice] = $this->makeOwnerWithBilingualInvoice();
+
+        $response = $this->actingAs($owner)->get("/app/invoices/{$invoice->id}/pdf");
+        $body = $response->getContent();
+
+        $this->assertGreaterThanOrEqual(
+            2,
+            substr_count($body, '/FontFile2'),
+            'both the regular and bold Cairo weights used on this document must each embed a real font program'
+        );
+        $this->assertDoesNotMatchRegularExpression(
+            '/\/BaseFont\s*\/cairo_(normal|bold)_[0-9a-f]+/',
+            $body,
+            'a bare dompdf font-cache key as BaseFont means that font failed to embed and fell back to a wrong default width for every character'
+        );
+    }
+
     public function test_bilingual_invoice_html_has_the_expected_structural_markers(): void
     {
         ['company' => $company, 'client' => $client, 'invoice' => $invoice] = $this->makeOwnerWithBilingualInvoice();

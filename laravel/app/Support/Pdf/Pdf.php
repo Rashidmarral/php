@@ -17,8 +17,8 @@ class Pdf
         $fontMetrics = $dompdf->getFontMetrics();
         $families = $fontMetrics->getFontFamilies();
 
-        $regular = storage_path('fonts/Cairo-Regular.ttf');
-        $bold = storage_path('fonts/Cairo-Bold.ttf');
+        $regular = resource_path('fonts/Cairo-Regular.ttf');
+        $bold = resource_path('fonts/Cairo-Bold.ttf');
 
         // registerFont() is idempotent (it short-circuits once a matching local
         // file is already recorded), so it's safe to call on every request;
@@ -43,8 +43,8 @@ class Pdf
         $fontMetrics = $dompdf->getFontMetrics();
         $families = $fontMetrics->getFontFamilies();
 
-        $regular = storage_path('fonts/NotoNaskhArabic-Regular.ttf');
-        $bold = storage_path('fonts/NotoNaskhArabic-Bold.ttf');
+        $regular = resource_path('fonts/NotoNaskhArabic-Regular.ttf');
+        $bold = resource_path('fonts/NotoNaskhArabic-Bold.ttf');
 
         if (is_file($regular) && !isset($families['noto naskh arabic']['normal'])) {
             $fontMetrics->registerFont(['family' => 'Noto Naskh Arabic', 'weight' => 'normal', 'style' => 'normal'], 'file://' . $regular);
@@ -68,21 +68,50 @@ class Pdf
             mkdir($cacheDir, 0775, true);
         }
 
-        $options = new Options();
-        $options->set('isRemoteEnabled', false);
-        $options->set('fontDir', $cacheDir);
-        $options->set('fontCache', $cacheDir);
-        $options->set('chroot', [base_path()]);
-        // Cairo covers both Latin and Arabic, so it's the default for both languages now
-        // (previously this branched to DejaVu Sans for English / Noto Naskh Arabic for Arabic).
-        $options->set('defaultFont', 'Cairo');
+        // dompdf's lazy font registration reads and writes the shared .ttf/.ufm
+        // cache files under $cacheDir with no locking of its own. Two PDF
+        // requests racing on a cold (or just-cleared) cache can interleave their
+        // writes to the SAME cache filename (registerFont()'s name is a hash of
+        // the font path, not its contents, so every request computes the same
+        // name) — one request's in-progress write can leave the file truncated
+        // for the other. Confirmed in production: a generated invoice PDF had
+        // its regular-weight Cairo font registered with no FontDescriptor, no
+        // embedded FontFile2, and no Widths array at all, so every character
+        // rendered at one uniform fallback width instead of its real advance —
+        // visible as the whole document's text being stretched out letter by
+        // letter. Serializing PDF generation behind a lock on this cache
+        // directory removes the race; see also Console/Commands/WarmPdfFonts,
+        // which pre-populates the cache once at deploy time so this lock is
+        // rarely even contended.
+        $lock = fopen($cacheDir . '/.render.lock', 'c');
+        flock($lock, LOCK_EX);
 
-        $dompdf = new Dompdf($options);
-        self::ensureCairoFontRegistered($dompdf);
-        self::ensureArabicFontRegistered($dompdf);
-        $dompdf->setPaper(strcasecmp($pageSize, 'letter') === 0 ? 'letter' : 'A4', 'portrait');
-        $dompdf->loadHtml($html, 'UTF-8');
-        $dompdf->render();
-        return $dompdf->output();
+        try {
+            $options = new Options();
+            $options->set('isRemoteEnabled', false);
+            $options->set('fontDir', $cacheDir);
+            $options->set('fontCache', $cacheDir);
+            $options->set('chroot', [base_path()]);
+            // Cairo covers both Latin and Arabic, so it's the default for both languages now
+            // (previously this branched to DejaVu Sans for English / Noto Naskh Arabic for Arabic).
+            $options->set('defaultFont', 'Cairo');
+
+            $dompdf = new Dompdf($options);
+            self::ensureCairoFontRegistered($dompdf);
+            self::ensureArabicFontRegistered($dompdf);
+            $dompdf->setPaper(strcasecmp($pageSize, 'letter') === 0 ? 'letter' : 'A4', 'portrait');
+            $dompdf->loadHtml($html, 'UTF-8');
+            $dompdf->render();
+            return $dompdf->output();
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /** Forces both font families' cache entries to exist, so the first real request never has to build them under load. See Console/Commands/WarmPdfFonts. */
+    public static function warmFontCache(): void
+    {
+        self::output('<!doctype html><html><body style="font-family:Cairo, sans-serif;">warm</body></html>');
     }
 }
