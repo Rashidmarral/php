@@ -68,12 +68,29 @@ class RecurringInvoiceController extends Controller
         }
         $companyId = Auth::user()->company_id;
 
-        $title = trim((string) $request->input('title'));
+        $title = mb_substr(trim((string) $request->input('title')), 0, 255);
         if ($title === '') {
             return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.title_required'));
         }
 
-        $items = $this->itemsFromRequest($request);
+        $nextRunDateRaw = trim((string) $request->input('next_run_date', ''));
+        if (!$this->isValidOptionalDate($nextRunDateRaw)) {
+            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.next_run_date_invalid'));
+        }
+
+        $retentionPercent = $this->validatedNumberOrDefault($request->input('retention_percent', 0), 0, 100, 0.0);
+        if ($retentionPercent === null) {
+            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.retention_percent_invalid'));
+        }
+        $dueDays = $this->validatedNumberOrDefault($request->input('due_days', 14), 0, 3650, 14.0);
+        if ($dueDays === null) {
+            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.due_days_invalid'));
+        }
+
+        [$items, $itemsError] = $this->itemsFromRequest($request);
+        if ($itemsError !== null) {
+            return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t($itemsError));
+        }
         if (empty($items)) {
             return $this->redirectWithFlash('/app/recurring-invoices/create', 'error', t('user.recurring_invoices.line_item_required'));
         }
@@ -88,11 +105,11 @@ class RecurringInvoiceController extends Controller
             'project_id' => $project?->id,
             'title' => $title,
             'frequency' => $frequency,
-            'next_run_date' => $request->input('next_run_date') ?: now()->format('Y-m-d'),
+            'next_run_date' => $nextRunDateRaw !== '' ? $nextRunDateRaw : now()->format('Y-m-d'),
             'is_active' => true,
             'apply_vat' => (bool) $request->input('apply_vat', true),
-            'retention_percent' => min(100, max(0, (float) $request->input('retention_percent', 0))),
-            'due_days' => max(0, (int) $request->input('due_days', 14)),
+            'retention_percent' => $retentionPercent,
+            'due_days' => (int) $dueDays,
         ]);
 
         foreach ($items as $item) {
@@ -155,12 +172,29 @@ class RecurringInvoiceController extends Controller
         $template = $this->findOwned($id);
         $companyId = $template->company_id;
 
-        $title = trim((string) $request->input('title'));
+        $title = mb_substr(trim((string) $request->input('title')), 0, 255);
         if ($title === '') {
             return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.title_required'));
         }
 
-        $items = $this->itemsFromRequest($request);
+        $nextRunDateRaw = trim((string) $request->input('next_run_date', ''));
+        if (!$this->isValidOptionalDate($nextRunDateRaw)) {
+            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.next_run_date_invalid'));
+        }
+
+        $retentionPercent = $this->validatedNumberOrDefault($request->input('retention_percent', 0), 0, 100, 0.0);
+        if ($retentionPercent === null) {
+            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.retention_percent_invalid'));
+        }
+        $dueDays = $this->validatedNumberOrDefault($request->input('due_days', 14), 0, 3650, 14.0);
+        if ($dueDays === null) {
+            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.due_days_invalid'));
+        }
+
+        [$items, $itemsError] = $this->itemsFromRequest($request);
+        if ($itemsError !== null) {
+            return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t($itemsError));
+        }
         if (empty($items)) {
             return $this->redirectWithFlash('/app/recurring-invoices/' . $template->id . '/edit', 'error', t('user.recurring_invoices.line_item_required'));
         }
@@ -174,10 +208,10 @@ class RecurringInvoiceController extends Controller
             'project_id' => $project?->id,
             'title' => $title,
             'frequency' => $frequency,
-            'next_run_date' => $request->input('next_run_date') ?: $template->next_run_date,
+            'next_run_date' => $nextRunDateRaw !== '' ? $nextRunDateRaw : $template->next_run_date,
             'apply_vat' => (bool) $request->input('apply_vat', true),
-            'retention_percent' => min(100, max(0, (float) $request->input('retention_percent', 0))),
-            'due_days' => max(0, (int) $request->input('due_days', 14)),
+            'retention_percent' => $retentionPercent,
+            'due_days' => (int) $dueDays,
         ]);
 
         RecurringInvoiceItem::where('recurring_invoice_id', $template->id)->delete();
@@ -233,7 +267,14 @@ class RecurringInvoiceController extends Controller
         return $this->redirectWithFlash('/app/recurring-invoices', 'success', t('user.recurring_invoices.deleted'));
     }
 
-    /** @return array<int, array{description:string,description_ar:string,qty:float,unit_price:float}> */
+    /**
+     * @return array{0: array<int, array{description:string,description_ar:string,qty:float,unit_price:float}>, 1: ?string}
+     *
+     * The second element is a translation key for the first invalid qty/unit_price
+     * found (null when everything parsed cleanly) — store()/update() redirect back
+     * with it instead of silently coercing non-numeric/out-of-range input to 0,
+     * which is what (float) casts of raw request input used to do here.
+     */
     private function itemsFromRequest(Request $request): array
     {
         $descriptions = $request->input('item_description', []);
@@ -243,18 +284,62 @@ class RecurringInvoiceController extends Controller
 
         $items = [];
         foreach ($descriptions as $i => $desc) {
-            $desc = trim((string) $desc);
+            $desc = mb_substr(trim((string) $desc), 0, 255);
             if ($desc === '') {
                 continue;
             }
+            $qty = $this->validatedNumber($qtys[$i] ?? 1, 0.01, 99999999.99);
+            if ($qty === null) {
+                return [[], 'user.recurring_invoices.qty_invalid'];
+            }
+            $price = $this->validatedNumberOrDefault($prices[$i] ?? 0, 0, 99999999.99, 0.0);
+            if ($price === null) {
+                return [[], 'user.recurring_invoices.unit_price_invalid'];
+            }
             $items[] = [
                 'description' => $desc,
-                'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
-                'qty' => (float) ($qtys[$i] ?? 1),
-                'unit_price' => (float) ($prices[$i] ?? 0),
+                'description_ar' => mb_substr(trim((string) ($descriptionsAr[$i] ?? '')), 0, 255),
+                'qty' => $qty,
+                'unit_price' => $price,
             ];
         }
-        return $items;
+        return [$items, null];
+    }
+
+    /**
+     * Parses a submitted field as a number and checks it against inclusive bounds,
+     * returning null for anything missing/non-numeric/out of range — mirrors
+     * EstimateController's identical helper, applied here to recurring invoice
+     * line items, retention_percent and due_days.
+     */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form — used to validate next_run_date before it's stored. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 
     private function findOwned(int $id): RecurringInvoice

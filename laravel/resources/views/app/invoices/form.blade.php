@@ -9,22 +9,22 @@
 <form method="post" action="/app/invoices" class="card" style="max-width:820px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.invoices.invoice_number') ?></label><input type="text" name="invoice_number" value="<?= e($nextNumber) ?>"></div>
+    <div class="form-group"><label><?= t('user.invoices.invoice_number') ?></label><input type="text" name="invoice_number" value="<?= e($nextNumber) ?>" maxlength="30"></div>
     <div class="form-group"><label><?= t('user.invoices.due_date') ?></label><input type="date" name="due_date"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
       <label><?= t('common.client') ?></label>
-      <select name="client_id">
+      <select name="client_id" class="combo-select" data-placeholder="<?= t('common.search_clients_placeholder') ?>" data-no-results="<?= t('common.no_clients_found') ?>">
         <option value=""><?= t('user.projects.no_client') ?></option>
-        <?php foreach ($clients as $c): ?><option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option><?php endforeach; ?>
+        <?php foreach ($clients as $c): ?><option value="<?= $c['id'] ?>" data-ar="<?= e($c['name_ar'] ?? '') ?>"><?= e($c['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
     <div class="form-group">
       <label><?= t('common.project') ?></label>
-      <select name="project_id">
+      <select name="project_id" class="combo-select" data-placeholder="<?= t('common.search_projects_placeholder') ?>" data-no-results="<?= t('common.no_projects_found') ?>">
         <option value=""><?= t('user.invoices.no_project') ?></option>
-        <?php foreach ($projects as $p): ?><option value="<?= $p['id'] ?>"><?= e($p['name']) ?></option><?php endforeach; ?>
+        <?php foreach ($projects as $p): ?><option value="<?= $p['id'] ?>" data-ar="<?= e($p['name_ar'] ?? '') ?>"><?= e($p['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
   </div>
@@ -59,12 +59,12 @@
     </tr></thead>
     <tbody id="items-body">
       <tr>
-        <td><input type="text" name="item_code[]" placeholder="e.g. ITM-001"></td>
-        <td><input type="text" name="item_description[]" placeholder="e.g. Mobilization payment (30%)"></td>
-        <td><input type="text" name="item_unit[]" placeholder="e.g. pc, m², hr"></td>
-        <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
-        <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
-        <td><input type="number" step="0.01" min="0" name="item_discount[]" value="0" class="line-discount"></td>
+        <td><input type="text" name="item_code[]" placeholder="e.g. ITM-001" maxlength="50"></td>
+        <td><input type="text" name="item_description[]" placeholder="e.g. Mobilization payment (30%)" maxlength="255"></td>
+        <td><input type="text" name="item_unit[]" placeholder="e.g. pc, m², hr" maxlength="20"></td>
+        <td><input type="number" inputmode="decimal" step="0.01" min="0.01" max="99999999.99" name="item_qty[]" value="1" class="qty"></td>
+        <td><input type="number" inputmode="decimal" step="0.01" min="0" max="99999999.99" name="item_price[]" value="0" class="cost"></td>
+        <td><input type="number" inputmode="decimal" step="0.01" min="0" max="9999999999.99" name="item_discount[]" value="0" class="line-discount"></td>
         <td class="line-total">0.00</td>
         <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
       </tr>
@@ -81,18 +81,18 @@
     </div>
     <div class="form-group" style="margin:0;">
       <label><?= t('user.invoices.retention_withheld_percent') ?></label>
-      <input type="number" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>">
+      <input type="number" inputmode="decimal" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>">
       <p class="help-text"><?= t('user.invoices.retention_hint') ?></p>
     </div>
   </div>
   <div class="form-row">
     <div class="form-group">
       <label><?= t('pdf.discount') ?> (<?= t('common.total') ?>)</label>
-      <input type="number" step="0.01" min="0" name="discount_amount" id="header-discount" value="0">
+      <input type="number" inputmode="decimal" step="0.01" min="0" max="9999999999.99" name="discount_amount" id="header-discount" value="0">
     </div>
     <div class="form-group">
       <label><?= t('pdf.other_charges') ?></label>
-      <input type="number" step="0.01" min="0" name="other_charges" id="other-charges" value="0">
+      <input type="number" inputmode="decimal" step="0.01" min="0" max="9999999999.99" name="other_charges" id="other-charges" value="0">
     </div>
   </div>
 
@@ -127,12 +127,12 @@
   function rowTemplate() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" name="item_code[]" placeholder="e.g. ITM-001"></td>
-      <td><input type="text" name="item_description[]" placeholder="Description"></td>
-      <td><input type="text" name="item_unit[]" placeholder="e.g. pc, m², hr"></td>
-      <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
-      <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
-      <td><input type="number" step="0.01" min="0" name="item_discount[]" value="0" class="line-discount"></td>
+      <td><input type="text" name="item_code[]" placeholder="e.g. ITM-001" maxlength="50"></td>
+      <td><input type="text" name="item_description[]" placeholder="Description" maxlength="255"></td>
+      <td><input type="text" name="item_unit[]" placeholder="e.g. pc, m², hr" maxlength="20"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0.01" max="99999999.99" name="item_qty[]" value="1" class="qty"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0" max="99999999.99" name="item_price[]" value="0" class="cost"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0" max="9999999999.99" name="item_discount[]" value="0" class="line-discount"></td>
       <td class="line-total">0.00</td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;

@@ -73,6 +73,20 @@ class InvoiceController extends Controller
         }
         $companyId = Auth::user()->company_id;
 
+        $invoiceNumber = trim((string) $request->input('invoice_number'));
+        if ($invoiceNumber !== '' && mb_strlen($invoiceNumber) > 30) {
+            return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.invoice_number_invalid'));
+        }
+
+        $dueDateRaw = trim((string) $request->input('due_date', ''));
+        if (!$this->isValidOptionalDate($dueDateRaw)) {
+            return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.due_date_invalid'));
+        }
+        $dateOfSupplyRaw = trim((string) $request->input('date_of_supply', ''));
+        if (!$this->isValidOptionalDate($dateOfSupplyRaw)) {
+            return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.date_of_supply_invalid'));
+        }
+
         $descriptions = $request->input('item_description', []);
         $descriptionsAr = $request->input('item_description_ar', []);
         $itemCodes = $request->input('item_code', []);
@@ -85,21 +99,30 @@ class InvoiceController extends Controller
         $lineDiscountsTotal = 0;
         $items = [];
         foreach ($descriptions as $i => $desc) {
-            $desc = trim((string) $desc);
+            $desc = mb_substr(trim((string) $desc), 0, 255);
             if ($desc === '') {
                 continue;
             }
-            $qty = (float) ($qtys[$i] ?? 1);
-            $price = (float) ($prices[$i] ?? 0);
-            $lineDiscount = max(0, (float) ($lineDiscounts[$i] ?? 0));
+            $qty = $this->validatedNumber($qtys[$i] ?? 1, 0.01, 99999999.99);
+            if ($qty === null) {
+                return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.qty_invalid'));
+            }
+            $price = $this->validatedNumberOrDefault($prices[$i] ?? 0, 0, 99999999.99, 0.0);
+            if ($price === null) {
+                return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.unit_price_invalid'));
+            }
+            $lineDiscount = $this->validatedNumberOrDefault($lineDiscounts[$i] ?? 0, 0, 9999999999.99, 0.0);
+            if ($lineDiscount === null) {
+                return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.line_discount_invalid'));
+            }
             $lineTotal = $qty * $price;
             $subtotal += $lineTotal;
             $lineDiscountsTotal += $lineDiscount;
             $items[] = [
                 'description' => $desc,
-                'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
-                'item_code' => trim((string) ($itemCodes[$i] ?? '')) ?: null,
-                'unit' => trim((string) ($units[$i] ?? '')) ?: null,
+                'description_ar' => mb_substr(trim((string) ($descriptionsAr[$i] ?? '')), 0, 255),
+                'item_code' => mb_substr(trim((string) ($itemCodes[$i] ?? '')), 0, 50) ?: null,
+                'unit' => mb_substr(trim((string) ($units[$i] ?? '')), 0, 20) ?: null,
                 'qty' => $qty,
                 'unit_price' => $price,
                 'discount_amount' => $lineDiscount,
@@ -122,13 +145,22 @@ class InvoiceController extends Controller
         // `discount_amount` on the invoices table itself stores only the
         // header figure a user actually typed (per-line discounts live on
         // their own invoice_items row).
-        $headerDiscount = max(0, (float) $request->input('discount_amount', 0));
-        $otherCharges = max(0, (float) $request->input('other_charges', 0));
+        $headerDiscount = $this->validatedNumberOrDefault($request->input('discount_amount', 0), 0, 9999999999.99, 0.0);
+        if ($headerDiscount === null) {
+            return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.discount_invalid'));
+        }
+        $otherCharges = $this->validatedNumberOrDefault($request->input('other_charges', 0), 0, 9999999999.99, 0.0);
+        if ($otherCharges === null) {
+            return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.other_charges_invalid'));
+        }
         $taxableAmount = max(0, $subtotal - $lineDiscountsTotal - $headerDiscount) + $otherCharges;
         $vatAmount = $taxableAmount * $vatRate / 100;
         $total = $taxableAmount + $vatAmount;
 
-        $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', 0)));
+        $retentionPercent = $this->validatedNumberOrDefault($request->input('retention_percent', 0), 0, 100, 0.0);
+        if ($retentionPercent === null) {
+            return $this->redirectWithFlash('/app/invoices/create', 'error', t('user.invoices.retention_percent_invalid'));
+        }
         $retentionAmount = $subtotal * $retentionPercent / 100;
 
         $client = $this->ownedClient($request->input('client_id') ?: null, $companyId);
@@ -140,13 +172,13 @@ class InvoiceController extends Controller
         // invoice — a blank form field defaults to today, decided here
         // server-side, rather than only faking a default in the form's HTML
         // (which would silently diverge from what's actually saved).
-        $dateOfSupply = trim((string) $request->input('date_of_supply')) ?: now()->toDateString();
+        $dateOfSupply = $dateOfSupplyRaw !== '' ? $dateOfSupplyRaw : now()->toDateString();
 
         $invoice = Invoice::create([
             'company_id' => $companyId,
             'project_id' => $project?->id,
             'client_id' => $client?->id,
-            'invoice_number' => trim((string) $request->input('invoice_number')) ?: ('INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1)),
+            'invoice_number' => $invoiceNumber ?: ('INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1)),
             'status' => 'unpaid',
             'payment_method' => $paymentMethod,
             'total' => $total,
@@ -154,7 +186,7 @@ class InvoiceController extends Controller
             'vat_amount' => $vatAmount,
             'discount_amount' => $headerDiscount,
             'other_charges' => $otherCharges,
-            'due_date' => $request->input('due_date') ?: null,
+            'due_date' => $dueDateRaw !== '' ? $dueDateRaw : null,
             'date_of_supply' => $dateOfSupply,
             'retention_percent' => $retentionPercent,
             'retention_amount' => $retentionAmount,
@@ -799,5 +831,43 @@ class InvoiceController extends Controller
         }
         $project = Project::find($id);
         return ($project && $project->company_id === $companyId) ? $project : null;
+    }
+
+    /**
+     * Parses a submitted field as a number and checks it against inclusive bounds,
+     * returning null for anything missing/non-numeric/out of range so the caller can
+     * redirect back with a translated error instead of silently coercing bad input —
+     * mirrors EstimateController's identical helper of the same name, applied here to
+     * invoice line-item qty/unit_price/discount and the header discount/other-charges/
+     * retention_percent fields, none of which had any type or range check before.
+     */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected — used for fields where clearing the input has always meant "none" (unit_price, discounts, retention_percent). */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form — used to validate due_date/date_of_supply before they're stored, since a malformed string would otherwise be written as-is or crash a later Carbon::parse(). */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

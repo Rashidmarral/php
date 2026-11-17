@@ -20,7 +20,7 @@
   </div>
   <div class="form-group">
     <label><?= t('credit_note.reason') ?></label>
-    <input type="text" name="reason" placeholder="<?= t('debit_note.reason_placeholder') ?>">
+    <input type="text" name="reason" placeholder="<?= t('debit_note.reason_placeholder') ?>" maxlength="500">
   </div>
 
   <label><?= t('user.invoices.line_items') ?></label>
@@ -28,9 +28,9 @@
     <thead><tr><th style="width:50%"><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.unit_price') ?> (SAR)</th><th><?= t('user.invoices.line_total') ?></th><th></th></tr></thead>
     <tbody id="items-body">
       <tr>
-        <td><input type="text" name="item_description[]" placeholder="e.g. Additional charge"></td>
-        <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
-        <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
+        <td><input type="text" name="item_description[]" placeholder="e.g. Additional charge" maxlength="255"></td>
+        <td><input type="number" inputmode="decimal" step="0.01" min="0.01" max="99999999.99" name="item_qty[]" value="1" class="qty"></td>
+        <td><input type="number" inputmode="decimal" step="0.01" min="0" max="99999999.99" name="item_price[]" value="0" class="cost"></td>
         <td class="line-total">0.00</td>
         <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
       </tr>
@@ -59,9 +59,9 @@
   function rowTemplate() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" name="item_description[]" placeholder="Description"></td>
-      <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
-      <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
+      <td><input type="text" name="item_description[]" placeholder="Description" maxlength="255"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0.01" max="99999999.99" name="item_qty[]" value="1" class="qty"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0" max="99999999.99" name="item_price[]" value="0" class="cost"></td>
       <td class="line-total">0.00</td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;

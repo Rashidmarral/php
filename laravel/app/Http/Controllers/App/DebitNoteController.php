@@ -83,7 +83,15 @@ class DebitNoteController extends Controller
         $companyId = Auth::user()->company_id;
         $invoice = $this->ownedInvoice((int) $request->input('invoice_id'), $companyId);
 
-        [$items, $subtotal] = $this->parseItems($request);
+        $issueDateRaw = trim((string) $request->input('issue_date', ''));
+        if (!$this->isValidOptionalDate($issueDateRaw)) {
+            return $this->redirectWithFlash('/app/debit-notes/create?invoice_id=' . $invoice->id, 'error', t('user.debit_notes.issue_date_invalid'));
+        }
+
+        [$items, $subtotal, $itemsError] = $this->parseItems($request);
+        if ($itemsError !== null) {
+            return $this->redirectWithFlash('/app/debit-notes/create?invoice_id=' . $invoice->id, 'error', t($itemsError));
+        }
         if (empty($items)) {
             return $this->redirectWithFlash('/app/debit-notes/create?invoice_id=' . $invoice->id, 'error', t('common.line_item_required'));
         }
@@ -95,13 +103,13 @@ class DebitNoteController extends Controller
         $client = $this->ownedClient($invoice->client_id, $companyId);
         $company = Company::find($companyId);
 
-        $debitNote = DB::transaction(function () use ($companyId, $invoice, $items, $subtotal, $vatRate, $vatAmount, $total, $request) {
+        $debitNote = DB::transaction(function () use ($companyId, $invoice, $items, $subtotal, $vatRate, $vatAmount, $total, $issueDateRaw, $request) {
             $debitNote = DebitNote::create([
                 'company_id' => $companyId,
                 'invoice_id' => $invoice->id,
                 'client_id' => $invoice->client_id,
                 'note_number' => $this->nextNoteNumber($companyId),
-                'issue_date' => $request->input('issue_date') ?: now()->toDateString(),
+                'issue_date' => $issueDateRaw !== '' ? $issueDateRaw : now()->toDateString(),
                 'reason' => trim((string) $request->input('reason')) ?: null,
                 'status' => 'issued',
                 'subtotal' => $subtotal,
@@ -298,7 +306,14 @@ class DebitNoteController extends Controller
         return 'DN-' . (1000 + DebitNote::where('company_id', $companyId)->count() + 1);
     }
 
-    /** @return array{0: array<int, array{description:string,description_ar:string,qty:float,unit_price:float,total:float}>, 1: float} */
+    /**
+     * @return array{0: array<int, array{description:string,description_ar:string,qty:float,unit_price:float,total:float}>, 1: float, 2: ?string}
+     *
+     * The third element is a translation key for the first invalid qty/unit_price
+     * found (null when everything parsed cleanly) — store() redirects back with it
+     * instead of silently coercing non-numeric/out-of-range input to 0, which is
+     * what (float) casts of raw request input used to do here.
+     */
     private function parseItems(Request $request): array
     {
         $descriptions = $request->input('item_description', []);
@@ -309,18 +324,59 @@ class DebitNoteController extends Controller
         $subtotal = 0;
         $items = [];
         foreach ($descriptions as $i => $desc) {
-            $desc = trim((string) $desc);
-            $qty = (float) ($qtys[$i] ?? 0);
-            if ($desc === '' || $qty <= 0) {
+            $desc = mb_substr(trim((string) $desc), 0, 255);
+            if ($desc === '') {
                 continue;
             }
-            $price = (float) ($prices[$i] ?? 0);
+            $qty = $this->validatedNumber($qtys[$i] ?? 1, 0.01, 99999999.99);
+            if ($qty === null) {
+                return [[], 0.0, 'user.debit_notes.qty_invalid'];
+            }
+            $price = $this->validatedNumberOrDefault($prices[$i] ?? 0, 0, 99999999.99, 0.0);
+            if ($price === null) {
+                return [[], 0.0, 'user.debit_notes.unit_price_invalid'];
+            }
             $lineTotal = $qty * $price;
             $subtotal += $lineTotal;
-            $items[] = ['description' => $desc, 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')), 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
+            $items[] = ['description' => $desc, 'description_ar' => mb_substr(trim((string) ($descriptionsAr[$i] ?? '')), 0, 255), 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
         }
 
-        return [$items, $subtotal];
+        return [$items, $subtotal, null];
+    }
+
+    /**
+     * Parses a submitted field as a number and checks it against inclusive bounds,
+     * returning null for anything missing/non-numeric/out of range — mirrors
+     * EstimateController's identical helper, applied here to debit note line items.
+     */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form — used to validate issue_date before it's stored. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 
     /** @return array<int, array{description:string,qty:float,unit_price:float,total:float}> */
