@@ -14,6 +14,15 @@ use Illuminate\View\View;
 
 class PortalAuthController extends Controller
 {
+    /**
+     * A real bcrypt hash of an arbitrary, unrelated string — see
+     * App\Http\Controllers\Auth\AuthController's identical constant for why:
+     * it keeps Hash::check() doing its normal work even for an unknown
+     * email, so the response time can't be used to enumerate which client
+     * emails exist.
+     */
+    private const DUMMY_PASSWORD_HASH = '$2y$10$FlrzsJLeAb4wu.bqdtSE.eFBD83GOFAewNTCKlIEHoEH6sxl8MFSO';
+
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::guard('client')->check()) {
@@ -29,11 +38,12 @@ class PortalAuthController extends Controller
 
         $client = Client::where('email', $email)->first();
         $company = $client ? Company::find($client->company_id) : null;
+        $passwordMatches = Hash::check($password, $client->password ?? self::DUMMY_PASSWORD_HASH);
 
         $ok = $client
             && $client->portal_enabled
             && $client->password
-            && Hash::check($password, $client->password)
+            && $passwordMatches
             && $company
             && $company->client_portal_enabled
             && Feature::allowsForCompany('client_portal', $company);

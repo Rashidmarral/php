@@ -169,7 +169,12 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Defaults to true outside local dev so the session cookie is never sent over
+    // plain HTTP in production, without relying on every deploy remembering to
+    // set SESSION_SECURE_COOKIE itself (it wasn't set in this app's .env). Reads
+    // APP_ENV directly rather than app()->isLocal() — this file is evaluated
+    // while config is still being loaded, before that's safe to call.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV', 'production') !== 'local'),
 
     /*
     |--------------------------------------------------------------------------

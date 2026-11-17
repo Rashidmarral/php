@@ -138,17 +138,27 @@ Route::get('/i/{token}/pay/callback', [ShareController::class, 'invoicePaymentCa
 | Auth
 |--------------------------------------------------------------------------
 */
+// Every credential-guessing surface below (password login, the 2FA code — which
+// on its own only caps attempts per *session*, not per IP — password-reset
+// requests, and registration, which could otherwise be used to mass-spam
+// accounts) is throttled per IP on top of whatever the controller itself
+// already checks, since none of these routes had any request-rate limit at
+// all. Each gets its OWN prefix: the throttle middleware's default signature
+// is only `$domain|$ip` (it does not vary by route), so routes sharing a
+// plain `throttle:N,M` with no prefix would all draw from the SAME pool —
+// a few failed logins would also start blocking an unrelated registration
+// or password-reset request from that same visitor.
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1,login');
 Route::get('/login/2fa', [AuthController::class, 'showTwoFactorChallenge']);
-Route::post('/login/2fa', [AuthController::class, 'verifyTwoFactorChallenge']);
+Route::post('/login/2fa', [AuthController::class, 'verifyTwoFactorChallenge'])->middleware('throttle:5,1,login-2fa');
 Route::get('/register', [AuthController::class, 'showRegister']);
-Route::post('/register', [AuthController::class, 'register']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1,register');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword']);
-Route::post('/forgot-password', [AuthController::class, 'sendResetLink']);
+Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->middleware('throttle:3,10,forgot-password');
 Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword']);
-Route::post('/reset-password/{token}', [AuthController::class, 'resetPassword']);
+Route::post('/reset-password/{token}', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1,reset-password');
 
 /*
 |--------------------------------------------------------------------------
@@ -746,7 +756,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
 */
 Route::prefix('portal')->group(function () {
     Route::get('/login', [PortalAuthController::class, 'showLogin'])->name('portal.login');
-    Route::post('/login', [PortalAuthController::class, 'login']);
+    Route::post('/login', [PortalAuthController::class, 'login'])->middleware('throttle:5,1,portal-login');
     Route::post('/logout', [PortalAuthController::class, 'logout']);
 
     Route::middleware('portal.client')->group(function () {

@@ -27,6 +27,17 @@ class AuthController extends Controller
     private const PENDING_2FA_ATTEMPTS_KEY = '2fa_attempts';
     private const MAX_2FA_ATTEMPTS = 5;
 
+    /**
+     * A real bcrypt hash of an arbitrary, unrelated string — compared against
+     * on a login attempt for an email that doesn't exist, purely so
+     * Hash::check() still does its normal (deliberately slow) work instead of
+     * being skipped. Skipping it would make an unknown email's request
+     * return measurably faster than a known email with a wrong password,
+     * letting an attacker enumerate which emails have accounts by timing
+     * the response alone.
+     */
+    private const DUMMY_PASSWORD_HASH = '$2y$10$FlrzsJLeAb4wu.bqdtSE.eFBD83GOFAewNTCKlIEHoEH6sxl8MFSO';
+
     public function showLogin(): View
     {
         return view('auth.login');
@@ -40,9 +51,10 @@ class AuthController extends Controller
         ]);
 
         $user = User::where('email', strtolower(trim($credentials['email'])))->first();
+        $passwordMatches = Hash::check($credentials['password'], $user->password ?? self::DUMMY_PASSWORD_HASH);
 
-        if (!$user || !Hash::check($credentials['password'], $user->password) || $user->status !== 'active') {
-            return back()->withErrors(['email' => 'Invalid email or password.'])->onlyInput('email');
+        if (!$user || !$passwordMatches || $user->status !== 'active') {
+            return back()->withErrors(['email' => t('auth.invalid_credentials')])->onlyInput('email');
         }
 
         if ($user->hasTwoFactorEnabled()) {
@@ -82,7 +94,7 @@ class AuthController extends Controller
         $user = User::find($userId);
         if (!$user || !$user->hasTwoFactorEnabled() || $user->status !== 'active') {
             $this->clearPendingTwoFactor($request);
-            return redirect('/login')->withErrors(['email' => 'Invalid email or password.']);
+            return redirect('/login')->withErrors(['email' => t('auth.invalid_credentials')]);
         }
 
         $code = trim((string) $request->input('code'));
@@ -94,12 +106,12 @@ class AuthController extends Controller
 
             if ($attempts >= self::MAX_2FA_ATTEMPTS) {
                 $this->clearPendingTwoFactor($request);
-                return redirect('/login')->withErrors(['email' => 'Too many failed two-factor attempts. Please log in again.']);
+                return redirect('/login')->withErrors(['email' => t('auth.two_factor_too_many_attempts')]);
             }
 
             $request->session()->put(self::PENDING_2FA_ATTEMPTS_KEY, $attempts);
             $remaining = self::MAX_2FA_ATTEMPTS - $attempts;
-            return back()->withErrors(['code' => "Invalid code. {$remaining} " . ($remaining === 1 ? 'attempt' : 'attempts') . ' remaining.']);
+            return back()->withErrors(['code' => t('auth.two_factor_invalid_code', ['remaining' => $remaining])]);
         }
 
         $this->clearPendingTwoFactor($request);
@@ -235,9 +247,12 @@ class AuthController extends Controller
         $user = filter_var($email, FILTER_VALIDATE_EMAIL) ? User::where('email', $email)->first() : null;
         if ($user && $user->status === 'active') {
             $token = bin2hex(random_bytes(32));
+            // Only the token's digest is stored — see PasswordReset::findValid()'s
+            // docblock for why. $token itself (the only thing that can satisfy that
+            // lookup) goes out exclusively in the email below.
             PasswordReset::create([
                 'email' => $email,
-                'token' => $token,
+                'token' => hash('sha256', $token),
                 'expires_at' => now()->addHour(),
             ]);
 
@@ -282,6 +297,13 @@ class AuthController extends Controller
         $user = User::where('email', $reset->email)->first();
         if ($user) {
             $user->update(['password' => $password]);
+            // A password reset is itself a strong signal the old password may be
+            // compromised, so every session this user already holds — on any
+            // device, from before this reset — is invalidated rather than left
+            // valid until it naturally expires.
+            if (config('session.driver') === 'database') {
+                DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
+            }
         }
         $reset->update(['used_at' => now()]);
 

@@ -20,9 +20,15 @@ class PasswordReset extends Model
         ];
     }
 
+    /**
+     * $token is the raw value from the reset-link URL; the column only ever
+     * stores its SHA-256 digest (see AuthController::sendResetLink()), so a
+     * leaked copy of this table — a backup, a replication lag, a SQL
+     * injection — can't be used to reset anyone's password directly.
+     */
     public static function findValid(string $token): ?self
     {
-        return static::where('token', $token)
+        return static::where('token', hash('sha256', $token))
             ->whereNull('used_at')
             ->where('expires_at', '>', now())
             ->first();
