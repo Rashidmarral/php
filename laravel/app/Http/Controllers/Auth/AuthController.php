@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\PasswordReset;
 use App\Models\Plan;
@@ -54,6 +55,12 @@ class AuthController extends Controller
         $passwordMatches = Hash::check($credentials['password'], $user->password ?? self::DUMMY_PASSWORD_HASH);
 
         if (!$user || !$passwordMatches || $user->status !== 'active') {
+            // Platform-level only (no company_id) — this is a failed login attempt,
+            // not a company's own business activity, so it belongs in the admin
+            // audit log alone, not a company's Activity Log page. Never logs the
+            // submitted password itself; only the email that was tried and, when
+            // it matched a real account, which specific one.
+            AuditLog::record(null, 'login_failed', $user ? 'user' : null, $user?->id, "email attempted: {$credentials['email']}");
             return back()->withErrors(['email' => t('auth.invalid_credentials')])->onlyInput('email');
         }
 
@@ -106,11 +113,13 @@ class AuthController extends Controller
 
             if ($attempts >= self::MAX_2FA_ATTEMPTS) {
                 $this->clearPendingTwoFactor($request);
+                AuditLog::record(null, 'login_2fa_locked_out', 'user', $user->id, $user->email);
                 return redirect('/login')->withErrors(['email' => t('auth.two_factor_too_many_attempts')]);
             }
 
             $request->session()->put(self::PENDING_2FA_ATTEMPTS_KEY, $attempts);
             $remaining = self::MAX_2FA_ATTEMPTS - $attempts;
+            AuditLog::record(null, 'login_2fa_failed', 'user', $user->id, "{$user->email} ({$attempts}/" . self::MAX_2FA_ATTEMPTS . ')');
             return back()->withErrors(['code' => t('auth.two_factor_invalid_code', ['remaining' => $remaining])]);
         }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Portal;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Client;
 use App\Models\Company;
 use App\Support\Feature;
@@ -49,6 +50,10 @@ class PortalAuthController extends Controller
             && Feature::allowsForCompany('client_portal', $company);
 
         if (!$ok) {
+            // Platform-level only (no company_id) — same reasoning as
+            // AuthController::login()'s identical call: a failed login belongs
+            // in the admin audit log, not a company's own Activity Log page.
+            AuditLog::record(null, 'portal_login_failed', $client ? 'client' : null, $client?->id, "email attempted: {$email}");
             return $this->redirectWithFlash('/portal/login', 'error', t('portal.login_failed'));
         }
 

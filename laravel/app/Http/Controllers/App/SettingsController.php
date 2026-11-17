@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -247,6 +248,19 @@ class SettingsController extends Controller
         }
 
         $user->update(['password' => Hash::make($new)]);
+
+        // Matches AuthController::resetPassword()'s same reasoning: anyone who
+        // already had a session open under the OLD password (a shared/public
+        // computer, a stolen session) is signed out everywhere else the moment
+        // it changes. The request's own current session is deliberately kept,
+        // since the person doing this is sitting in it right now.
+        if (config('session.driver') === 'database') {
+            DB::table(config('session.table', 'sessions'))
+                ->where('user_id', $user->id)
+                ->where('id', '!=', $request->session()->getId())
+                ->delete();
+        }
+
         $this->flash('success', t('user.settings.password_updated'));
         return redirect('/app/settings/security');
     }

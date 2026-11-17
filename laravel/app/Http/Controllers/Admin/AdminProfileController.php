@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -48,6 +49,16 @@ class AdminProfileController extends Controller
         }
 
         $admin->update($data);
+
+        // Matches SettingsController::updatePassword()'s/AuthController::resetPassword()'s
+        // same reasoning: changing the password signs out every OTHER session this
+        // (admin-privileged) account already holds, keeping only the one making this change.
+        if (isset($data['password']) && config('session.driver') === 'database') {
+            DB::table(config('session.table', 'sessions'))
+                ->where('user_id', $admin->id)
+                ->where('id', '!=', $request->session()->getId())
+                ->delete();
+        }
 
         return $this->redirectWithFlash('/admin/profile', 'success', t('admin.profile.updated'));
     }

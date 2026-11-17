@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
+use App\Models\Client;
 use App\Models\Company;
 use App\Models\PasswordReset;
 use App\Models\Plan;
 use App\Models\User;
+use App\Support\Feature;
 use App\Support\Totp;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
@@ -186,5 +189,74 @@ class LoginSecurityTest extends TestCase
         ]);
 
         $response->assertRedirect('/forgot-password');
+    }
+
+    /**
+     * None of these failures were visible to a platform admin before — the
+     * attempt just bounced back to the login form with no record anywhere.
+     * Each is recorded with no company_id, since a failed login is a
+     * platform-level security event, not a company's own business activity
+     * (it must never show up on that company's Activity Log page).
+     */
+    public function test_failed_login_is_recorded_in_the_admin_audit_log(): void
+    {
+        $user = $this->makeActiveUser();
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'wrong-password']);
+
+        $log = AuditLog::where('action', 'login_failed')->latest('id')->firstOrFail();
+        $this->assertNull($log->company_id);
+        $this->assertNull($log->admin_id);
+        $this->assertSame('user', $log->target_type);
+        $this->assertSame($user->id, $log->target_id);
+    }
+
+    public function test_failed_login_for_an_unknown_email_is_recorded_without_a_target(): void
+    {
+        $this->post('/login', ['email' => 'nobody-at-all@example.com', 'password' => 'whatever']);
+
+        $log = AuditLog::where('action', 'login_failed')->latest('id')->firstOrFail();
+        $this->assertNull($log->target_type);
+        $this->assertNull($log->target_id);
+        $this->assertStringContainsString('nobody-at-all@example.com', (string) $log->details);
+        // The password itself must never end up in the log.
+        $this->assertStringNotContainsString('whatever', (string) $log->details);
+    }
+
+    public function test_two_factor_failures_and_lockout_are_recorded_in_the_admin_audit_log(): void
+    {
+        $user = $this->makeActiveUser();
+        $secret = Totp::generateSecret();
+        $user->forceFill(['two_factor_secret' => $secret, 'two_factor_confirmed_at' => now()])->save();
+        $this->post('/login', ['email' => $user->email, 'password' => 'Str0ng!Pass2024']);
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->post('/login/2fa', ['code' => '000000']);
+        }
+        $this->assertSame(4, AuditLog::where('action', 'login_2fa_failed')->count());
+
+        $this->post('/login/2fa', ['code' => '000000']);
+        $lockout = AuditLog::where('action', 'login_2fa_locked_out')->latest('id')->firstOrFail();
+        $this->assertSame($user->id, $lockout->target_id);
+    }
+
+    public function test_failed_portal_client_login_is_recorded_in_the_admin_audit_log(): void
+    {
+        $company = Company::create([
+            'name' => 'Acme Co', 'email' => 'acme-'.bin2hex(random_bytes(4)).'@example.com',
+            'client_portal_enabled' => true, 'feature_overrides' => ['client_portal' => true],
+        ]);
+        $client = Client::create([
+            'company_id' => $company->id, 'name' => 'Client', 'email' => 'client-'.bin2hex(random_bytes(4)).'@example.com',
+            'password' => Hash::make('Str0ng!Pass2024'), 'portal_enabled' => true,
+        ]);
+
+        $this->assertTrue(Feature::allowsForCompany('client_portal', $company));
+        $this->post('/portal/login', ['email' => $client->email, 'password' => 'wrong-password']);
+
+        $log = AuditLog::where('action', 'portal_login_failed')->latest('id')->firstOrFail();
+        $this->assertNull($log->company_id);
+        $this->assertSame('client', $log->target_type);
+        $this->assertSame($client->id, $log->target_id);
     }
 }
