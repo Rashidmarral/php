@@ -42,6 +42,7 @@ use App\Http\Controllers\App\SubcontractPaymentController;
 use App\Http\Controllers\App\VendorBillController;
 use App\Http\Controllers\App\ClientController;
 use App\Http\Controllers\App\ZatcaDashboardController;
+use App\Http\Controllers\App\ZatcaOnboardingController;
 use App\Http\Controllers\App\ComplianceController;
 use App\Http\Controllers\App\ConsultationController;
 use App\Http\Controllers\App\CreditNoteController;
@@ -386,6 +387,14 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/settings/invoice-templates/{documentType?}', [InvoiceTemplateController::class, 'index'])->where('documentType', '[a-z_]+');
     Route::get('/settings/security', [SettingsController::class, 'security']);
     Route::post('/settings/security', [SettingsController::class, 'updatePassword']);
+    Route::get('/settings/zatca', [ZatcaOnboardingController::class, 'show']);
+    Route::post('/settings/zatca/settings', [ZatcaOnboardingController::class, 'updateSettings']);
+    Route::post('/settings/zatca/csr', [ZatcaOnboardingController::class, 'generateCsr']);
+    Route::post('/settings/zatca/compliance-csid', [ZatcaOnboardingController::class, 'requestComplianceCsid']);
+    Route::post('/settings/zatca/compliance-check', [ZatcaOnboardingController::class, 'runComplianceCheck']);
+    Route::post('/settings/zatca/production-csid', [ZatcaOnboardingController::class, 'requestProductionCsid']);
+    Route::post('/settings/zatca/test-connection', [ZatcaOnboardingController::class, 'testConnection']);
+    Route::post('/settings/zatca/reset', [ZatcaOnboardingController::class, 'resetOnboarding']);
 
     Route::get('/security', [SecurityController::class, 'index']);
     Route::post('/security/enable', [SecurityController::class, 'confirmEnable']);

@@ -7,4 +7,5 @@
   <a href="/app/settings/business"<?= $active === 'business' ? ' class="active"' : '' ?>><?= t('user.settings.tab_business') ?></a>
   <a href="/app/settings/invoice-templates/invoice"<?= $active === 'invoice_templates' ? ' class="active"' : '' ?>><?= t('user.settings.tab_invoice_templates') ?></a>
   <a href="/app/settings/security"<?= $active === 'security' ? ' class="active"' : '' ?>><?= t('user.settings.tab_security') ?></a>
+  <a href="/app/settings/zatca"<?= $active === 'zatca' ? ' class="active"' : '' ?>><?= t('user.settings.tab_zatca') ?></a>
 </div>
