@@ -160,9 +160,19 @@ class PdfTemplateStyles
         .tpl-saudi .saudi-info-table .en { text-align: left; }
         .tpl-saudi .saudi-info-table .ar { text-align: right; direction: rtl; font-family: 'Cairo', 'Noto Naskh Arabic', sans-serif; }
         .tpl-saudi .saudi-items-table { margin-top: 0; border: 1px solid #16211f; }
-        .tpl-saudi .saudi-items-table th { border: 1px solid #16211f; padding: 6px 8px; font-size: 9.5px; background: #eef1f0; text-align: center; }
-        .tpl-saudi .saudi-items-table td { border: 1px solid #16211f; padding: 6px 8px; font-size: 10px; text-align: center; }
+        /* The items table now carries up to 11 columns (item code, unit,
+           discount, taxable/tax-rate/tax-code/VAT on top of the original
+           5) once a line actually uses those fields — tighter padding/font
+           than before keeps it on one page at that width, matching how
+           InvoiceTemplateStyles' own compact-density mode tightens the
+           newer v2 tables for the same reason. */
+        .tpl-saudi .saudi-items-table th { border: 1px solid #16211f; padding: 4px 5px; font-size: 8.5px; background: #eef1f0; text-align: center; line-height: 1.25; }
+        .tpl-saudi .saudi-items-table td { border: 1px solid #16211f; padding: 4px 5px; font-size: 9px; text-align: center; }
         .tpl-saudi .saudi-items-table .desc { text-align: {$descAlign}; }
+        .tpl-saudi .saudi-vat-summary-title { margin-top: 10px; text-align: center; font-size: 10px; font-weight: 700; }
+        .tpl-saudi .saudi-vat-summary-table { margin-top: 4px; border: 1px solid #16211f; }
+        .tpl-saudi .saudi-vat-summary-table th { border: 1px solid #16211f; padding: 5px 8px; font-size: 9px; background: #eef1f0; text-align: center; }
+        .tpl-saudi .saudi-vat-summary-table td { border: 1px solid #16211f; padding: 5px 8px; font-size: 9.5px; text-align: center; }
         .tpl-saudi .saudi-totals-table { margin-top: 10px; }
         .tpl-saudi .saudi-totals-table td { border: 1px solid #16211f; padding: 6px 10px; font-size: 10.5px; }
         .tpl-saudi .saudi-totals-table .label { background: #eef1f0; font-weight: 700; }

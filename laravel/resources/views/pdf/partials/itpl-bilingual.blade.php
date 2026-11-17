@@ -96,6 +96,28 @@ $pillColors = [
 ];
 $statusKey = strtolower((string) ($status ?? ''));
 $statusPill = $pillColors[$statusKey] ?? null;
+
+// New columns only take up space in the items table once at least one real
+// line actually carries a value for them — an invoice created before this
+// feature (no item_code/unit/discount on any line) renders the exact same
+// column set it always did.
+$showItemCodeColumn = (bool) array_filter($itemRows, fn ($row) => !empty($row['item_code']));
+$showUnitColumn = (bool) array_filter($itemRows, fn ($row) => !empty($row['unit']));
+$showDiscountColumn = (bool) array_filter($itemRows, fn ($row) => ($row['discount'] ?? 0) > 0);
+$sellerAddress = $sellerAddress ?? [];
+$billToAddress = $billToAddress ?? [];
+$billToAddressLines = \App\Support\Pdf\AddressFormatter::lines($billToAddress, $primaryLocale);
+// A secondary Arabic address block under the primary-language one, same
+// convention as $partyNameAr's own secondary <div class="ar-text"> below —
+// only shown when the layout is genuinely bilingual and the primary
+// language isn't already Arabic (which would make it a duplicate).
+$billToAddressLinesAr = ($showAr && $primaryLocale !== 'ar') ? \App\Support\Pdf\AddressFormatter::lines($billToAddress, 'ar') : [];
+$paymentMethod = $paymentMethod ?? null;
+$dateOfSupply = $dateOfSupply ?? null;
+$otherCharges = (float) ($otherCharges ?? 0);
+$taxableAmount = $taxableAmount ?? ((float) $total - (float) ($vatAmount ?? 0));
+$paidAmount = $paidAmount ?? null;
+$balanceDue = $balanceDue ?? null;
 ?>
 <table class="itpl-bl-topbar"><tr><td></td></tr></table>
 
@@ -105,6 +127,7 @@ $statusPill = $pillColors[$statusKey] ?? null;
       <div class="itpl-bl-company-en"><?= pdfText($issuer['name'] ?? '', 'en') ?></div>
       <?php if ($showPartyVat && !empty($company->vat_number)): ?><div class="itpl-bl-meta"><?= $T('common.vat', 'en') ?>: <?= pdfText($company->vat_number, 'en') ?></div><?php endif; ?>
       <?php if (!empty($company->cr_number)): ?><div class="itpl-bl-meta"><?= $T('pdf.cr_number', 'en') ?>: <?= pdfText($company->cr_number, 'en') ?></div><?php endif; ?>
+      <?php foreach (\App\Support\Pdf\AddressFormatter::lines($sellerAddress, 'en') as $line): ?><div class="itpl-bl-meta"><?= $line ?></div><?php endforeach; ?>
     </td>
   <?php endif; ?>
   <?php if ($showLogo && !empty($companyLogo)): ?>
@@ -115,6 +138,7 @@ $statusPill = $pillColors[$statusKey] ?? null;
       <div class="itpl-bl-company-ar"><?= !empty($companyNameAr) ? pdfText($companyNameAr, 'ar') : e($issuer['name'] ?? '') ?></div>
       <?php if ($showPartyVat && !empty($company->vat_number)): ?><div class="itpl-bl-meta ar"><?= $T('common.vat', 'ar') ?>: <?= pdfText($company->vat_number, 'ar') ?></div><?php endif; ?>
       <?php if (!empty($company->cr_number)): ?><div class="itpl-bl-meta ar"><?= $T('pdf.cr_number', 'ar') ?>: <?= pdfText($company->cr_number, 'ar') ?></div><?php endif; ?>
+      <?php foreach (\App\Support\Pdf\AddressFormatter::lines($sellerAddress, 'ar') as $line): ?><div class="itpl-bl-meta ar"><?= $line ?></div><?php endforeach; ?>
     </td>
   <?php endif; ?>
 </tr></table>
@@ -148,11 +172,20 @@ $statusPill = $pillColors[$statusKey] ?? null;
 <?= $infoRow(
     $T($partyLabelKey, 'en'),
     $T($partyLabelKey, 'ar'),
-    pdfText($billTo['name'] ?? '', $primaryLocale) . (!empty($partyNameAr) && $partyNameAr !== ($billTo['name'] ?? null) ? '<div class="ar-text">' . pdfText($partyNameAr, 'ar') . '</div>' : '')
+    pdfText($billTo['name'] ?? '', $primaryLocale)
+    . (!empty($partyNameAr) && $partyNameAr !== ($billTo['name'] ?? null) ? '<div class="ar-text">' . pdfText($partyNameAr, 'ar') . '</div>' : '')
+    . ($billToAddressLines ? '<div class="small">' . implode('<br>', $billToAddressLines) . '</div>' : '')
+    . ($billToAddressLinesAr ? '<div class="small ar-text">' . implode('<br>', $billToAddressLinesAr) . '</div>' : '')
 ) ?>
 <?php if ($showPartyVat && !empty($partyVat)): ?>
 <?= $infoRow($T('common.vat', 'en'), $T('common.vat', 'ar'), pdfText($partyVat, $primaryLocale)) ?>
 <?php endif; ?>
+<?php endif; ?>
+<?php if (!empty($paymentMethod)): ?>
+<?= $infoRow($T('pdf.payment_method', 'en'), $T('pdf.payment_method', 'ar'), $T('pdf.payment_method.' . $paymentMethod, $primaryLocale)) ?>
+<?php endif; ?>
+<?php if (!empty($dateOfSupply)): ?>
+<?= $infoRow($T('pdf.date_of_supply', 'en'), $T('pdf.date_of_supply', 'ar'), pdfText((string) $dateOfSupply, $primaryLocale)) ?>
 <?php endif; ?>
 </table>
 
@@ -160,11 +193,16 @@ $statusPill = $pillColors[$statusKey] ?? null;
   <thead>
     <tr>
       <?php foreach ($reorderCells(array_filter([
-        ['class' => '', 'style' => 'width:6%', 'html' => '#'],
+        ['class' => '', 'style' => 'width:5%', 'html' => '#'],
+        $showItemCodeColumn ? ['class' => '', 'style' => '', 'html' => $biStack('pdf.item_code')] : null,
         ['class' => 'desc', 'style' => '', 'html' => $biStack('common.description')],
+        $showUnitColumn ? ['class' => '', 'style' => '', 'html' => $biStack('common.unit')] : null,
         ['class' => '', 'style' => '', 'html' => $biStack('common.qty')],
         ['class' => '', 'style' => '', 'html' => $biStack('common.unit_price')],
+        $showDiscountColumn ? ['class' => '', 'style' => '', 'html' => $biStack('pdf.discount')] : null,
         $showVatColumn ? ['class' => '', 'style' => '', 'html' => $biStack('pdf.taxable_amount')] : null,
+        $showVatColumn ? ['class' => '', 'style' => '', 'html' => $biStack('pdf.tax_rate')] : null,
+        $showVatColumn ? ['class' => '', 'style' => '', 'html' => $biStack('pdf.tax_code')] : null,
         $showVatColumn ? ['class' => '', 'style' => '', 'html' => $biStack('pdf.vat_amount')] : null,
         ['class' => '', 'style' => '', 'html' => $biStack('common.total')],
       ])) as $cell): ?>
@@ -177,10 +215,15 @@ $statusPill = $pillColors[$statusKey] ?? null;
       <tr>
         <?php foreach ($reorderCells(array_filter([
           ['class' => '', 'html' => $index + 1],
+          $showItemCodeColumn ? ['class' => '', 'html' => pdfText((string) ($row['item_code'] ?? ''), $primaryLocale)] : null,
           ['class' => 'desc', 'html' => pdfText($row['description'], $primaryLocale)],
+          $showUnitColumn ? ['class' => '', 'html' => pdfText((string) ($row['unit'] ?? ''), $primaryLocale)] : null,
           ['class' => '', 'html' => rtrim(rtrim(number_format($row['qty'], 2), '0'), '.')],
           ['class' => '', 'html' => number_format($row['unit_price'], 2)],
+          $showDiscountColumn ? ['class' => '', 'html' => $row['discount'] > 0 ? number_format($row['discount'], 2) : '—'] : null,
           $showVatColumn ? ['class' => '', 'html' => number_format($row['taxable'], 2)] : null,
+          $showVatColumn ? ['class' => '', 'html' => rtrim(rtrim(number_format($row['tax_rate'], 2), '0'), '.') . '%'] : null,
+          $showVatColumn ? ['class' => '', 'html' => pdfText($row['tax_code'], $primaryLocale)] : null,
           $showVatColumn ? ['class' => '', 'html' => number_format($row['vat'], 2)] : null,
           ['class' => '', 'html' => number_format($row['total'], 2)],
         ])) as $cell): ?>
@@ -190,6 +233,40 @@ $statusPill = $pillColors[$statusKey] ?? null;
     <?php endforeach; ?>
   </tbody>
 </table>
+
+<?php if (!empty($vatSummaryRows)): ?>
+<div class="itpl-bl-vat-summary-title"><?= $biLabel('pdf.vat_summary') ?></div>
+<table class="itpl-bl-vat-summary-table" dir="<?= $tableDirection ?>">
+  <thead>
+    <tr>
+      <?php foreach ($reorderCells([
+        $biStack('pdf.tax_code'),
+        $biStack('pdf.tax_rate'),
+        $biStack('pdf.taxable_amount'),
+        $biStack('pdf.vat_amount'),
+        $biStack('common.total'),
+      ]) as $cellHtml): ?>
+        <th><?= $cellHtml ?></th>
+      <?php endforeach; ?>
+    </tr>
+  </thead>
+  <tbody>
+    <?php foreach ($vatSummaryRows as $row): ?>
+      <tr>
+        <?php foreach ($reorderCells([
+          pdfText($row['tax_code'], $primaryLocale),
+          rtrim(rtrim(number_format($row['tax_rate'], 2), '0'), '.') . '%',
+          number_format($row['taxable'], 2),
+          number_format($row['vat'], 2),
+          number_format($row['total'], 2),
+        ]) as $cellHtml): ?>
+          <td><?= $cellHtml ?></td>
+        <?php endforeach; ?>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
+<?php endif; ?>
 
 <table class="itpl-bl-footer-wrap"><tr>
   <td style="width:<?= $rtl ? '45%' : '55%' ?>;vertical-align:top;">
@@ -215,14 +292,24 @@ $statusPill = $pillColors[$statusKey] ?? null;
   </td>
   <td style="width:<?= $rtl ? '55%' : '45%' ?>;vertical-align:top;">
     <table class="itpl-bl-totals-table" style="float:none;width:100%;">
-      <tr><td class="label"><?= $biLabel('common.subtotal') ?></td><td><?= number_format($subtotal, 2) ?> <?= $currency ?></td></tr>
+      <tr><td class="label"><?= $biLabel('pdf.total_excluding_vat') ?></td><td><?= number_format($subtotal, 2) ?> <?= $currency ?></td></tr>
       <?php if (!empty($discountAmount)): ?>
         <tr><td class="label"><?= $biLabel('pdf.discount') ?></td><td>-<?= number_format($discountAmount, 2) ?> <?= $currency ?></td></tr>
       <?php endif; ?>
-      <?php if (isset($vatAmount)): ?>
-        <tr><td class="label"><?= $biLabel('common.vat') ?> <?= $vatRateDisplay ?>%</td><td><?= number_format($vatAmount, 2) ?> <?= $currency ?></td></tr>
+      <?php if (!empty($otherCharges)): ?>
+        <tr><td class="label"><?= $biLabel('pdf.other_charges') ?></td><td>+<?= number_format($otherCharges, 2) ?> <?= $currency ?></td></tr>
       <?php endif; ?>
-      <tr class="grand"><td class="label"><?= $biLabel('common.total') ?></td><td><?= number_format($total, 2) ?> <?= $currency ?></td></tr>
+      <?php if (!empty($discountAmount) || !empty($otherCharges)): ?>
+        <tr><td class="label"><?= $biLabel('pdf.total_taxable_amount') ?></td><td><?= number_format($taxableAmount, 2) ?> <?= $currency ?></td></tr>
+      <?php endif; ?>
+      <?php if (isset($vatAmount)): ?>
+        <tr><td class="label"><?= $biLabel('pdf.total_vat') ?> <?= $vatRateDisplay ?>%</td><td><?= number_format($vatAmount, 2) ?> <?= $currency ?></td></tr>
+      <?php endif; ?>
+      <tr class="grand"><td class="label"><?= $biLabel('pdf.total_including_vat') ?></td><td><?= number_format($total, 2) ?> <?= $currency ?></td></tr>
+      <?php if ($paidAmount !== null): ?>
+        <tr><td class="label"><?= $biLabel('common.paid') ?></td><td><?= number_format($paidAmount, 2) ?> <?= $currency ?></td></tr>
+        <tr><td class="label"><?= $biLabel('pdf.balance_due') ?></td><td><?= number_format($balanceDue, 2) ?> <?= $currency ?></td></tr>
+      <?php endif; ?>
     </table>
   </td>
 </tr></table>

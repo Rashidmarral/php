@@ -46,11 +46,82 @@ table { width: 100%; border-collapse: collapse; }
     $titleEn = $isInvoice ? 'TAX INVOICE' : 'QUOTATION';
     $titleAr = $isInvoice ? 'فاتورة ضريبية' : 'عرض سعر';
     $companyNameAr = $companyNameAr ?? '';
+
+    // Everything below is new, optional data only InvoiceController::pdf()
+    // passes today — every other document type sharing this file (estimates,
+    // purchase orders, credit/debit notes, zakat, recurring invoices), and
+    // any invoice rendered before this feature existed, simply never sets
+    // these, so they default to null/0/[] here and every block below stays
+    // silent (exactly its old output) when they're empty.
+    $sellerAddress = $sellerAddress ?? [];
+    $billToAddress = $billToAddress ?? [];
+    $paymentMethod = $paymentMethod ?? null;
+    $dateOfSupply = $dateOfSupply ?? null;
+    $otherCharges = (float) ($otherCharges ?? 0);
+    $taxableAmount = $taxableAmount ?? ((float) $total - (float) ($vatAmount ?? 0));
+    $paidAmount = $paidAmount ?? null;
+    $balanceDue = $balanceDue ?? null;
+
+    // Same "Label: value" line builder as document-v2's partials — label
+    // looked up via tFor() (real, translatable, DB-overridable text) and
+    // both label and value shaped/escaped via pdfText(), for either
+    // explicit language column on this always-bilingual layout.
+    $addressLines = fn (array $address, string $locale): array => \App\Support\Pdf\AddressFormatter::lines($address, $locale);
+
+    // Real, translatable (en.json/ar.json, DB-overridable) bilingual labels
+    // for every NEW piece of text this branch adds below — "EN / AR", the
+    // same visual convention the rest of this always-bilingual layout uses,
+    // but sourced from tFor() like every other label in the app rather than
+    // a hardcoded literal string.
+    $biEn = fn (string $key): string => pdfText(tFor($key, 'en'), 'en');
+    $biAr = fn (string $key): string => pdfText(tFor($key, 'ar'), 'ar');
+    $biBoth = fn (string $key): string => $biEn($key) . ' / ' . $biAr($key);
+
+    // Per-line taxable/VAT/tax-rate figures and the VAT-summary grouping —
+    // same computation document-v2.blade.php's shared $itemRows already
+    // does for the newer template system, needed here too now that this
+    // branch renders the same richer item/VAT-summary columns.
+    $saudiRate = (float) ($vatRate ?? 0);
+    $saudiItemRows = array_map(function ($item) use ($saudiRate) {
+        $qty = (float) ($item['qty'] ?? 0);
+        $unitPrice = (float) ($item['unit_price'] ?? 0);
+        $discount = (float) ($item['discount'] ?? 0);
+        $taxable = round(max(0, $qty * $unitPrice - $discount), 2);
+
+        return [
+            'item_code' => $item['item_code'] ?? null,
+            'unit' => $item['unit'] ?? null,
+            'description' => (string) ($item['description'] ?? ''),
+            'qty' => $qty,
+            'unit_price' => $unitPrice,
+            'discount' => $discount,
+            'tax_code' => $item['tax_code'] ?? 'S',
+            'tax_rate' => $saudiRate,
+            'taxable' => $taxable,
+            'vat' => round($taxable * $saudiRate / 100, 2),
+            'total' => (float) ($item['total'] ?? $taxable),
+        ];
+    }, $items ?? []);
+    $showItemCodeColumn = (bool) array_filter($saudiItemRows, fn ($row) => !empty($row['item_code']));
+    $showUnitColumn = (bool) array_filter($saudiItemRows, fn ($row) => !empty($row['unit']));
+    $showDiscountColumn = (bool) array_filter($saudiItemRows, fn ($row) => ($row['discount'] ?? 0) > 0);
+    $saudiVatSummary = [];
+    foreach ($saudiItemRows as $row) {
+        $key = $row['tax_code'] . '|' . $row['tax_rate'];
+        if (!isset($saudiVatSummary[$key])) {
+            $saudiVatSummary[$key] = ['tax_code' => $row['tax_code'], 'tax_rate' => $row['tax_rate'], 'taxable' => 0.0, 'vat' => 0.0, 'total' => 0.0];
+        }
+        $saudiVatSummary[$key]['taxable'] += $row['taxable'];
+        $saudiVatSummary[$key]['vat'] += $row['vat'];
+        $saudiVatSummary[$key]['total'] += $row['taxable'] + $row['vat'];
+    }
+    $saudiVatSummary = array_values($saudiVatSummary);
   ?>
   <table class="saudi-header"><tr>
     <td style="width:35%">
       <div class="saudi-company-en"><?= pdfText($issuer['name'] ?? '', 'en') ?></div>
       <?php foreach (($issuer['meta'] ?? []) as $line): ?><div class="saudi-meta-en"><?= pdfText($line, 'en') ?></div><?php endforeach; ?>
+      <?php foreach ($addressLines($sellerAddress, 'en') as $line): ?><div class="saudi-meta-en"><?= $line ?></div><?php endforeach; ?>
     </td>
     <td class="saudi-logo" style="width:30%">
       <?php if (!empty($companyLogo)): ?><img src="<?= $companyLogo ?>" style="max-height:50px;max-width:120px;"><?php endif; ?>
@@ -58,6 +129,7 @@ table { width: 100%; border-collapse: collapse; }
     <td style="width:35%">
       <div class="saudi-company-ar"><?= $companyNameAr !== '' ? $Tboth($companyNameAr) : e($issuer['name'] ?? '') ?></div>
       <?php foreach (($issuer['meta'] ?? []) as $line): ?><div class="saudi-meta-ar"><?= e($line) ?></div><?php endforeach; ?>
+      <?php foreach ($addressLines($sellerAddress, 'ar') as $line): ?><div class="saudi-meta-ar"><?= $line ?></div><?php endforeach; ?>
     </td>
   </tr></table>
 
@@ -69,47 +141,111 @@ table { width: 100%; border-collapse: collapse; }
     <td class="ar" style="width:33%"><?= $Tboth('التاريخ') ?>: <?= $T($docDate) ?></td>
   </tr></table>
 
+  <?php if (!empty($paymentMethod) || !empty($dateOfSupply)): ?>
+  <table class="saudi-info-table"><tr>
+    <td class="en" style="width:50%">
+      <?= $biEn('pdf.payment_method') ?>: <?= !empty($paymentMethod) ? $biEn('pdf.payment_method.' . $paymentMethod) : '—' ?>
+    </td>
+    <td class="ar" style="width:50%">
+      <?= $biAr('pdf.date_of_supply') ?>: <?= !empty($dateOfSupply) ? pdfText((string) $dateOfSupply, 'ar') : '—' ?>
+    </td>
+  </tr></table>
+  <?php endif; ?>
+
   <table class="saudi-info-table"><tr>
     <td class="en" style="width:50%">
       Client: <?= pdfText($billTo['name'] ?? '—', 'en') ?>
       <?php foreach (($billTo['meta'] ?? []) as $line): ?><br><?= pdfText($line, 'en') ?><?php endforeach; ?>
+      <?php foreach ($addressLines($billToAddress, 'en') as $line): ?><br><?= $line ?><?php endforeach; ?>
     </td>
     <td class="ar" style="width:50%">
       <?= $Tboth('اسم العميل') ?>: <?= e($billTo['name'] ?? '—') ?>
+      <?php foreach ($addressLines($billToAddress, 'ar') as $line): ?><br><?= $line ?><?php endforeach; ?>
     </td>
   </tr></table>
 
   <table class="saudi-items-table">
     <thead>
       <tr>
-        <th style="width:8%">#</th>
-        <th class="desc" style="width:44%">Description / <?= $Tboth('البيان') ?></th>
-        <th style="width:12%">Qty / <?= $Tboth('الكمية') ?></th>
-        <th style="width:18%">Unit Price / <?= $Tboth('سعر الوحدة') ?></th>
-        <th style="width:18%">Total / <?= $Tboth('الأجمالي') ?></th>
+        <th style="width:6%">#</th>
+        <?php if ($showItemCodeColumn): ?><th style="width:10%"><?= $biBoth('pdf.item_code') ?></th><?php endif; ?>
+        <th class="desc" style="width:<?= $showItemCodeColumn ? '28%' : '34%' ?>">Description / <?= $Tboth('البيان') ?></th>
+        <?php if ($showUnitColumn): ?><th style="width:8%"><?= $biBoth('common.unit') ?></th><?php endif; ?>
+        <th style="width:8%">Qty / <?= $Tboth('الكمية') ?></th>
+        <th style="width:10%">Unit Price / <?= $Tboth('سعر الوحدة') ?></th>
+        <?php if ($showDiscountColumn): ?><th style="width:8%"><?= $biBoth('pdf.discount') ?></th><?php endif; ?>
+        <th style="width:8%"><?= $biBoth('pdf.taxable_amount') ?></th>
+        <th style="width:6%"><?= $biBoth('pdf.tax_rate') ?></th>
+        <th style="width:5%"><?= $biBoth('pdf.tax_code') ?></th>
+        <th style="width:8%"><?= $biBoth('pdf.vat_amount') ?></th>
+        <th style="width:10%">Total / <?= $Tboth('الأجمالي') ?></th>
       </tr>
     </thead>
     <tbody>
-      <?php foreach ($items as $index => $item): ?>
+      <?php foreach ($saudiItemRows as $index => $item): ?>
         <tr>
           <td><?= $index + 1 ?></td>
+          <?php if ($showItemCodeColumn): ?><td><?= pdfText((string) ($item['item_code'] ?? ''), 'en') ?></td><?php endif; ?>
           <td class="desc"><?= pdfText($item['description'], 'en') ?></td>
+          <?php if ($showUnitColumn): ?><td><?= pdfText((string) ($item['unit'] ?? ''), 'en') ?></td><?php endif; ?>
           <td><?= $T((string) $item['qty']) ?></td>
-          <td><?= number_format((float) $item['unit_price'], 2) ?></td>
-          <td><?= number_format((float) $item['total'], 2) ?></td>
+          <td><?= number_format($item['unit_price'], 2) ?></td>
+          <?php if ($showDiscountColumn): ?><td><?= $item['discount'] > 0 ? number_format($item['discount'], 2) : '—' ?></td><?php endif; ?>
+          <td><?= number_format($item['taxable'], 2) ?></td>
+          <td><?= rtrim(rtrim(number_format($item['tax_rate'], 2), '0'), '.') ?>%</td>
+          <td><?= pdfText($item['tax_code'], 'en') ?></td>
+          <td><?= number_format($item['vat'], 2) ?></td>
+          <td><?= number_format($item['total'], 2) ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>
   </table>
 
+  <?php if (!empty($saudiVatSummary)): ?>
+  <div class="saudi-vat-summary-title"><?= $biBoth('pdf.vat_summary') ?></div>
+  <table class="saudi-vat-summary-table">
+    <thead>
+      <tr>
+        <th><?= $biBoth('pdf.tax_code') ?></th>
+        <th><?= $biBoth('pdf.tax_rate') ?></th>
+        <th><?= $biBoth('pdf.taxable_amount') ?></th>
+        <th><?= $biBoth('pdf.vat_amount') ?></th>
+        <th><?= $biBoth('common.total') ?></th>
+      </tr>
+    </thead>
+    <tbody>
+      <?php foreach ($saudiVatSummary as $row): ?>
+        <tr>
+          <td><?= pdfText($row['tax_code'], 'en') ?></td>
+          <td><?= rtrim(rtrim(number_format($row['tax_rate'], 2), '0'), '.') ?>%</td>
+          <td><?= number_format($row['taxable'], 2) ?></td>
+          <td><?= number_format($row['vat'], 2) ?></td>
+          <td><?= number_format($row['total'], 2) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
+
   <table class="saudi-totals-table" style="width:320px;<?= $rtl ? 'float:right;' : 'float:left;' ?>">
-    <tr><td class="label">Total / <?= $Tboth('الاجمالي') ?></td><td><?= number_format($subtotal + ($discountAmount ?? 0), 2) ?> <?= $currency ?></td></tr>
-    <tr><td class="label">Discount / <?= $Tboth('الخصم') ?></td><td><?= number_format($discountAmount ?? 0, 2) ?> <?= $currency ?></td></tr>
-    <tr><td class="label">Total after discount / <?= $Tboth('الأجمالي بعد الخصم') ?></td><td><?= number_format($subtotal, 2) ?> <?= $currency ?></td></tr>
+    <tr><td class="label"><?= $biBoth('pdf.total_excluding_vat') ?></td><td><?= number_format($subtotal, 2) ?> <?= $currency ?></td></tr>
+    <?php if (!empty($discountAmount)): ?>
+      <tr><td class="label"><?= $biBoth('pdf.discount') ?></td><td><?= number_format($discountAmount, 2) ?> <?= $currency ?></td></tr>
+    <?php endif; ?>
+    <?php if (!empty($otherCharges)): ?>
+      <tr><td class="label"><?= $biBoth('pdf.other_charges') ?></td><td><?= number_format($otherCharges, 2) ?> <?= $currency ?></td></tr>
+    <?php endif; ?>
+    <?php if (!empty($discountAmount) || !empty($otherCharges)): ?>
+      <tr><td class="label"><?= $biBoth('pdf.total_taxable_amount') ?></td><td><?= number_format($taxableAmount, 2) ?> <?= $currency ?></td></tr>
+    <?php endif; ?>
     <?php if (isset($vatAmount)): ?>
       <tr><td class="label">VAT <?= $vatRate ?>% / <?= $Tboth('ضريبة القيمة المضافة') ?></td><td><?= number_format($vatAmount, 2) ?> <?= $currency ?></td></tr>
     <?php endif; ?>
-    <tr class="grand"><td class="label">Amount Due / <?= $Tboth('المستحق') ?></td><td><?= number_format($total, 2) ?> <?= $currency ?></td></tr>
+    <tr class="grand"><td class="label"><?= $biBoth('pdf.total_including_vat') ?></td><td><?= number_format($total, 2) ?> <?= $currency ?></td></tr>
+    <?php if ($paidAmount !== null): ?>
+      <tr><td class="label"><?= $biBoth('common.paid') ?></td><td><?= number_format($paidAmount, 2) ?> <?= $currency ?></td></tr>
+      <tr><td class="label"><?= $biBoth('pdf.balance_due') ?></td><td><?= number_format($balanceDue, 2) ?> <?= $currency ?></td></tr>
+    <?php endif; ?>
   </table>
   <div style="clear:both;"></div>
 

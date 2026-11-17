@@ -62,6 +62,7 @@ class InvoiceController extends Controller
             'vatRate' => (float) Setting::get('vat_rate', '15'),
             'materials' => $materials,
             'defaultRetentionPercent' => (float) ($company->default_retention_percent ?? 0),
+            'paymentMethods' => Invoice::PAYMENT_METHODS,
         ]);
     }
 
@@ -74,10 +75,14 @@ class InvoiceController extends Controller
 
         $descriptions = $request->input('item_description', []);
         $descriptionsAr = $request->input('item_description_ar', []);
+        $itemCodes = $request->input('item_code', []);
+        $units = $request->input('item_unit', []);
         $qtys = $request->input('item_qty', []);
         $prices = $request->input('item_price', []);
+        $lineDiscounts = $request->input('item_discount', []);
 
         $subtotal = 0;
+        $lineDiscountsTotal = 0;
         $items = [];
         foreach ($descriptions as $i => $desc) {
             $desc = trim((string) $desc);
@@ -86,15 +91,42 @@ class InvoiceController extends Controller
             }
             $qty = (float) ($qtys[$i] ?? 1);
             $price = (float) ($prices[$i] ?? 0);
+            $lineDiscount = max(0, (float) ($lineDiscounts[$i] ?? 0));
             $lineTotal = $qty * $price;
             $subtotal += $lineTotal;
-            $items[] = ['description' => $desc, 'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')), 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
+            $lineDiscountsTotal += $lineDiscount;
+            $items[] = [
+                'description' => $desc,
+                'description_ar' => trim((string) ($descriptionsAr[$i] ?? '')),
+                'item_code' => trim((string) ($itemCodes[$i] ?? '')) ?: null,
+                'unit' => trim((string) ($units[$i] ?? '')) ?: null,
+                'qty' => $qty,
+                'unit_price' => $price,
+                'discount_amount' => $lineDiscount,
+                'total' => $lineTotal,
+                // Always Standard-rated — this app has deliberately not built
+                // multi-rate/zero-rated/exempt VAT support (see the
+                // invoice_items migration's docblock), and no form exposes a
+                // picker for this column.
+                'tax_code' => 'S',
+            ];
         }
 
         $applyVat = (bool) $request->input('apply_vat', true);
         $vatRate = $applyVat ? (float) Setting::get('vat_rate', '15') : 0;
-        $vatAmount = $subtotal * $vatRate / 100;
-        $total = $subtotal + $vatAmount;
+
+        // Header discount/other charges, on top of each line's own discount
+        // above — see InvoiceController::pdf()'s docblock-level comment for
+        // why the taxable base (and therefore vat_amount/total) subtracts
+        // ALL discounts (line + header) and adds other charges, while
+        // `discount_amount` on the invoices table itself stores only the
+        // header figure a user actually typed (per-line discounts live on
+        // their own invoice_items row).
+        $headerDiscount = max(0, (float) $request->input('discount_amount', 0));
+        $otherCharges = max(0, (float) $request->input('other_charges', 0));
+        $taxableAmount = max(0, $subtotal - $lineDiscountsTotal - $headerDiscount) + $otherCharges;
+        $vatAmount = $taxableAmount * $vatRate / 100;
+        $total = $taxableAmount + $vatAmount;
 
         $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', 0)));
         $retentionAmount = $subtotal * $retentionPercent / 100;
@@ -102,16 +134,28 @@ class InvoiceController extends Controller
         $client = $this->ownedClient($request->input('client_id') ?: null, $companyId);
         $project = $this->ownedProject($request->input('project_id') ?: null, $companyId);
 
+        $paymentMethod = $request->input('payment_method');
+        $paymentMethod = in_array($paymentMethod, Invoice::PAYMENT_METHODS, true) ? $paymentMethod : null;
+        // ZATCA's "Date of Supply" is never left unset on a newly created
+        // invoice — a blank form field defaults to today, decided here
+        // server-side, rather than only faking a default in the form's HTML
+        // (which would silently diverge from what's actually saved).
+        $dateOfSupply = trim((string) $request->input('date_of_supply')) ?: now()->toDateString();
+
         $invoice = Invoice::create([
             'company_id' => $companyId,
             'project_id' => $project?->id,
             'client_id' => $client?->id,
             'invoice_number' => trim((string) $request->input('invoice_number')) ?: ('INV-' . (1000 + Invoice::where('company_id', $companyId)->count() + 1)),
             'status' => 'unpaid',
+            'payment_method' => $paymentMethod,
             'total' => $total,
             'vat_rate' => $vatRate,
             'vat_amount' => $vatAmount,
+            'discount_amount' => $headerDiscount,
+            'other_charges' => $otherCharges,
             'due_date' => $request->input('due_date') ?: null,
+            'date_of_supply' => $dateOfSupply,
             'retention_percent' => $retentionPercent,
             'retention_amount' => $retentionAmount,
             'share_token' => bin2hex(random_bytes(20)),
@@ -561,6 +605,30 @@ class InvoiceController extends Controller
         $invoiceTemplate = $company->activeInvoiceTemplateFor('invoice');
         $lang = $this->pdfLangFor($invoiceTemplate);
 
+        // The real gross subtotal (sum of each line's qty*unit_price, before
+        // ANY discount) — kept as its own figure distinct from
+        // invoice->total - invoice->vat_amount, which is now the TAXABLE
+        // amount (post line+header discount, plus other charges — see
+        // store()'s identical computation). For an invoice with no
+        // discount/other charges (every invoice created before this
+        // feature, and any new one that simply leaves them blank) the two
+        // are numerically identical, so nothing here changes what those
+        // invoices have always rendered.
+        $grossSubtotal = (float) $items->sum('total');
+        $lineDiscountsTotal = (float) $items->sum('discount_amount');
+        $headerDiscount = (float) $invoice->discount_amount;
+        $totalDiscount = $lineDiscountsTotal + $headerDiscount;
+        $otherCharges = (float) $invoice->other_charges;
+        $taxableAmount = (float) $invoice->total - (float) $invoice->vat_amount;
+
+        // This app has no dedicated paid-amount/partial-payment tracking on
+        // an invoice — only the flat 'unpaid'/'paid'/'overdue' status (see
+        // Invoice::isOverdue()). Absent that, the only honest "Paid" figure
+        // is the full total once status is 'paid', and 0 otherwise; a
+        // partially-paid invoice isn't a state this app can represent today.
+        $paidAmount = $invoice->status === 'paid' ? (float) $invoice->total : 0.0;
+        $balanceDue = round((float) $invoice->total - $paidAmount, 2);
+
         return $this->streamPdf([
             'template' => $template,
             'lang' => $lang,
@@ -574,10 +642,46 @@ class InvoiceController extends Controller
             'companyNameAr' => $company->name_ar ?? '',
             'companyLogo' => !empty($company->logo_path) ? ('file://' . public_path($company->logo_path)) : null,
             'billTo' => $client ? ['name' => ($lang === 'ar' && !empty($client->name_ar)) ? $client->name_ar : $client->name, 'meta' => array_filter([$client->email ?? null, $client->phone ?? null, $client->address ?? null])] : null,
-            'items' => $items->map(fn ($i) => ['description' => ($lang === 'ar' && !empty($i->description_ar)) ? $i->description_ar : $i->description, 'qty' => $i->qty, 'unit_price' => $i->unit_price, 'total' => $i->total])->all(),
-            'subtotal' => (float) $invoice->total - (float) $invoice->vat_amount,
-            'discountPercent' => 0,
-            'discountAmount' => 0,
+            'billToAddress' => \App\Support\Pdf\AddressFormatter::fromModel($client),
+            'sellerAddress' => \App\Support\Pdf\AddressFormatter::fromModel($company),
+            'items' => $items->map(function ($i) use ($lang, $invoice) {
+                // A real ZATCA-style line's own "total" is its taxable
+                // amount plus the VAT charged on it — NOT the bare
+                // qty*unit_price this column showed before line discounts
+                // existed. Computed here (not left to document-v2's shared
+                // $itemRows, whose 'total' fallback other document types
+                // still rely on meaning "whatever that item's own total
+                // is") so only invoices get this corrected figure; every
+                // other document type sharing document-v2.blade.php/
+                // document.blade.php is completely unaffected.
+                $lineTaxable = max(0, (float) $i->qty * (float) $i->unit_price - (float) $i->discount_amount);
+                $lineVat = $lineTaxable * (float) $invoice->vat_rate / 100;
+                return [
+                    'description' => ($lang === 'ar' && !empty($i->description_ar)) ? $i->description_ar : $i->description,
+                    'item_code' => $i->item_code,
+                    'unit' => $i->unit,
+                    'qty' => $i->qty,
+                    'unit_price' => $i->unit_price,
+                    'discount' => (float) $i->discount_amount,
+                    'tax_code' => $i->tax_code ?: 'S',
+                    'total' => round($lineTaxable + $lineVat, 2),
+                ];
+            })->all(),
+            'subtotal' => $grossSubtotal,
+            'discountPercent' => $grossSubtotal > 0 ? round($totalDiscount / $grossSubtotal * 100, 2) : 0.0,
+            'discountAmount' => $totalDiscount,
+            'otherCharges' => $otherCharges,
+            'taxableAmount' => $taxableAmount,
+            'paymentMethod' => $invoice->payment_method,
+            // A plain Y-m-d string, not the Carbon instance itself — unlike
+            // $docDate (created_at, a real timestamp), "Date of Supply" is
+            // always a pure date with no meaningful time component, and a
+            // bare (string) cast of a Carbon instance ignores the model's
+            // 'date:Y-m-d' cast format and would print "00:00:00" on every
+            // PDF template that does `(string) $dateOfSupply`.
+            'dateOfSupply' => $invoice->date_of_supply?->format('Y-m-d'),
+            'paidAmount' => $paidAmount,
+            'balanceDue' => $balanceDue,
             'vatRate' => $invoice->vat_rate,
             'vatAmount' => (float) $invoice->vat_amount,
             'total' => (float) $invoice->total,

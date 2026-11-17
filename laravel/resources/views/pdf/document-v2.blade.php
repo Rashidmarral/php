@@ -35,6 +35,23 @@
  *                      carry one in this app).
  *   zatcaStatus       'cleared' | 'reported' | null — only invoices/credit
  *                      notes/debit notes carry this.
+ *
+ * All optional on top of that (only InvoiceController::pdf() passes them
+ * today; every partial treats each one as null-safe so a caller that never
+ * started passing them — any other document type, or an invoice rendered
+ * before this feature existed — keeps rendering exactly as before):
+ *   sellerAddress     App\Support\Pdf\AddressFormatter::fromModel($company).
+ *   billToAddress     App\Support\Pdf\AddressFormatter::fromModel($client).
+ *   paymentMethod     One of Invoice::PAYMENT_METHODS, or null.
+ *   dateOfSupply      A date (or null) distinct from $docDate/$validUntil.
+ *   otherCharges      Additional taxable charges added on top of the line
+ *                      items, before VAT.
+ *   taxableAmount     The real pre-VAT base AFTER discount/other charges —
+ *                      equal to total - vatAmount, kept as its own key so
+ *                      a template doesn't have to re-derive it.
+ *   paidAmount        / balanceDue  See InvoiceController::pdf()'s own
+ *                      comment on why these are derived from `status`
+ *                      rather than a dedicated column this app doesn't have.
  */
 $rtl = $lang === 'ar';
 $tpl = $invoiceTemplate;
@@ -58,6 +75,14 @@ $status = $status ?? null;
 $validUntil = $validUntil ?? null;
 $qrCode = $qrCode ?? null;
 $footerNote = $footerNote ?? '';
+$sellerAddress = $sellerAddress ?? [];
+$billToAddress = $billToAddress ?? [];
+$paymentMethod = $paymentMethod ?? null;
+$dateOfSupply = $dateOfSupply ?? null;
+$otherCharges = $otherCharges ?? 0.0;
+$taxableAmount = $taxableAmount ?? ((float) ($total ?? 0) - (float) ($vatAmount ?? 0));
+$paidAmount = $paidAmount ?? null;
+$balanceDue = $balanceDue ?? null;
 
 // A locale-explicit translate — 'pdf.*'/'common.*' keys via tFor() rather
 // than t(), because a bilingual document's label language is a property of
@@ -84,20 +109,58 @@ $docTypeLabel = $documentType ? tFor('pdf.doctype.' . $documentType, $primaryLoc
 // line is taxed at that same rate; this still yields two genuinely
 // different figures per line (taxable amount vs the VAT charged on it),
 // not the same value shown twice.
+//
+// item_code/unit/discount/tax_code are optional on every element of $items
+// — a controller that hasn't started passing them (any document type other
+// than InvoiceController::pdf(), or an invoice created before these
+// columns existed) leaves them null/0/'S' here, and every v2 partial only
+// renders a column for them when at least one real item actually carries
+// a value (see $showItemCodeColumn/$showUnitColumn below).
 $rate = (float) ($vatRate ?? 0);
 $itemRows = array_map(function ($item) use ($rate) {
     $qty = (float) ($item['qty'] ?? 0);
     $unitPrice = (float) ($item['unit_price'] ?? 0);
-    $taxable = round($qty * $unitPrice, 2);
+    $discount = (float) ($item['discount'] ?? 0);
+    $taxable = round(max(0, $qty * $unitPrice - $discount), 2);
     return [
         'description' => (string) ($item['description'] ?? ''),
+        'item_code' => $item['item_code'] ?? null,
+        'unit' => $item['unit'] ?? null,
         'qty' => $qty,
         'unit_price' => $unitPrice,
+        'discount' => $discount,
+        'tax_code' => $item['tax_code'] ?? 'S',
+        'tax_rate' => $rate,
         'taxable' => $taxable,
         'vat' => round($taxable * $rate / 100, 2),
         'total' => (float) ($item['total'] ?? $taxable),
     ];
 }, $items ?? []);
+// Whether ANY row actually carries an item code / a unit — these new
+// columns only take up space in the items table when at least one real
+// line uses them, so a document type/invoice that never sets them (every
+// document other than an invoice, and any invoice from before this
+// feature) keeps the exact same column set it always had.
+$showItemCodeColumn = (bool) array_filter($itemRows, fn ($row) => ! empty($row['item_code']));
+$showUnitColumn = (bool) array_filter($itemRows, fn ($row) => ! empty($row['unit']));
+
+// Groups $itemRows by (tax_code, tax_rate) into the rows a VAT-summary
+// table needs — code, rate, taxable total, VAT total, total incl. VAT —
+// built from the real per-line data rather than a hardcoded single row, so
+// it stays correct if this app ever adds more than one tax code/rate.
+// Today every line is 'S' at the same document-level rate, so this always
+// yields exactly one row — but it is computed, not assumed.
+$vatSummaryRows = [];
+foreach ($itemRows as $row) {
+    $key = $row['tax_code'] . '|' . $row['tax_rate'];
+    if (! isset($vatSummaryRows[$key])) {
+        $vatSummaryRows[$key] = ['tax_code' => $row['tax_code'], 'tax_rate' => $row['tax_rate'], 'taxable' => 0.0, 'vat' => 0.0, 'total' => 0.0];
+    }
+    $vatSummaryRows[$key]['taxable'] += $row['taxable'];
+    $vatSummaryRows[$key]['vat'] += $row['vat'];
+    $vatSummaryRows[$key]['total'] += $row['taxable'] + $row['vat'];
+}
+$vatSummaryRows = array_values($vatSummaryRows);
 ?><!doctype html>
 <html lang="<?= $lang ?>" dir="<?= $rtl ? 'rtl' : 'ltr' ?>">
 <head>

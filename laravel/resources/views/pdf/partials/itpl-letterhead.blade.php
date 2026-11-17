@@ -21,6 +21,21 @@ $secondary = fn ($ar = null) => ($showAr && $primaryLocale !== 'ar') ? $ar : nul
 // table, so table_direction only does anything once the cells themselves
 // are reordered server-side.
 $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_reverse($cells) : $cells;
+
+// See itpl-bilingual.blade.php's identical comment: these only take up
+// space once at least one real value exists for them, so an invoice from
+// before this feature renders exactly as it always did.
+$showItemCodeColumn = (bool) array_filter($itemRows, fn ($row) => !empty($row['item_code']));
+$showUnitColumn = (bool) array_filter($itemRows, fn ($row) => !empty($row['unit']));
+$showDiscountColumn = (bool) array_filter($itemRows, fn ($row) => ($row['discount'] ?? 0) > 0);
+$sellerAddress = $sellerAddress ?? [];
+$billToAddress = $billToAddress ?? [];
+$paymentMethod = $paymentMethod ?? null;
+$dateOfSupply = $dateOfSupply ?? null;
+$otherCharges = (float) ($otherCharges ?? 0);
+$taxableAmount = $taxableAmount ?? ((float) $total - (float) ($vatAmount ?? 0));
+$paidAmount = $paidAmount ?? null;
+$balanceDue = $balanceDue ?? null;
 ?>
 <?php if (!empty($tpl->letterhead_path)): ?>
   <img src="<?= 'file://' . public_path($tpl->letterhead_path) ?>" class="itpl-lh-banner">
@@ -38,6 +53,9 @@ $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_re
       <?php endif; ?>
       <?php foreach (($issuer['meta'] ?? []) as $line): ?>
         <div class="muted small"><?= pdfText($line, $primaryLocale) ?></div>
+      <?php endforeach; ?>
+      <?php foreach (\App\Support\Pdf\AddressFormatter::lines($sellerAddress, $primaryLocale) as $line): ?>
+        <div class="muted small"><?= $line ?></div>
       <?php endforeach; ?>
     </td>
     <td style="width:30%;text-align:<?= $rtl ? 'left' : 'right' ?>;">
@@ -58,6 +76,9 @@ $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_re
       <?php foreach (($billTo['meta'] ?? []) as $line): ?>
         <tr><td></td><td class="muted small"><?= pdfText($line, $primaryLocale) ?></td></tr>
       <?php endforeach; ?>
+      <?php foreach (\App\Support\Pdf\AddressFormatter::lines($billToAddress, $primaryLocale) as $line): ?>
+        <tr><td></td><td class="muted small"><?= $line ?></td></tr>
+      <?php endforeach; ?>
     </table>
   </td>
   <td style="width:50%;vertical-align:top;">
@@ -66,6 +87,12 @@ $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_re
       <tr><td class="label"><?= $L('common.date') ?></td><td><?= pdfText((string) $docDate, $primaryLocale) ?></td></tr>
       <?php if (!empty($validUntil)): ?>
         <tr><td class="label"><?= $L('pdf.valid_until') ?></td><td><?= pdfText((string) $validUntil, $primaryLocale) ?></td></tr>
+      <?php endif; ?>
+      <?php if (!empty($paymentMethod)): ?>
+        <tr><td class="label"><?= $L('pdf.payment_method') ?></td><td><?= $L('pdf.payment_method.' . $paymentMethod) ?></td></tr>
+      <?php endif; ?>
+      <?php if (!empty($dateOfSupply)): ?>
+        <tr><td class="label"><?= $L('pdf.date_of_supply') ?></td><td><?= pdfText((string) $dateOfSupply, $primaryLocale) ?></td></tr>
       <?php endif; ?>
       <?php if (!empty($status)): ?>
         <tr><td class="label"><?= $L('common.status') ?></td><td><?= pdfText((string) $status, $primaryLocale) ?></td></tr>
@@ -78,10 +105,16 @@ $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_re
   <thead>
     <tr>
       <?php foreach ($reorderCells(array_filter([
-        ['class' => '', 'style' => 'width:6%', 'html' => '#'],
+        ['class' => '', 'style' => 'width:5%', 'html' => '#'],
+        $showItemCodeColumn ? ['class' => '', 'style' => '', 'html' => $L('pdf.item_code')] : null,
         ['class' => '', 'style' => '', 'html' => $L('common.description')],
+        $showUnitColumn ? ['class' => '', 'style' => '', 'html' => $L('common.unit')] : null,
         ['class' => 'num', 'style' => '', 'html' => $L('common.qty')],
         ['class' => 'num', 'style' => '', 'html' => $L('common.unit_price')],
+        $showDiscountColumn ? ['class' => 'num', 'style' => '', 'html' => $L('pdf.discount')] : null,
+        $showVatColumn ? ['class' => 'num', 'style' => '', 'html' => $L('pdf.taxable_amount')] : null,
+        $showVatColumn ? ['class' => 'num', 'style' => '', 'html' => $L('pdf.tax_rate')] : null,
+        $showVatColumn ? ['class' => 'num', 'style' => '', 'html' => $L('pdf.tax_code')] : null,
         $showVatColumn ? ['class' => 'num', 'style' => '', 'html' => $L('pdf.vat_amount')] : null,
         ['class' => 'num', 'style' => '', 'html' => $L('common.total')],
       ])) as $cell): ?>
@@ -94,9 +127,15 @@ $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_re
       <tr>
         <?php foreach ($reorderCells(array_filter([
           ['class' => '', 'html' => $index + 1],
+          $showItemCodeColumn ? ['class' => '', 'html' => pdfText((string) ($row['item_code'] ?? ''), $primaryLocale)] : null,
           ['class' => '', 'html' => pdfText($row['description'], $primaryLocale)],
+          $showUnitColumn ? ['class' => '', 'html' => pdfText((string) ($row['unit'] ?? ''), $primaryLocale)] : null,
           ['class' => 'num', 'html' => rtrim(rtrim(number_format($row['qty'], 2), '0'), '.') . ($showUnitLabels ? ' <span class="muted small">' . $L('common.unit') . '</span>' : '')],
           ['class' => 'num', 'html' => number_format($row['unit_price'], 2)],
+          $showDiscountColumn ? ['class' => 'num', 'html' => $row['discount'] > 0 ? number_format($row['discount'], 2) : '—'] : null,
+          $showVatColumn ? ['class' => 'num', 'html' => number_format($row['taxable'], 2)] : null,
+          $showVatColumn ? ['class' => 'num', 'html' => rtrim(rtrim(number_format($row['tax_rate'], 2), '0'), '.') . '%'] : null,
+          $showVatColumn ? ['class' => 'num', 'html' => pdfText($row['tax_code'], $primaryLocale)] : null,
           $showVatColumn ? ['class' => 'num', 'html' => number_format($row['vat'], 2)] : null,
           ['class' => 'num', 'html' => number_format($row['total'], 2)],
         ])) as $cell): ?>
@@ -107,17 +146,54 @@ $reorderCells = fn (array $cells): array => $tableDirection === 'rtl' ? array_re
   </tbody>
 </table>
 
+<?php if (!empty($vatSummaryRows)): ?>
+<table class="itpl-lh-vat-summary-table" dir="<?= $tableDirection ?>">
+  <thead>
+    <tr>
+      <?php foreach ($reorderCells([$L('pdf.tax_code'), $L('pdf.tax_rate'), $L('pdf.taxable_amount'), $L('pdf.vat_amount'), $L('common.total')]) as $cellHtml): ?>
+        <th class="num"><?= $cellHtml ?></th>
+      <?php endforeach; ?>
+    </tr>
+  </thead>
+  <tbody>
+    <?php foreach ($vatSummaryRows as $row): ?>
+      <tr>
+        <?php foreach ($reorderCells([
+          pdfText($row['tax_code'], $primaryLocale),
+          rtrim(rtrim(number_format($row['tax_rate'], 2), '0'), '.') . '%',
+          number_format($row['taxable'], 2),
+          number_format($row['vat'], 2),
+          number_format($row['total'], 2),
+        ]) as $cellHtml): ?>
+          <td class="num"><?= $cellHtml ?></td>
+        <?php endforeach; ?>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
+<?php endif; ?>
+
 <div class="itpl-lh-words"><?= $L('pdf.amount_in_words') ?>: <?= \App\Support\Pdf\NumberToWords::sar($total) ?></div>
 
 <table class="itpl-lh-totals-table">
-  <tr><td><?= $L('common.subtotal') ?></td><td class="num"><?= $currency ?> <?= number_format($subtotal, 2) ?></td></tr>
+  <tr><td><?= $L('pdf.total_excluding_vat') ?></td><td class="num"><?= $currency ?> <?= number_format($subtotal, 2) ?></td></tr>
   <?php if (!empty($discountAmount)): ?>
     <tr><td><?= $L('pdf.discount') ?></td><td class="num">-<?= $currency ?> <?= number_format($discountAmount, 2) ?></td></tr>
   <?php endif; ?>
-  <?php if (isset($vatAmount)): ?>
-    <tr><td><?= $L('common.vat') ?></td><td class="num"><?= $currency ?> <?= number_format($vatAmount, 2) ?></td></tr>
+  <?php if (!empty($otherCharges)): ?>
+    <tr><td><?= $L('pdf.other_charges') ?></td><td class="num">+<?= $currency ?> <?= number_format($otherCharges, 2) ?></td></tr>
   <?php endif; ?>
-  <tr class="grand"><td><?= $L('common.total') ?></td><td class="num"><?= $currency ?> <?= number_format($total, 2) ?></td></tr>
+  <?php if (!empty($discountAmount) || !empty($otherCharges)): ?>
+    <tr><td><?= $L('pdf.total_taxable_amount') ?></td><td class="num"><?= $currency ?> <?= number_format($taxableAmount, 2) ?></td></tr>
+  <?php endif; ?>
+  <?php if (isset($vatAmount)): ?>
+    <tr><td><?= $L('pdf.total_vat') ?></td><td class="num"><?= $currency ?> <?= number_format($vatAmount, 2) ?></td></tr>
+  <?php endif; ?>
+  <tr class="grand"><td><?= $L('pdf.total_including_vat') ?></td><td class="num"><?= $currency ?> <?= number_format($total, 2) ?></td></tr>
+  <?php if ($paidAmount !== null): ?>
+    <tr><td><?= $L('common.paid') ?></td><td class="num"><?= $currency ?> <?= number_format($paidAmount, 2) ?></td></tr>
+    <tr><td><?= $L('pdf.balance_due') ?></td><td class="num"><?= $currency ?> <?= number_format($balanceDue, 2) ?></td></tr>
+  <?php endif; ?>
 </table>
 <div class="clearfix"></div>
 

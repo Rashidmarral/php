@@ -117,6 +117,12 @@ class InvoiceTemplateStyles
         .itpl-totals-box .grand td { font-size: 13.5px; font-weight: 700; padding-top: 8px; }
         .itpl-totals-box.plain .grand td { border-top: 1.5px solid {$accent}; color: {$accent}; }
         .itpl-totals-box.boxed .grand td { border-top: 1px solid rgba(255,255,255,0.35); color: #fff; }
+        .itpl-vat-summary-wrap { margin-top: 14px; clear: both; }
+        .itpl-vat-summary-wrap h4 { margin: 0 0 4px; }
+        .itpl-vat-summary-table { border: 1px solid #eceff1; border-radius: 8px; overflow: hidden; }
+        .itpl-vat-summary-table th { background: {$headerColor}; color: #fff; padding: {$cellPad}; font-size: 9.5px; text-align: {$alignEnd}; }
+        .itpl-vat-summary-table td { padding: {$cellPad}; font-size: 10px; border-bottom: 1px solid #f1f2f4; }
+        .itpl-vat-summary-table tr:last-child td { border-bottom: none; }
         .itpl-bank-card { margin-top: 16px; }
         .itpl-signature { margin-top: 30px; }
         .itpl-signature .line { border-bottom: 1px solid #9aa5b1; width: 220px; height: 34px; {$signMargin} }
@@ -176,6 +182,11 @@ class InvoiceTemplateStyles
         .itpl-bl-items-table td:last-child { border-right: none; }
         .itpl-bl-items-table tr:last-child td { border-bottom: none; }
         .itpl-bl-items-table .desc { text-align: {$descAlign}; }
+        .itpl-bl-vat-summary-title { margin-top: 10px; font-size: {$fontSize}; font-weight: 700; color: #0f172a; }
+        .itpl-bl-vat-summary-table { margin-top: 4px; border: 0.75px solid #cbd5e1; }
+        .itpl-bl-vat-summary-table th { background: #f1f5f9; border-bottom: 1px solid #cbd5e1; border-right: 0.5px solid #e2e8f0; padding: {$cellPad}; font-size: {$fontSize}; text-align: center; }
+        .itpl-bl-vat-summary-table th:last-child, .itpl-bl-vat-summary-table td:last-child { border-right: none; }
+        .itpl-bl-vat-summary-table td { border-right: 0.5px solid #e2e8f0; padding: {$cellPad}; font-size: {$fontSize}; text-align: center; }
         .itpl-bl-footer-wrap { margin-top: 10px; }
         .itpl-bl-words { font-size: {$fontSize}; color: #475569; }
         .itpl-bl-words strong { color: #0f172a; }
@@ -221,6 +232,9 @@ class InvoiceTemplateStyles
         .itpl-lh-items-table th { border: 1px solid #d8dce0; background: {$headerColor}; padding: {$cellPad}; font-size: 9.5px; text-align: {$align}; }
         .itpl-lh-items-table th.num { text-align: {$alignEnd}; }
         .itpl-lh-items-table td { border: 1px solid #d8dce0; padding: {$cellPad}; font-size: 10px; }
+        .itpl-lh-vat-summary-table { margin-top: 10px; border: 1px solid #d8dce0; }
+        .itpl-lh-vat-summary-table th { border: 1px solid #d8dce0; background: {$headerColor}; padding: {$cellPad}; font-size: 9.5px; }
+        .itpl-lh-vat-summary-table td { border: 1px solid #d8dce0; padding: {$cellPad}; font-size: 10px; }
         .itpl-lh-words { margin-top: 10px; font-size: 10px; }
         .itpl-lh-totals-table { width: 260px; {$totalsFloat} margin-top: 10px; }
         .itpl-lh-totals-table td { padding: 4px 8px; font-size: 10.5px; border-bottom: 1px solid #eceff1; }

@@ -14,6 +14,14 @@ class Invoice extends Model
     protected $guarded = ['id'];
 
     /**
+     * The only payment_method values InvoiceController::store() will persist
+     * (anything else from the request is dropped to null) — also what the
+     * create form's select offers and what every PDF template's
+     * 'pdf.payment_method.<code>' translation key is keyed by.
+     */
+    public const PAYMENT_METHODS = ['cash', 'bank_transfer', 'card', 'cheque', 'other'];
+
+    /**
      * Same single-choke-point reasoning as Estimate::booted() — every place
      * that creates an Invoice with approval_status='pending' (InvoiceController,
      * EstimateController::convertToInvoice(), PaymentCertificateController)
@@ -38,10 +46,13 @@ class Invoice extends Model
         return [
             'total' => 'decimal:2',
             'vat_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'other_charges' => 'decimal:2',
             'retention_amount' => 'decimal:2',
             'retention_released' => 'boolean',
             'retention_released_at' => 'datetime:Y-m-d H:i:s',
             'due_date' => 'date:Y-m-d',
+            'date_of_supply' => 'date:Y-m-d',
             'zatca_submitted_at' => 'datetime',
         ];
     }

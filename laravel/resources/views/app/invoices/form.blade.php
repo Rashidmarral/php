@@ -28,15 +28,43 @@
       </select>
     </div>
   </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label><?= t('pdf.payment_method') ?></label>
+      <select name="payment_method">
+        <option value=""><?= t('common.select') ?></option>
+        <?php foreach ($paymentMethods as $method): ?>
+          <option value="<?= e($method) ?>"><?= t('pdf.payment_method.'.$method) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="form-group">
+      <label><?= t('pdf.date_of_supply') ?></label>
+      <input type="date" name="date_of_supply">
+      <p class="help-text"><?= t('user.invoices.date_of_supply_hint') ?></p>
+    </div>
+  </div>
 
   <label><?= t('user.invoices.line_items') ?></label>
   <table class="line-items" id="items-table">
-    <thead><tr><th style="width:50%"><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.unit_price') ?> (SAR)</th><th><?= t('user.invoices.line_total') ?></th><th></th></tr></thead>
+    <thead><tr>
+      <th style="width:12%"><?= t('pdf.item_code') ?></th>
+      <th style="width:32%"><?= t('common.description') ?></th>
+      <th style="width:10%"><?= t('common.unit') ?></th>
+      <th><?= t('common.qty') ?></th>
+      <th><?= t('common.unit_price') ?> (SAR)</th>
+      <th><?= t('pdf.discount') ?></th>
+      <th><?= t('user.invoices.line_total') ?></th>
+      <th></th>
+    </tr></thead>
     <tbody id="items-body">
       <tr>
+        <td><input type="text" name="item_code[]" placeholder="e.g. ITM-001"></td>
         <td><input type="text" name="item_description[]" placeholder="e.g. Mobilization payment (30%)"></td>
+        <td><input type="text" name="item_unit[]" placeholder="e.g. pc, m², hr"></td>
         <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
         <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
+        <td><input type="number" step="0.01" min="0" name="item_discount[]" value="0" class="line-discount"></td>
         <td class="line-total">0.00</td>
         <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
       </tr>
@@ -55,6 +83,16 @@
       <label><?= t('user.invoices.retention_withheld_percent') ?></label>
       <input type="number" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>">
       <p class="help-text"><?= t('user.invoices.retention_hint') ?></p>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label><?= t('pdf.discount') ?> (<?= t('common.total') ?>)</label>
+      <input type="number" step="0.01" min="0" name="discount_amount" id="header-discount" value="0">
+    </div>
+    <div class="form-group">
+      <label><?= t('pdf.other_charges') ?></label>
+      <input type="number" step="0.01" min="0" name="other_charges" id="other-charges" value="0">
     </div>
   </div>
 
@@ -82,30 +120,45 @@
   const grandNet = document.getElementById('grand-net');
   const applyVat = document.getElementById('apply-vat');
   const retentionPercentInput = document.getElementById('retention-percent');
+  const headerDiscountInput = document.getElementById('header-discount');
+  const otherChargesInput = document.getElementById('other-charges');
   const vatRate = <?= json_encode($vatRate) ?>;
 
   function rowTemplate() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td><input type="text" name="item_code[]" placeholder="e.g. ITM-001"></td>
       <td><input type="text" name="item_description[]" placeholder="Description"></td>
+      <td><input type="text" name="item_unit[]" placeholder="e.g. pc, m², hr"></td>
       <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
       <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
+      <td><input type="number" step="0.01" min="0" name="item_discount[]" value="0" class="line-discount"></td>
       <td class="line-total">0.00</td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;
   }
 
+  // Live preview only — InvoiceController::store() is the authoritative
+  // calculation (gross subtotal, minus every line discount and the header
+  // discount, plus other charges, THEN VAT on what's left). Mirrored here
+  // so what the person sees before submitting matches what gets saved.
   function recalc() {
     let subtotal = 0;
+    let lineDiscounts = 0;
     body.querySelectorAll('tr').forEach(tr => {
       const qty = parseFloat(tr.querySelector('.qty').value) || 0;
       const cost = parseFloat(tr.querySelector('.cost').value) || 0;
+      const lineDiscount = Math.max(0, parseFloat(tr.querySelector('.line-discount').value) || 0);
       const lineTotal = qty * cost;
       tr.querySelector('.line-total').textContent = lineTotal.toFixed(2);
       subtotal += lineTotal;
+      lineDiscounts += lineDiscount;
     });
-    const vat = applyVat.checked ? subtotal * vatRate / 100 : 0;
-    const total = subtotal + vat;
+    const headerDiscount = Math.max(0, parseFloat(headerDiscountInput.value) || 0);
+    const otherCharges = Math.max(0, parseFloat(otherChargesInput.value) || 0);
+    const taxable = Math.max(0, subtotal - lineDiscounts - headerDiscount) + otherCharges;
+    const vat = applyVat.checked ? taxable * vatRate / 100 : 0;
+    const total = taxable + vat;
     const retentionPct = Math.min(100, Math.max(0, parseFloat(retentionPercentInput.value) || 0));
     const retention = subtotal * retentionPct / 100;
     grandSubtotal.textContent = subtotal.toFixed(2);
@@ -119,6 +172,8 @@
   body.addEventListener('input', recalc);
   applyVat.addEventListener('change', recalc);
   retentionPercentInput.addEventListener('input', recalc);
+  headerDiscountInput.addEventListener('input', recalc);
+  otherChargesInput.addEventListener('input', recalc);
   body.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-row')) {
       if (body.querySelectorAll('tr').length > 1) e.target.closest('tr').remove();

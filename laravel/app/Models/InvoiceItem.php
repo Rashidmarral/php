@@ -15,6 +15,7 @@ class InvoiceItem extends Model
         return [
             'qty' => 'decimal:2',
             'unit_price' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'total' => 'decimal:2',
         ];
     }
