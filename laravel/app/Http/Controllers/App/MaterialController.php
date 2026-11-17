@@ -61,7 +61,11 @@ class MaterialController extends Controller
         if ($name === '') {
             return $this->redirectWithFlash('/app/materials/create', 'error', t('user.materials.name_required'));
         }
-        Material::create($this->fromInput($request));
+        [$fields, $error] = $this->fromInput($request);
+        if ($error) {
+            return $this->redirectWithFlash('/app/materials/create', 'error', $error);
+        }
+        Material::create($fields);
         $this->flash('success', t('user.materials.added'));
         return redirect('/app/materials');
     }
@@ -86,7 +90,16 @@ class MaterialController extends Controller
         if ($redirect = $this->requireAbility('write')) {
             return $redirect;
         }
-        $this->findOwned($id)->update($this->fromInput($request));
+        $material = $this->findOwned($id);
+        $name = trim((string) $request->input('name'));
+        if ($name === '') {
+            return $this->redirectWithFlash('/app/materials/'.$id.'/edit', 'error', t('user.materials.name_required'));
+        }
+        [$fields, $error] = $this->fromInput($request);
+        if ($error) {
+            return $this->redirectWithFlash('/app/materials/'.$id.'/edit', 'error', $error);
+        }
+        $material->update($fields);
         $this->flash('success', t('user.materials.updated'));
         return redirect('/app/materials');
     }
@@ -323,28 +336,59 @@ class MaterialController extends Controller
         return $scheme === 'https' && in_array(strtolower((string) $host), ['docs.google.com', 'sheets.googleapis.com'], true);
     }
 
+    /**
+     * Shared by store()/update(): validates and normalizes the plain material fields.
+     * Rejects (rather than silently casting) a material/labor cost or reorder level that
+     * doesn't parse — the recurring (float)-cast-with-no-check gap closed in every prior
+     * batch — capped at each field's own decimal column precision, and only ever attaches
+     * a supplier that actually belongs to this company.
+     *
+     * @return array{0: array<string, mixed>, 1: ?string} [fields, error]
+     */
     private function fromInput(Request $request): array
     {
-        $materialCost = (float) $request->input('material_cost', 0);
-        $laborCost = (float) $request->input('labor_cost', 0);
-        return [
-            'company_id' => Auth::user()->company_id,
-            'supplier_id' => $request->input('supplier_id') ?: null,
-            'sku' => $request->input('sku', ''),
-            'name' => trim((string) $request->input('name')),
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'category' => $request->input('category', ''),
-            'unit' => $request->input('unit', 'unit'),
+        $companyId = Auth::user()->company_id;
+
+        $materialCost = $this->validatedNumberOrDefault($request->input('material_cost', 0), 0, 99999999.99, 0.0);
+        if ($materialCost === null) {
+            return [[], t('user.materials.material_cost_invalid')];
+        }
+        $laborCost = $this->validatedNumberOrDefault($request->input('labor_cost', 0), 0, 99999999.99, 0.0);
+        if ($laborCost === null) {
+            return [[], t('user.materials.labor_cost_invalid')];
+        }
+        $reorderLevel = null;
+        if ($request->filled('reorder_level')) {
+            $reorderLevel = $this->validatedNumber($request->input('reorder_level'), 0, 9999999999.99);
+            if ($reorderLevel === null) {
+                return [[], t('user.materials.reorder_level_invalid')];
+            }
+        }
+
+        $supplierId = $request->input('supplier_id') ?: null;
+        if ($supplierId) {
+            $supplier = Supplier::find((int) $supplierId);
+            $supplierId = ($supplier && $supplier->company_id === $companyId) ? $supplier->id : null;
+        }
+
+        return [[
+            'company_id' => $companyId,
+            'supplier_id' => $supplierId,
+            'sku' => mb_substr(trim((string) $request->input('sku', '')), 0, 60),
+            'name' => mb_substr(trim((string) $request->input('name')), 0, 150),
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            'category' => mb_substr(trim((string) $request->input('category', '')), 0, 100),
+            'unit' => mb_substr(trim((string) $request->input('unit', 'unit')) ?: 'unit', 0, 20),
             'material_cost' => $materialCost,
             'labor_cost' => $laborCost,
             'unit_cost' => $materialCost + $laborCost,
             // qty_on_hand is deliberately not settable here — it only ever changes via a
             // recorded stock movement (see MaterialStockController), so it always has a
             // paper trail. reorder_level has no such requirement since it's just a threshold.
-            'reorder_level' => $request->filled('reorder_level') ? (float) $request->input('reorder_level') : null,
-            'notes' => $request->input('notes', ''),
+            'reorder_level' => $reorderLevel,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 255),
             'updated_at' => now(),
-        ];
+        ], null];
     }
 
     private function findOwned(int $id): Material
@@ -352,5 +396,24 @@ class MaterialController extends Controller
         $material = Material::find($id);
         abort_if(!$material || $material->company_id !== Auth::user()->company_id, 404, 'Material not found.');
         return $material;
+    }
+
+    /** Rejects a non-numeric or out-of-range value — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
     }
 }

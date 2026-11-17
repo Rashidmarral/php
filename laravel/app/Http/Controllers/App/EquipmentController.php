@@ -78,10 +78,14 @@ class EquipmentController extends Controller
         if ($name === '') {
             return $this->redirectWithFlash('/app/equipment/create', 'error', t('user.equipment.name_required'));
         }
+        [$fields, $error] = $this->fields($request);
+        if ($error) {
+            return $this->redirectWithFlash('/app/equipment/create', 'error', $error);
+        }
 
         $equipment = Equipment::create([
             'company_id' => Auth::user()->company_id,
-            ...$this->fields($request),
+            ...$fields,
         ]);
 
         $this->flash('success', t('user.equipment.added'));
@@ -150,8 +154,12 @@ class EquipmentController extends Controller
         if ($name === '') {
             return $this->redirectWithFlash('/app/equipment/' . $equipment->id . '/edit', 'error', t('user.equipment.name_required'));
         }
+        [$fields, $error] = $this->fields($request);
+        if ($error) {
+            return $this->redirectWithFlash('/app/equipment/' . $equipment->id . '/edit', 'error', $error);
+        }
 
-        $equipment->update($this->fields($request));
+        $equipment->update($fields);
 
         $this->flash('success', t('user.equipment.updated'));
         return redirect('/app/equipment/' . $equipment->id);
@@ -190,14 +198,24 @@ class EquipmentController extends Controller
         if ($description === '') {
             return $this->redirectWithFlash('/app/equipment/' . $equipment->id, 'error', t('user.equipment.maintenance_description_required'));
         }
+        if (!$this->isValidOptionalDate(trim((string) $maintenanceDate)) || !$this->isValidOptionalDate(trim((string) $request->input('next_due_date', '')))) {
+            return $this->redirectWithFlash('/app/equipment/' . $equipment->id, 'error', t('user.equipment.maintenance_date_invalid'));
+        }
+        $cost = null;
+        if ($request->filled('cost')) {
+            $cost = $this->validatedNumber($request->input('cost'), 0, 99999999.99);
+            if ($cost === null) {
+                return $this->redirectWithFlash('/app/equipment/' . $equipment->id, 'error', t('user.equipment.maintenance_cost_invalid'));
+            }
+        }
 
         EquipmentMaintenanceLog::create([
             'company_id' => $equipment->company_id,
             'equipment_id' => $equipment->id,
             'maintenance_date' => $maintenanceDate,
-            'description' => $description,
-            'cost' => $request->input('cost') !== null && $request->input('cost') !== '' ? (float) $request->input('cost') : null,
-            'performed_by' => trim((string) $request->input('performed_by', '')) ?: null,
+            'description' => mb_substr($description, 0, 500),
+            'cost' => $cost,
+            'performed_by' => mb_substr(trim((string) $request->input('performed_by', '')), 0, 150) ?: null,
             'next_due_date' => $request->input('next_due_date') ?: null,
         ]);
 
@@ -295,6 +313,9 @@ class EquipmentController extends Controller
         $assignedDate = $request->input('assigned_date') ?: $assignment->assigned_date->format('Y-m-d');
         $returnedDate = trim((string) $request->input('returned_date', '')) ?: null;
 
+        if (!$this->isValidOptionalDate((string) $assignedDate) || !$this->isValidOptionalDate((string) ($returnedDate ?? ''))) {
+            return $this->redirectWithFlash('/app/equipment/calendar', 'error', t('user.equipment.reschedule_invalid_range'));
+        }
         if ($returnedDate && $returnedDate < $assignedDate) {
             return $this->redirectWithFlash('/app/equipment/calendar', 'error', t('user.equipment.reschedule_invalid_range'));
         }
@@ -371,24 +392,49 @@ class EquipmentController extends Controller
         return redirect($redirectPath);
     }
 
-    /** Shared by store()/update(): the asset fields, normalized the same way for both. */
+    /**
+     * Shared by store()/update(): the asset fields, normalized the same way for both.
+     * Rejects (rather than silently casting) a purchase cost, rental rate, or purchase
+     * date that doesn't parse — capped at each field's own decimal column precision.
+     *
+     * @return array{0: array<string, mixed>, 1: ?string} [fields, error]
+     */
     private function fields(Request $request): array
     {
         $ownershipType = $request->input('ownership_type');
         $status = $request->input('status');
-        return [
-            'name' => trim((string) $request->input('name')),
-            'name_ar' => trim((string) $request->input('name_ar', '')) ?: null,
-            'asset_number' => trim((string) $request->input('asset_number', '')) ?: null,
-            'category' => trim((string) $request->input('category', '')) ?: null,
+
+        $purchaseCost = null;
+        if ($request->filled('purchase_cost')) {
+            $purchaseCost = $this->validatedNumber($request->input('purchase_cost'), 0, 9999999999.99);
+            if ($purchaseCost === null) {
+                return [[], t('user.equipment.purchase_cost_invalid')];
+            }
+        }
+        $rentalCostPerDay = null;
+        if ($request->filled('rental_cost_per_day')) {
+            $rentalCostPerDay = $this->validatedNumber($request->input('rental_cost_per_day'), 0, 99999999.99);
+            if ($rentalCostPerDay === null) {
+                return [[], t('user.equipment.rental_cost_per_day_invalid')];
+            }
+        }
+        if (!$this->isValidOptionalDate(trim((string) $request->input('purchase_date', '')))) {
+            return [[], t('user.equipment.purchase_date_invalid')];
+        }
+
+        return [[
+            'name' => mb_substr(trim((string) $request->input('name')), 0, 150),
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150) ?: null,
+            'asset_number' => mb_substr(trim((string) $request->input('asset_number', '')), 0, 100) ?: null,
+            'category' => mb_substr(trim((string) $request->input('category', '')), 0, 100) ?: null,
             'ownership_type' => array_key_exists($ownershipType, Equipment::OWNERSHIP_TYPES) ? $ownershipType : 'owned',
             'purchase_date' => $request->input('purchase_date') ?: null,
-            'purchase_cost' => $request->input('purchase_cost') !== null && $request->input('purchase_cost') !== '' ? (float) $request->input('purchase_cost') : null,
-            'rental_cost_per_day' => $request->input('rental_cost_per_day') !== null && $request->input('rental_cost_per_day') !== '' ? (float) $request->input('rental_cost_per_day') : null,
+            'purchase_cost' => $purchaseCost,
+            'rental_cost_per_day' => $rentalCostPerDay,
             'status' => array_key_exists($status, Equipment::STATUSES) ? $status : 'available',
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 500) ?: null,
             'supplier_id' => $this->ownedSupplierId($request->input('supplier_id'), Auth::user()->company_id),
-        ];
+        ], null];
     }
 
     /**
@@ -409,13 +455,16 @@ class EquipmentController extends Controller
         if ($equipment->activeAssignment()) {
             return $this->redirectWithFlash($redirectPath, 'error', t('user.equipment.already_assigned'));
         }
+        if (!$this->isValidOptionalDate(trim((string) $request->input('assigned_date', '')))) {
+            return $this->redirectWithFlash($redirectPath, 'error', t('user.equipment.assigned_date_invalid'));
+        }
 
         EquipmentAssignment::create([
             'company_id' => $equipment->company_id,
             'equipment_id' => $equipment->id,
             'project_id' => $projectId,
             'assigned_date' => $request->input('assigned_date') ?: now()->format('Y-m-d'),
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 500) ?: null,
         ]);
         $equipment->update(['status' => 'in_use']);
 
@@ -478,5 +527,27 @@ class EquipmentController extends Controller
         $assignment = EquipmentAssignment::find($id);
         abort_if(!$assignment || $assignment->company_id !== Auth::user()->company_id, 404, 'Equipment assignment not found.');
         return $assignment;
+    }
+
+    /** Rejects a non-numeric or out-of-range value — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

@@ -12,7 +12,7 @@
   <div class="form-row">
     <div class="form-group">
       <label><?= t('common.supplier') ?></label>
-      <select name="supplier_id">
+      <select name="supplier_id" class="combo-select" data-placeholder="<?= e(t('common.search_suppliers_placeholder')) ?>" data-no-results="<?= e(t('common.no_suppliers_found')) ?>">
         <option value="">—</option>
         <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
       </select>
@@ -32,19 +32,19 @@
     </div>
     <div class="form-group">
       <label><?= t('user.purchase_orders.exchange_rate_to_sar') ?></label>
-      <input type="number" step="0.0001" min="0.0001" name="exchange_rate_to_sar" id="po-exchange-rate" value="1.0000" disabled>
+      <input type="number" step="0.0001" min="0.0001" max="99999999.9999" inputmode="decimal" name="exchange_rate_to_sar" id="po-exchange-rate" value="1.0000" disabled>
     </div>
   </div>
-  <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
+  <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes" maxlength="255"></div>
 
   <label><?= t('user.invoices.line_items') ?></label>
   <table class="line-items" id="items-table">
     <thead><tr><th style="width:50%"><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.unit_price') ?> (SAR)</th><th><?= t('user.invoices.line_total') ?></th><th></th></tr></thead>
     <tbody id="items-body">
       <tr>
-        <td><input type="text" name="item_description[]" placeholder="e.g. 50 bags of cement"></td>
-        <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
-        <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
+        <td><input type="text" name="item_description[]" maxlength="255" placeholder="e.g. 50 bags of cement"></td>
+        <td><input type="number" step="0.01" min="0.01" max="9999999999.99" inputmode="decimal" name="item_qty[]" value="1" class="qty"></td>
+        <td><input type="number" step="0.01" min="0" max="9999999999.99" inputmode="decimal" name="item_price[]" value="0" class="cost"></td>
         <td class="line-total">0.00</td>
         <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
       </tr>
@@ -98,9 +98,9 @@
   function rowTemplate() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" name="item_description[]" placeholder="Description"></td>
-      <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
-      <td><input type="number" step="0.01" name="item_price[]" value="0" class="cost"></td>
+      <td><input type="text" name="item_description[]" maxlength="255" placeholder="Description"></td>
+      <td><input type="number" step="0.01" min="0.01" max="9999999999.99" inputmode="decimal" name="item_qty[]" value="1" class="qty"></td>
+      <td><input type="number" step="0.01" min="0" max="9999999999.99" inputmode="decimal" name="item_price[]" value="0" class="cost"></td>
       <td class="line-total">0.00</td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;

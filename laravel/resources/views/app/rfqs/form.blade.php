@@ -11,11 +11,11 @@
   <div class="form-row">
     <div class="form-group" style="flex:1;">
       <label><?= t('common.title') ?></label>
-      <input type="text" name="title" required value="<?= e($rfq['title'] ?? '') ?>">
+      <input type="text" name="title" required maxlength="200" value="<?= e($rfq['title'] ?? '') ?>">
     </div>
     <div class="form-group">
       <label><?= t('user.rfqs.project_optional') ?></label>
-      <select name="project_id">
+      <select name="project_id" class="combo-select" data-placeholder="<?= e(t('common.search_projects_placeholder')) ?>" data-no-results="<?= e(t('common.no_projects_found')) ?>">
         <option value=""><?= t('user.rfqs.standalone_project') ?></option>
         <?php foreach ($projects as $p): ?>
           <option value="<?= $p['id'] ?>" <?= ($rfq['project_id'] ?? null) == $p['id'] ? 'selected' : '' ?>><?= e(local($p, 'name')) ?></option>
@@ -42,7 +42,7 @@
 
   <div class="form-group">
     <label><?= t('common.notes') ?></label>
-    <input type="text" name="notes" value="<?= e($rfq['notes'] ?? '') ?>">
+    <input type="text" name="notes" maxlength="2000" value="<?= e($rfq['notes'] ?? '') ?>">
   </div>
 
   <?php if (!$rfq): ?>
@@ -51,9 +51,9 @@
       <thead><tr><th style="width:55%"><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('common.unit') ?></th><th></th></tr></thead>
       <tbody id="items-body">
         <tr>
-          <td><input type="text" name="item_description[]" placeholder="e.g. 50 bags of cement"></td>
-          <td><input type="number" step="0.01" name="item_qty[]" value="1"></td>
-          <td><input type="text" name="item_unit[]" placeholder="e.g. bag"></td>
+          <td><input type="text" name="item_description[]" maxlength="255" placeholder="e.g. 50 bags of cement"></td>
+          <td><input type="number" step="0.01" min="0.01" max="9999999999.99" inputmode="decimal" name="item_qty[]" value="1"></td>
+          <td><input type="text" name="item_unit[]" maxlength="50" placeholder="e.g. bag"></td>
           <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
         </tr>
       </tbody>
@@ -75,9 +75,9 @@
   function rowTemplate() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input type="text" name="item_description[]" placeholder="Description"></td>
-      <td><input type="number" step="0.01" name="item_qty[]" value="1"></td>
-      <td><input type="text" name="item_unit[]" placeholder="Unit"></td>
+      <td><input type="text" name="item_description[]" maxlength="255" placeholder="Description"></td>
+      <td><input type="number" step="0.01" min="0.01" max="9999999999.99" inputmode="decimal" name="item_qty[]" value="1"></td>
+      <td><input type="text" name="item_unit[]" maxlength="50" placeholder="Unit"></td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;
   }

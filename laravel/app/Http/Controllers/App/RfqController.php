@@ -77,18 +77,28 @@ class RfqController extends Controller
         if ($title === '') {
             return $this->redirectWithFlash('/app/rfqs/create', 'error', t('user.rfqs.title_required'));
         }
+        if (!$this->isValidOptionalDate(trim((string) $request->input('due_date', '')))) {
+            return $this->redirectWithFlash('/app/rfqs/create', 'error', t('user.rfqs.due_date_invalid'));
+        }
+
+        [$items, $itemsError] = $this->validatedItems($request);
+        if ($itemsError) {
+            return $this->redirectWithFlash('/app/rfqs/create', 'error', $itemsError);
+        }
 
         $rfq = Rfq::create([
             'company_id' => $companyId,
             'project_id' => $this->ownedProjectId($request->input('project_id') ?: null, $companyId),
-            'title' => $title,
+            'title' => mb_substr($title, 0, 200),
             'status' => 'draft',
             'due_date' => $request->input('due_date') ?: null,
             'created_by' => Auth::id(),
-            'notes' => trim((string) $request->input('notes', '')),
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000),
         ]);
 
-        $this->syncItems($request, $rfq);
+        foreach ($items as $item) {
+            RfqItem::create(['rfq_id' => $rfq->id, ...$item]);
+        }
 
         $this->flash('success', t('user.rfqs.created'));
         return redirect('/app/rfqs/' . $rfq->id);
@@ -165,6 +175,9 @@ class RfqController extends Controller
         if ($title === '') {
             return $this->redirectWithFlash('/app/rfqs/' . $rfq->id . '/edit', 'error', t('user.rfqs.title_required'));
         }
+        if (!$this->isValidOptionalDate(trim((string) $request->input('due_date', '')))) {
+            return $this->redirectWithFlash('/app/rfqs/' . $rfq->id . '/edit', 'error', t('user.rfqs.due_date_invalid'));
+        }
 
         // Status can be moved forward through draft -> sent -> comparing -> cancelled here,
         // but never set to 'awarded' this way — that only ever happens through award(),
@@ -172,9 +185,9 @@ class RfqController extends Controller
         $status = $request->input('status');
         $data = [
             'project_id' => $this->ownedProjectId($request->input('project_id') ?: null, $rfq->company_id),
-            'title' => $title,
+            'title' => mb_substr($title, 0, 200),
             'due_date' => $request->input('due_date') ?: null,
-            'notes' => trim((string) $request->input('notes', '')),
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000),
         ];
         if (array_key_exists($status, Rfq::STATUSES) && $status !== 'awarded') {
             $data['status'] = $status;
@@ -199,12 +212,16 @@ class RfqController extends Controller
         if ($description === '') {
             return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.item_description_required'));
         }
+        $qty = $this->validatedNumberOrDefault($request->input('qty'), 0.01, 9999999999.99, 1.0);
+        if ($qty === null) {
+            return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.qty_invalid'));
+        }
 
         RfqItem::create([
             'rfq_id' => $rfq->id,
-            'description' => $description,
-            'qty' => (float) ($request->input('qty') ?: 1),
-            'unit' => trim((string) $request->input('unit', '')) ?: null,
+            'description' => mb_substr($description, 0, 255),
+            'qty' => $qty,
+            'unit' => mb_substr(trim((string) $request->input('unit', '')), 0, 50) ?: null,
         ]);
 
         $this->flash('success', t('user.rfqs.item_added'));
@@ -243,19 +260,30 @@ class RfqController extends Controller
             return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.quote_supplier_required'));
         }
 
-        $totalAmount = (float) $request->input('total_amount');
-        if ($totalAmount <= 0) {
+        $totalAmount = $this->validatedNumber($request->input('total_amount'), 0.01, 9999999999.99);
+        if ($totalAmount === null) {
             return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.quote_amount_required'));
+        }
+        $leadTimeDays = null;
+        if ($request->filled('lead_time_days')) {
+            $leadTimeDays = $this->validatedNumber($request->input('lead_time_days'), 0, 3650);
+            if ($leadTimeDays === null) {
+                return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.lead_time_days_invalid'));
+            }
+        }
+        $submittedAt = trim((string) $request->input('submitted_at', ''));
+        if (!$this->isValidOptionalDate($submittedAt)) {
+            return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.submitted_at_invalid'));
         }
 
         RfqQuote::create([
             'rfq_id' => $rfq->id,
             'supplier_id' => $supplier->id,
             'total_amount' => $totalAmount,
-            'lead_time_days' => $request->filled('lead_time_days') ? (int) $request->input('lead_time_days') : null,
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'lead_time_days' => $leadTimeDays !== null ? (int) $leadTimeDays : null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000) ?: null,
             'is_awarded' => false,
-            'submitted_at' => $request->input('submitted_at') ?: now()->format('Y-m-d'),
+            'submitted_at' => $submittedAt !== '' ? $submittedAt : now()->format('Y-m-d'),
         ]);
 
         // Receiving the first quote moves a still-draft/sent RFQ into "comparing" —
@@ -350,25 +378,69 @@ class RfqController extends Controller
         return $this->redirectWithFlash('/app/rfqs', 'success', t('user.rfqs.deleted'));
     }
 
-    /** Shared by store()'s initial line items — update()/edit() manage items one at a time via addItem()/removeItem(). */
-    private function syncItems(Request $request, Rfq $rfq): void
+    /**
+     * Shared by store()'s initial line items — update()/edit() manage items one at a time via
+     * addItem()/removeItem(). Validates every row before anything is persisted (unlike the old
+     * create-as-we-go loop) so an invalid qty aborts the whole submission instead of leaving a
+     * partially-built RFQ behind.
+     *
+     * @return array{0: array<int, array<string, mixed>>, 1: ?string} [items, error]
+     */
+    private function validatedItems(Request $request): array
     {
         $descriptions = $request->input('item_description', []);
         $qtys = $request->input('item_qty', []);
         $units = $request->input('item_unit', []);
 
+        $items = [];
         foreach ($descriptions as $i => $desc) {
             $desc = trim((string) $desc);
             if ($desc === '') {
                 continue;
             }
-            RfqItem::create([
-                'rfq_id' => $rfq->id,
-                'description' => $desc,
-                'qty' => (float) ($qtys[$i] ?? 1),
-                'unit' => trim((string) ($units[$i] ?? '')) ?: null,
-            ]);
+            $qty = $this->validatedNumberOrDefault($qtys[$i] ?? 1, 0.01, 9999999999.99, 1.0);
+            if ($qty === null) {
+                return [[], t('user.rfqs.qty_invalid')];
+            }
+            $items[] = [
+                'description' => mb_substr($desc, 0, 255),
+                'qty' => $qty,
+                'unit' => mb_substr(trim((string) ($units[$i] ?? '')), 0, 50) ?: null,
+            ];
         }
+
+        return [$items, null];
+    }
+
+    /** Rejects a non-numeric or out-of-range value — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 
     private function findOwned(int $id): Rfq

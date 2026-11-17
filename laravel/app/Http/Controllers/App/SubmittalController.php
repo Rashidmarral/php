@@ -69,6 +69,9 @@ class SubmittalController extends Controller
         if ($title === '') {
             return $this->redirectWithFlash('/app/projects/' . $project->id . '/submittals/new', 'error', t('user.submittals.title_required'));
         }
+        if (!$this->isValidOptionalDate(trim((string) $request->input('due_date', '')))) {
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/submittals/new', 'error', t('user.submittals.due_date_invalid'));
+        }
 
         $file = $request->file('file');
         if (!$file || !$file->isValid()) {
@@ -85,9 +88,9 @@ class SubmittalController extends Controller
             'company_id' => $project->company_id,
             'project_id' => $project->id,
             'submittal_number' => $nextNumber,
-            'title' => $title,
-            'description' => trim((string) $request->input('description', '')) ?: null,
-            'spec_section' => trim((string) $request->input('spec_section', '')) ?: null,
+            'title' => mb_substr($title, 0, 200),
+            'description' => mb_substr(trim((string) $request->input('description', '')), 0, 500) ?: null,
+            'spec_section' => mb_substr(trim((string) $request->input('spec_section', '')), 0, 30) ?: null,
             'status' => 'submitted',
             'submitted_by' => Auth::id(),
             'due_date' => $request->input('due_date') ?: null,
@@ -98,7 +101,7 @@ class SubmittalController extends Controller
             'revision_number' => 1,
             'file_path' => $filePath,
             'file_name' => $fileName,
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 500) ?: null,
             'uploaded_by' => Auth::id(),
         ]);
 
@@ -143,7 +146,7 @@ class SubmittalController extends Controller
             'revision_number' => $nextRevisionNumber,
             'file_path' => $filePath,
             'file_name' => $fileName,
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 500) ?: null,
             'uploaded_by' => Auth::id(),
         ]);
 
@@ -228,5 +231,17 @@ class SubmittalController extends Controller
         $project = Project::find($id);
         abort_if(!$project || $project->company_id !== Auth::user()->company_id, 404, 'Project not found.');
         return $project;
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

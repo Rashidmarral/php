@@ -9,12 +9,12 @@
 <form method="post" action="<?= $equipment ? '/app/equipment/' . $equipment['id'] : '/app/equipment' ?>" class="card" style="max-width:640px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('common.name_en') ?></label><input type="text" name="name" required value="<?= e($equipment['name'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('common.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" value="<?= e($equipment['name_ar'] ?? '') ?>" placeholder="اسم المعدة"></div>
+    <div class="form-group"><label><?= t('common.name_en') ?></label><input type="text" name="name" required maxlength="150" value="<?= e($equipment['name'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" maxlength="150" value="<?= e($equipment['name_ar'] ?? '') ?>" placeholder="اسم المعدة"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.equipment.asset_number') ?></label><input type="text" name="asset_number" placeholder="e.g. EX-204" value="<?= e($equipment['asset_number'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('common.category') ?></label><input type="text" name="category" placeholder="e.g. Excavator, Generator, Scaffolding" value="<?= e($equipment['category'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.equipment.asset_number') ?></label><input type="text" name="asset_number" maxlength="100" placeholder="e.g. EX-204" value="<?= e($equipment['asset_number'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.category') ?></label><input type="text" name="category" maxlength="100" placeholder="e.g. Excavator, Generator, Scaffolding" value="<?= e($equipment['category'] ?? '') ?>"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
@@ -36,13 +36,13 @@
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.equipment.purchase_date') ?></label><input type="date" name="purchase_date" value="<?= e($equipment['purchase_date'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('user.equipment.purchase_cost') ?></label><input type="number" step="0.01" min="0" name="purchase_cost" value="<?= e((string)($equipment['purchase_cost'] ?? '')) ?>"></div>
+    <div class="form-group"><label><?= t('user.equipment.purchase_cost') ?></label><input type="number" step="0.01" min="0" max="9999999999.99" inputmode="decimal" name="purchase_cost" value="<?= e((string)($equipment['purchase_cost'] ?? '')) ?>"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.equipment.rental_cost_per_day') ?></label><input type="number" step="0.01" min="0" name="rental_cost_per_day" value="<?= e((string)($equipment['rental_cost_per_day'] ?? '')) ?>"></div>
+    <div class="form-group"><label><?= t('user.equipment.rental_cost_per_day') ?></label><input type="number" step="0.01" min="0" max="99999999.99" inputmode="decimal" name="rental_cost_per_day" value="<?= e((string)($equipment['rental_cost_per_day'] ?? '')) ?>"></div>
     <div class="form-group">
       <label><?= t('common.supplier') ?></label>
-      <select name="supplier_id">
+      <select name="supplier_id" class="combo-select" data-placeholder="<?= e(t('common.search_suppliers_placeholder')) ?>" data-no-results="<?= e(t('common.no_suppliers_found')) ?>">
         <option value="">—</option>
         <?php foreach ($suppliers as $s): ?>
           <option value="<?= $s->id ?>" <?= (int)($equipment['supplier_id'] ?? 0) === $s->id ? 'selected' : '' ?>><?= e($s->name) ?></option>
@@ -50,7 +50,7 @@
       </select>
     </div>
   </div>
-  <div class="form-group"><label><?= t('common.notes') ?></label><textarea name="notes"><?= e($equipment['notes'] ?? '') ?></textarea></div>
+  <div class="form-group"><label><?= t('common.notes') ?></label><textarea name="notes" maxlength="500"><?= e($equipment['notes'] ?? '') ?></textarea></div>
 
   <button type="submit" class="btn btn-primary"><?= $equipment ? t('common.save_changes') : t('user.equipment.add_equipment') ?></button>
 </form>

@@ -10,11 +10,11 @@
   <?= csrf_field() ?>
   <div class="form-group">
     <label><?= t('user.takeoffs.name_label') ?></label>
-    <input type="text" name="name" required placeholder="e.g. Villa Ground Floor Plan">
+    <input type="text" name="name" required maxlength="150" placeholder="e.g. Villa Ground Floor Plan">
   </div>
   <div class="form-group">
     <label><?= t('user.takeoffs.project_optional') ?></label>
-    <select name="project_id">
+    <select name="project_id" class="combo-select" data-placeholder="<?= e(t('common.search_projects_placeholder')) ?>" data-no-results="<?= e(t('common.no_projects_found')) ?>">
       <option value=""><?= t('user.takeoffs.no_project') ?></option>
       <?php foreach ($projects as $p): ?><option value="<?= $p['id'] ?>"><?= e($p['name']) ?></option><?php endforeach; ?>
     </select>

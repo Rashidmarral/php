@@ -55,6 +55,12 @@ class PurchaseOrderController extends Controller
         $project = $this->findOwnedProject($projectId);
         $companyId = Auth::user()->company_id;
 
+        foreach (['issue_date', 'expected_delivery_date'] as $dateField) {
+            if (!$this->isValidOptionalDate(trim((string) $request->input($dateField, '')))) {
+                return $this->redirectWithFlash('/app/projects/' . $project->id . '/purchase-orders/create', 'error', t('user.purchase_orders.' . $dateField . '_invalid'));
+            }
+        }
+
         $descriptions = $request->input('item_description', []);
         $qtys = $request->input('item_qty', []);
         $prices = $request->input('item_price', []);
@@ -66,11 +72,17 @@ class PurchaseOrderController extends Controller
             if ($desc === '') {
                 continue;
             }
-            $qty = (float) ($qtys[$i] ?? 1);
-            $price = (float) ($prices[$i] ?? 0);
+            $qty = $this->validatedNumber($qtys[$i] ?? 1, 0.01, 9999999999.99);
+            if ($qty === null) {
+                return $this->redirectWithFlash('/app/projects/' . $project->id . '/purchase-orders/create', 'error', t('user.purchase_orders.qty_invalid'));
+            }
+            $price = $this->validatedNumberOrDefault($prices[$i] ?? 0, 0, 9999999999.99, 0.0);
+            if ($price === null) {
+                return $this->redirectWithFlash('/app/projects/' . $project->id . '/purchase-orders/create', 'error', t('user.purchase_orders.unit_price_invalid'));
+            }
             $lineTotal = $qty * $price;
             $subtotal += $lineTotal;
-            $items[] = ['description' => $desc, 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
+            $items[] = ['description' => mb_substr($desc, 0, 255), 'qty' => $qty, 'unit_price' => $price, 'total' => $lineTotal];
         }
 
         if (empty($items)) {
@@ -92,7 +104,7 @@ class PurchaseOrderController extends Controller
             'status' => $status,
             'issue_date' => $request->input('issue_date') ?: now()->format('Y-m-d'),
             'expected_delivery_date' => $request->input('expected_delivery_date') ?: null,
-            'notes' => trim((string) $request->input('notes', '')),
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 255),
             'subtotal' => $subtotal,
             'vat_amount' => $vatAmount,
             'total' => $total,
@@ -277,11 +289,42 @@ class PurchaseOrderController extends Controller
         if ($currency === 'SAR') {
             $rate = 1.0;
         } else {
-            $rate = (float) $request->input('exchange_rate_to_sar', 0);
-            if ($rate <= 0) {
-                $rate = 1.0;
-            }
+            // A non-numeric, non-positive, or absurdly large rate (which would overflow the
+            // decimal(12,4) column) falls back to 1.0 rather than erroring on a 500 — same
+            // "default rather than reject" convention this method already used for <= 0.
+            $rate = $this->validatedNumber($request->input('exchange_rate_to_sar', 0), 0.0001, 99999999.9999) ?? 1.0;
         }
         return ['currency' => $currency, 'exchange_rate_to_sar' => $rate];
+    }
+
+    /** Rejects a non-numeric or out-of-range value — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

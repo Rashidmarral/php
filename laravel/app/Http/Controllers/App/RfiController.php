@@ -77,6 +77,9 @@ class RfiController extends Controller
         if ($subject === '' || $question === '') {
             return $this->redirectWithFlash('/app/projects/' . $project->id . '/rfis/new', 'error', t('user.rfi.subject_question_required'));
         }
+        if (!$this->isValidOptionalDate(trim((string) $request->input('due_date', '')))) {
+            return $this->redirectWithFlash('/app/projects/' . $project->id . '/rfis/new', 'error', t('user.rfi.due_date_invalid'));
+        }
 
         $nextNumber = (int) Rfi::where('project_id', $project->id)->max('rfi_number') + 1;
 
@@ -84,8 +87,8 @@ class RfiController extends Controller
             'company_id' => $project->company_id,
             'project_id' => $project->id,
             'rfi_number' => $nextNumber,
-            'subject' => $subject,
-            'question' => $question,
+            'subject' => mb_substr($subject, 0, 200),
+            'question' => mb_substr($question, 0, 5000),
             'raised_by' => Auth::id(),
             'assigned_to' => $this->ownedUserId($request->input('assigned_to'), $project->company_id),
             'status' => 'open',
@@ -102,7 +105,7 @@ class RfiController extends Controller
             'rfi_id' => $rfi->id,
             'sender_id' => Auth::id(),
             'sender_name' => Auth::user()->name,
-            'message' => $question,
+            'message' => mb_substr($question, 0, 5000),
             'attachment_path' => $attachmentPath,
             'attachment_name' => $attachmentName,
         ]);
@@ -245,5 +248,17 @@ class RfiController extends Controller
         $project = Project::find($id);
         abort_if(!$project || $project->company_id !== Auth::user()->company_id, 404, 'Project not found.');
         return $project;
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

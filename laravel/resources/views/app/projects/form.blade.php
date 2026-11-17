@@ -9,13 +9,13 @@
 <form method="post" action="<?= $project ? '/app/projects/' . $project['id'] : '/app/projects' ?>" class="card" style="max-width:680px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.projects.name_en') ?></label><input type="text" name="name" required value="<?= e($project['name'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('user.projects.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" value="<?= e($project['name_ar'] ?? '') ?>" placeholder="اسم المشروع بالعربية"></div>
+    <div class="form-group"><label><?= t('user.projects.name_en') ?></label><input type="text" name="name" required maxlength="150" value="<?= e($project['name'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.projects.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" maxlength="150" value="<?= e($project['name_ar'] ?? '') ?>" placeholder="اسم المشروع بالعربية"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
       <label><?= t('common.client') ?></label>
-      <select name="client_id">
+      <select name="client_id" class="combo-select" data-placeholder="<?= e(t('common.search_clients_placeholder')) ?>" data-no-results="<?= e(t('common.no_clients_found')) ?>">
         <option value=""><?= t('user.projects.no_client') ?></option>
         <?php foreach ($clients as $c): ?>
           <option value="<?= $c['id'] ?>" <?= (($project['client_id'] ?? null) == $c['id']) ? 'selected' : '' ?>><?= e($c['name']) ?></option>
@@ -33,7 +33,7 @@
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.projects.budget_sar') ?></label><input type="number" step="0.01" name="budget" value="<?= e((string)($project['budget'] ?? '0')) ?>"></div>
+    <div class="form-group"><label><?= t('user.projects.budget_sar') ?></label><input type="number" step="0.01" min="0" max="9999999999.99" inputmode="decimal" name="budget" value="<?= e((string)($project['budget'] ?? '0')) ?>"></div>
     <div class="form-group"></div>
   </div>
   <div class="form-row">
@@ -51,12 +51,12 @@
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.projects.advance_payment_amount') ?></label>
-      <input type="number" step="0.01" min="0" name="advance_payment_amount" value="<?= e((string)($project['advance_payment_amount'] ?? '0')) ?>">
+      <input type="number" step="0.01" min="0" max="999999999999.99" inputmode="decimal" name="advance_payment_amount" value="<?= e((string)($project['advance_payment_amount'] ?? '0')) ?>">
       <p class="help-text" style="margin-top:4px;"><?= t('user.projects.advance_payment_amount_hint') ?></p>
     </div>
     <div class="form-group">
       <label><?= t('user.projects.advance_recovery_percent') ?></label>
-      <input type="number" step="0.01" min="0" max="100" name="advance_recovery_percent" value="<?= e((string)($project['advance_recovery_percent'] ?? '')) ?>" placeholder="e.g. 20">
+      <input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="advance_recovery_percent" value="<?= e((string)($project['advance_recovery_percent'] ?? '')) ?>" placeholder="e.g. 20">
       <p class="help-text" style="margin-top:4px;"><?= t('user.projects.advance_recovery_percent_hint') ?></p>
     </div>
   </div>
@@ -71,23 +71,23 @@
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.projects.ld_rate_per_day') ?></label>
-      <input type="number" step="0.01" min="0" name="ld_rate_per_day" value="<?= e((string)($project['ld_rate_per_day'] ?? '')) ?>">
+      <input type="number" step="0.01" min="0" max="9999999999.99" inputmode="decimal" name="ld_rate_per_day" value="<?= e((string)($project['ld_rate_per_day'] ?? '')) ?>">
       <p class="help-text" style="margin-top:4px;"><?= t('user.projects.ld_rate_per_day_hint') ?></p>
     </div>
     <div class="form-group">
       <label><?= t('user.projects.ld_cap_percent') ?></label>
-      <input type="number" step="0.01" min="0" max="100" name="ld_cap_percent" value="<?= e((string)($project['ld_cap_percent'] ?? '')) ?>" placeholder="e.g. 10">
+      <input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="ld_cap_percent" value="<?= e((string)($project['ld_cap_percent'] ?? '')) ?>" placeholder="e.g. 10">
       <p class="help-text" style="margin-top:4px;"><?= t('user.projects.ld_cap_percent_hint') ?></p>
     </div>
   </div>
   <div class="form-row">
     <div class="form-group">
       <label><?= t('common.description_en') ?></label>
-      <textarea name="description"><?= e($project['description'] ?? '') ?></textarea>
+      <textarea name="description" maxlength="5000"><?= e($project['description'] ?? '') ?></textarea>
     </div>
     <div class="form-group">
       <label><?= t('common.description_ar') ?></label>
-      <textarea name="description_ar" dir="rtl" placeholder="الوصف بالعربية"><?= e($project['description_ar'] ?? '') ?></textarea>
+      <textarea name="description_ar" dir="rtl" maxlength="5000" placeholder="الوصف بالعربية"><?= e($project['description_ar'] ?? '') ?></textarea>
     </div>
   </div>
   <button type="submit" class="btn btn-primary"><?= $project ? t('common.save_changes') : t('user.projects.create_project') ?></button>

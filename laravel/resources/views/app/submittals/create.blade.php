@@ -11,15 +11,15 @@
 <form method="post" action="/app/projects/<?= $project['id'] ?>/submittals" enctype="multipart/form-data" class="card" style="max-width:720px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('common.title') ?></label><input type="text" name="title" required></div>
-    <div class="form-group"><label><?= t('user.submittals.spec_section') ?></label><input type="text" name="spec_section" placeholder="e.g. 09 30 00"></div>
+    <div class="form-group"><label><?= t('common.title') ?></label><input type="text" name="title" required maxlength="200"></div>
+    <div class="form-group"><label><?= t('user.submittals.spec_section') ?></label><input type="text" name="spec_section" maxlength="30" placeholder="e.g. 09 30 00"></div>
   </div>
-  <div class="form-group"><label><?= t('common.description') ?></label><textarea name="description" rows="3"></textarea></div>
+  <div class="form-group"><label><?= t('common.description') ?></label><textarea name="description" rows="3" maxlength="500"></textarea></div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.submittals.due_date') ?></label><input type="date" name="due_date"></div>
     <div class="form-group"><label><?= t('user.submittals.file') ?></label><input type="file" name="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.dwg,.zip"></div>
   </div>
-  <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
+  <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes" maxlength="500"></div>
   <button type="submit" class="btn btn-primary"><?= t('user.submittals.submit') ?></button>
 </form>
 @endsection

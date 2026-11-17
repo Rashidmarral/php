@@ -10,8 +10,8 @@
 
 <form method="post" action="/app/projects/<?= $project['id'] ?>/rfis" enctype="multipart/form-data" class="card" style="max-width:720px;">
   <?= csrf_field() ?>
-  <div class="form-group"><label><?= t('user.rfi.subject') ?></label><input type="text" name="subject" required></div>
-  <div class="form-group"><label><?= t('user.rfi.question') ?></label><textarea name="question" rows="6" required placeholder="<?= t('user.rfi.question_hint') ?>"></textarea></div>
+  <div class="form-group"><label><?= t('user.rfi.subject') ?></label><input type="text" name="subject" required maxlength="200"></div>
+  <div class="form-group"><label><?= t('user.rfi.question') ?></label><textarea name="question" rows="6" required maxlength="5000" placeholder="<?= t('user.rfi.question_hint') ?>"></textarea></div>
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.rfi.assigned_to') ?></label>

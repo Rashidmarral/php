@@ -212,28 +212,91 @@ class ProjectController extends Controller
             return $this->redirectWithFlash('/app/projects/create', 'error', t('user.projects.name_required'));
         }
 
+        [$fields, $error] = $this->validatedProjectFields($request, $companyId);
+        if ($error) {
+            return $this->redirectWithFlash('/app/projects/create', 'error', $error);
+        }
+
         $project = Project::create([
             'company_id' => $companyId,
-            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
-            'name' => $name,
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'description' => $request->input('description', ''),
-            'description_ar' => $request->input('description_ar', ''),
+            'name' => mb_substr($name, 0, 150),
             'status' => $request->input('status', 'planning'),
-            'budget' => (float) $request->input('budget', 0),
-            'advance_payment_amount' => (float) $request->input('advance_payment_amount', 0),
-            'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
-            'start_date' => $request->input('start_date') ?: null,
-            'end_date' => $request->input('end_date') ?: null,
-            'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
             'actual_completion_date' => $request->input('actual_completion_date') ?: null,
-            'ld_rate_per_day' => $request->filled('ld_rate_per_day') ? (float) $request->input('ld_rate_per_day') : null,
-            'ld_cap_percent' => $request->filled('ld_cap_percent') ? min(100, max(0, (float) $request->input('ld_cap_percent'))) : null,
+            ...$fields,
         ]);
         AuditLog::recordForCompany(Auth::user(), 'project_create', 'project', $project->id, "Project \"{$project->name}\" created");
 
         $this->flash('success', t('user.projects.created'));
         return redirect('/app/projects/' . $project->id);
+    }
+
+    /**
+     * Shared by store()/update(): every project field except name/status (each handled
+     * slightly differently by its caller — see update()'s own actual_completion_date
+     * auto-fill logic). Rejects (rather than silently clamping/defaulting) a budget,
+     * advance payment, advance recovery %, LD rate, LD cap %, or date that doesn't parse —
+     * the same recurring (float)-cast-with-no-check gap closed in every prior batch —
+     * capped at each field's own decimal column precision so nothing can overflow it.
+     *
+     * @return array{0: array<string, mixed>, 1: ?string} [fields, error]
+     */
+    private function validatedProjectFields(Request $request, int $companyId): array
+    {
+        $budget = $this->validatedNumberOrDefault($request->input('budget', 0), 0, 9999999999.99, 0.0);
+        if ($budget === null) {
+            return [[], t('user.projects.budget_invalid')];
+        }
+        $advancePayment = $this->validatedNumberOrDefault($request->input('advance_payment_amount', 0), 0, 999999999999.99, 0.0);
+        if ($advancePayment === null) {
+            return [[], t('user.projects.advance_payment_invalid')];
+        }
+        $advanceRecoveryPercent = null;
+        if ($request->filled('advance_recovery_percent')) {
+            $advanceRecoveryPercent = $this->validatedNumber($request->input('advance_recovery_percent'), 0, 100);
+            if ($advanceRecoveryPercent === null) {
+                return [[], t('user.projects.advance_recovery_percent_invalid')];
+            }
+        }
+        $ldRatePerDay = null;
+        if ($request->filled('ld_rate_per_day')) {
+            $ldRatePerDay = $this->validatedNumber($request->input('ld_rate_per_day'), 0, 9999999999.99);
+            if ($ldRatePerDay === null) {
+                return [[], t('user.projects.ld_rate_per_day_invalid')];
+            }
+        }
+        $ldCapPercent = null;
+        if ($request->filled('ld_cap_percent')) {
+            $ldCapPercent = $this->validatedNumber($request->input('ld_cap_percent'), 0, 100);
+            if ($ldCapPercent === null) {
+                return [[], t('user.projects.ld_cap_percent_invalid')];
+            }
+        }
+
+        foreach ([
+            'start_date' => 'user.projects.start_date_invalid',
+            'end_date' => 'user.projects.end_date_invalid',
+            'defects_liability_end_date' => 'user.projects.defects_liability_end_date_invalid',
+            'actual_completion_date' => 'user.projects.actual_completion_date_invalid',
+        ] as $field => $errorKey) {
+            if (!$this->isValidOptionalDate(trim((string) $request->input($field, '')))) {
+                return [[], t($errorKey)];
+            }
+        }
+
+        return [[
+            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            'description' => mb_substr((string) $request->input('description', ''), 0, 5000),
+            'description_ar' => mb_substr((string) $request->input('description_ar', ''), 0, 5000),
+            'budget' => $budget,
+            'advance_payment_amount' => $advancePayment,
+            'advance_recovery_percent' => $advanceRecoveryPercent,
+            'start_date' => $request->input('start_date') ?: null,
+            'end_date' => $request->input('end_date') ?: null,
+            'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
+            'ld_rate_per_day' => $ldRatePerDay,
+            'ld_cap_percent' => $ldCapPercent,
+        ], null];
     }
 
     public function show(int $id): View
@@ -588,21 +651,20 @@ class ProjectController extends Controller
         $project = $this->findOwned($id);
         $newStatus = $request->input('status', 'planning');
 
+        $name = trim((string) $request->input('name'));
+        if ($name === '') {
+            return $this->redirectWithFlash('/app/projects/' . $id . '/edit', 'error', t('user.projects.name_required'));
+        }
+
+        [$fields, $error] = $this->validatedProjectFields($request, $project->company_id);
+        if ($error) {
+            return $this->redirectWithFlash('/app/projects/' . $id . '/edit', 'error', $error);
+        }
+
         $data = [
-            'client_id' => $this->ownedClient($request->input('client_id') ?: null, $project->company_id)?->id,
-            'name' => trim((string) $request->input('name')),
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'description' => $request->input('description', ''),
-            'description_ar' => $request->input('description_ar', ''),
+            'name' => mb_substr($name, 0, 150),
             'status' => $newStatus,
-            'budget' => (float) $request->input('budget', 0),
-            'advance_payment_amount' => (float) $request->input('advance_payment_amount', 0),
-            'advance_recovery_percent' => $request->filled('advance_recovery_percent') ? min(100, max(0, (float) $request->input('advance_recovery_percent'))) : null,
-            'start_date' => $request->input('start_date') ?: null,
-            'end_date' => $request->input('end_date') ?: null,
-            'defects_liability_end_date' => $request->input('defects_liability_end_date') ?: null,
-            'ld_rate_per_day' => $request->filled('ld_rate_per_day') ? (float) $request->input('ld_rate_per_day') : null,
-            'ld_cap_percent' => $request->filled('ld_cap_percent') ? min(100, max(0, (float) $request->input('ld_cap_percent'))) : null,
+            ...$fields,
         ];
 
         // actual_completion_date is directly editable (a user can correct it or set it
@@ -759,5 +821,36 @@ class ProjectController extends Controller
         }
         $client = Client::find($id);
         return ($client && $client->company_id === $companyId) ? $client : null;
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form — same shape as EstimateController::isValidOptionalDate(). */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

@@ -90,7 +90,7 @@ class TakeoffController extends Controller
         $takeoff = Takeoff::create([
             'company_id' => $companyId,
             'project_id' => $projectId,
-            'name' => $name,
+            'name' => mb_substr($name, 0, 150),
             'plan_image_path' => $imagePath,
             'scale_px_per_unit' => 1,
             'scale_unit' => 'm',
@@ -135,10 +135,10 @@ class TakeoffController extends Controller
         }
         $takeoff = $this->findOwned($id);
 
-        $pixelDistance = (float) $request->input('pixel_distance', 0);
-        $realLength = (float) $request->input('real_length', 0);
+        $pixelDistance = $this->validatedNumber($request->input('pixel_distance', 0), 0.01, 999999999);
+        $realLength = $this->validatedNumber($request->input('real_length', 0), 0.01, 999999999);
 
-        if ($pixelDistance <= 0 || $realLength <= 0) {
+        if ($pixelDistance === null || $realLength === null) {
             return response()->json(['ok' => false, 'error' => 'Invalid calibration values.'], 422);
         }
 
@@ -157,12 +157,12 @@ class TakeoffController extends Controller
         $takeoff = $this->findOwned($id);
 
         $type = (string) $request->input('type');
-        $label = trim((string) $request->input('label')) ?: ucfirst($type);
-        $value = (float) $request->input('value', 0);
-        $unitCost = (float) $request->input('unit_cost', 0);
+        $label = mb_substr(trim((string) $request->input('label')) ?: ucfirst($type), 0, 150);
+        $value = $this->validatedNumber($request->input('value', 0), 0.001, 999999999.999);
+        $unitCost = $this->validatedNumberOrDefault($request->input('unit_cost', 0), 0, 99999999.99, 0.0);
         $points = (string) $request->input('points', '[]');
 
-        if (!in_array($type, ['length', 'area', 'count'], true) || $value <= 0) {
+        if (!in_array($type, ['length', 'area', 'count'], true) || $value === null || $unitCost === null) {
             return response()->json(['ok' => false, 'error' => 'Invalid measurement.'], 422);
         }
 
@@ -347,5 +347,24 @@ class TakeoffController extends Controller
         $takeoff = Takeoff::find($id);
         abort_if(!$takeoff || $takeoff->company_id !== Auth::user()->company_id, 404, 'Takeoff not found.');
         return $takeoff;
+    }
+
+    /** Rejects a non-numeric or out-of-range value — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
     }
 }
