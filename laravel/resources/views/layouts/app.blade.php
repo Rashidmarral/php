@@ -112,6 +112,7 @@
 </div>
 <script src="{{ asset('assets/js/password-toggle.js') }}" defer></script>
 <script src="{{ asset('assets/js/global-search.js') }}" defer></script>
+<script src="{{ asset('assets/js/city-combobox.js') }}" defer></script>
 <script>
   // Field supervisors work from a phone on site — installable + a safe static-asset cache
   // makes the panel launchable like an app and keeps loading fast on a weak connection.

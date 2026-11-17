@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ApprovalChainStep;
 use App\Models\Company;
 use App\Models\User;
+use App\Support\ZatcaAddressValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ class SettingsController extends Controller
             'phone' => $request->input('phone', ''),
             'city' => $request->input('city', ''),
             'address' => $request->input('address', ''),
-            'cr_number' => $request->input('cr_number', ''),
+            'cr_number' => trim((string) $request->input('cr_number', '')),
             'vat_number' => $request->input('vat_number', ''),
             'building_number' => trim((string) $request->input('building_number', '')),
             'street_name' => trim((string) $request->input('street_name', '')),
@@ -45,6 +46,16 @@ class SettingsController extends Controller
             'postal_code' => trim((string) $request->input('postal_code', '')),
             'additional_number' => trim((string) $request->input('additional_number', '')),
         ];
+
+        $addressError = ZatcaAddressValidator::validate(
+            $data['building_number'],
+            $data['postal_code'],
+            $data['additional_number'],
+            $data['cr_number']
+        );
+        if ($addressError) {
+            return $this->redirectWithFlash('/app/settings', 'error', $addressError);
+        }
 
         $logo = $request->file('logo');
         if ($logo && $logo->isValid()) {

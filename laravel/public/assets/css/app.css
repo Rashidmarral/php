@@ -412,6 +412,14 @@ input[type=file]::file-selector-button:hover { opacity: .9; }
 .search-dropdown-group a { display: block; padding: 6px 4px; font-size: 13.5px; color: var(--ink); border-radius: 6px; }
 .search-dropdown-group a:hover { background: var(--brand-light); color: var(--brand-dark); text-decoration: none; }
 .search-dropdown-empty { padding: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+
+/* ---------- City combobox: progressive enhancement over <select name="city"> ---------- */
+.city-combo { position: relative; }
+.city-combo .city-select-native { display: none; }
+.city-combo-list { list-style: none; margin: 0; }
+.city-combo-option { padding: 8px 14px; font-size: 13.5px; color: var(--ink); cursor: pointer; border-radius: 6px; }
+.city-combo-option:hover, .city-combo-option.is-active { background: var(--brand-light); color: var(--brand-dark); }
+.city-combo-empty { padding: 12px 14px; font-size: 13px; color: var(--muted); text-align: center; }
 @media (max-width: 900px) {
   .topbar-search { max-width: 150px; }
   .topbar { padding: 0 14px; gap: 8px; }

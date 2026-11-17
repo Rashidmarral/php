@@ -35,26 +35,34 @@
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" value="<?= e($company['phone']) ?>" <?= $ro ?>></div>
-    <div class="form-group"><label><?= t('common.city') ?></label><input type="text" name="city" value="<?= e($company['city']) ?>" <?= $ro ?>></div>
+    <div class="form-group">
+      <label><?= t('common.city') ?></label>
+      <select name="city" class="city-select" data-placeholder="<?= e(t('user.settings.city_search_placeholder')) ?>" data-no-results="<?= e(t('user.settings.city_no_results')) ?>" <?= $ro ?>>
+        <option value=""><?= t('common.select') ?></option>
+        <?php foreach (\App\Support\SaudiCities::withExtra($company['city'] ?? null) as $city): ?>
+          <option value="<?= e($city['en']) ?>" data-ar="<?= e($city['ar']) ?>" <?= ($company['city'] ?? '') === $city['en'] ? 'selected' : '' ?>><?= e($city['ar'] !== '' ? $city['en'] . ' / ' . $city['ar'] : $city['en']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
   </div>
   <div class="form-group"><label><?= t('user.settings.address_freetext') ?></label><input type="text" name="address" value="<?= e($company['address'] ?? '') ?>" placeholder="<?= t('user.settings.address_placeholder') ?>" <?= $ro ?>></div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($company['cr_number']) ?>" <?= $ro ?>></div>
-    <div class="form-group"><label><?= t('common.tax_number') ?></label><input type="text" name="vat_number" value="<?= e($company['vat_number']) ?>" <?= $ro ?>></div>
+    <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" inputmode="numeric" pattern="\d{10}" maxlength="10" placeholder="1010XXXXXX" value="<?= e($company['cr_number']) ?>" <?= $ro ?>></div>
+    <div class="form-group"><label><?= t('common.tax_number') ?></label><input type="text" name="vat_number" inputmode="numeric" pattern="3\d{13}3" maxlength="15" placeholder="3XXXXXXXXXXXXX3" value="<?= e($company['vat_number']) ?>" <?= $ro ?>></div>
   </div>
 
   <h3 style="font-size:14px;margin-top:24px;"><?= t('user.settings.zatca_address') ?></h3>
   <p class="help-text" style="margin-top:-8px;"><?= t('user.settings.zatca_address_hint') ?></p>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.settings.building_number') ?></label><input type="text" name="building_number" maxlength="4" value="<?= e($company['building_number'] ?? '') ?>" placeholder="1234" <?= $ro ?>></div>
+    <div class="form-group"><label><?= t('user.settings.building_number') ?></label><input type="text" name="building_number" inputmode="numeric" pattern="\d{4}" maxlength="4" value="<?= e($company['building_number'] ?? '') ?>" placeholder="1234" <?= $ro ?>></div>
     <div class="form-group"><label><?= t('user.settings.street_name') ?></label><input type="text" name="street_name" value="<?= e($company['street_name'] ?? '') ?>" <?= $ro ?>></div>
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.settings.district') ?></label><input type="text" name="district" value="<?= e($company['district'] ?? '') ?>" <?= $ro ?>></div>
-    <div class="form-group"><label><?= t('user.settings.postal_code') ?></label><input type="text" name="postal_code" maxlength="5" value="<?= e($company['postal_code'] ?? '') ?>" placeholder="12345" <?= $ro ?>></div>
+    <div class="form-group"><label><?= t('user.settings.postal_code') ?></label><input type="text" name="postal_code" inputmode="numeric" pattern="\d{5}" maxlength="5" value="<?= e($company['postal_code'] ?? '') ?>" placeholder="12345" <?= $ro ?>></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.settings.additional_number') ?></label><input type="text" name="additional_number" maxlength="4" value="<?= e($company['additional_number'] ?? '') ?>" placeholder="6789" <?= $ro ?>></div>
+    <div class="form-group"><label><?= t('user.settings.additional_number') ?></label><input type="text" name="additional_number" inputmode="numeric" pattern="\d{4}" maxlength="4" value="<?= e($company['additional_number'] ?? '') ?>" placeholder="6789" <?= $ro ?>></div>
     <div class="form-group"><label><?= t('user.settings.country') ?></label><input type="text" value="<?= t('common.saudi_arabia') ?>" disabled></div>
   </div>
 
