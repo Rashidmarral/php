@@ -61,19 +61,29 @@ class QuickEstimateController extends Controller
         $region = QuickEstimateRegion::find((int) $request->input('region_id'));
         $foundation = QuickEstimateFoundation::find((int) $request->input('foundation_id'));
         $qualityTier = QuickEstimateQualityTier::find((int) $request->input('quality_tier_id'));
-        $totalArea = max(0, (float) $request->input('total_area', 0));
-        $discountPercent = min(100, max(0, (float) $request->input('discount_percent', 0)));
         $vatRate = (float) Setting::get('vat_rate', '15');
 
-        if (!$region || !$foundation || $totalArea <= 0) {
+        if (!$region || !$foundation) {
             return $this->redirectWithFlash('/app/quick-estimate', 'error', t('user.quick_estimate.inputs_required'));
+        }
+
+        $totalArea = $this->validatedNumber($request->input('total_area', 0), 0.01, 999999.99);
+        if ($totalArea === null) {
+            return $this->redirectWithFlash('/app/quick-estimate', 'error', t('user.quick_estimate.area_invalid'));
+        }
+        $discountPercent = $this->validatedNumberOrDefault($request->input('discount_percent', 0), 0, 100, 0.0);
+        if ($discountPercent === null) {
+            return $this->redirectWithFlash('/app/quick-estimate', 'error', t('user.quick_estimate.discount_invalid'));
         }
 
         $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
         $addonRows = empty($selectedAddonIds)
             ? []
             : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->toArray();
-        $addonQuantities = array_map('floatval', (array) $request->input('addon_qty', []));
+        $addonQuantities = $this->validatedAddonQuantities($selectedAddonIds, (array) $request->input('addon_qty', []));
+        if ($addonQuantities === null) {
+            return $this->redirectWithFlash('/app/quick-estimate', 'error', t('user.quick_estimate.addon_qty_invalid'));
+        }
 
         $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities, $qualityTier?->toArray() ?? []);
 
@@ -141,19 +151,30 @@ class QuickEstimateController extends Controller
         $region = QuickEstimateRegion::find((int) $request->input('region_id'));
         $foundation = QuickEstimateFoundation::find((int) $request->input('foundation_id'));
         $qualityTier = QuickEstimateQualityTier::find((int) $request->input('quality_tier_id'));
-        $totalArea = max(0, (float) $request->input('total_area', 0));
-        $discountPercent = min(100, max(0, (float) $request->input('discount_percent', 0)));
         $vatRate = (float) Setting::get('vat_rate', '15');
+        $editUrl = '/app/quick-estimate/' . $estimate->id . '/edit';
 
-        if (!$region || !$foundation || $totalArea <= 0) {
-            return $this->redirectWithFlash('/app/quick-estimate/' . $estimate->id . '/edit', 'error', t('user.quick_estimate.inputs_required'));
+        if (!$region || !$foundation) {
+            return $this->redirectWithFlash($editUrl, 'error', t('user.quick_estimate.inputs_required'));
+        }
+
+        $totalArea = $this->validatedNumber($request->input('total_area', 0), 0.01, 999999.99);
+        if ($totalArea === null) {
+            return $this->redirectWithFlash($editUrl, 'error', t('user.quick_estimate.area_invalid'));
+        }
+        $discountPercent = $this->validatedNumberOrDefault($request->input('discount_percent', 0), 0, 100, 0.0);
+        if ($discountPercent === null) {
+            return $this->redirectWithFlash($editUrl, 'error', t('user.quick_estimate.discount_invalid'));
         }
 
         $selectedAddonIds = array_map('intval', (array) $request->input('addons', []));
         $addonRows = empty($selectedAddonIds)
             ? []
             : QuickEstimateAddon::whereIn('id', $selectedAddonIds)->get()->toArray();
-        $addonQuantities = array_map('floatval', (array) $request->input('addon_qty', []));
+        $addonQuantities = $this->validatedAddonQuantities($selectedAddonIds, (array) $request->input('addon_qty', []));
+        if ($addonQuantities === null) {
+            return $this->redirectWithFlash($editUrl, 'error', t('user.quick_estimate.addon_qty_invalid'));
+        }
 
         $result = QuickEstimateCalc::compute($region->toArray(), $foundation->toArray(), $addonRows, $totalArea, $discountPercent, $vatRate, $addonQuantities, $qualityTier?->toArray() ?? []);
 
@@ -313,6 +334,67 @@ class QuickEstimateController extends Controller
         $estimate = QuickEstimate::find($id);
         abort_if(!$estimate || $estimate->company_id !== Auth::user()->company_id, 404, 'Quick estimate not found.');
         return $estimate;
+    }
+
+    /**
+     * Parses a submitted field as a number and checks it against inclusive bounds,
+     * returning null for anything missing/non-numeric/out of range — store()/update()
+     * use this for total_area and discount_percent, which previously were only ever
+     * cast with (float)/max()/min() and silently coerced instead of rejected (same gap
+     * EstimateController::validatedNumber() closes for estimate numbers, and the
+     * CR/VAT/postal-code gaps App\Support\ZatcaAddressValidator closed for address
+     * fields).
+     */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected — used for optional fields (discount_percent) where "cleared" has always meant "none". */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /**
+     * Validates the addon_qty[] map (manual quantities for non-area-priced add-ons)
+     * for only the SELECTED add-ons — an unchecked add-on's qty input is still
+     * submitted (the field stays in the DOM either way) but never reaches
+     * QuickEstimateCalc::compute(), so a stray/garbage value left in it must not
+     * block the whole request. For a selected add-on, a blank value defaults to 0
+     * (matching the old floatval('') behavior); anything else must be numeric and
+     * within [0, 999999.99], or the request is rejected rather than silently
+     * floatval()'d — a crafted huge quantity would otherwise overflow
+     * quick_estimates' decimal(12,2) total/subtotal columns and throw a database
+     * error instead of a clean validation message.
+     *
+     * @param  array<int, int>  $selectedAddonIds
+     * @param  array<int|string, mixed>  $raw
+     * @return array<int, float>|null
+     */
+    private function validatedAddonQuantities(array $selectedAddonIds, array $raw): ?array
+    {
+        $quantities = [];
+        foreach ($selectedAddonIds as $addonId) {
+            $value = $raw[$addonId] ?? null;
+            if ($value === null || $value === '') {
+                $quantities[$addonId] = 0.0;
+                continue;
+            }
+            $qty = $this->validatedNumber($value, 0, 999999.99);
+            if ($qty === null) {
+                return null;
+            }
+            $quantities[$addonId] = $qty;
+        }
+        return $quantities;
     }
 
     /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */

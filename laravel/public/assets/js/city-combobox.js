@@ -1,13 +1,23 @@
-// Progressive enhancement for Saudi-city <select> fields into a type-to-filter
+// Progressive enhancement for a long/searchable <select> into a type-to-filter
 // combobox: a text input plus a filtered listbox layered in front of the real
-// <select name="city"> that resources/views/app/settings/index.blade.php and
-// resources/views/app/clients/form.blade.php already render. If JS never
-// runs, the plain <select> stays visible and still submits a real value —
-// this only ever sits in front of it, exactly like global-search.js layers
-// its dropdown on top of a plain GET <form> that keeps working on its own.
+// <select>. If JS never runs, the plain <select> stays visible and still
+// submits a real value — this only ever sits in front of it, exactly like
+// global-search.js layers its dropdown on top of a plain GET <form> that
+// keeps working on its own.
+//
+// Two opt-in classes share this exact mechanism:
+//  - select.city-select — the original Saudi-city picker (resources/views/
+//    app/settings/index.blade.php, resources/views/app/clients/form.blade.php),
+//    whose options may carry a data-ar attribute matched alongside the
+//    visible label so typing in either language narrows the list.
+//  - select.combo-select — the same generic combobox for any other long
+//    list (e.g. a client or project picker), with no language-specific
+//    matching assumed. Both render the same .city-combo/.city-combo-list/
+//    .city-combo-option markup (see public/assets/css/app.css) — a second,
+//    differently-named class was deliberately not introduced.
 (function () {
   document.addEventListener('DOMContentLoaded', function () {
-    var selects = document.querySelectorAll('select.city-select');
+    var selects = document.querySelectorAll('select.city-select, select.combo-select');
     for (var i = 0; i < selects.length; i++) {
       initCombo(selects[i]);
     }

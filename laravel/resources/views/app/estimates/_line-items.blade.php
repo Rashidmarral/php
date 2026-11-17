@@ -39,9 +39,9 @@
   <tbody id="items-body">
     @foreach ($rows as $row)
     <tr>
-      <td><input type="text" name="item_section[]" value="{{ $row['item_section'] ?? '' }}" placeholder="e.g. 1.0 Site Prep"></td>
-      <td><input type="text" name="item_description[]" value="{{ $row['description'] ?? '' }}" placeholder="e.g. Excavation and site clearance"></td>
-      <td><input type="text" name="item_description_ar[]" dir="rtl" value="{{ $row['description_ar'] ?? '' }}" placeholder="الوصف بالعربية"></td>
+      <td><input type="text" name="item_section[]" maxlength="150" value="{{ $row['item_section'] ?? '' }}" placeholder="e.g. 1.0 Site Prep"></td>
+      <td><input type="text" name="item_description[]" maxlength="255" value="{{ $row['description'] ?? '' }}" placeholder="e.g. Excavation and site clearance"></td>
+      <td><input type="text" name="item_description_ar[]" dir="rtl" maxlength="255" value="{{ $row['description_ar'] ?? '' }}" placeholder="الوصف بالعربية"></td>
       <td>
         <select name="item_type[]">
           @foreach ($itemTypes as $val => $label)
@@ -49,14 +49,14 @@
           @endforeach
         </select>
       </td>
-      <td><input type="number" step="0.01" name="item_qty[]" value="{{ $row['qty'] ?? 1 }}" class="qty"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0.01" max="999999.99" name="item_qty[]" value="{{ $row['qty'] ?? 1 }}" class="qty"></td>
       <td>
         <select name="item_uom[]">
           @foreach ($units as $u)<option value="{{ $u['code'] }}" {{ ($row['uom'] ?? '') === $u['code'] ? 'selected' : '' }}>{{ $u['code'] }}</option>@endforeach
           <option value="each" {{ ($row['uom'] ?? '') === 'each' ? 'selected' : '' }}>each</option>
         </select>
       </td>
-      <td><input type="number" step="0.01" name="item_cost[]" value="{{ $row['unit_cost'] ?? 0 }}" class="cost"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0" max="9999999.99" name="item_cost[]" value="{{ $row['unit_cost'] ?? 0 }}" class="cost"></td>
       <td class="line-total">0.00</td>
       {{-- An unchecked checkbox is simply omitted from the POST body, which
            would desync item_optional[]'s index from every other item_*[]
@@ -85,7 +85,7 @@
   <div class="form-row">
     <div class="form-group" style="margin:0;">
       <label>Profit margin %</label>
-      <input type="number" step="0.01" min="0" max="100" name="markup_percent" id="markup-percent" value="{{ $markupPercent }}">
+      <input type="number" inputmode="decimal" step="0.01" min="0" max="100" name="markup_percent" id="markup-percent" value="{{ $markupPercent }}">
     </div>
     <div class="form-group" style="margin:0;">
       <label>Tax rate</label>
@@ -141,9 +141,9 @@
     const tr = document.createElement('tr');
     const unitOpts = unitOptions.map(u => `<option value="${u}">${u}</option>`).join('') + '<option value="each">each</option>';
     tr.innerHTML = `
-      <td><input type="text" name="item_section[]" placeholder="optional"></td>
-      <td><input type="text" name="item_description[]" placeholder="Description"></td>
-      <td><input type="text" name="item_description_ar[]" dir="rtl" placeholder="الوصف بالعربية"></td>
+      <td><input type="text" name="item_section[]" maxlength="150" placeholder="optional"></td>
+      <td><input type="text" name="item_description[]" maxlength="255" placeholder="Description"></td>
+      <td><input type="text" name="item_description_ar[]" dir="rtl" maxlength="255" placeholder="الوصف بالعربية"></td>
       <td>
         <select name="item_type[]">
           <option value="material">Material</option>
@@ -153,9 +153,9 @@
           <option value="other">Other</option>
         </select>
       </td>
-      <td><input type="number" step="0.01" name="item_qty[]" value="1" class="qty"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0.01" max="999999.99" name="item_qty[]" value="1" class="qty"></td>
       <td><select name="item_uom[]">${unitOpts}</select></td>
-      <td><input type="number" step="0.01" name="item_cost[]" value="0" class="cost"></td>
+      <td><input type="number" inputmode="decimal" step="0.01" min="0" max="9999999.99" name="item_cost[]" value="0" class="cost"></td>
       <td class="line-total">0.00</td>
       <td style="text-align:center;">
         <input type="hidden" name="item_optional[]" value="0" class="optional-flag">

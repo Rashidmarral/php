@@ -64,14 +64,14 @@
         <div class="form-row">
           <div class="form-group">
             <label><?= t('qe.project_name') ?></label>
-            <input type="text" name="project_name" placeholder="<?= t('qe.project_name') ?>" value="<?= e($projectName) ?>">
+            <input type="text" name="project_name" maxlength="150" placeholder="<?= t('qe.project_name') ?>" value="<?= e($projectName) ?>">
           </div>
           <div class="form-group">
             <label><?= t('user.quick_estimate.client_optional') ?></label>
-            <select name="client_id">
+            <select name="client_id" class="combo-select" data-placeholder="<?= e(t('common.search_clients_placeholder')) ?>" data-no-results="<?= e(t('common.no_clients_found')) ?>">
               <option value=""><?= t('user.quick_estimate.no_client_linked') ?></option>
               <?php foreach ($clients as $c): ?>
-                <option value="<?= $c['id'] ?>" <?= ((int) $selectedClientId === (int) $c['id']) ? 'selected' : '' ?>><?= e($c['name']) ?></option>
+                <option value="<?= $c['id'] ?>" data-ar="<?= e($c['name_ar'] ?? '') ?>" <?= ((int) $selectedClientId === (int) $c['id']) ? 'selected' : '' ?>><?= e($c['name']) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
@@ -116,11 +116,11 @@
         <div class="form-row">
           <div class="form-group">
             <label><?= t('qe.discount') ?> (%)</label>
-            <input type="number" name="discount_percent" id="qe-discount-input" min="0" max="100" value="<?= e((string) $discountPercent) ?>">
+            <input type="number" inputmode="decimal" name="discount_percent" id="qe-discount-input" step="0.01" min="0" max="100" value="<?= e((string) $discountPercent) ?>">
           </div>
           <div class="form-group">
             <label><?= t('qe.total_area') ?> (m²)</label>
-            <input type="number" name="total_area" id="qe-area-input" min="0" value="<?= e((string) $totalArea) ?>" required>
+            <input type="number" inputmode="decimal" name="total_area" id="qe-area-input" step="0.01" min="0.01" max="999999.99" value="<?= e((string) $totalArea) ?>" required>
           </div>
         </div>
       </div>
@@ -138,7 +138,7 @@
                 <?php if ($manual): ?>
                   <div class="qe-addon-qty">
                     <span><?= t('qe.qty') ?> (<?= e($a['unit_type']) ?>)</span>
-                    <input type="number" class="qe-qty-input" name="addon_qty[<?= $a['id'] ?>]" min="0" step="0.01" value="<?= e((string) $qtyValue) ?>" onclick="event.stopPropagation()">
+                    <input type="number" inputmode="decimal" class="qe-qty-input" name="addon_qty[<?= $a['id'] ?>]" min="0" max="999999.99" step="0.01" value="<?= e((string) $qtyValue) ?>" onclick="event.stopPropagation()">
                   </div>
                 <?php endif; ?>
               </div>

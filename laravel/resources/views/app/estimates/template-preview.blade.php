@@ -39,7 +39,7 @@
       <p class="help-text" style="margin-top:2px;"><?= t('user.estimates.include_quantities_hint') ?></p>
     </div>
 
-    <div class="form-group"><label><?= t('common.description') ?></label><input type="text" name="title" value="<?= e(local($template, 'name_en', 'name_ar')) ?>"></div>
+    <div class="form-group"><label><?= t('common.description') ?></label><input type="text" name="title" maxlength="150" value="<?= e(local($template, 'name_en', 'name_ar')) ?>"></div>
 
     <div class="form-group">
       <label><?= t('common.building_type') ?></label>
@@ -52,13 +52,13 @@
       <?php if (empty($buildingTypes)): ?><p class="help-text"><?= t('user.estimates.no_building_types_hint') ?> <a href="/app/business-setup/building-types" target="_blank"><?= t('user.business_setup.title') ?></a>.</p><?php endif; ?>
     </div>
 
-    <div class="form-group"><label><?= t('user.estimates.job_address') ?></label><input type="text" name="job_address" placeholder="Job address or suburb…"></div>
+    <div class="form-group"><label><?= t('user.estimates.job_address') ?></label><input type="text" name="job_address" maxlength="255" placeholder="Job address or suburb…"></div>
 
     <div class="form-group">
       <label><?= t('common.client') ?></label>
-      <select name="client_id">
+      <select name="client_id" class="combo-select" data-placeholder="<?= e(t('common.search_clients_placeholder')) ?>" data-no-results="<?= e(t('common.no_clients_found')) ?>">
         <option value=""><?= t('user.estimates.client_name_placeholder') ?></option>
-        <?php foreach ($clients as $c): ?><option value="<?= $c['id'] ?>"><?= e($c['name']) ?></option><?php endforeach; ?>
+        <?php foreach ($clients as $c): ?><option value="<?= $c['id'] ?>" data-ar="<?= e($c['name_ar'] ?? '') ?>"><?= e($c['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
 

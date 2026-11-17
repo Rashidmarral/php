@@ -388,6 +388,16 @@ class EstimateController extends Controller
             return $this->redirectWithFlash('/app/estimates/create', 'error', t('user.estimates.title_required'));
         }
 
+        $validUntilRaw = trim((string) $request->input('valid_until', ''));
+        if (!$this->isValidOptionalDate($validUntilRaw)) {
+            return $this->redirectWithFlash('/app/estimates/create', 'error', t('user.estimates.valid_until_invalid'));
+        }
+
+        $markupPercent = $this->validatedNumberOrDefault($request->input('markup_percent', 0), 0, 100, 0.0);
+        if ($markupPercent === null) {
+            return $this->redirectWithFlash('/app/estimates/create', 'error', t('user.estimates.markup_invalid'));
+        }
+
         $sections = $request->input('item_section', []);
         $descriptions = $request->input('item_description', []);
         $descriptionsAr = $request->input('item_description_ar', []);
@@ -410,8 +420,14 @@ class EstimateController extends Controller
             if ($section !== '') {
                 $lastSection = $section;
             }
-            $qty = (float) ($qtys[$i] ?? 1);
-            $cost = (float) ($costs[$i] ?? 0);
+            $qty = $this->validatedNumber($qtys[$i] ?? 1, 0.01, 999999.99);
+            if ($qty === null) {
+                return $this->redirectWithFlash('/app/estimates/create', 'error', t('user.estimates.qty_invalid'));
+            }
+            $cost = $this->validatedNumberOrDefault($costs[$i] ?? 0, 0, 9999999.99, 0.0);
+            if ($cost === null) {
+                return $this->redirectWithFlash('/app/estimates/create', 'error', t('user.estimates.unit_cost_invalid'));
+            }
             $lineTotal = $qty * $cost;
             $isOptional = !empty($optionals[$i]);
             // Optional add-ons still get their own real line total, but they
@@ -434,7 +450,6 @@ class EstimateController extends Controller
             ];
         }
 
-        $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
         $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $companyId);
         $taxPercent = (float) ($taxRate->rate_percent ?? 0);
         $calc = EstimateCalc::compute($subtotal, $markupPercent, $taxPercent);
@@ -454,7 +469,7 @@ class EstimateController extends Controller
             'tax_amount' => $calc['tax_amount'],
             'total' => $calc['total'],
             'share_token' => bin2hex(random_bytes(20)),
-            'valid_until' => trim((string) $request->input('valid_until', '')) ?: now()->addDays(30)->toDateString(),
+            'valid_until' => $validUntilRaw ?: now()->addDays(30)->toDateString(),
             ...$this->approvalFieldsForNewEstimate($companyId),
         ]);
 
@@ -543,6 +558,16 @@ class EstimateController extends Controller
             return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', t('user.estimates.title_required'));
         }
 
+        $validUntilRaw = trim((string) $request->input('valid_until', ''));
+        if (!$this->isValidOptionalDate($validUntilRaw)) {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', t('user.estimates.valid_until_invalid'));
+        }
+
+        $markupPercent = $this->validatedNumberOrDefault($request->input('markup_percent', 0), 0, 100, 0.0);
+        if ($markupPercent === null) {
+            return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', t('user.estimates.markup_invalid'));
+        }
+
         $sections = $request->input('item_section', []);
         $descriptions = $request->input('item_description', []);
         $descriptionsAr = $request->input('item_description_ar', []);
@@ -565,8 +590,14 @@ class EstimateController extends Controller
             if ($section !== '') {
                 $lastSection = $section;
             }
-            $qty = (float) ($qtys[$i] ?? 1);
-            $cost = (float) ($costs[$i] ?? 0);
+            $qty = $this->validatedNumber($qtys[$i] ?? 1, 0.01, 999999.99);
+            if ($qty === null) {
+                return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', t('user.estimates.qty_invalid'));
+            }
+            $cost = $this->validatedNumberOrDefault($costs[$i] ?? 0, 0, 9999999.99, 0.0);
+            if ($cost === null) {
+                return $this->redirectWithFlash('/app/estimates/' . $estimate->id . '/edit', 'error', t('user.estimates.unit_cost_invalid'));
+            }
             $lineTotal = $qty * $cost;
             $isOptional = !empty($optionals[$i]);
             // Same rule as store(): optional add-ons never inflate the
@@ -588,7 +619,6 @@ class EstimateController extends Controller
             ];
         }
 
-        $markupPercent = min(100, max(0, (float) $request->input('markup_percent', 0)));
         $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $companyId);
         $taxPercent = (float) ($taxRate->rate_percent ?? 0);
         $calc = EstimateCalc::compute($subtotal, $markupPercent, $taxPercent);
@@ -610,7 +640,7 @@ class EstimateController extends Controller
             'tax_percent' => $taxPercent,
             'tax_amount' => $calc['tax_amount'],
             'total' => $calc['total'],
-            'valid_until' => trim((string) $request->input('valid_until', '')) ?: now()->addDays(30)->toDateString(),
+            'valid_until' => $validUntilRaw ?: now()->addDays(30)->toDateString(),
         ]);
         AuditLog::recordForCompany(Auth::user(), 'estimate_update', 'estimate', $estimate->id, "Estimate \"{$estimate->title}\" updated — " . number_format((float) $calc['total'], 2) . ' SAR');
 
@@ -1253,6 +1283,45 @@ class EstimateController extends Controller
             self::sellPricedItems($estimate),
             fn ($i) => empty($i['is_optional']) || !empty($i['client_selected'])
         ));
+    }
+
+    /**
+     * Parses a submitted field as a number and checks it against inclusive bounds,
+     * returning null for anything missing/non-numeric/out of range so the caller can
+     * redirect back with a translated error instead of silently coercing bad input —
+     * store()/update() use this for the line-items qty/unit_cost columns and the
+     * markup_percent field, which previously had no type or range check at all (the
+     * CR/VAT/postal-code gaps closed by App\Support\ZatcaAddressValidator, applied
+     * here to estimate numbers instead of address fields).
+     */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected — used for fields where clearing the input has always meant "none" (markup_percent, a line's unit_cost). */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** True when $value is empty, or a real calendar date in Y-m-d form — used to validate valid_until before it's stored, since a malformed string would later crash pdf()'s Carbon::parse(). */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 
     /** Only returns the client if it belongs to $companyId — never leak another company's contact data via a foreign key. */

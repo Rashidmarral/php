@@ -9,23 +9,23 @@
 <form method="post" action="{{ url('/app/estimates/' . $estimate['id'] . '/update') }}" class="card" style="max-width:1080px;">
   @csrf
   <div class="form-row">
-    <div class="form-group"><label>{{ t('user.estimates.title_en') }}</label><input type="text" name="title" required value="{{ $estimate['title'] }}" placeholder="e.g. Villa Renovation Estimate"></div>
-    <div class="form-group"><label>{{ t('user.estimates.title_ar') }}</label><input type="text" name="title_ar" dir="rtl" value="{{ $estimate['title_ar'] }}" placeholder="عنوان التسعيرة بالعربية"></div>
+    <div class="form-group"><label>{{ t('user.estimates.title_en') }}</label><input type="text" name="title" required maxlength="150" value="{{ $estimate['title'] }}" placeholder="e.g. Villa Renovation Estimate"></div>
+    <div class="form-group"><label>{{ t('user.estimates.title_ar') }}</label><input type="text" name="title_ar" dir="rtl" maxlength="150" value="{{ $estimate['title_ar'] }}" placeholder="عنوان التسعيرة بالعربية"></div>
     <div class="form-group"><label>{{ t('user.estimates.valid_until') }}</label><input type="date" name="valid_until" value="{{ $estimate['valid_until'] }}"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
       <label>{{ t('common.client') }}</label>
-      <select name="client_id">
+      <select name="client_id" class="combo-select" data-placeholder="{{ t('common.search_clients_placeholder') }}" data-no-results="{{ t('common.no_clients_found') }}">
         <option value="">{{ t('user.projects.no_client') }}</option>
-        @foreach ($clients as $c)<option value="{{ $c['id'] }}" {{ (string)$estimate['client_id'] === (string)$c['id'] ? 'selected' : '' }}>{{ $c['name'] }}</option>@endforeach
+        @foreach ($clients as $c)<option value="{{ $c['id'] }}" data-ar="{{ $c['name_ar'] ?? '' }}" {{ (string)$estimate['client_id'] === (string)$c['id'] ? 'selected' : '' }}>{{ $c['name'] }}</option>@endforeach
       </select>
     </div>
     <div class="form-group">
       <label>{{ t('user.estimates.link_project_optional') }}</label>
-      <select name="project_id">
+      <select name="project_id" class="combo-select" data-placeholder="{{ t('common.search_projects_placeholder') }}" data-no-results="{{ t('common.no_projects_found') }}">
         <option value="">{{ t('user.invoices.no_project') }}</option>
-        @foreach ($projects as $p)<option value="{{ $p['id'] }}" {{ (string)$estimate['project_id'] === (string)$p['id'] ? 'selected' : '' }}>{{ $p['name'] }}</option>@endforeach
+        @foreach ($projects as $p)<option value="{{ $p['id'] }}" data-ar="{{ $p['name_ar'] ?? '' }}" {{ (string)$estimate['project_id'] === (string)$p['id'] ? 'selected' : '' }}>{{ $p['name'] }}</option>@endforeach
       </select>
     </div>
   </div>
