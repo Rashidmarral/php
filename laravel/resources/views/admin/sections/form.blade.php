@@ -16,9 +16,10 @@
   <div class="form-row">
     <div class="form-group">
       <label>{{ t('admin.sections.page') }}</label>
-      <input type="text" name="page_slug" list="page-options" value="{{ $section->page_slug ?? '' }}" placeholder="home" required>
+      <input type="text" name="page_slug" list="page-options" maxlength="40" pattern="[a-z0-9]+(-[a-z0-9]+)*" value="{{ $section->page_slug ?? '' }}" placeholder="home" required>
       <datalist id="page-options">
         @foreach ($pages as $slug => $p)<option value="{{ $slug }}">{{ $p['label'] }}</option>@endforeach
+        @foreach ($customPageSlugs as $slug)<option value="{{ $slug }}">{{ $slug }}</option>@endforeach
       </datalist>
       <p class="help-text">{{ t('admin.sections.page_hint') }}</p>
     </div>
@@ -33,17 +34,17 @@
   </div>
 
   <div class="form-row">
-    <div class="form-group"><label>{{ t('admin.sections.heading_en') }}</label><input type="text" name="title_en" value="{{ $section->title_en ?? '' }}"></div>
-    <div class="form-group"><label>{{ t('admin.sections.heading_ar') }}</label><input type="text" name="title_ar" value="{{ $section->title_ar ?? '' }}" dir="rtl"></div>
+    <div class="form-group"><label>{{ t('admin.sections.heading_en') }}</label><input type="text" name="title_en" maxlength="200" value="{{ $section->title_en ?? '' }}"></div>
+    <div class="form-group"><label>{{ t('admin.sections.heading_ar') }}</label><input type="text" name="title_ar" maxlength="200" value="{{ $section->title_ar ?? '' }}" dir="rtl"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
       <label id="subtitle-label-en">{{ t('admin.sections.subtitle_en') }}</label>
-      <input type="text" name="subtitle_en" value="{{ $section->subtitle_en ?? '' }}">
+      <input type="text" name="subtitle_en" maxlength="500" value="{{ $section->subtitle_en ?? '' }}">
     </div>
     <div class="form-group">
       <label id="subtitle-label-ar">{{ t('admin.sections.subtitle_ar') }}</label>
-      <input type="text" name="subtitle_ar" value="{{ $section->subtitle_ar ?? '' }}" dir="rtl">
+      <input type="text" name="subtitle_ar" maxlength="500" value="{{ $section->subtitle_ar ?? '' }}" dir="rtl">
     </div>
   </div>
 
@@ -56,23 +57,23 @@
 
   <div id="fields-cta_banner" class="section-type-fields">
     <div class="form-row">
-      <div class="form-group"><label>{{ t('admin.sections.button_text_en') }}</label><input type="text" name="button_text_en" value="{{ $section->button_text_en ?? '' }}"></div>
-      <div class="form-group"><label>{{ t('admin.sections.button_text_ar') }}</label><input type="text" name="button_text_ar" value="{{ $section->button_text_ar ?? '' }}" dir="rtl"></div>
+      <div class="form-group"><label>{{ t('admin.sections.button_text_en') }}</label><input type="text" name="button_text_en" maxlength="100" value="{{ $section->button_text_en ?? '' }}"></div>
+      <div class="form-group"><label>{{ t('admin.sections.button_text_ar') }}</label><input type="text" name="button_text_ar" maxlength="100" value="{{ $section->button_text_ar ?? '' }}" dir="rtl"></div>
     </div>
-    <div class="form-group"><label>{{ t('admin.sections.button_link') }}</label><input type="text" name="button_url" value="{{ $section->button_url ?? '' }}" placeholder="/register or https://..."></div>
+    <div class="form-group"><label>{{ t('admin.sections.button_link') }}</label><input type="text" name="button_url" maxlength="255" value="{{ $section->button_url ?? '' }}" placeholder="/register or https://..."></div>
   </div>
 
   <div id="fields-feature_grid" class="section-type-fields">
     <h3 style="font-size:14px;margin-top:8px;">{{ t('admin.sections.items_hint') }}</h3>
     @foreach ($items as $i => $item)
       <div class="form-row" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
-        <div class="form-group" style="max-width:90px;"><label>{{ t('admin.sections.icon') }}</label><input type="text" name="items[{{ $i }}][icon]" value="{{ $item['icon'] ?? '' }}" placeholder="🚀"></div>
-        <div class="form-group"><label>{{ t('admin.sections.item_title_en') }}</label><input type="text" name="items[{{ $i }}][title_en]" value="{{ $item['title_en'] ?? '' }}"></div>
-        <div class="form-group"><label>{{ t('admin.sections.item_title_ar') }}</label><input type="text" name="items[{{ $i }}][title_ar]" value="{{ $item['title_ar'] ?? '' }}" dir="rtl"></div>
+        <div class="form-group" style="max-width:90px;"><label>{{ t('admin.sections.icon') }}</label><input type="text" name="items[{{ $i }}][icon]" maxlength="10" value="{{ $item['icon'] ?? '' }}" placeholder="🚀"></div>
+        <div class="form-group"><label>{{ t('admin.sections.item_title_en') }}</label><input type="text" name="items[{{ $i }}][title_en]" maxlength="100" value="{{ $item['title_en'] ?? '' }}"></div>
+        <div class="form-group"><label>{{ t('admin.sections.item_title_ar') }}</label><input type="text" name="items[{{ $i }}][title_ar]" maxlength="100" value="{{ $item['title_ar'] ?? '' }}" dir="rtl"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>{{ t('admin.sections.item_desc_en') }}</label><input type="text" name="items[{{ $i }}][desc_en]" value="{{ $item['desc_en'] ?? '' }}"></div>
-        <div class="form-group"><label>{{ t('admin.sections.item_desc_ar') }}</label><input type="text" name="items[{{ $i }}][desc_ar]" value="{{ $item['desc_ar'] ?? '' }}" dir="rtl"></div>
+        <div class="form-group"><label>{{ t('admin.sections.item_desc_en') }}</label><input type="text" name="items[{{ $i }}][desc_en]" maxlength="255" value="{{ $item['desc_en'] ?? '' }}"></div>
+        <div class="form-group"><label>{{ t('admin.sections.item_desc_ar') }}</label><input type="text" name="items[{{ $i }}][desc_ar]" maxlength="255" value="{{ $item['desc_ar'] ?? '' }}" dir="rtl"></div>
       </div>
     @endforeach
   </div>
@@ -81,15 +82,15 @@
     <h3 style="font-size:14px;margin-top:8px;">{{ t('admin.sections.stats_hint') }}</h3>
     @foreach ($items as $i => $item)
       <div class="form-row" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
-        <div class="form-group" style="max-width:120px;"><label>{{ t('common.value') }}</label><input type="text" name="items[{{ $i }}][value]" value="{{ $item['value'] ?? '' }}" placeholder="2,400+"></div>
-        <div class="form-group"><label>{{ t('admin.sections.stat_label_en') }}</label><input type="text" name="items[{{ $i }}][label_en]" value="{{ $item['label_en'] ?? '' }}"></div>
-        <div class="form-group"><label>{{ t('admin.sections.stat_label_ar') }}</label><input type="text" name="items[{{ $i }}][label_ar]" value="{{ $item['label_ar'] ?? '' }}" dir="rtl"></div>
+        <div class="form-group" style="max-width:120px;"><label>{{ t('common.value') }}</label><input type="text" name="items[{{ $i }}][value]" maxlength="20" value="{{ $item['value'] ?? '' }}" placeholder="2,400+"></div>
+        <div class="form-group"><label>{{ t('admin.sections.stat_label_en') }}</label><input type="text" name="items[{{ $i }}][label_en]" maxlength="100" value="{{ $item['label_en'] ?? '' }}"></div>
+        <div class="form-group"><label>{{ t('admin.sections.stat_label_ar') }}</label><input type="text" name="items[{{ $i }}][label_ar]" maxlength="100" value="{{ $item['label_ar'] ?? '' }}" dir="rtl"></div>
       </div>
     @endforeach
   </div>
 
   <div class="form-row" style="margin-top:18px;">
-    <div class="form-group" style="max-width:140px;"><label>{{ t('common.sort_order') }}</label><input type="number" name="sort_order" value="{{ $section->sort_order ?? 0 }}"></div>
+    <div class="form-group" style="max-width:140px;"><label>{{ t('common.sort_order') }}</label><input type="number" step="1" min="0" max="99999" inputmode="numeric" name="sort_order" value="{{ $section->sort_order ?? 0 }}"></div>
     <div class="form-group">
       <label>&nbsp;</label>
       <label style="font-weight:400;display:flex;align-items:center;gap:6px;"><input type="checkbox" name="is_active" value="1" style="width:auto;" {{ ($section->is_active ?? true) ? 'checked' : '' }}> {{ t('admin.sections.visible_on_page') }}</label>

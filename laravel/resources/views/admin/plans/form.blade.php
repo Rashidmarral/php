@@ -15,25 +15,25 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
 <form method="post" action="<?= $plan ? '/admin/plans/' . $plan['id'] : '/admin/plans' ?>" class="card" style="max-width:760px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('admin.plan.name_en') ?></label><input type="text" name="name" required value="<?= e($plan['name'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('admin.plan.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" value="<?= e($plan['name_ar'] ?? '') ?>" placeholder="اسم الباقة"></div>
+    <div class="form-group"><label><?= t('admin.plan.name_en') ?></label><input type="text" name="name" required maxlength="100" value="<?= e($plan['name'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('admin.plan.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" maxlength="100" value="<?= e($plan['name_ar'] ?? '') ?>" placeholder="اسم الباقة"></div>
   </div>
-  <div class="form-group"><label><?= t('common.slug') ?></label><input type="text" name="slug" required value="<?= e($plan['slug'] ?? '') ?>" placeholder="e.g. professional"></div>
+  <div class="form-group"><label><?= t('common.slug') ?></label><input type="text" name="slug" required maxlength="50" pattern="[a-z0-9]+(-[a-z0-9]+)*" title="<?= t('admin.plan.slug_pattern_hint') ?>" value="<?= e($plan['slug'] ?? '') ?>" placeholder="e.g. professional"></div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('admin.plan.tagline_en') ?></label><input type="text" name="tagline" value="<?= e($plan['tagline'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('admin.plan.tagline_ar') ?></label><input type="text" name="tagline_ar" dir="rtl" value="<?= e($plan['tagline_ar'] ?? '') ?>"></div>
-  </div>
-  <div class="form-row">
-    <div class="form-group"><label><?= t('admin.plan.price_monthly') ?></label><input type="number" step="0.01" name="price_monthly" value="<?= e((string)($plan['price_monthly'] ?? 0)) ?>"></div>
-    <div class="form-group"><label><?= t('admin.plan.price_yearly') ?></label><input type="number" step="0.01" name="price_yearly" value="<?= e((string)($plan['price_yearly'] ?? 0)) ?>"></div>
+    <div class="form-group"><label><?= t('admin.plan.tagline_en') ?></label><input type="text" name="tagline" maxlength="255" value="<?= e($plan['tagline'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('admin.plan.tagline_ar') ?></label><input type="text" name="tagline_ar" dir="rtl" maxlength="255" value="<?= e($plan['tagline_ar'] ?? '') ?>"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('admin.plan.max_users') ?></label><input type="number" name="max_users" value="<?= e((string)($plan['max_users'] ?? 5)) ?>"></div>
-    <div class="form-group"><label><?= t('admin.plan.max_projects') ?></label><input type="number" name="max_projects" value="<?= e((string)($plan['max_projects'] ?? 10)) ?>"></div>
+    <div class="form-group"><label><?= t('admin.plan.price_monthly') ?></label><input type="number" step="0.01" min="0" max="99999999.99" inputmode="decimal" name="price_monthly" value="<?= e((string)($plan['price_monthly'] ?? 0)) ?>"></div>
+    <div class="form-group"><label><?= t('admin.plan.price_yearly') ?></label><input type="number" step="0.01" min="0" max="99999999.99" inputmode="decimal" name="price_yearly" value="<?= e((string)($plan['price_yearly'] ?? 0)) ?>"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label><?= t('admin.plan.max_users') ?></label><input type="number" step="1" min="1" max="100000" inputmode="numeric" name="max_users" value="<?= e((string)($plan['max_users'] ?? 5)) ?>"></div>
+    <div class="form-group"><label><?= t('admin.plan.max_projects') ?></label><input type="number" step="1" min="1" max="100000" inputmode="numeric" name="max_projects" value="<?= e((string)($plan['max_projects'] ?? 10)) ?>"></div>
   </div>
   <div class="form-group" style="max-width:260px;">
     <label><?= t('admin.plan.consultations_month') ?></label>
-    <input type="number" min="0" name="consultation_quota_monthly" value="<?= e((string)($plan['consultation_quota_monthly'] ?? 0)) ?>">
+    <input type="number" step="1" min="0" max="100000" inputmode="numeric" name="consultation_quota_monthly" value="<?= e((string)($plan['consultation_quota_monthly'] ?? 0)) ?>">
     <p class="help-text"><?= t('admin.plan.consultations_month_hint') ?></p>
   </div>
   <div class="form-group">
@@ -81,7 +81,7 @@ $activeFlags = $plan ? (json_decode($plan['feature_flags'] ?? '{}', true) ?: [])
     <?php endif; ?>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('common.sort_order') ?></label><input type="number" name="sort_order" value="<?= e((string)($plan['sort_order'] ?? 0)) ?>"></div>
+    <div class="form-group"><label><?= t('common.sort_order') ?></label><input type="number" step="1" min="0" max="99999" inputmode="numeric" name="sort_order" value="<?= e((string)($plan['sort_order'] ?? 0)) ?>"></div>
     <div class="form-group">
       <label><?= t('admin.plan.visible_pricing') ?></label>
       <select name="is_active">

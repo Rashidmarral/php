@@ -17,10 +17,10 @@
   <h3><?= t('admin.qe.add_quality_tier') ?></h3>
   <form method="post" action="/admin/quick-estimate/quality-tiers" class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr auto;align-items:end;">
     <?= csrf_field() ?>
-    <div class="form-group" style="margin:0;"><label><?= t('common.name_en') ?></label><input type="text" name="name_en" required></div>
-    <div class="form-group" style="margin:0;"><label><?= t('common.name_ar') ?></label><input type="text" name="name_ar" required dir="rtl"></div>
-    <div class="form-group" style="margin:0;"><label><?= t('admin.qe.multiplier') ?></label><input type="number" step="0.01" name="multiplier" value="1"></div>
-    <div class="form-group" style="margin:0;"><label><?= t('common.sort_order') ?></label><input type="number" name="sort_order" value="0"></div>
+    <div class="form-group" style="margin:0;"><label><?= t('common.name_en') ?></label><input type="text" name="name_en" maxlength="100" required></div>
+    <div class="form-group" style="margin:0;"><label><?= t('common.name_ar') ?></label><input type="text" name="name_ar" maxlength="100" required dir="rtl"></div>
+    <div class="form-group" style="margin:0;"><label><?= t('admin.qe.multiplier') ?></label><input type="number" step="0.01" min="0" max="999.99" inputmode="decimal" name="multiplier" value="1"></div>
+    <div class="form-group" style="margin:0;"><label><?= t('common.sort_order') ?></label><input type="number" step="1" min="0" max="99999" inputmode="numeric" name="sort_order" value="0"></div>
     <button type="submit" class="btn btn-primary"><?= t('common.add') ?></button>
   </form>
 </div>
@@ -31,10 +31,10 @@
   <?php foreach ($qualityTiers as $qt): $fid = 'quality-tier-' . $qt['id']; ?>
     <form id="<?= $fid ?>" method="post" action="/admin/quick-estimate/quality-tiers/<?= $qt['id'] ?>"><?= csrf_field() ?></form>
     <tr>
-      <td><input form="<?= $fid ?>" type="text" name="name_en" value="<?= e($qt['name_en']) ?>" style="min-width:140px;"></td>
-      <td><input form="<?= $fid ?>" type="text" name="name_ar" value="<?= e($qt['name_ar']) ?>" dir="rtl" style="min-width:140px;"></td>
-      <td><input form="<?= $fid ?>" type="number" step="0.01" name="multiplier" value="<?= e((string)$qt['multiplier']) ?>" style="width:80px;"></td>
-      <td><input form="<?= $fid ?>" type="number" name="sort_order" value="<?= e((string)$qt['sort_order']) ?>" style="width:70px;"></td>
+      <td><input form="<?= $fid ?>" type="text" name="name_en" maxlength="100" value="<?= e($qt['name_en']) ?>" style="min-width:140px;"></td>
+      <td><input form="<?= $fid ?>" type="text" name="name_ar" maxlength="100" value="<?= e($qt['name_ar']) ?>" dir="rtl" style="min-width:140px;"></td>
+      <td><input form="<?= $fid ?>" type="number" step="0.01" min="0" max="999.99" inputmode="decimal" name="multiplier" value="<?= e((string)$qt['multiplier']) ?>" style="width:80px;"></td>
+      <td><input form="<?= $fid ?>" type="number" step="1" min="0" max="99999" inputmode="numeric" name="sort_order" value="<?= e((string)$qt['sort_order']) ?>" style="width:70px;"></td>
       <td><input form="<?= $fid ?>" type="checkbox" name="is_active" value="1" <?= $qt['is_active'] ? 'checked' : '' ?>></td>
       <td style="display:flex;gap:6px;">
         <button form="<?= $fid ?>" type="submit" class="btn btn-sm btn-light"><?= t('common.save') ?></button>

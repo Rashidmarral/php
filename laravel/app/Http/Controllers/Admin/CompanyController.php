@@ -11,6 +11,8 @@ use App\Models\Project;
 use App\Models\User;
 use App\Support\Billing;
 use App\Support\Feature;
+use App\Support\Zatca\ZatcaXmlGenerator;
+use App\Support\ZatcaAddressValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -69,7 +71,8 @@ class CompanyController extends Controller
             AuditLog::record($request->user(), 'company_status_change', 'company', $company->id, "{$company->name} → {$status}");
             $this->flash('success', t('admin.company.status_updated'));
         }
-        return redirect('/admin/companies/' . $company->id);
+
+        return redirect('/admin/companies/'.$company->id);
     }
 
     /** Admin can edit any company's full profile on their behalf (name in both languages, ZATCA address, VAT/CR). */
@@ -77,55 +80,93 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
 
+        $name = trim((string) $request->input('name'));
+        if ($name === '' || mb_strlen($name) > 150) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.name_invalid'));
+        }
+        $nameAr = trim((string) $request->input('name_ar', ''));
+        if (mb_strlen($nameAr) > 255) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.name_invalid'));
+        }
+        $email = trim((string) $request->input('email'));
+        if ($email === '' || mb_strlen($email) > 150 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('common.email_invalid'));
+        }
+
+        $teamSize = (string) $request->input('team_size', '');
+        if ($teamSize !== '' && ! in_array($teamSize, ['1-5', '6-15', '16-50', '51-200', '200+'], true)) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.team_size_invalid'));
+        }
+
+        $classification = (string) $request->input('contractor_classification', '');
+        if ($classification !== '' && ! in_array($classification, ['1', '2', '3', '4', '5'], true)) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('user.settings.classification_grade_invalid'));
+        }
+
+        $buildingNumber = trim((string) $request->input('building_number', ''));
+        $postalCode = trim((string) $request->input('postal_code', ''));
+        $additionalNumber = trim((string) $request->input('additional_number', ''));
+        $crNumber = trim((string) $request->input('cr_number', ''));
+        $addressError = ZatcaAddressValidator::validate($buildingNumber, $postalCode, $additionalNumber, $crNumber);
+        if ($addressError) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', $addressError);
+        }
+
+        $vatNumber = trim((string) $request->input('vat_number', ''));
+        if ($vatNumber !== '' && preg_match(ZatcaXmlGenerator::VAT_NUMBER_PATTERN, $vatNumber) !== 1) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.vat_number_invalid'));
+        }
+
         $data = [
-            'name' => trim((string) $request->input('name')),
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'email' => trim((string) $request->input('email')),
-            'phone' => $request->input('phone', ''),
-            'city' => $request->input('city', ''),
-            'team_size' => $request->input('team_size', ''),
-            'address' => $request->input('address', ''),
-            'cr_number' => $request->input('cr_number', ''),
-            'vat_number' => $request->input('vat_number', ''),
-            'mol_establishment_number' => trim((string) $request->input('mol_establishment_number', '')),
-            'building_number' => trim((string) $request->input('building_number', '')),
-            'street_name' => trim((string) $request->input('street_name', '')),
-            'district' => trim((string) $request->input('district', '')),
-            'postal_code' => trim((string) $request->input('postal_code', '')),
-            'additional_number' => trim((string) $request->input('additional_number', '')),
-            'contractor_classification' => $request->input('contractor_classification', ''),
-            'contractor_classification_number' => trim((string) $request->input('contractor_classification_number', '')),
+            'name' => $name,
+            'name_ar' => $nameAr,
+            'email' => $email,
+            'phone' => mb_substr((string) $request->input('phone', ''), 0, 30),
+            'city' => mb_substr(trim((string) $request->input('city', '')), 0, 100),
+            'team_size' => $teamSize,
+            'address' => mb_substr((string) $request->input('address', ''), 0, 255),
+            'cr_number' => $crNumber,
+            'vat_number' => $vatNumber,
+            'mol_establishment_number' => mb_substr(trim((string) $request->input('mol_establishment_number', '')), 0, 50),
+            'building_number' => $buildingNumber,
+            'street_name' => mb_substr(trim((string) $request->input('street_name', '')), 0, 255),
+            'district' => mb_substr(trim((string) $request->input('district', '')), 0, 255),
+            'postal_code' => $postalCode,
+            'additional_number' => $additionalNumber,
+            'contractor_classification' => $classification,
+            'contractor_classification_number' => mb_substr(trim((string) $request->input('contractor_classification_number', '')), 0, 50),
         ];
 
         $docError = $this->handleDocUpload($request, 'cr_document', $company->id, 'cr_document_path', $data);
         $docError = $docError ?: $this->handleDocUpload($request, 'vat_document', $company->id, 'vat_document_path', $data);
         if ($docError) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', $docError);
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', $docError);
         }
 
         $company->update($data);
         AuditLog::record($request->user(), 'company_profile_update', 'company', $company->id, $company->name);
 
-        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.profile_updated'));
+        return $this->redirectWithFlash('/admin/companies/'.$company->id, 'success', t('admin.company.profile_updated'));
     }
 
     /** @param array $data by reference — sets $column on success */
     private function handleDocUpload(Request $request, string $field, int $companyId, string $column, array &$data): ?string
     {
         $file = $request->file($field);
-        if (!$file || !$file->isValid()) {
+        if (! $file || ! $file->isValid()) {
             return null;
         }
         $mime = $file->getMimeType();
-        if (!isset(self::ALLOWED_DOC_TYPES[$mime])) {
-            return ucfirst(str_replace('_', ' ', $field)) . ' must be a PDF, JPG, or PNG file.';
+        if (! isset(self::ALLOWED_DOC_TYPES[$mime])) {
+            return ucfirst(str_replace('_', ' ', $field)).' must be a PDF, JPG, or PNG file.';
         }
         if ($file->getSize() > 10 * 1024 * 1024) {
-            return ucfirst(str_replace('_', ' ', $field)) . ' must be smaller than 10MB.';
+            return ucfirst(str_replace('_', ' ', $field)).' must be smaller than 10MB.';
         }
-        $filename = "company-{$companyId}-{$field}-" . bin2hex(random_bytes(6)) . '.' . self::ALLOWED_DOC_TYPES[$mime];
+        $filename = "company-{$companyId}-{$field}-".bin2hex(random_bytes(6)).'.'.self::ALLOWED_DOC_TYPES[$mime];
         $file->move(public_path('uploads/company-documents'), $filename);
         $data[$column] = "/uploads/company-documents/{$filename}";
+
         return null;
     }
 
@@ -134,15 +175,15 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         $plan = Plan::find((int) $request->input('plan_id'));
-        if (!$plan) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', t('admin.company.invalid_plan'));
+        if (! $plan) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.invalid_plan'));
         }
         $cycle = $request->input('billing_cycle', 'monthly') === 'yearly' ? 'yearly' : 'monthly';
 
         Billing::activatePlan($company->id, $plan, $cycle);
         AuditLog::record($request->user(), 'company_plan_override', 'company', $company->id, "{$company->name} → {$plan->name}");
 
-        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.plan_changed', ['plan' => $plan->name]));
+        return $this->redirectWithFlash('/admin/companies/'.$company->id, 'success', t('admin.company.plan_changed', ['plan' => $plan->name]));
     }
 
     /**
@@ -174,14 +215,14 @@ class CompanyController extends Controller
 
         $summary = $overrides === []
             ? "{$company->name}: all feature overrides cleared"
-            : "{$company->name}: " . implode(', ', array_map(
-                fn ($key, $on) => $key . ' → ' . ($on ? 'on' : 'off'),
+            : "{$company->name}: ".implode(', ', array_map(
+                fn ($key, $on) => $key.' → '.($on ? 'on' : 'off'),
                 array_keys($overrides),
                 $overrides
             ));
         AuditLog::record($request->user(), 'company_feature_override', 'company', $company->id, $summary);
 
-        return $this->redirectWithFlash('/admin/companies/' . $company->id, 'success', t('admin.company.features_updated'));
+        return $this->redirectWithFlash('/admin/companies/'.$company->id, 'success', t('admin.company.features_updated'));
     }
 
     /** Log the admin in as this company's owner, for support/debugging. Ends via /app/end-impersonation. */
@@ -189,8 +230,8 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         $owner = User::where('company_id', $company->id)->where('role', 'owner')->first();
-        if (!$owner) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', t('admin.company.no_owner_account'));
+        if (! $owner) {
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.no_owner_account'));
         }
 
         $admin = $request->user();
@@ -207,7 +248,7 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         if ($request->input('confirm_name') !== $company->name) {
-            return $this->redirectWithFlash('/admin/companies/' . $company->id, 'error', t('admin.company.confirm_name_mismatch'));
+            return $this->redirectWithFlash('/admin/companies/'.$company->id, 'error', t('admin.company.confirm_name_mismatch'));
         }
 
         $companyId = $company->id;
@@ -253,7 +294,7 @@ class CompanyController extends Controller
 
         return response($body, 200, [
             'Content-Type' => 'text/csv; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="companies-' . now()->format('Y-m-d') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="companies-'.now()->format('Y-m-d').'.csv"',
         ]);
     }
 }

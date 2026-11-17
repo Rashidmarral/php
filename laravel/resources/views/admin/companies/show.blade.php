@@ -39,16 +39,24 @@
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/profile" enctype="multipart/form-data" style="margin-top:16px;">
     <?= csrf_field() ?>
     <div class="form-row">
-      <div class="form-group"><label><?= t('admin.company.name_en') ?></label><input type="text" name="name" value="<?= e($company['name']) ?>"></div>
-      <div class="form-group"><label><?= t('admin.company.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" value="<?= e($company['name_ar'] ?? '') ?>" placeholder="اسم الشركة"></div>
+      <div class="form-group"><label><?= t('admin.company.name_en') ?></label><input type="text" name="name" required maxlength="150" value="<?= e($company['name']) ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" maxlength="255" value="<?= e($company['name_ar'] ?? '') ?>" placeholder="اسم الشركة"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" value="<?= e($company['email']) ?>"></div>
-      <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" value="<?= e($company['phone']) ?>"></div>
+      <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" required maxlength="150" value="<?= e($company['email']) ?>"></div>
+      <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" inputmode="tel" maxlength="30" value="<?= e($company['phone']) ?>"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label><?= t('admin.company.city') ?></label><input type="text" name="city" value="<?= e($company['city']) ?>"></div>
-      <div class="form-group"><label><?= t('admin.company.address_freetext') ?></label><input type="text" name="address" value="<?= e($company['address'] ?? '') ?>"></div>
+      <div class="form-group">
+        <label><?= t('admin.company.city') ?></label>
+        <select name="city" class="city-select" data-placeholder="<?= e(t('user.settings.city_search_placeholder')) ?>" data-no-results="<?= e(t('user.settings.city_no_results')) ?>">
+          <option value=""><?= t('common.select') ?></option>
+          <?php foreach (\App\Support\SaudiCities::withExtra($company['city'] ?? null) as $city): ?>
+            <option value="<?= e($city['en']) ?>" data-ar="<?= e($city['ar']) ?>" <?= ($company['city'] ?? '') === $city['en'] ? 'selected' : '' ?>><?= e($city['ar'] !== '' ? $city['en'].' / '.$city['ar'] : $city['en']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group"><label><?= t('admin.company.address_freetext') ?></label><input type="text" name="address" maxlength="255" value="<?= e($company['address'] ?? '') ?>"></div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -63,11 +71,11 @@
       <div></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($company['cr_number']) ?>"></div>
-      <div class="form-group"><label><?= t('admin.company.vat_number') ?></label><input type="text" name="vat_number" value="<?= e($company['vat_number']) ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.cr_number') ?></label><input type="text" name="cr_number" inputmode="numeric" pattern="\d{10}" maxlength="10" placeholder="1010XXXXXX" value="<?= e($company['cr_number']) ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.vat_number') ?></label><input type="text" name="vat_number" inputmode="numeric" pattern="3\d{13}3" maxlength="15" placeholder="3XXXXXXXXXXXXX3" value="<?= e($company['vat_number']) ?>"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label><?= t('admin.company.mol_establishment_number') ?></label><input type="text" name="mol_establishment_number" value="<?= e($company['mol_establishment_number'] ?? '') ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.mol_establishment_number') ?></label><input type="text" name="mol_establishment_number" maxlength="50" value="<?= e($company['mol_establishment_number'] ?? '') ?>"></div>
       <div></div>
     </div>
 
@@ -82,19 +90,19 @@
           <?php endforeach; ?>
         </select>
       </div>
-      <div class="form-group"><label><?= t('admin.company.classification_number') ?></label><input type="text" name="contractor_classification_number" value="<?= e($company['contractor_classification_number'] ?? '') ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.classification_number') ?></label><input type="text" name="contractor_classification_number" maxlength="50" value="<?= e($company['contractor_classification_number'] ?? '') ?>"></div>
     </div>
 
     <h3 style="font-size:13px;margin-top:16px;"><?= t('admin.company.zatca_address') ?></h3>
     <div class="form-row">
-      <div class="form-group"><label><?= t('admin.company.building_number') ?></label><input type="text" name="building_number" maxlength="4" value="<?= e($company['building_number'] ?? '') ?>" placeholder="1234"></div>
-      <div class="form-group"><label><?= t('admin.company.street_name') ?></label><input type="text" name="street_name" value="<?= e($company['street_name'] ?? '') ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.building_number') ?></label><input type="text" name="building_number" inputmode="numeric" pattern="\d{4}" maxlength="4" value="<?= e($company['building_number'] ?? '') ?>" placeholder="1234"></div>
+      <div class="form-group"><label><?= t('admin.company.street_name') ?></label><input type="text" name="street_name" maxlength="255" value="<?= e($company['street_name'] ?? '') ?>"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label><?= t('admin.company.district') ?></label><input type="text" name="district" value="<?= e($company['district'] ?? '') ?>"></div>
-      <div class="form-group"><label><?= t('admin.company.postal_code') ?></label><input type="text" name="postal_code" maxlength="5" value="<?= e($company['postal_code'] ?? '') ?>" placeholder="12345"></div>
+      <div class="form-group"><label><?= t('admin.company.district') ?></label><input type="text" name="district" maxlength="255" value="<?= e($company['district'] ?? '') ?>"></div>
+      <div class="form-group"><label><?= t('admin.company.postal_code') ?></label><input type="text" name="postal_code" inputmode="numeric" pattern="\d{5}" maxlength="5" value="<?= e($company['postal_code'] ?? '') ?>" placeholder="12345"></div>
     </div>
-    <div class="form-group" style="max-width:240px;"><label><?= t('admin.company.additional_number') ?></label><input type="text" name="additional_number" maxlength="4" value="<?= e($company['additional_number'] ?? '') ?>" placeholder="6789"></div>
+    <div class="form-group" style="max-width:240px;"><label><?= t('admin.company.additional_number') ?></label><input type="text" name="additional_number" inputmode="numeric" pattern="\d{4}" maxlength="4" value="<?= e($company['additional_number'] ?? '') ?>" placeholder="6789"></div>
 
     <h3 style="font-size:13px;margin-top:16px;"><?= t('admin.company.legal_documents') ?></h3>
     <div class="form-row">
@@ -124,7 +132,7 @@
   <form method="post" action="/admin/companies/<?= $company['id'] ?>/plan" style="display:flex;gap:8px;align-items:end;">
     <?= csrf_field() ?>
     <div class="form-group" style="margin:0;flex:1;">
-      <select name="plan_id">
+      <select name="plan_id" class="combo-select" data-placeholder="<?= e(t('admin.company.plan_search_placeholder')) ?>" data-no-results="<?= e(t('common.no_results')) ?>">
         <?php foreach ($plans as $p): ?>
           <option value="<?= $p['id'] ?>" <?= ($company['plan_id'] ?? null) == $p['id'] ? 'selected' : '' ?>><?= e($p['name']) ?></option>
         <?php endforeach; ?>
@@ -215,7 +223,7 @@
       <?= csrf_field() ?>
       <div class="form-group">
         <label><?= t('admin.company.confirm_name_prompt') ?> (<strong><?= e($company['name']) ?></strong>)</label>
-        <input type="text" name="confirm_name" required>
+        <input type="text" name="confirm_name" maxlength="150" required>
       </div>
       <button type="submit" class="btn btn-danger"><?= t('admin.company.delete_permanently') ?></button>
     </form>

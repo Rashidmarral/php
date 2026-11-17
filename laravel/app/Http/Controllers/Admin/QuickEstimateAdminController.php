@@ -28,33 +28,61 @@ class QuickEstimateAdminController extends Controller
 
     public function storeRegion(Request $request): RedirectResponse
     {
-        QuickEstimateRegion::create([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'price_per_sqm' => (float) $request->input('price_per_sqm', 0),
-            'multiplier' => (float) $request->input('multiplier', 1),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => true,
-        ]);
+        $input = $this->collectRegionInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/regions', 'error', $input);
+        }
+        QuickEstimateRegion::create($input + ['is_active' => true]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', t('admin.quick_estimate.region_added'));
     }
 
     public function updateRegion(Request $request, int $id): RedirectResponse
     {
-        QuickEstimateRegion::findOrFail($id)->update([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'price_per_sqm' => (float) $request->input('price_per_sqm', 0),
-            'multiplier' => (float) $request->input('multiplier', 1),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => (bool) $request->input('is_active'),
-        ]);
+        $region = QuickEstimateRegion::findOrFail($id);
+        $input = $this->collectRegionInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/regions', 'error', $input);
+        }
+        $region->update($input + ['is_active' => (bool) $request->input('is_active')]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', t('admin.quick_estimate.region_updated'));
+    }
+
+    /** Returns the validated/bounded column data, or a translated error message string when a required field is missing or a value is out of range. */
+    private function collectRegionInput(Request $request): array|string
+    {
+        $nameEn = trim((string) $request->input('name_en'));
+        $nameAr = trim((string) $request->input('name_ar'));
+        if ($nameEn === '' || $nameAr === '' || mb_strlen($nameEn) > 100 || mb_strlen($nameAr) > 100) {
+            return t('admin.quick_estimate.name_required');
+        }
+        $pricePerSqm = $this->validatedNumberOrDefault($request->input('price_per_sqm', 0), 0, 99999999.99, 0.0);
+        if ($pricePerSqm === null) {
+            return t('admin.quick_estimate.price_per_sqm_invalid');
+        }
+        $multiplier = $this->validatedNumberOrDefault($request->input('multiplier', 1), 0, 999.99, 1.0);
+        if ($multiplier === null) {
+            return t('admin.quick_estimate.multiplier_invalid');
+        }
+        $sortOrder = $this->validatedNumberOrDefault($request->input('sort_order', 0), 0, 99999, 0.0);
+        if ($sortOrder === null) {
+            return t('common.sort_order_invalid');
+        }
+
+        return [
+            'name_en' => $nameEn,
+            'name_ar' => $nameAr,
+            'price_per_sqm' => $pricePerSqm,
+            'multiplier' => $multiplier,
+            'sort_order' => (int) $sortOrder,
+        ];
     }
 
     public function destroyRegion(int $id): RedirectResponse
     {
         QuickEstimateRegion::destroy($id);
+
         return $this->redirectWithFlash('/admin/quick-estimate/regions', 'success', t('admin.quick_estimate.region_removed'));
     }
 
@@ -67,35 +95,58 @@ class QuickEstimateAdminController extends Controller
 
     public function storeFoundation(Request $request): RedirectResponse
     {
-        QuickEstimateFoundation::create([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'description_en' => $request->input('description_en', ''),
-            'description_ar' => $request->input('description_ar', ''),
-            'price_per_sqm' => (float) $request->input('price_per_sqm', 0),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => true,
-        ]);
+        $input = $this->collectFoundationInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'error', $input);
+        }
+        QuickEstimateFoundation::create($input + ['is_active' => true]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', t('admin.quick_estimate.foundation_added'));
     }
 
     public function updateFoundation(Request $request, int $id): RedirectResponse
     {
-        QuickEstimateFoundation::findOrFail($id)->update([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'description_en' => $request->input('description_en', ''),
-            'description_ar' => $request->input('description_ar', ''),
-            'price_per_sqm' => (float) $request->input('price_per_sqm', 0),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => (bool) $request->input('is_active'),
-        ]);
+        $foundation = QuickEstimateFoundation::findOrFail($id);
+        $input = $this->collectFoundationInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'error', $input);
+        }
+        $foundation->update($input + ['is_active' => (bool) $request->input('is_active')]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', t('admin.quick_estimate.foundation_updated'));
+    }
+
+    /** Returns the validated/bounded column data, or a translated error message string when a required field is missing or a value is out of range. */
+    private function collectFoundationInput(Request $request): array|string
+    {
+        $nameEn = trim((string) $request->input('name_en'));
+        $nameAr = trim((string) $request->input('name_ar'));
+        if ($nameEn === '' || $nameAr === '' || mb_strlen($nameEn) > 100 || mb_strlen($nameAr) > 100) {
+            return t('admin.quick_estimate.name_required');
+        }
+        $pricePerSqm = $this->validatedNumberOrDefault($request->input('price_per_sqm', 0), 0, 99999999.99, 0.0);
+        if ($pricePerSqm === null) {
+            return t('admin.quick_estimate.price_per_sqm_invalid');
+        }
+        $sortOrder = $this->validatedNumberOrDefault($request->input('sort_order', 0), 0, 99999, 0.0);
+        if ($sortOrder === null) {
+            return t('common.sort_order_invalid');
+        }
+
+        return [
+            'name_en' => $nameEn,
+            'name_ar' => $nameAr,
+            'description_en' => mb_substr((string) $request->input('description_en', ''), 0, 255),
+            'description_ar' => mb_substr((string) $request->input('description_ar', ''), 0, 255),
+            'price_per_sqm' => $pricePerSqm,
+            'sort_order' => (int) $sortOrder,
+        ];
     }
 
     public function destroyFoundation(int $id): RedirectResponse
     {
         QuickEstimateFoundation::destroy($id);
+
         return $this->redirectWithFlash('/admin/quick-estimate/foundations', 'success', t('admin.quick_estimate.foundation_removed'));
     }
 
@@ -108,41 +159,61 @@ class QuickEstimateAdminController extends Controller
 
     public function storeAddon(Request $request): RedirectResponse
     {
-        QuickEstimateAddon::create([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'description_en' => $request->input('description_en', ''),
-            'description_ar' => $request->input('description_ar', ''),
-            'unit_price' => (float) $request->input('unit_price', 0),
-            'unit_type' => trim((string) $request->input('unit_type')) ?: 'sqm',
-            'qty_mode' => $request->input('qty_mode') === 'manual' ? 'manual' : 'area',
-            'is_pro' => (bool) $request->input('is_pro'),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => true,
-        ]);
+        $input = $this->collectAddonInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/addons', 'error', $input);
+        }
+        QuickEstimateAddon::create($input + ['is_active' => true]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_added'));
     }
 
     public function updateAddon(Request $request, int $id): RedirectResponse
     {
-        QuickEstimateAddon::findOrFail($id)->update([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'description_en' => $request->input('description_en', ''),
-            'description_ar' => $request->input('description_ar', ''),
-            'unit_price' => (float) $request->input('unit_price', 0),
-            'unit_type' => trim((string) $request->input('unit_type')) ?: 'sqm',
+        $addon = QuickEstimateAddon::findOrFail($id);
+        $input = $this->collectAddonInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/addons', 'error', $input);
+        }
+        $addon->update($input + ['is_active' => (bool) $request->input('is_active')]);
+
+        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_updated'));
+    }
+
+    /** Returns the validated/bounded column data, or a translated error message string when a required field is missing or a value is out of range. */
+    private function collectAddonInput(Request $request): array|string
+    {
+        $nameEn = trim((string) $request->input('name_en'));
+        $nameAr = trim((string) $request->input('name_ar'));
+        if ($nameEn === '' || $nameAr === '' || mb_strlen($nameEn) > 100 || mb_strlen($nameAr) > 100) {
+            return t('admin.quick_estimate.name_required');
+        }
+        $unitPrice = $this->validatedNumberOrDefault($request->input('unit_price', 0), 0, 99999999.99, 0.0);
+        if ($unitPrice === null) {
+            return t('admin.quick_estimate.unit_price_invalid');
+        }
+        $sortOrder = $this->validatedNumberOrDefault($request->input('sort_order', 0), 0, 99999, 0.0);
+        if ($sortOrder === null) {
+            return t('common.sort_order_invalid');
+        }
+
+        return [
+            'name_en' => $nameEn,
+            'name_ar' => $nameAr,
+            'description_en' => mb_substr((string) $request->input('description_en', ''), 0, 255),
+            'description_ar' => mb_substr((string) $request->input('description_ar', ''), 0, 255),
+            'unit_price' => $unitPrice,
+            'unit_type' => mb_substr(trim((string) $request->input('unit_type')), 0, 20) ?: 'sqm',
             'qty_mode' => $request->input('qty_mode') === 'manual' ? 'manual' : 'area',
             'is_pro' => (bool) $request->input('is_pro'),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => (bool) $request->input('is_active'),
-        ]);
-        return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_updated'));
+            'sort_order' => (int) $sortOrder,
+        ];
     }
 
     public function destroyAddon(int $id): RedirectResponse
     {
         QuickEstimateAddon::destroy($id);
+
         return $this->redirectWithFlash('/admin/quick-estimate/addons', 'success', t('admin.quick_estimate.addon_removed'));
     }
 
@@ -155,31 +226,56 @@ class QuickEstimateAdminController extends Controller
 
     public function storeQualityTier(Request $request): RedirectResponse
     {
-        QuickEstimateQualityTier::create([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'multiplier' => (float) $request->input('multiplier', 1),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => true,
-        ]);
+        $input = $this->collectQualityTierInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'error', $input);
+        }
+        QuickEstimateQualityTier::create($input + ['is_active' => true]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', t('admin.quick_estimate.quality_tier_added'));
     }
 
     public function updateQualityTier(Request $request, int $id): RedirectResponse
     {
-        QuickEstimateQualityTier::findOrFail($id)->update([
-            'name_en' => trim((string) $request->input('name_en')),
-            'name_ar' => trim((string) $request->input('name_ar')),
-            'multiplier' => (float) $request->input('multiplier', 1),
-            'sort_order' => (int) $request->input('sort_order', 0),
-            'is_active' => (bool) $request->input('is_active'),
-        ]);
+        $tier = QuickEstimateQualityTier::findOrFail($id);
+        $input = $this->collectQualityTierInput($request);
+        if (is_string($input)) {
+            return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'error', $input);
+        }
+        $tier->update($input + ['is_active' => (bool) $request->input('is_active')]);
+
         return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', t('admin.quick_estimate.quality_tier_updated'));
+    }
+
+    /** Returns the validated/bounded column data, or a translated error message string when a required field is missing or a value is out of range. */
+    private function collectQualityTierInput(Request $request): array|string
+    {
+        $nameEn = trim((string) $request->input('name_en'));
+        $nameAr = trim((string) $request->input('name_ar'));
+        if ($nameEn === '' || $nameAr === '' || mb_strlen($nameEn) > 100 || mb_strlen($nameAr) > 100) {
+            return t('admin.quick_estimate.name_required');
+        }
+        $multiplier = $this->validatedNumberOrDefault($request->input('multiplier', 1), 0, 999.99, 1.0);
+        if ($multiplier === null) {
+            return t('admin.quick_estimate.multiplier_invalid');
+        }
+        $sortOrder = $this->validatedNumberOrDefault($request->input('sort_order', 0), 0, 99999, 0.0);
+        if ($sortOrder === null) {
+            return t('common.sort_order_invalid');
+        }
+
+        return [
+            'name_en' => $nameEn,
+            'name_ar' => $nameAr,
+            'multiplier' => $multiplier,
+            'sort_order' => (int) $sortOrder,
+        ];
     }
 
     public function destroyQualityTier(int $id): RedirectResponse
     {
         QuickEstimateQualityTier::destroy($id);
+
         return $this->redirectWithFlash('/admin/quick-estimate/quality-tiers', 'success', t('admin.quick_estimate.quality_tier_removed'));
     }
 
@@ -204,6 +300,28 @@ class QuickEstimateAdminController extends Controller
         if (in_array($status, ['new', 'contacted', 'converted', 'dismissed'], true)) {
             QuickEstimate::whereKey($id)->update(['status' => $status]);
         }
+
         return redirect('/admin/quick-estimate/leads');
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting it — see App\Http\Controllers\App\ProjectController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return $this->validatedNumber($value, $min, $max);
     }
 }
