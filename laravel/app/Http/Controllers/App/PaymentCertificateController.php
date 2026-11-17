@@ -104,21 +104,21 @@ class PaymentCertificateController extends Controller
             return $redirect;
         }
         $project = $this->findOwnedProject($projectId);
+        $redirectPath = '/app/projects/' . $project->id . '/payment-certificates/create';
 
         [$lines, $error] = $this->buildLines($project, $request);
         if ($error !== null) {
-            return $this->redirectWithFlash('/app/projects/' . $project->id . '/payment-certificates/create', 'error', $error);
+            return $this->redirectWithFlash($redirectPath, 'error', $error);
         }
 
         $company = Company::find($project->company_id);
         $gross = round(array_sum(array_column($lines, 'this_period_value')), 2);
 
-        $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', $company->default_retention_percent ?? 0)));
+        [$retentionPercent, $advanceRecoveryPercent, $dateError] = $this->validatedCertificateInputs($project, $company, $request);
+        if ($dateError !== null) {
+            return $this->redirectWithFlash($redirectPath, 'error', $dateError);
+        }
         $retentionAmount = round($gross * $retentionPercent / 100, 2);
-
-        $advanceRecoveryPercent = $project->advance_payment_amount > 0
-            ? min(100, max(0, (float) $request->input('advance_recovery_percent', $project->advance_recovery_percent ?? 0)))
-            : null;
         $advanceRecoveryAmount = $this->advanceRecoveryAmount($project, $advanceRecoveryPercent, $gross);
 
         $netPayable = round($gross - $retentionAmount - $advanceRecoveryAmount, 2);
@@ -142,7 +142,7 @@ class PaymentCertificateController extends Controller
                 'gross_amount' => $gross,
                 'net_payable' => $netPayable,
                 'cumulative_certified' => $cumulativeCertified,
-                'notes' => trim((string) $request->input('notes', '')) ?: null,
+                'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000) ?: null,
                 'created_by' => Auth::id(),
             ]);
 
@@ -229,21 +229,21 @@ class PaymentCertificateController extends Controller
             return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id, 'error', t('user.payment_certificates.locked_certified'));
         }
         $project = $this->findOwnedProject($certificate->project_id);
+        $redirectPath = '/app/payment-certificates/' . $certificate->id . '/edit';
 
         [$lines, $error] = $this->buildLines($project, $request, excludeCertificateNumber: $certificate->certificate_number);
         if ($error !== null) {
-            return $this->redirectWithFlash('/app/payment-certificates/' . $certificate->id . '/edit', 'error', $error);
+            return $this->redirectWithFlash($redirectPath, 'error', $error);
         }
 
         $company = Company::find($project->company_id);
         $gross = round(array_sum(array_column($lines, 'this_period_value')), 2);
 
-        $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', $company->default_retention_percent ?? 0)));
+        [$retentionPercent, $advanceRecoveryPercent, $dateError] = $this->validatedCertificateInputs($project, $company, $request);
+        if ($dateError !== null) {
+            return $this->redirectWithFlash($redirectPath, 'error', $dateError);
+        }
         $retentionAmount = round($gross * $retentionPercent / 100, 2);
-
-        $advanceRecoveryPercent = $project->advance_payment_amount > 0
-            ? min(100, max(0, (float) $request->input('advance_recovery_percent', $project->advance_recovery_percent ?? 0)))
-            : null;
         $advanceRecoveryAmount = $this->advanceRecoveryAmount($project, $advanceRecoveryPercent, $gross, excludeCertificateId: $certificate->id);
 
         $netPayable = round($gross - $retentionAmount - $advanceRecoveryAmount, 2);
@@ -262,7 +262,7 @@ class PaymentCertificateController extends Controller
                 'gross_amount' => $gross,
                 'net_payable' => $netPayable,
                 'cumulative_certified' => $cumulativeCertified,
-                'notes' => trim((string) $request->input('notes', '')) ?: null,
+                'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000) ?: null,
             ]);
 
             PaymentCertificateLine::where('payment_certificate_id', $certificate->id)->delete();
@@ -534,17 +534,25 @@ class PaymentCertificateController extends Controller
                 continue;
             }
 
-            $cumulativeQty = (float) ($cumulativeQtys[$i] ?? 0);
-            $previousQty = (float) ($previousCumulative[$boqItemId] ?? 0);
-            $contractQty = (float) $boqItem->qty;
             $lineLabel = trim((string) ($boqItem->item_number ?: $boqItem->description));
 
+            // decimal(12,2): 10 integer digits + 2 decimal, the same precision as the BOQ's own
+            // qty column — rejected (not silently cast to 0) when non-numeric, the same gap this
+            // app's prior batches closed everywhere else a plain (float) cast used to hide one.
+            $cumulativeQty = $this->validatedNumber($cumulativeQtys[$i] ?? null, 0, 9999999999.99);
+            if ($cumulativeQty === null) {
+                return [[], t('user.payment_certificates.line_qty_invalid', ['label' => $lineLabel])];
+            }
+
+            $previousQty = (float) ($previousCumulative[$boqItemId] ?? 0);
+            $contractQty = (float) $boqItem->qty;
+
             if ($cumulativeQty < $previousQty) {
-                return [[], "Line \"{$lineLabel}\": cumulative quantity ({$cumulativeQty}) cannot be less than what was already certified ({$previousQty})."];
+                return [[], t('user.payment_certificates.line_qty_below_previous', ['label' => $lineLabel, 'qty' => $cumulativeQty, 'previous' => $previousQty])];
             }
             if ($cumulativeQty > $contractQty) {
                 $over = round($cumulativeQty - $contractQty, 2);
-                return [[], "Line \"{$lineLabel}\": cumulative quantity ({$cumulativeQty}) exceeds the BOQ contract quantity ({$contractQty}) by {$over}."];
+                return [[], t('user.payment_certificates.line_qty_exceeds_contract', ['label' => $lineLabel, 'qty' => $cumulativeQty, 'contract' => $contractQty, 'over' => $over])];
             }
 
             $thisPeriodQty = round($cumulativeQty - $previousQty, 2);
@@ -566,7 +574,7 @@ class PaymentCertificateController extends Controller
         }
 
         if (empty($lines)) {
-            return [[], 'No BOQ lines to certify.'];
+            return [[], t('user.payment_certificates.no_lines_to_certify')];
         }
 
         // Invariant check (should always hold given the per-line contract_qty cap above, but
@@ -621,5 +629,73 @@ class PaymentCertificateController extends Controller
         }
         $client = Client::find($id);
         return ($client && $client->company_id === $companyId) ? $client : null;
+    }
+
+    /**
+     * Shared by store()/update(): validates retention_percent, advance_recovery_percent (only
+     * when the project has an advance payment to recover, exactly like the inline logic this
+     * replaces), and the certificate_date/period_from/period_to dates — rejecting (not
+     * clamping/defaulting) anything that doesn't parse, the same (float)-cast-with-no-check gap
+     * closed in every prior batch.
+     *
+     * @return array{0: float, 1: ?float, 2: ?string} [retentionPercent, advanceRecoveryPercent, error]
+     */
+    private function validatedCertificateInputs(Project $project, ?Company $company, Request $request): array
+    {
+        $retentionPercent = $this->validatedNumberOrDefault($request->input('retention_percent'), 0, 100, (float) ($company->default_retention_percent ?? 0));
+        if ($retentionPercent === null) {
+            return [0.0, null, t('user.payment_certificates.retention_percent_invalid')];
+        }
+
+        $advanceRecoveryPercent = null;
+        if ($project->advance_payment_amount > 0) {
+            $advanceRecoveryPercent = $this->validatedNumberOrDefault($request->input('advance_recovery_percent'), 0, 100, (float) ($project->advance_recovery_percent ?? 0));
+            if ($advanceRecoveryPercent === null) {
+                return [0.0, null, t('user.payment_certificates.advance_recovery_percent_invalid')];
+            }
+        }
+
+        foreach ([
+            'certificate_date' => 'user.payment_certificates.date_invalid',
+            'period_from' => 'user.payment_certificates.period_from_invalid',
+            'period_to' => 'user.payment_certificates.period_to_invalid',
+        ] as $field => $errorKey) {
+            if (!$this->isValidOptionalDate(trim((string) $request->input($field, '')))) {
+                return [0.0, null, t($errorKey)];
+            }
+        }
+
+        return [$retentionPercent, $advanceRecoveryPercent, null];
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** Same shape as ProjectController::isValidOptionalDate() — a blank value is valid (optional, defaulted by the caller), anything else must be a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

@@ -108,9 +108,18 @@ class SettingsController extends Controller
         }
 
         $companyId = Auth::user()->company_id;
+
+        // Validated against the same fixed 1-5 grade set the legal.blade.php <select> actually
+        // offers — never trusted raw from the request, same "never a plain pass-through for a
+        // closed enum field" rule this app applies to every other select.
+        $classification = (string) $request->input('contractor_classification', '');
+        if ($classification !== '' && !in_array($classification, ['1', '2', '3', '4', '5'], true)) {
+            return $this->redirectWithFlash('/app/settings/legal', 'error', t('user.settings.classification_grade_invalid'));
+        }
+
         $data = [
-            'contractor_classification' => $request->input('contractor_classification', ''),
-            'contractor_classification_number' => trim((string) $request->input('contractor_classification_number', '')),
+            'contractor_classification' => $classification,
+            'contractor_classification_number' => mb_substr(trim((string) $request->input('contractor_classification_number', '')), 0, 50),
         ];
 
         $docError = $this->handleDocUpload($request, 'cr_document', $companyId, 'cr_document_path', $data);
@@ -143,9 +152,23 @@ class SettingsController extends Controller
         }
 
         $companyId = Auth::user()->company_id;
+
+        // decimal(5,2) columns: rejected (not silently cast/clamped) when non-numeric or
+        // out of range — the same (float)-cast-with-no-check gap closed in every prior batch.
+        // Markup has no business-logic ceiling below the column's own (999.99); retention can
+        // never sensibly exceed 100%.
+        $defaultMarkup = $this->validatedNumberOrDefault($request->input('default_markup_percent', 0), 0, 999.99, 0.0);
+        if ($defaultMarkup === null) {
+            return $this->redirectWithFlash('/app/settings/business', 'error', t('user.settings.default_markup_invalid'));
+        }
+        $defaultRetention = $this->validatedNumberOrDefault($request->input('default_retention_percent', 0), 0, 100, 0.0);
+        if ($defaultRetention === null) {
+            return $this->redirectWithFlash('/app/settings/business', 'error', t('user.settings.default_retention_invalid'));
+        }
+
         $data = [
-            'default_markup_percent' => (float) $request->input('default_markup_percent', 0),
-            'default_retention_percent' => (float) $request->input('default_retention_percent', 0),
+            'default_markup_percent' => $defaultMarkup,
+            'default_retention_percent' => $defaultRetention,
             'client_portal_enabled' => $request->boolean('client_portal_enabled'),
         ];
 
@@ -218,8 +241,8 @@ class SettingsController extends Controller
                     'document_type' => $documentType,
                     'step_order' => $order,
                     'role_required' => $role,
-                    'label' => trim((string) ($labels[$i] ?? '')) ?: null,
-                    'label_ar' => trim((string) ($labelsAr[$i] ?? '')) ?: null,
+                    'label' => mb_substr(trim((string) ($labels[$i] ?? '')), 0, 255) ?: null,
+                    'label_ar' => mb_substr(trim((string) ($labelsAr[$i] ?? '')), 0, 255) ?: null,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -253,6 +276,12 @@ class SettingsController extends Controller
         }
         if (strlen($new) < 8) {
             return $this->redirectWithFlash('/app/settings/security', 'error', t('user.settings.new_password_min_length'));
+        }
+        // bcrypt (Laravel's default hasher) silently truncates anything past 72 bytes, so an
+        // unbounded input wouldn't error — it would just hash to the same value as a 72-byte
+        // prefix, which is confusing rather than dangerous, but still worth rejecting outright.
+        if (strlen($new) > 128) {
+            return $this->redirectWithFlash('/app/settings/security', 'error', t('user.settings.new_password_max_length'));
         }
         if ($new !== $confirm) {
             return $this->redirectWithFlash('/app/settings/security', 'error', t('user.settings.new_password_mismatch'));
@@ -294,5 +323,24 @@ class SettingsController extends Controller
         $file->move(public_path('uploads/company-documents'), $filename);
         $data[$column] = "/uploads/company-documents/{$filename}";
         return null;
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
     }
 }

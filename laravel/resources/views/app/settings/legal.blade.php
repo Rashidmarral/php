@@ -42,7 +42,7 @@
         <?php endforeach; ?>
       </select>
     </div>
-    <div class="form-group"><label><?= t('user.settings.classification_number') ?></label><input type="text" name="contractor_classification_number" value="<?= e($company['contractor_classification_number'] ?? '') ?>" <?= $ro ?>></div>
+    <div class="form-group"><label><?= t('user.settings.classification_number') ?></label><input type="text" name="contractor_classification_number" maxlength="50" value="<?= e($company['contractor_classification_number'] ?? '') ?>" <?= $ro ?>></div>
   </div>
 
   <?php if (auth()->user()->isCompanyOwner()): ?>

@@ -18,16 +18,16 @@
       <div class="form-group"><label><?= t('user.payment_certificates.period_to') ?></label><input type="date" name="period_to"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label><?= t('user.payment_certificates.retention_percent') ?></label><input type="number" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>"></div>
+      <div class="form-group"><label><?= t('user.payment_certificates.retention_percent') ?></label><input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>"></div>
       <?php if ($advancePaymentAmount > 0): ?>
         <div class="form-group">
           <label><?= t('user.payment_certificates.advance_recovery_percent') ?></label>
-          <input type="number" step="0.01" min="0" max="100" name="advance_recovery_percent" id="advance-recovery-percent" value="<?= e((string)$defaultAdvanceRecoveryPercent) ?>">
+          <input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="advance_recovery_percent" id="advance-recovery-percent" value="<?= e((string)$defaultAdvanceRecoveryPercent) ?>">
           <p class="help-text" style="margin-top:4px;"><?= t('user.payment_certificates.advance_summary', ['paid' => money($advancePaymentAmount), 'recovered' => money($advanceRecoveredSoFar), 'remaining' => money(max(0, $advancePaymentAmount - $advanceRecoveredSoFar))]) ?></p>
         </div>
       <?php endif; ?>
     </div>
-    <div class="form-group"><label><?= t('user.payment_certificates.notes') ?></label><textarea name="notes" rows="2"></textarea></div>
+    <div class="form-group"><label><?= t('user.payment_certificates.notes') ?></label><textarea name="notes" rows="2" maxlength="2000"></textarea></div>
   </div>
 
   <div class="card">
@@ -59,7 +59,7 @@
             <td class="num"><?= number_format($row['contract_qty'], 2) ?></td>
             <td class="num"><?= number_format($row['contract_unit_price'], 2) ?></td>
             <td class="num prev-cum"><?= number_format($row['previous_cumulative_qty'], 2) ?></td>
-            <td><input type="number" step="0.01" name="cumulative_qty[]" class="cumulative-qty" value="<?= $row['previous_cumulative_qty'] ?>" min="<?= $row['previous_cumulative_qty'] ?>" max="<?= $row['contract_qty'] ?>" style="width:110px;"></td>
+            <td><input type="number" step="0.01" inputmode="decimal" name="cumulative_qty[]" class="cumulative-qty" value="<?= $row['previous_cumulative_qty'] ?>" min="<?= $row['previous_cumulative_qty'] ?>" max="<?= $row['contract_qty'] ?>" style="width:110px;"></td>
             <td class="num period-qty">0.00</td>
             <td class="num period-value">0.00</td>
           </tr>

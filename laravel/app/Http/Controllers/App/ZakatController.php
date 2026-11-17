@@ -53,20 +53,35 @@ class ZakatController extends Controller
             return $redirect;
         }
 
-        $periodEndDate = $request->input('period_end_date');
-        if (!$periodEndDate || strtotime($periodEndDate) === false) {
+        $periodEndDate = trim((string) $request->input('period_end_date', ''));
+        if (!$this->isValidRequiredDate($periodEndDate)) {
             return $this->redirectWithFlash('/app/zakat/create', 'error', t('user.zakat.period_end_date_required'));
         }
 
         $rateType = $request->input('rate_type') === 'gregorian' ? 'gregorian' : 'hijri';
 
-        // The only figures this tool ever computes are the base/due amounts below —
-        // every input is taken at face value from the user's own manual entry, never
-        // derived from BuildXact's own transaction data.
-        $equityAmount = (float) $request->input('equity_amount', 0);
-        $longTermLiabilities = (float) $request->input('long_term_liabilities', 0);
-        $netFixedAssets = (float) $request->input('net_fixed_assets', 0);
-        $otherDeductions = (float) $request->input('other_deductions', 0);
+        // The only figures this tool ever computes are the base/due amounts below — every
+        // input is taken at face value from the user's own manual entry, never derived from
+        // BuildXact's own transaction data. decimal(14,2): 12 integer digits + 2 decimal, and
+        // since these are balance-sheet figures (equity can be negative for a distressed
+        // company) the valid range is symmetric rather than floored at zero — rejected (not
+        // silently cast to 0 from a non-numeric value) either way.
+        $equityAmount = $this->validatedNumberOrDefault($request->input('equity_amount', 0), -999999999999.99, 999999999999.99, 0.0);
+        if ($equityAmount === null) {
+            return $this->redirectWithFlash('/app/zakat/create', 'error', t('user.zakat.equity_amount_invalid'));
+        }
+        $longTermLiabilities = $this->validatedNumberOrDefault($request->input('long_term_liabilities', 0), -999999999999.99, 999999999999.99, 0.0);
+        if ($longTermLiabilities === null) {
+            return $this->redirectWithFlash('/app/zakat/create', 'error', t('user.zakat.long_term_liabilities_invalid'));
+        }
+        $netFixedAssets = $this->validatedNumberOrDefault($request->input('net_fixed_assets', 0), -999999999999.99, 999999999999.99, 0.0);
+        if ($netFixedAssets === null) {
+            return $this->redirectWithFlash('/app/zakat/create', 'error', t('user.zakat.net_fixed_assets_invalid'));
+        }
+        $otherDeductions = $this->validatedNumberOrDefault($request->input('other_deductions', 0), -999999999999.99, 999999999999.99, 0.0);
+        if ($otherDeductions === null) {
+            return $this->redirectWithFlash('/app/zakat/create', 'error', t('user.zakat.other_deductions_invalid'));
+        }
 
         $zakatBase = max(0, $equityAmount + $longTermLiabilities - $netFixedAssets - $otherDeductions);
         $zakatDue = $zakatBase * ZakatCalculation::rate($rateType);
@@ -82,7 +97,7 @@ class ZakatController extends Controller
             'other_deductions' => $otherDeductions,
             'zakat_base' => $zakatBase,
             'zakat_due' => $zakatDue,
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000) ?: null,
         ]);
 
         return $this->redirectWithFlash('/app/zakat/' . $calculation->id, 'success', t('user.zakat.saved'));
@@ -198,5 +213,33 @@ class ZakatController extends Controller
         $calculation = ZakatCalculation::find($id);
         abort_if(!$calculation || $calculation->company_id !== Auth::user()->company_id, 404, 'Zakat estimate not found.');
         return $calculation;
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** A real calendar date in Y-m-d form — unlike the optional-date helpers elsewhere in this app, period_end_date is required here, so a blank value is itself invalid. */
+    private function isValidRequiredDate(string $value): bool
+    {
+        if ($value === '' || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

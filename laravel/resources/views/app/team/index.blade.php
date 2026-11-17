@@ -27,8 +27,8 @@
   <?php else: ?>
   <form method="post" action="/app/team" class="form-row" style="align-items:end;grid-template-columns:1fr 1fr 1fr auto;">
     <?= csrf_field() ?>
-    <div class="form-group" style="margin:0;"><label><?= t('common.name') ?></label><input type="text" name="name" required></div>
-    <div class="form-group" style="margin:0;"><label><?= t('common.email') ?></label><input type="email" name="email" required></div>
+    <div class="form-group" style="margin:0;"><label><?= t('common.name') ?></label><input type="text" name="name" required maxlength="150"></div>
+    <div class="form-group" style="margin:0;"><label><?= t('common.email') ?></label><input type="email" name="email" required maxlength="150"></div>
     <div class="form-group" style="margin:0;">
       <label><?= t('common.role') ?></label>
       <select name="role">

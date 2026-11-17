@@ -15,7 +15,7 @@
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.settings.default_markup') ?></label>
-      <input type="number" step="0.01" name="default_markup_percent" value="<?= e((string)($company['default_markup_percent'] ?? 0)) ?>" <?= $ro ?>>
+      <input type="number" step="0.01" min="0" max="999.99" inputmode="decimal" name="default_markup_percent" value="<?= e((string)($company['default_markup_percent'] ?? 0)) ?>" <?= $ro ?>>
       <p class="help-text"><?= t('user.settings.default_markup_hint') ?></p>
     </div>
     <div class="form-group">
@@ -26,7 +26,7 @@
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.settings.default_retention') ?></label>
-      <input type="number" step="0.01" name="default_retention_percent" value="<?= e((string)($company['default_retention_percent'] ?? 0)) ?>" <?= $ro ?>>
+      <input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="default_retention_percent" value="<?= e((string)($company['default_retention_percent'] ?? 0)) ?>" <?= $ro ?>>
       <p class="help-text"><?= t('user.settings.default_retention_hint') ?></p>
     </div>
   </div>
@@ -90,11 +90,11 @@ $stepForSlot = fn ($steps, int $slot) => $steps->firstWhere('step_order', $slot 
         </div>
         <div class="form-group">
           <label><?= t('user.settings.approval_chain_custom_label_en') ?></label>
-          <input type="text" name="<?= $block['type'] ?>_step_label[]" value="<?= e($step->label ?? '') ?>" <?= $ro ?>>
+          <input type="text" name="<?= $block['type'] ?>_step_label[]" value="<?= e($step->label ?? '') ?>" maxlength="255" <?= $ro ?>>
         </div>
         <div class="form-group">
           <label><?= t('user.settings.approval_chain_custom_label_ar') ?></label>
-          <input type="text" name="<?= $block['type'] ?>_step_label_ar[]" value="<?= e($step->label_ar ?? '') ?>" dir="rtl" <?= $ro ?>>
+          <input type="text" name="<?= $block['type'] ?>_step_label_ar[]" value="<?= e($step->label_ar ?? '') ?>" dir="rtl" maxlength="255" <?= $ro ?>>
         </div>
       </div>
     <?php endfor; ?>

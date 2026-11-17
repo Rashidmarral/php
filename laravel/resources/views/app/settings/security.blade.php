@@ -22,14 +22,14 @@
     <div class="form-group">
       <label><?= t('common.new_password') ?></label>
       <div class="password-field">
-        <input type="password" name="new_password" required minlength="8" autocomplete="new-password">
+        <input type="password" name="new_password" required minlength="8" maxlength="128" autocomplete="new-password">
         <?= passwordToggle() ?>
       </div>
     </div>
     <div class="form-group">
       <label><?= t('user.settings.confirm_new_password') ?></label>
       <div class="password-field">
-        <input type="password" name="new_password_confirm" required minlength="8" autocomplete="new-password">
+        <input type="password" name="new_password_confirm" required minlength="8" maxlength="128" autocomplete="new-password">
         <?= passwordToggle() ?>
       </div>
     </div>

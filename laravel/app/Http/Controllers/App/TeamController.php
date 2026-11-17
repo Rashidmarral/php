@@ -20,6 +20,9 @@ class TeamController extends Controller
     /** Saudi IBAN: 'SA' + 22 digits (24 characters total) — see IBAN Registry / SAMA format. */
     private const IBAN_PATTERN = '/^SA\d{22}$/';
 
+    /** Saudi national ID (citizens) and Iqama (residents): exactly 10 digits, starting with 1 or 2. */
+    private const NATIONAL_ID_PATTERN = '/^[12]\d{9}$/';
+
     /**
      * The exact 6 abilities Gate::define()s in AppServiceProvider — the only abilities a
      * per-user permission_overrides entry may touch. Keep this in lockstep with that file;
@@ -59,7 +62,11 @@ class TeamController extends Controller
             $role = 'estimator';
         }
 
-        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        // users.name/email are both string(150) — a name over that is truncated (same
+        // mb_substr-to-column-width convention used everywhere else in this app), but an
+        // over-length email is rejected outright rather than silently truncated into a
+        // different, wrong address.
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 150) {
             return $this->redirectWithFlash('/app/team', 'error', t('user.team.valid_name_email_required'));
         }
         if (User::where('email', $email)->exists()) {
@@ -70,7 +77,7 @@ class TeamController extends Controller
         $companyId = Auth::user()->company_id;
         User::create([
             'company_id' => $companyId,
-            'name' => $name,
+            'name' => mb_substr($name, 0, 150),
             'email' => $email,
             'password' => Hash::make($tempPassword),
             'role' => $role,
@@ -197,20 +204,38 @@ class TeamController extends Controller
             return $this->redirectWithFlash($redirectPath, 'error', t('user.team.iban_invalid'));
         }
 
+        $nationalId = trim((string) $request->input('national_id', ''));
+        if ($nationalId !== '' && !preg_match(self::NATIONAL_ID_PATTERN, $nationalId)) {
+            return $this->redirectWithFlash($redirectPath, 'error', t('user.team.national_id_invalid'));
+        }
+
+        // decimal(12,2) for the three monthly figures, decimal(8,2) for hourly_rate — each
+        // rejected (not silently cast to 0/negative-allowed) when non-numeric/out of range,
+        // capped at its own column's real ceiling.
         $amounts = [];
-        foreach (['basic_salary', 'housing_allowance', 'other_earnings', 'hourly_rate'] as $field) {
-            $value = trim((string) $request->input($field, ''));
-            if ($value !== '' && (!is_numeric($value) || (float) $value < 0)) {
+        foreach ([
+            'basic_salary' => 9999999999.99,
+            'housing_allowance' => 9999999999.99,
+            'other_earnings' => 9999999999.99,
+            'hourly_rate' => 999999.99,
+        ] as $field => $max) {
+            $raw = trim((string) $request->input($field, ''));
+            if ($raw === '') {
+                $amounts[$field] = null;
+                continue;
+            }
+            $value = $this->validatedNumber($raw, 0, $max);
+            if ($value === null) {
                 return $this->redirectWithFlash($redirectPath, 'error', t('user.team.salary_amounts_invalid'));
             }
-            $amounts[$field] = $value === '' ? null : $value;
+            $amounts[$field] = $value;
         }
 
         $member->update([
-            'national_id' => trim((string) $request->input('national_id', '')) ?: null,
-            'nationality' => trim((string) $request->input('nationality', '')) ?: null,
+            'national_id' => $nationalId ?: null,
+            'nationality' => mb_substr(trim((string) $request->input('nationality', '')), 0, 100) ?: null,
             'bank_iban' => $iban ?: null,
-            'bank_name' => trim((string) $request->input('bank_name', '')) ?: null,
+            'bank_name' => mb_substr(trim((string) $request->input('bank_name', '')), 0, 150) ?: null,
             ...$amounts,
         ]);
 
@@ -288,5 +313,15 @@ class TeamController extends Controller
         $member = User::find($id);
         abort_if(!$member || $member->company_id !== Auth::user()->company_id, 404, 'Team member not found.');
         return $member;
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
     }
 }

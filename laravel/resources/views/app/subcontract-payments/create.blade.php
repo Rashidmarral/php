@@ -14,7 +14,7 @@
   <div class="card" style="max-width:600px;">
     <div class="form-row">
       <div class="form-group"><label><?= t('user.subcontract_payments.date') ?></label><input type="date" name="payment_date" value="<?= date('Y-m-d') ?>"></div>
-      <div class="form-group"><label><?= t('user.subcontract_payments.retention_percent') ?></label><input type="number" step="0.01" min="0" max="100" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>"></div>
+      <div class="form-group"><label><?= t('user.subcontract_payments.retention_percent') ?></label><input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="retention_percent" id="retention-percent" value="<?= e((string)$defaultRetentionPercent) ?>"></div>
     </div>
 
     <p class="help-text">
@@ -24,10 +24,10 @@
 
     <div class="form-group">
       <label><?= t('user.subcontract_payments.cumulative_value') ?></label>
-      <input type="number" step="0.01" name="cumulative_value" id="cumulative-value" value="<?= e((string)$previousCumulative) ?>" min="<?= e((string)$previousCumulative) ?>" max="<?= e((string)$contractValue) ?>" required>
+      <input type="number" step="0.01" inputmode="decimal" name="cumulative_value" id="cumulative-value" value="<?= e((string)$previousCumulative) ?>" min="<?= e((string)$previousCumulative) ?>" max="<?= e((string)$contractValue) ?>" required>
     </div>
 
-    <div class="form-group"><label><?= t('user.subcontract_payments.notes') ?></label><textarea name="notes" rows="2"></textarea></div>
+    <div class="form-group"><label><?= t('user.subcontract_payments.notes') ?></label><textarea name="notes" rows="2" maxlength="2000"></textarea></div>
   </div>
 
   <div class="card" style="margin-top:20px;max-width:420px;">

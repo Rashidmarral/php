@@ -13,17 +13,17 @@
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.subcontracts.subcontractor') ?></label>
-      <select name="supplier_id" required>
+      <select name="supplier_id" required class="combo-select" data-placeholder="<?= e(t('common.search_suppliers_placeholder')) ?>" data-no-results="<?= e(t('common.no_suppliers_found')) ?>">
         <option value="">—</option>
         <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
       </select>
     </div>
-    <div class="form-group"><label><?= t('common.title') ?></label><input type="text" name="title" required></div>
+    <div class="form-group"><label><?= t('common.title') ?></label><input type="text" name="title" required maxlength="150"></div>
   </div>
-  <div class="form-group"><label><?= t('user.subcontracts.description') ?></label><textarea name="description" rows="3"></textarea></div>
+  <div class="form-group"><label><?= t('user.subcontracts.description') ?></label><textarea name="description" rows="3" maxlength="5000"></textarea></div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.subcontracts.contract_value') ?></label><input type="number" step="0.01" min="0.01" name="contract_value" value="0" required></div>
-    <div class="form-group"><label><?= t('user.subcontracts.retention_percent') ?></label><input type="number" step="0.01" min="0" max="100" name="retention_percent" value="<?= e((string)$defaultRetentionPercent) ?>"></div>
+    <div class="form-group"><label><?= t('user.subcontracts.contract_value') ?></label><input type="number" step="0.01" min="0.01" max="999999999999.99" inputmode="decimal" name="contract_value" value="0" required></div>
+    <div class="form-group"><label><?= t('user.subcontracts.retention_percent') ?></label><input type="number" step="0.01" min="0" max="100" inputmode="decimal" name="retention_percent" value="<?= e((string)$defaultRetentionPercent) ?>"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
@@ -37,7 +37,7 @@
     </div>
     <div class="form-group">
       <label><?= t('user.subcontracts.exchange_rate_to_sar') ?></label>
-      <input type="number" step="0.0001" min="0.0001" name="exchange_rate_to_sar" id="sc-exchange-rate" value="1.0000" disabled>
+      <input type="number" step="0.0001" min="0.0001" max="99999999.9999" inputmode="decimal" name="exchange_rate_to_sar" id="sc-exchange-rate" value="1.0000" disabled>
     </div>
   </div>
   <div class="form-row">

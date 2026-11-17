@@ -33,31 +33,31 @@
 
   <div class="form-group">
     <label><?= t('user.zakat.equity_amount') ?></label>
-    <input type="number" step="0.01" name="equity_amount" value="0" required>
+    <input type="number" step="0.01" max="999999999999.99" inputmode="decimal" name="equity_amount" value="0" required>
     <div class="help-text"><?= t('user.zakat.equity_amount_hint') ?></div>
   </div>
 
   <div class="form-group">
     <label><?= t('user.zakat.long_term_liabilities') ?></label>
-    <input type="number" step="0.01" name="long_term_liabilities" value="0">
+    <input type="number" step="0.01" max="999999999999.99" inputmode="decimal" name="long_term_liabilities" value="0">
     <div class="help-text"><?= t('user.zakat.long_term_liabilities_hint') ?></div>
   </div>
 
   <div class="form-group">
     <label><?= t('user.zakat.net_fixed_assets') ?></label>
-    <input type="number" step="0.01" name="net_fixed_assets" value="0">
+    <input type="number" step="0.01" max="999999999999.99" inputmode="decimal" name="net_fixed_assets" value="0">
     <div class="help-text"><?= t('user.zakat.net_fixed_assets_hint') ?></div>
   </div>
 
   <div class="form-group">
     <label><?= t('user.zakat.other_deductions') ?></label>
-    <input type="number" step="0.01" name="other_deductions" value="0">
+    <input type="number" step="0.01" max="999999999999.99" inputmode="decimal" name="other_deductions" value="0">
     <div class="help-text"><?= t('user.zakat.other_deductions_hint') ?></div>
   </div>
 
   <div class="form-group">
     <label><?= t('common.notes') ?></label>
-    <textarea name="notes" rows="3"></textarea>
+    <textarea name="notes" rows="3" maxlength="2000"></textarea>
   </div>
 
   <button type="submit" class="btn btn-primary"><?= t('user.zakat.calculate') ?></button>

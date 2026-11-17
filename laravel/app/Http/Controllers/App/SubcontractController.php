@@ -193,26 +193,42 @@ class SubcontractController extends Controller
     {
         $title = trim((string) $request->input('title'));
         if ($title === '') {
-            return [[], 'A subcontract needs a title.'];
+            return [[], t('user.subcontracts.title_required')];
         }
 
         $supplier = $this->ownedSupplier($request->input('supplier_id') ?: null, $companyId);
         if (!$supplier) {
-            return [[], 'Select a valid subcontractor.'];
+            return [[], t('user.subcontracts.subcontractor_invalid')];
         }
 
-        $contractValue = (float) $request->input('contract_value', 0);
-        if ($contractValue <= 0) {
-            return [[], 'The contract value must be greater than zero.'];
+        // decimal(14,2): 12 integer digits + 2 decimal — the column's real ceiling, not an
+        // arbitrary one. Rejected (not clamped) when non-numeric/out of range, same gap this
+        // app's prior batches closed everywhere else a plain (float) cast used to hide one.
+        $contractValue = $this->validatedNumber($request->input('contract_value'), 0.01, 999999999999.99);
+        if ($contractValue === null) {
+            return [[], t('user.subcontracts.contract_value_invalid')];
         }
 
-        $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', 0)));
+        $retentionPercent = $this->validatedNumberOrDefault($request->input('retention_percent', 0), 0, 100, 0.0);
+        if ($retentionPercent === null) {
+            return [[], t('user.subcontracts.retention_percent_invalid')];
+        }
+
         $status = in_array($request->input('status'), array_keys(Subcontract::STATUSES), true) ? $request->input('status') : 'active';
+
+        foreach ([
+            'start_date' => 'user.subcontracts.start_date_invalid',
+            'end_date' => 'user.subcontracts.end_date_invalid',
+        ] as $field => $errorKey) {
+            if (!$this->isValidOptionalDate(trim((string) $request->input($field, '')))) {
+                return [[], t($errorKey)];
+            }
+        }
 
         return [[
             'supplier_id' => $supplier->id,
-            'title' => $title,
-            'description' => trim((string) $request->input('description', '')) ?: null,
+            'title' => mb_substr($title, 0, 150),
+            'description' => mb_substr(trim((string) $request->input('description', '')), 0, 5000) ?: null,
             'contract_value' => round($contractValue, 2),
             'retention_percent' => $retentionPercent,
             'status' => $status,
@@ -245,10 +261,10 @@ class SubcontractController extends Controller
         if ($currency === 'SAR') {
             $rate = 1.0;
         } else {
-            $rate = (float) $request->input('exchange_rate_to_sar', 0);
-            if ($rate <= 0) {
-                $rate = 1.0;
-            }
+            // decimal(12,4): 8 integer digits + 4 decimal. Non-numeric/non-positive/out-of-range
+            // falls back to 1.0 — same "forced default, never erroring" rule as the rest of this
+            // method, since exchange_rate_to_sar is informational/commitment-tracking only.
+            $rate = $this->validatedNumber($request->input('exchange_rate_to_sar'), 0.0001, 99999999.9999) ?? 1.0;
         }
         return ['currency' => $currency, 'exchange_rate_to_sar' => $rate];
     }
@@ -275,5 +291,36 @@ class SubcontractController extends Controller
         $project = Project::find($id);
         abort_if(!$project || $project->company_id !== Auth::user()->company_id, 404, 'Project not found.');
         return $project;
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** Same shape as ProjectController::isValidOptionalDate() — a blank value is valid (optional), anything else must be a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }

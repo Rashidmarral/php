@@ -225,19 +225,36 @@ class SubcontractPaymentController extends Controller
     private function buildPayment(Subcontract $subcontract, Request $request, ?int $excludePaymentNumber = null): array
     {
         $previousCumulative = $this->previousCumulative($subcontract->id, $excludePaymentNumber);
-        $cumulativeValue = round((float) $request->input('cumulative_value', 0), 2);
         $contractValue = (float) $subcontract->contract_value;
 
+        // decimal(14,2): 12 integer digits + 2 decimal — the column's real ceiling. Rejected
+        // (not silently cast from a non-numeric/garbage value) before it's ever compared against
+        // previous/contract — this is the actual overpayment-prevention mechanism, so a bad input
+        // must never slip through as 0 or some truncated number instead of a hard error.
+        $cumulativeValue = $this->validatedNumber($request->input('cumulative_value'), 0, 999999999999.99);
+        if ($cumulativeValue === null) {
+            return [[], t('user.subcontract_payments.cumulative_value_invalid')];
+        }
+        $cumulativeValue = round($cumulativeValue, 2);
+
         if ($cumulativeValue < $previousCumulative) {
-            return [[], "Cumulative value ({$cumulativeValue}) cannot be less than what was already certified ({$previousCumulative})."];
+            return [[], t('user.subcontract_payments.cumulative_below_previous', ['value' => $cumulativeValue, 'previous' => $previousCumulative])];
         }
         if ($cumulativeValue > $contractValue) {
             $over = round($cumulativeValue - $contractValue, 2);
-            return [[], "Cumulative value ({$cumulativeValue}) exceeds this subcontract's contract value ({$contractValue}) by {$over}."];
+            return [[], t('user.subcontract_payments.cumulative_exceeds_contract', ['value' => $cumulativeValue, 'contract' => $contractValue, 'over' => $over])];
+        }
+
+        $retentionPercent = $this->validatedNumberOrDefault($request->input('retention_percent', $subcontract->retention_percent), 0, 100, (float) $subcontract->retention_percent);
+        if ($retentionPercent === null) {
+            return [[], t('user.subcontract_payments.retention_percent_invalid')];
+        }
+
+        if (!$this->isValidOptionalDate(trim((string) $request->input('payment_date', '')))) {
+            return [[], t('user.subcontract_payments.date_invalid')];
         }
 
         $thisPeriodValue = round($cumulativeValue - $previousCumulative, 2);
-        $retentionPercent = min(100, max(0, (float) $request->input('retention_percent', $subcontract->retention_percent)));
         $retentionAmount = round($thisPeriodValue * $retentionPercent / 100, 2);
         $netPayable = round($thisPeriodValue - $retentionAmount, 2);
 
@@ -254,7 +271,7 @@ class SubcontractPaymentController extends Controller
             'retention_percent' => $retentionPercent,
             'retention_amount' => $retentionAmount,
             'net_payable' => $netPayable,
-            'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 2000) ?: null,
         ], null];
     }
 
@@ -284,5 +301,36 @@ class SubcontractPaymentController extends Controller
         $project = Project::find($id);
         abort_if(!$project || $project->company_id !== Auth::user()->company_id, 404, 'Project not found.');
         return $project;
+    }
+
+    /** Rejects a non-numeric or out-of-range value instead of silently casting/clamping it — see EstimateController::validatedNumber() for the shared shape this mirrors. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected. */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return $this->validatedNumber($value, $min, $max);
+    }
+
+    /** Same shape as ProjectController::isValidOptionalDate() — a blank value is valid (optional, defaulted to today by the caller), anything else must be a real calendar date in Y-m-d form. */
+    private function isValidOptionalDate(string $value): bool
+    {
+        if ($value === '') {
+            return true;
+        }
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $value, $m)) {
+            return false;
+        }
+        return checkdate((int) $m[2], (int) $m[3], (int) $m[1]);
     }
 }
