@@ -172,6 +172,49 @@
   </form>
 </div>
 
+<div class="card" style="margin-bottom:24px;max-width:720px;">
+  <h3><?= t('admin.company.custom_domain') ?></h3>
+  <p class="help-text"><?= t('admin.company.custom_domain_hint') ?></p>
+
+  <?php if ($domains->isEmpty()): ?>
+    <p class="help-text"><?= t('admin.company.custom_domain_none') ?></p>
+  <?php else: ?>
+    <table class="data">
+      <thead><tr><th><?= t('admin.company.domain') ?></th><th><?= t('common.status') ?></th><th><?= t('common.created') ?></th><th></th></tr></thead>
+      <tbody>
+      <?php foreach ($domains as $d): ?>
+        <tr>
+          <td><?= e($d->domain) ?></td>
+          <td><span class="badge badge-<?= $d->is_active ? 'green' : 'gray' ?>"><?= $d->is_active ? t('admin.company.domain_active') : t('admin.company.domain_inactive') ?></span></td>
+          <td class="help-text"><?= e($d->created_at) ?></td>
+          <td style="display:flex;gap:6px;">
+            <?php if (auth()->user()->isSuperAdmin()): ?>
+              <form method="post" action="/admin/companies/<?= $company['id'] ?>/domains/<?= $d->id ?>/toggle"><?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-light"><?= $d->is_active ? t('admin.company.domain_deactivate') : t('admin.company.domain_activate') ?></button>
+              </form>
+              <form method="post" action="/admin/companies/<?= $company['id'] ?>/domains/<?= $d->id ?>/delete" onsubmit="return confirm('<?= t('admin.company.domain_remove_confirm') ?>');"><?= csrf_field() ?>
+                <button type="submit" class="btn btn-sm btn-danger"><?= t('common.remove') ?></button>
+              </form>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+
+  <?php if (auth()->user()->isSuperAdmin()): ?>
+    <form method="post" action="/admin/companies/<?= $company['id'] ?>/domains" style="display:flex;gap:8px;align-items:end;margin-top:16px;">
+      <?= csrf_field() ?>
+      <div class="form-group" style="margin:0;flex:1;">
+        <label><?= t('admin.company.add_domain') ?></label>
+        <input type="text" name="domain" placeholder="app.clientdomain.com" maxlength="253" required>
+      </div>
+      <button type="submit" class="btn btn-primary"><?= t('common.add') ?></button>
+    </form>
+  <?php endif; ?>
+</div>
+
 <div class="grid grid-2">
   <div class="card">
     <h3><?= t('admin.company.team_members') ?></h3>

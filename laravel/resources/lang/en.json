@@ -3756,5 +3756,22 @@
     "admin.tenders.entity_required": "Enter the issuing entity's name (max 150 characters).",
     "admin.tenders.est_value_invalid": "Estimated value must be a number between 0 and 999,999,999,999.99.",
     "admin.tenders.source_url_invalid": "Enter a valid link (max 255 characters).",
-    "common.sort_order_invalid": "Sort order must be a whole number between 0 and 99,999."
+    "common.sort_order_invalid": "Sort order must be a whole number between 0 and 99,999.",
+    "admin.company.custom_domain": "Custom Domain",
+    "admin.company.custom_domain_hint": "Let this company's panel also be reached on its own domain (e.g. app.theirdomain.com). Their platform URL keeps working exactly as before — a custom domain is additive, never a replacement. DNS and SSL for the domain are set up outside this admin panel.",
+    "admin.company.custom_domain_none": "No custom domain configured yet.",
+    "admin.company.domain": "Domain",
+    "admin.company.domain_active": "Active",
+    "admin.company.domain_inactive": "Inactive",
+    "admin.company.domain_activate": "Activate",
+    "admin.company.domain_deactivate": "Deactivate",
+    "admin.company.domain_remove_confirm": "Remove this domain? Anyone using it to reach this company will need the platform URL instead.",
+    "admin.company.add_domain": "Add a domain",
+    "admin.company.domain_added": "Domain added.",
+    "admin.company.domain_updated": "Domain updated.",
+    "admin.company.domain_removed": "Domain removed.",
+    "admin.company.domain_required": "Enter a domain.",
+    "admin.company.domain_format_invalid": "Enter a plain domain name (e.g. app.example.com) — no http://, no path, no port, no spaces.",
+    "admin.company.domain_is_platform_host": "That is the platform's own domain and cannot be assigned to a company.",
+    "admin.company.domain_already_taken": "That domain is already assigned to another company."
 }

@@ -5,8 +5,17 @@ use App\Models\Setting;
 $isAr = app()->getLocale() === 'ar';
 $otherLang = $isAr ? 'en' : 'ar';
 $otherLangLabel = $isAr ? 'EN' : 'AR';
-$siteName = Setting::siteName();
-$platformLogo = Setting::get('platform_logo_path', '');
+// A visitor on a client's own custom domain (App\Http\Middleware\ResolveCompanyDomain
+// already matched their Host) sees THAT company's own name/logo in the header instead
+// of the generic platform branding. In practice most such visits never render this
+// layout — unauthenticated ones are redirected to /login for the marketing pages — but
+// an authenticated visit (e.g. a logged-in admin browsing /pricing on the domain) still
+// should show the right brand.
+$domainCompany = \App\Support\DomainContext::current();
+$siteName = $domainCompany
+    ? (($isAr ? $domainCompany->name_ar : null) ?: $domainCompany->name)
+    : Setting::siteName();
+$platformLogo = $domainCompany?->logo_path ?: Setting::get('platform_logo_path', '');
 $platformCr = Setting::get('platform_cr_number', '');
 $platformVat = Setting::get('platform_vat_number', '');
 $platformLegalName = $isAr

@@ -3756,5 +3756,22 @@
     "admin.tenders.entity_required": "أدخل اسم الجهة المُصدرة (بحد أقصى 150 حرفًا).",
     "admin.tenders.est_value_invalid": "يجب أن تكون القيمة التقديرية رقمًا بين 0 و999,999,999,999.99.",
     "admin.tenders.source_url_invalid": "أدخل رابطًا صحيحًا (بحد أقصى 255 حرفًا).",
-    "common.sort_order_invalid": "يجب أن يكون ترتيب العرض رقمًا صحيحًا بين 0 و99,999."
+    "common.sort_order_invalid": "يجب أن يكون ترتيب العرض رقمًا صحيحًا بين 0 و99,999.",
+    "admin.company.custom_domain": "نطاق مخصص",
+    "admin.company.custom_domain_hint": "امنح لوحة هذه الشركة إمكانية الوصول إليها أيضًا عبر نطاقها الخاص (مثل app.theirdomain.com). رابط المنصة الأصلي يستمر بالعمل كما هو تمامًا — فالنطاق المخصص إضافة ولا يحل محله أبدًا. يتم ضبط DNS وشهادة SSL للنطاق خارج لوحة التحكم هذه.",
+    "admin.company.custom_domain_none": "لا يوجد نطاق مخصص مُعرَّف حتى الآن.",
+    "admin.company.domain": "النطاق",
+    "admin.company.domain_active": "مُفعّل",
+    "admin.company.domain_inactive": "غير مُفعّل",
+    "admin.company.domain_activate": "تفعيل",
+    "admin.company.domain_deactivate": "تعطيل",
+    "admin.company.domain_remove_confirm": "هل تريد حذف هذا النطاق؟ سيحتاج أي شخص يستخدمه للوصول إلى هذه الشركة إلى رابط المنصة بدلاً منه.",
+    "admin.company.add_domain": "إضافة نطاق",
+    "admin.company.domain_added": "تمت إضافة النطاق.",
+    "admin.company.domain_updated": "تم تحديث النطاق.",
+    "admin.company.domain_removed": "تم حذف النطاق.",
+    "admin.company.domain_required": "أدخل نطاقًا.",
+    "admin.company.domain_format_invalid": "أدخل اسم نطاق بسيط (مثل app.example.com) — بدون http://، وبدون مسار أو منفذ أو فراغات.",
+    "admin.company.domain_is_platform_host": "هذا هو نطاق المنصة نفسه ولا يمكن تخصيصه لشركة.",
+    "admin.company.domain_already_taken": "هذا النطاق مُخصَّص بالفعل لشركة أخرى."
 }

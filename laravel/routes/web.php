@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\CertificateController;
 use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\CompanyDomainController;
 use App\Http\Controllers\Admin\CompanyZatcaController;
 use App\Http\Controllers\Admin\ConsultationAdminController;
 use App\Http\Controllers\Admin\ContentController;
@@ -659,6 +660,10 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/companies/{id}/profile', [CompanyController::class, 'updateProfile']);
         Route::post('/companies/{id}/impersonate', [CompanyController::class, 'impersonate']);
         Route::post('/companies/{id}/hard-delete', [CompanyController::class, 'hardDelete']);
+
+        Route::post('/companies/{companyId}/domains', [CompanyDomainController::class, 'store']);
+        Route::post('/companies/{companyId}/domains/{domainId}/toggle', [CompanyDomainController::class, 'toggle']);
+        Route::post('/companies/{companyId}/domains/{domainId}/delete', [CompanyDomainController::class, 'destroy']);
 
         Route::post('/companies/{id}/zatca/settings', [CompanyZatcaController::class, 'updateSettings']);
         Route::post('/companies/{id}/zatca/csr', [CompanyZatcaController::class, 'generateCsr']);

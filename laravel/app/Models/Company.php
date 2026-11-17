@@ -311,4 +311,21 @@ class Company extends Model
     {
         return $this->hasMany(Subscription::class)->where('status', 'active');
     }
+
+    public function domains(): HasMany
+    {
+        return $this->hasMany(CompanyDomain::class);
+    }
+
+    /**
+     * This company's first active custom domain hostname (there is normally only one), or
+     * null when it has none configured — the platform's own URL keeps working regardless.
+     * Used for branding lookups (login page / public layout header) once
+     * ResolveCompanyDomain has already matched the visitor's Host to this company; this
+     * helper itself does no request-host matching.
+     */
+    public function activeDomain(): ?string
+    {
+        return $this->domains()->where('is_active', true)->value('domain');
+    }
 }

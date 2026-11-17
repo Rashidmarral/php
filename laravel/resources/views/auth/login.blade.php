@@ -1,9 +1,23 @@
-<!doctype html>
-<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+<?php
+
+use App\Models\Setting;
+use App\Support\DomainContext;
+
+// A visitor on a client's own custom domain (App\Http\Middleware\ResolveCompanyDomain
+// already matched their Host) sees THAT company's own name/logo here instead of the
+// generic platform branding — the whole point of giving a client their own domain.
+$domainCompany = DomainContext::current();
+$isAr = app()->getLocale() === 'ar';
+$brandName = $domainCompany
+    ? (($isAr ? $domainCompany->name_ar : null) ?: $domainCompany->name)
+    : Setting::siteName();
+$brandLogo = $domainCompany?->logo_path;
+?><!doctype html>
+<html lang="{{ app()->getLocale() }}" dir="{{ $isAr ? 'rtl' : 'ltr' }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ t('auth.login_title') ?? 'Log in' }} · {{ \App\Models\Setting::siteName() }}</title>
+<title>{{ t('auth.login_title') ?? 'Log in' }} · {{ $brandName }}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap">
@@ -12,7 +26,14 @@
 <body>
   <div class="auth-split">
     <div class="auth-split-form">
-      <div class="logo"><span class="mark" style="background:var(--brand);color:#fff;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;">BX</span> <strong style="font-size:18px;">{{ \App\Models\Setting::siteName() }}</strong></div>
+      <div class="logo">
+        @if($brandLogo)
+          <img src="{{ $brandLogo }}" alt="" style="height:32px;border-radius:8px;">
+        @else
+          <span class="mark" style="background:var(--brand);color:#fff;width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:16px;">BX</span>
+        @endif
+        <strong style="font-size:18px;">{{ $brandName }}</strong>
+      </div>
 
       <h1>{{ t('auth.login_title') }}</h1>
       <p class="sub">{{ t('auth.login_sub') }}</p>
@@ -54,7 +75,7 @@
     </div>
 
     <div class="auth-split-panel">
-      <div class="auth-split-logo"><span class="mark">BX</span> {{ \App\Models\Setting::siteName() }}</div>
+      <div class="auth-split-logo"><span class="mark">BX</span> {{ $brandName }}</div>
       <div>
         <div class="auth-split-badge">✓ {{ t('auth.zatca_badge') }}</div>
         <h2>{{ t('auth.panel_heading') }}</h2>
@@ -65,7 +86,7 @@
         </div>
       </div>
       <div class="auth-split-foot">
-        <span>&copy; {{ date('Y') }} {{ \App\Models\Setting::siteName() }}</span>
+        <span>&copy; {{ date('Y') }} {{ $brandName }}</span>
         <span>{{ t('auth.panel_location') }}</span>
       </div>
     </div>

@@ -51,6 +51,7 @@ class CompanyController extends Controller
         $payments = Payment::where('company_id', $company->id)->orderByDesc('created_at')->get();
         $projectCount = Project::where('company_id', $company->id)->count();
         $plans = Plan::orderBy('sort_order')->get();
+        $domains = $company->domains()->orderByDesc('created_at')->get();
 
         return view('admin.companies.show', [
             'company' => $company,
@@ -59,6 +60,7 @@ class CompanyController extends Controller
             'payments' => $payments,
             'projectCount' => $projectCount,
             'plans' => $plans,
+            'domains' => $domains,
         ]);
     }
 
