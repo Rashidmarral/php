@@ -4,6 +4,7 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Models\Client;
+use App\Support\PhoneNumber;
 use App\Support\Zatca\ZatcaXmlGenerator;
 use App\Support\ZatcaAddressValidator;
 use Illuminate\Http\RedirectResponse;
@@ -42,17 +43,19 @@ class ClientController extends Controller
         if ($name === '') {
             return $this->redirectWithFlash('/app/clients/create', 'error', t('user.clients.name_required'));
         }
+        [$contact, $contactError] = $this->contactFields($request);
+        if ($contactError) {
+            return $this->redirectWithFlash('/app/clients/create', 'error', $contactError);
+        }
         [$data, $error] = $this->b2bData($request);
         if ($error) {
             return $this->redirectWithFlash('/app/clients/create', 'error', $error);
         }
         Client::create([
             'company_id' => Auth::user()->company_id,
-            'name' => $name,
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'email' => $request->input('email', ''),
-            'phone' => $request->input('phone', ''),
-            'address' => $request->input('address', ''),
+            'name' => mb_substr($name, 0, 150),
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            ...$contact,
             ...$data,
         ]);
         return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.added'));
@@ -69,16 +72,22 @@ class ClientController extends Controller
             return $redirect;
         }
         $client = $this->findOwned($id);
+        $name = trim((string) $request->input('name'));
+        if ($name === '') {
+            return $this->redirectWithFlash('/app/clients/' . $id . '/edit', 'error', t('user.clients.name_required'));
+        }
+        [$contact, $contactError] = $this->contactFields($request);
+        if ($contactError) {
+            return $this->redirectWithFlash('/app/clients/' . $id . '/edit', 'error', $contactError);
+        }
         [$data, $error] = $this->b2bData($request);
         if ($error) {
             return $this->redirectWithFlash('/app/clients/' . $id . '/edit', 'error', $error);
         }
         $client->update([
-            'name' => trim((string) $request->input('name')),
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'email' => $request->input('email', ''),
-            'phone' => $request->input('phone', ''),
-            'address' => $request->input('address', ''),
+            'name' => mb_substr($name, 0, 150),
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            ...$contact,
             ...$data,
         ]);
         return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.updated'));
@@ -123,6 +132,38 @@ class ClientController extends Controller
         }
         $this->findOwned($id)->update(['portal_enabled' => false]);
         return $this->redirectWithFlash('/app/clients', 'success', t('user.clients.portal_disabled'));
+    }
+
+    /**
+     * Pulls and validates the plain contact fields (email, phone, address) shared
+     * by store()/update() — previously saved completely as-is with no trimming or
+     * format check at all. email is rejected outright when present but malformed,
+     * the same filter_var(FILTER_VALIDATE_EMAIL) rule TeamController::store()/
+     * AdminProfileController::update() already use for their own email fields.
+     * phone is rejected when present but not a recognizable Saudi mobile number,
+     * via the shared App\Support\PhoneNumber::isValidSaudiMobile() — the same
+     * +966 5x xxx xxxx format this form's own placeholder has always shown.
+     * address has no format to check, only a length cap matching its column.
+     *
+     * @return array{0: array<string, string>, 1: ?string} [fields, errorMessage]
+     */
+    private function contactFields(Request $request): array
+    {
+        $email = trim((string) $request->input('email', ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [[], t('common.email_invalid')];
+        }
+
+        $phone = trim((string) $request->input('phone', ''));
+        if (!PhoneNumber::isValidSaudiMobile($phone)) {
+            return [[], t('common.phone_invalid')];
+        }
+
+        return [[
+            'email' => mb_substr($email, 0, 150),
+            'phone' => mb_substr($phone, 0, 30),
+            'address' => mb_substr(trim((string) $request->input('address', '')), 0, 255),
+        ], null];
     }
 
     /**

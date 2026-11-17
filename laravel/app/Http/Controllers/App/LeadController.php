@@ -5,6 +5,7 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Lead;
+use App\Support\PhoneNumber;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -58,17 +59,24 @@ class LeadController extends Controller
         if ($name === '') {
             return $this->redirectWithFlash('/app/leads/create', 'error', t('user.leads.name_required'));
         }
+        [$contact, $contactError] = $this->contactFields($request);
+        if ($contactError) {
+            return $this->redirectWithFlash('/app/leads/create', 'error', $contactError);
+        }
+        $estimatedValue = $this->validatedNumberOrDefault($request->input('estimated_value', 0), 0, 9999999999.99, 0.0);
+        if ($estimatedValue === null) {
+            return $this->redirectWithFlash('/app/leads/create', 'error', t('user.leads.estimated_value_invalid'));
+        }
 
         $lead = Lead::create([
             'company_id' => Auth::user()->company_id,
-            'name' => $name,
-            'company_name' => trim((string) $request->input('company_name', '')),
-            'company_name_ar' => trim((string) $request->input('company_name_ar', '')),
-            'email' => trim((string) $request->input('email', '')),
-            'phone' => trim((string) $request->input('phone', '')),
+            'name' => mb_substr($name, 0, 150),
+            'company_name' => mb_substr(trim((string) $request->input('company_name', '')), 0, 150),
+            'company_name_ar' => mb_substr(trim((string) $request->input('company_name_ar', '')), 0, 150),
+            ...$contact,
             'source' => in_array($request->input('source'), self::SOURCES, true) ? $request->input('source') : 'other',
             'status' => 'new',
-            'estimated_value' => (float) $request->input('estimated_value', 0),
+            'estimated_value' => $estimatedValue,
             'notes' => (string) $request->input('notes', ''),
         ]);
 
@@ -93,16 +101,27 @@ class LeadController extends Controller
             return $redirect;
         }
         $lead = $this->findOwned($id);
+        $name = trim((string) $request->input('name'));
+        if ($name === '') {
+            return $this->redirectWithFlash('/app/leads/' . $id . '/edit', 'error', t('user.leads.name_required'));
+        }
+        [$contact, $contactError] = $this->contactFields($request);
+        if ($contactError) {
+            return $this->redirectWithFlash('/app/leads/' . $id . '/edit', 'error', $contactError);
+        }
+        $estimatedValue = $this->validatedNumberOrDefault($request->input('estimated_value', 0), 0, 9999999999.99, 0.0);
+        if ($estimatedValue === null) {
+            return $this->redirectWithFlash('/app/leads/' . $id . '/edit', 'error', t('user.leads.estimated_value_invalid'));
+        }
 
         $lead->update([
-            'name' => trim((string) $request->input('name')),
-            'company_name' => trim((string) $request->input('company_name', '')),
-            'company_name_ar' => trim((string) $request->input('company_name_ar', '')),
-            'email' => trim((string) $request->input('email', '')),
-            'phone' => trim((string) $request->input('phone', '')),
+            'name' => mb_substr($name, 0, 150),
+            'company_name' => mb_substr(trim((string) $request->input('company_name', '')), 0, 150),
+            'company_name_ar' => mb_substr(trim((string) $request->input('company_name_ar', '')), 0, 150),
+            ...$contact,
             'source' => in_array($request->input('source'), self::SOURCES, true) ? $request->input('source') : 'other',
             'status' => in_array($request->input('status'), self::STATUSES, true) ? $request->input('status') : $lead->status,
-            'estimated_value' => (float) $request->input('estimated_value', 0),
+            'estimated_value' => $estimatedValue,
             'notes' => (string) $request->input('notes', ''),
         ]);
 
@@ -176,6 +195,58 @@ class LeadController extends Controller
             $counts[$row->status] = (int) $row->c;
         }
         return $counts;
+    }
+
+    /**
+     * Shared by store()/update(): the plain contact fields — previously
+     * trimmed (store()) or not even trimmed (update()) and stored with no
+     * format check at all. email is rejected outright when present but
+     * malformed, the same filter_var(FILTER_VALIDATE_EMAIL) rule
+     * TeamController::store()/AdminProfileController::update() already use
+     * for their own email fields. phone is rejected when present but not a
+     * recognizable Saudi mobile number, via the shared
+     * App\Support\PhoneNumber::isValidSaudiMobile() — the same
+     * +966 5x xxx xxxx format this form's own placeholder has always shown.
+     *
+     * @return array{0: array<string, string>, 1: ?string} [fields, errorMessage]
+     */
+    private function contactFields(Request $request): array
+    {
+        $email = trim((string) $request->input('email', ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [[], t('common.email_invalid')];
+        }
+
+        $phone = trim((string) $request->input('phone', ''));
+        if (!PhoneNumber::isValidSaudiMobile($phone)) {
+            return [[], t('common.phone_invalid')];
+        }
+
+        return [[
+            'email' => mb_substr($email, 0, 150),
+            'phone' => mb_substr($phone, 0, 30),
+        ], null];
+    }
+
+    /** Rejects a non-numeric or out-of-[$min,$max] value outright; returns the float otherwise. Mirrors EstimateController/InvoiceController's own helper of the same name. */
+    private function validatedNumber(mixed $value, float $min, float $max): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+        $float = (float) $value;
+
+        return ($float >= $min && $float <= $max) ? $float : null;
+    }
+
+    /** Same as validatedNumber(), but a blank/missing value is treated as $default rather than rejected — used for estimated_value, where clearing the input has always meant "none/zero". */
+    private function validatedNumberOrDefault(mixed $value, float $min, float $max, float $default): ?float
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+
+        return $this->validatedNumber($value, $min, $max);
     }
 
     private function findOwned(int $id): Lead

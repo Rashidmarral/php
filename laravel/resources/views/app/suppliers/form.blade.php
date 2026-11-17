@@ -9,18 +9,18 @@
 <form method="post" action="<?= $supplier ? '/app/suppliers/' . $supplier['id'] : '/app/suppliers' ?>" class="card" style="max-width:640px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.suppliers.name_en') ?></label><input type="text" name="name" required value="<?= e($supplier['name'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('user.suppliers.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" value="<?= e($supplier['name_ar'] ?? '') ?>" placeholder="اسم المورد"></div>
+    <div class="form-group"><label><?= t('user.suppliers.name_en') ?></label><input type="text" name="name" required maxlength="150" value="<?= e($supplier['name'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.suppliers.name_ar') ?></label><input type="text" name="name_ar" dir="rtl" maxlength="150" value="<?= e($supplier['name_ar'] ?? '') ?>" placeholder="اسم المورد"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('common.category') ?></label><input type="text" name="category" placeholder="e.g. Steel, Electrical, Concrete" value="<?= e($supplier['category'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.category') ?></label><input type="text" name="category" maxlength="100" placeholder="e.g. Steel, Electrical, Concrete" value="<?= e($supplier['category'] ?? '') ?>"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.suppliers.contact_person') ?></label><input type="text" name="contact_name" value="<?= e($supplier['contact_name'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" placeholder="+966 5x xxx xxxx" value="<?= e($supplier['phone'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.suppliers.contact_person') ?></label><input type="text" name="contact_name" maxlength="150" value="<?= e($supplier['contact_name'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" inputmode="tel" maxlength="30" pattern="^(\+?966[\s-]?|0)?5[0-9][\s-]?[0-9]{3}[\s-]?[0-9]{4}$" placeholder="+966 5x xxx xxxx" value="<?= e($supplier['phone'] ?? '') ?>"></div>
   </div>
-  <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" value="<?= e($supplier['email'] ?? '') ?>"></div>
-  <div class="form-group"><label><?= t('common.address') ?></label><input type="text" name="address" value="<?= e($supplier['address'] ?? '') ?>"></div>
+  <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" maxlength="150" value="<?= e($supplier['email'] ?? '') ?>"></div>
+  <div class="form-group"><label><?= t('common.address') ?></label><input type="text" name="address" maxlength="255" value="<?= e($supplier['address'] ?? '') ?>"></div>
   <div class="form-row">
     <div class="form-group">
       <label><?= t('user.suppliers.currency') ?></label>
@@ -42,7 +42,7 @@
   <h3 style="font-size:14px;margin-top:24px;"><?= t('user.suppliers.prequalification') ?></h3>
   <p class="help-text" style="margin-top:-8px;"><?= t('user.suppliers.prequalification_hint') ?></p>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.suppliers.trade_category') ?></label><input type="text" name="trade_category" placeholder="e.g. Electrical, Plumbing, Steel Fabrication" value="<?= e($supplier['trade_category'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.suppliers.trade_category') ?></label><input type="text" name="trade_category" maxlength="100" placeholder="e.g. Electrical, Plumbing, Steel Fabrication" value="<?= e($supplier['trade_category'] ?? '') ?>"></div>
     <div class="form-group">
       <label><?= t('user.settings.classification_grade') ?></label>
       <select name="classification_grade">
@@ -54,8 +54,8 @@
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.suppliers.cr_number') ?></label><input type="text" name="cr_number" value="<?= e($supplier['cr_number'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('user.suppliers.vat_number') ?></label><input type="text" name="vat_number" value="<?= e($supplier['vat_number'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.suppliers.cr_number') ?></label><input type="text" name="cr_number" inputmode="numeric" pattern="\d{10}" maxlength="10" placeholder="1010XXXXXX" value="<?= e($supplier['cr_number'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('user.suppliers.vat_number') ?></label><input type="text" name="vat_number" inputmode="numeric" pattern="3\d{13}3" maxlength="15" placeholder="3XXXXXXXXXXXXX3" value="<?= e($supplier['vat_number'] ?? '') ?>"></div>
   </div>
   <div class="form-group">
     <label style="display:inline-flex;align-items:center;gap:6px;">

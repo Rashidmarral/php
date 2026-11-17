@@ -10,15 +10,15 @@
 <form method="post" action="<?= $isEdit ? '/app/leads/' . $lead['id'] : '/app/leads' ?>" class="card" style="max-width:640px;">
   <?= csrf_field() ?>
   <div class="form-row">
-    <div class="form-group"><label><?= t('common.name') ?></label><input type="text" name="name" value="<?= e($lead['name'] ?? '') ?>" required></div>
-    <div class="form-group"><label><?= t('user.leads.company_name_en') ?></label><input type="text" name="company_name" value="<?= e($lead['company_name'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.name') ?></label><input type="text" name="name" value="<?= e($lead['name'] ?? '') ?>" required maxlength="150"></div>
+    <div class="form-group"><label><?= t('user.leads.company_name_en') ?></label><input type="text" name="company_name" maxlength="150" value="<?= e($lead['company_name'] ?? '') ?>"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('user.leads.company_name_ar') ?></label><input type="text" name="company_name_ar" dir="rtl" value="<?= e($lead['company_name_ar'] ?? '') ?>" placeholder="اسم الشركة بالعربية"></div>
+    <div class="form-group"><label><?= t('user.leads.company_name_ar') ?></label><input type="text" name="company_name_ar" dir="rtl" maxlength="150" value="<?= e($lead['company_name_ar'] ?? '') ?>" placeholder="اسم الشركة بالعربية"></div>
   </div>
   <div class="form-row">
-    <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" value="<?= e($lead['email'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" value="<?= e($lead['phone'] ?? '') ?>" placeholder="+966 5x xxx xxxx"></div>
+    <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" maxlength="150" value="<?= e($lead['email'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" inputmode="tel" maxlength="30" pattern="^(\+?966[\s-]?|0)?5[0-9][\s-]?[0-9]{3}[\s-]?[0-9]{4}$" value="<?= e($lead['phone'] ?? '') ?>" placeholder="+966 5x xxx xxxx"></div>
   </div>
   <div class="form-row">
     <div class="form-group">
@@ -29,7 +29,7 @@
         <?php endforeach; ?>
       </select>
     </div>
-    <div class="form-group"><label><?= t('user.leads.estimated_value') ?></label><input type="number" step="0.01" name="estimated_value" value="<?= e((string)($lead['estimated_value'] ?? 0)) ?>"></div>
+    <div class="form-group"><label><?= t('user.leads.estimated_value') ?></label><input type="number" inputmode="decimal" step="0.01" min="0" max="9999999999.99" name="estimated_value" value="<?= e((string)($lead['estimated_value'] ?? 0)) ?>"></div>
   </div>
   <?php if ($isEdit): ?>
     <div class="form-group">

@@ -10,6 +10,9 @@ use App\Models\SupplierDocument;
 use App\Models\SupplierRating;
 use App\Models\User;
 use App\Support\Feature;
+use App\Support\PhoneNumber;
+use App\Support\Zatca\ZatcaXmlGenerator;
+use App\Support\ZatcaAddressValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -65,17 +68,20 @@ class SupplierController extends Controller
         if ($name === '') {
             return $this->redirectWithFlash('/app/suppliers/create', 'error', t('user.suppliers.name_required'));
         }
+        [$contact, $contactError] = $this->contactFields($request);
+        if ($contactError) {
+            return $this->redirectWithFlash('/app/suppliers/create', 'error', $contactError);
+        }
+        [$qualification, $qualificationError] = $this->qualificationFields($request);
+        if ($qualificationError) {
+            return $this->redirectWithFlash('/app/suppliers/create', 'error', $qualificationError);
+        }
         Supplier::create([
             'company_id' => Auth::user()->company_id,
-            'name' => $name,
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'contact_name' => $request->input('contact_name', ''),
-            'email' => $request->input('email', ''),
-            'phone' => $request->input('phone', ''),
-            'address' => $request->input('address', ''),
-            'category' => $request->input('category', ''),
-            'notes' => $request->input('notes', ''),
-            ...$this->qualificationFields($request),
+            'name' => mb_substr($name, 0, 150),
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            ...$contact,
+            ...$qualification,
             ...$this->currencyFields($request),
         ]);
         $this->flash('success', t('user.suppliers.added'));
@@ -136,16 +142,23 @@ class SupplierController extends Controller
             return $redirect;
         }
         $supplier = $this->findOwned($id);
+        $name = trim((string) $request->input('name'));
+        if ($name === '') {
+            return $this->redirectWithFlash('/app/suppliers/' . $id . '/edit', 'error', t('user.suppliers.name_required'));
+        }
+        [$contact, $contactError] = $this->contactFields($request);
+        if ($contactError) {
+            return $this->redirectWithFlash('/app/suppliers/' . $id . '/edit', 'error', $contactError);
+        }
+        [$qualification, $qualificationError] = $this->qualificationFields($request);
+        if ($qualificationError) {
+            return $this->redirectWithFlash('/app/suppliers/' . $id . '/edit', 'error', $qualificationError);
+        }
         $supplier->update([
-            'name' => trim((string) $request->input('name')),
-            'name_ar' => trim((string) $request->input('name_ar', '')),
-            'contact_name' => $request->input('contact_name', ''),
-            'email' => $request->input('email', ''),
-            'phone' => $request->input('phone', ''),
-            'address' => $request->input('address', ''),
-            'category' => $request->input('category', ''),
-            'notes' => $request->input('notes', ''),
-            ...$this->qualificationFields($request),
+            'name' => mb_substr($name, 0, 150),
+            'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            ...$contact,
+            ...$qualification,
             ...$this->currencyFields($request),
         ]);
         $this->flash('success', t('user.suppliers.updated'));
@@ -334,18 +347,79 @@ class SupplierController extends Controller
         return null;
     }
 
-    /** Shared by store()/update(): the pre-qualification fields, normalized and validated the same way for both. */
+    /**
+     * Shared by store()/update(): the plain contact fields — previously saved
+     * completely as-is, with no trimming or format check at all. email is
+     * rejected outright when present but malformed, the same
+     * filter_var(FILTER_VALIDATE_EMAIL) rule TeamController::store()/
+     * AdminProfileController::update() already use for their own email
+     * fields. phone is rejected when present but not a recognizable Saudi
+     * mobile number, via the shared App\Support\PhoneNumber::
+     * isValidSaudiMobile() — the same +966 5x xxx xxxx format this form's
+     * own placeholder has always shown. contact_name/address have no format
+     * to check, only a length cap matching their column.
+     *
+     * @return array{0: array<string, string>, 1: ?string} [fields, errorMessage]
+     */
+    private function contactFields(Request $request): array
+    {
+        $email = trim((string) $request->input('email', ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return [[], t('common.email_invalid')];
+        }
+
+        $phone = trim((string) $request->input('phone', ''));
+        if (!PhoneNumber::isValidSaudiMobile($phone)) {
+            return [[], t('common.phone_invalid')];
+        }
+
+        return [[
+            'contact_name' => mb_substr(trim((string) $request->input('contact_name', '')), 0, 150),
+            'email' => mb_substr($email, 0, 150),
+            'phone' => mb_substr($phone, 0, 30),
+            'address' => mb_substr(trim((string) $request->input('address', '')), 0, 255),
+            'category' => mb_substr(trim((string) $request->input('category', '')), 0, 100),
+            'notes' => trim((string) $request->input('notes', '')),
+        ], null];
+    }
+
+    /**
+     * Shared by store()/update(): the pre-qualification fields, normalized and
+     * validated the same way for both. cr_number/vat_number were previously
+     * trimmed and stored with no format check at all; they now follow the
+     * exact same ZATCA rules App\Http\Controllers\App\ClientController's own
+     * cr_number/vat_number fields already enforce for a client — 10 digits
+     * for a CR number (App\Support\ZatcaAddressValidator::CR_NUMBER_PATTERN),
+     * 15 digits starting/ending with 3 for a VAT number
+     * (App\Support\Zatca\ZatcaXmlGenerator::VAT_NUMBER_PATTERN) — since a
+     * supplier's own registration numbers are just as easy to mistype as a
+     * client's, and nothing here used to catch it before it propagated into
+     * a purchase order or a subcontract.
+     *
+     * @return array{0: array<string, string>, 1: ?string} [fields, errorMessage]
+     */
     private function qualificationFields(Request $request): array
     {
+        $crNumber = trim((string) $request->input('cr_number', ''));
+        if ($crNumber !== '' && preg_match(ZatcaAddressValidator::CR_NUMBER_PATTERN, $crNumber) !== 1) {
+            return [[], t('user.settings.cr_number_invalid')];
+        }
+
+        $vatNumber = trim((string) $request->input('vat_number', ''));
+        if ($vatNumber !== '' && preg_match(ZatcaXmlGenerator::VAT_NUMBER_PATTERN, $vatNumber) !== 1) {
+            return [[], t('user.suppliers.vat_number_invalid')];
+        }
+
         $grade = $request->input('classification_grade');
-        return [
-            'trade_category' => trim((string) $request->input('trade_category', '')) ?: null,
-            'cr_number' => trim((string) $request->input('cr_number', '')) ?: null,
-            'vat_number' => trim((string) $request->input('vat_number', '')) ?: null,
+
+        return [[
+            'trade_category' => mb_substr(trim((string) $request->input('trade_category', '')), 0, 100) ?: null,
+            'cr_number' => $crNumber ?: null,
+            'vat_number' => $vatNumber ?: null,
             'classification_grade' => in_array($grade, self::CLASSIFICATION_GRADES, true) ? $grade : null,
             'is_approved_vendor' => $request->boolean('is_approved_vendor'),
             'approved_vendor_notes' => trim((string) $request->input('approved_vendor_notes', '')) ?: null,
-        ];
+        ], null];
     }
 
     /**
