@@ -3199,6 +3199,7 @@
     "user.documents.show_history": "Show version history",
     "user.documents.hide_history": "Hide version history",
     "user.documents.view_on_plan": "View on plan",
+    "user.documents.view_markup": "View / Markup",
     "user.documents.view_on_plan_hint": "Click \"View on plan\" to see every pinned punch-list item/RFI marked on the drawing.",
     "user.documents.cannot_preview_file_type": "This file type can't be previewed as a drawing — open it directly instead.",
     "user.documents.open_file": "Open file",

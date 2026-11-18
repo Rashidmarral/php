@@ -267,7 +267,7 @@ class InvoiceController extends Controller
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+        $shareUrl = url('/i/' . $invoice->share_token);
         $approvalBlocked = $invoice->isApprovalBlocked();
 
         $whatsappLink = null;
@@ -340,7 +340,7 @@ class InvoiceController extends Controller
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+        $shareUrl = url('/i/' . $invoice->share_token);
 
         $message = "Hi {$client->name}, your invoice {$invoice->invoice_number} from {$company->name} for "
             . number_format((float) $invoice->total, 2) . " SAR is ready: {$shareUrl}";
@@ -377,7 +377,7 @@ class InvoiceController extends Controller
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+        $shareUrl = url('/i/' . $invoice->share_token);
 
         $result = WhatsApp::sendMessage($client->phone, $this->paymentReminderMessage($invoice, $client, $company, $shareUrl));
 
@@ -415,7 +415,7 @@ class InvoiceController extends Controller
     {
         $amount = number_format((float) $invoice->total, 2) . ' SAR';
         $requesterName = Auth::user()->name;
-        $link = rtrim((string) config('app.url'), '/') . '/app/invoices/' . $invoice->id;
+        $link = url('/app/invoices/' . $invoice->id);
         return "Hi, {$requesterName} is waiting on your approval for invoice {$invoice->invoice_number} ({$amount}) at " . ($company->name ?? '') . ". Please review: {$link}";
     }
 
@@ -466,7 +466,7 @@ class InvoiceController extends Controller
         if (empty($invoice->share_token)) {
             $invoice->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/i/' . $invoice->share_token;
+        $shareUrl = url('/i/' . $invoice->share_token);
 
         $message = "Hi {$client->name}, your invoice {$invoice->invoice_number} from {$company->name} for "
             . number_format((float) $invoice->total, 2) . " SAR is ready: {$shareUrl}";

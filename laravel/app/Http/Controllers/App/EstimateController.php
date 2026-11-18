@@ -931,7 +931,7 @@ class EstimateController extends Controller
         if (empty($estimate->share_token)) {
             $estimate->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/e/' . $estimate->share_token;
+        $shareUrl = url('/e/' . $estimate->share_token);
         $approvalBlocked = $estimate->isApprovalBlocked();
 
         $company = Company::find($estimate->company_id);
@@ -993,7 +993,7 @@ class EstimateController extends Controller
         if (empty($estimate->share_token)) {
             $estimate->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/e/' . $estimate->share_token;
+        $shareUrl = url('/e/' . $estimate->share_token);
 
         $message = "Hi {$client->name}, here's your estimate \"{$estimate->title}\" from {$company->name} — please review and sign: {$shareUrl}";
         $result = Sms::sendMessage($client->phone, $message);
@@ -1120,7 +1120,7 @@ class EstimateController extends Controller
     private function approverPingMessage(Estimate $estimate, ?Company $company): string
     {
         $requesterName = Auth::user()->name;
-        $link = rtrim((string) config('app.url'), '/') . '/app/estimates/' . $estimate->id;
+        $link = url('/app/estimates/' . $estimate->id);
         return "Hi, {$requesterName} is waiting on your approval for estimate \"{$estimate->title}\" at " . ($company->name ?? '') . ". Please review: {$link}";
     }
 

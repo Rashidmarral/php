@@ -95,6 +95,13 @@ use App\Http\Controllers\Site\QuickEstimateController as SiteQuickEstimateContro
 use App\Http\Controllers\Site\ShareController;
 use Illuminate\Support\Facades\Route;
 
+// Every {id} in this file is a numeric primary key (every controller method behind one
+// type-hints `int $id`) — constraining it here means a non-numeric value in the URL
+// (a stray bookmark, a hand-edited link, a crawler) fails route matching and gets
+// Laravel's normal 404 page, instead of reaching the controller and throwing an
+// uncaught TypeError that surfaces as a raw 500.
+Route::pattern('id', '[0-9]+');
+
 /*
 |--------------------------------------------------------------------------
 | Public site

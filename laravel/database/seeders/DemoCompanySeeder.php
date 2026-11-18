@@ -347,12 +347,12 @@ class DemoCompanySeeder extends Seeder
         Document::create([
             'company_id' => $company->id, 'project_id' => $project->id, 'uploaded_by' => $owner->id,
             'name' => 'Villa Renovation - Signed Contract', 'name_ar' => 'تجديد الفيلا - العقد الموقع',
-            'file_path' => '/assets/docs/demo/villa-contract.pdf', 'file_type' => 'application/pdf', 'file_size' => 245000,
+            'file_path' => '/assets/docs/demo/villa-contract.pdf', 'file_type' => 'application/pdf', 'file_size' => 38593,
         ]);
         Document::create([
             'company_id' => $company->id, 'project_id' => null, 'uploaded_by' => $owner->id,
             'name' => 'Commercial Registration Certificate', 'name_ar' => 'شهادة السجل التجاري',
-            'file_path' => '/assets/docs/demo/cr-certificate.pdf', 'file_type' => 'application/pdf', 'file_size' => 180000,
+            'file_path' => '/assets/docs/demo/cr-certificate.pdf', 'file_type' => 'application/pdf', 'file_size' => 36892,
         ]);
 
         // ---------------- Compliance documents ----------------

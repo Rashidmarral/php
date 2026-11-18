@@ -129,7 +129,7 @@ class RfqController extends Controller
             // Only a still-pending invite has a usable bid link — once submitted,
             // the token stays valid but there is nothing left to copy/send.
             'invite_url' => ($q->submitted_at === null && !empty($q->invite_token))
-                ? rtrim((string) config('app.url'), '/') . '/rfq-bid/' . $q->invite_token
+                ? url('/rfq-bid/' . $q->invite_token)
                 : null,
         ])->all();
 

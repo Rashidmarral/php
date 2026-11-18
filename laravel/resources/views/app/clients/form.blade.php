@@ -14,7 +14,7 @@
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('common.email') ?></label><input type="email" name="email" maxlength="150" value="<?= e($client['email'] ?? '') ?>"></div>
-    <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" inputmode="tel" maxlength="30" pattern="^(\+?966[\s-]?|0)?5[0-9][\s-]?[0-9]{3}[\s-]?[0-9]{4}$" placeholder="+966 5x xxx xxxx" value="<?= e($client['phone'] ?? '') ?>"></div>
+    <div class="form-group"><label><?= t('common.phone') ?></label><input type="tel" name="phone" inputmode="tel" maxlength="30" pattern="^(\+?966[\s\-]?|0)?5[0-9][\s\-]?[0-9]{3}[\s\-]?[0-9]{4}$" placeholder="+966 5x xxx xxxx" value="<?= e($client['phone'] ?? '') ?>"></div>
   </div>
   <div class="form-group"><label><?= t('common.address') ?></label><textarea name="address" maxlength="255"><?= e($client['address'] ?? '') ?></textarea></div>
 

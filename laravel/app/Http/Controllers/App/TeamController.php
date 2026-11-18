@@ -90,7 +90,7 @@ class TeamController extends Controller
                 $email,
                 $name,
                 "You've been invited to {$company->name} on " . Setting::siteName(),
-                "Hi {$name},\n\nYou've been added to {$company->name}'s " . Setting::siteName() . " account.\n\nLog in at " . rtrim((string) config('app.url'), '/') . "/login\nEmail: {$email}\nTemporary password: {$tempPassword}\n\nPlease change your password after logging in."
+                "Hi {$name},\n\nYou've been added to {$company->name}'s " . Setting::siteName() . " account.\n\nLog in at " . url('/login') . "\nEmail: {$email}\nTemporary password: {$tempPassword}\n\nPlease change your password after logging in."
             );
             $this->flash($result['ok'] ? 'success' : 'error', $result['ok']
                 ? t('user.team.invited_with_email', ['email' => $email])

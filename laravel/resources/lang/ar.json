@@ -3199,6 +3199,7 @@
     "user.documents.show_history": "إظهار سجل الإصدارات",
     "user.documents.hide_history": "إخفاء سجل الإصدارات",
     "user.documents.view_on_plan": "عرض على المخطط",
+    "user.documents.view_markup": "عرض / تعليق",
     "user.documents.view_on_plan_hint": "اضغط \"عرض على المخطط\" لمشاهدة كل بنود قائمة الملاحظات وطلبات المعلومات المثبتة على المخطط.",
     "user.documents.cannot_preview_file_type": "لا يمكن معاينة هذا النوع من الملفات كمخطط — افتحه مباشرة بدلاً من ذلك.",
     "user.documents.open_file": "فتح الملف",

@@ -266,7 +266,7 @@ class AuthController extends Controller
             ]);
 
             if (Mailer::isConfigured()) {
-                $resetUrl = rtrim((string) config('app.url'), '/') . '/reset-password/' . $token;
+                $resetUrl = url('/reset-password/' . $token);
                 Mailer::send(
                     $email,
                     $user->name,

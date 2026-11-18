@@ -172,7 +172,7 @@ class PaymentCertificateController extends Controller
         if (empty($certificate->share_token)) {
             $certificate->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/ipc/' . $certificate->share_token;
+        $shareUrl = url('/ipc/' . $certificate->share_token);
 
         return view('app.payment-certificates.show', [
             'certificate' => $certificate->toArray(),

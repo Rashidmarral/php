@@ -67,6 +67,7 @@
         <td><?= e($d['uploaded_by_name'] ?? '—') ?></td>
         <td class="help-text"><?= e($d['created_at']) ?></td>
         <td style="white-space:nowrap;">
+          <a href="/app/documents/<?= $d['id'] ?>/viewer" class="btn btn-sm btn-outline"><?= t('user.documents.view_markup') ?></a>
           <?php if ($d['is_current']): ?>
             <details style="display:inline-block;">
               <summary class="btn btn-sm btn-outline" style="cursor:pointer;display:inline-block;"><?= t('user.documents.upload_new_version') ?></summary>

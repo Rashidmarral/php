@@ -67,7 +67,7 @@ class ChangeOrderController extends Controller
         if (empty($changeOrder->share_token)) {
             $changeOrder->update(['share_token' => bin2hex(random_bytes(20))]);
         }
-        $shareUrl = rtrim((string) config('app.url'), '/') . '/co/' . $changeOrder->share_token;
+        $shareUrl = url('/co/' . $changeOrder->share_token);
 
         return view('app.change-orders.show', [
             'changeOrder' => $changeOrder->toArray(),
