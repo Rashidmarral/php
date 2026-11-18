@@ -1762,6 +1762,8 @@
     "user.quick_estimate.intro_hint": "أنشئ عرض سعر فوري ومُصنَّف لعميل محتمل — اختر منطقة ونوع أساس وإضافات، واحصل على ملف PDF قابل للمشاركة خلال ثوانٍ.",
     "user.quick_estimate.client_optional": "العميل (اختياري)",
     "user.quick_estimate.no_client_linked": "— بدون عميل مرتبط —",
+    "user.quick_estimate.project_optional": "المشروع (اختياري)",
+    "user.quick_estimate.no_project_linked": "— بدون مشروع مرتبط —",
     "user.quick_estimate.my_quick_estimates": "تسعيراتي السريعة",
     "user.quick_estimate.none_generated": "لم يتم إنشاء أي تسعيرات سريعة بعد.",
     "user.quick_estimate.project_col": "المشروع",

@@ -2,14 +2,16 @@
   Shared by index.blade.php (create) and edit.blade.php (edit): the sticky
   summary sidebar, the region/foundation/quality-tier picker cards, the
   add-on cards, and the live recalc() JS that mirrors QuickEstimateCalc::compute().
-  Callers pass $formAction and $submitLabel, plus prefill values (all optional —
-  the create form leaves them unset and everything defaults to empty/zero):
-  $projectName, $selectedClientId, $selectedRegionId, $selectedFoundationId,
+  Callers pass $formAction, $submitLabel and $projects (the company's own projects,
+  for the optional project picker — mirrors $clients), plus prefill values (all
+  optional — the create form leaves them unset and everything defaults to empty/zero):
+  $selectedProjectId, $selectedClientId, $selectedRegionId, $selectedFoundationId,
   $selectedTierId, $totalArea, $discountPercent, $selectedAddonIds (array of
   addon ids), $addonQty (addon id => manual quantity).
 --}}
 <?php
-  $projectName = $projectName ?? '';
+  $projects = $projects ?? [];
+  $selectedProjectId = $selectedProjectId ?? null;
   $selectedClientId = $selectedClientId ?? null;
   $selectedRegionId = $selectedRegionId ?? null;
   $selectedFoundationId = $selectedFoundationId ?? null;
@@ -63,8 +65,13 @@
         <h3><?= t('qe.project_details') ?></h3>
         <div class="form-row">
           <div class="form-group">
-            <label><?= t('qe.project_name') ?></label>
-            <input type="text" name="project_name" maxlength="150" placeholder="<?= t('qe.project_name') ?>" value="<?= e($projectName) ?>">
+            <label><?= t('user.quick_estimate.project_optional') ?></label>
+            <select name="project_id" class="combo-select" data-placeholder="<?= e(t('common.search_projects_placeholder')) ?>" data-no-results="<?= e(t('common.no_projects_found')) ?>">
+              <option value=""><?= t('user.quick_estimate.no_project_linked') ?></option>
+              <?php foreach ($projects as $p): ?>
+                <option value="<?= $p['id'] ?>" data-ar="<?= e($p['name_ar'] ?? '') ?>" <?= ((int) $selectedProjectId === (int) $p['id']) ? 'selected' : '' ?>><?= e($p['name']) ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="form-group">
             <label><?= t('user.quick_estimate.client_optional') ?></label>

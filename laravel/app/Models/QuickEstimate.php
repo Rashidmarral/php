@@ -44,6 +44,11 @@ class QuickEstimate extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function addons(): array
     {
         return json_decode((string) $this->attributes['addons_json'], true) ?: [];

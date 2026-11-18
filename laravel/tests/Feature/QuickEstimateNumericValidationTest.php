@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\Estimate;
 use App\Models\Plan;
+use App\Models\Project;
 use App\Models\QuickEstimate;
 use App\Models\QuickEstimateAddon;
 use App\Models\QuickEstimateFoundation;
@@ -219,5 +221,77 @@ class QuickEstimateNumericValidationTest extends TestCase
         $this->assertNotNull($estimate);
         $this->assertSame('200.00', $estimate->total_area);
         $this->assertSame('10.00', $estimate->discount_percent);
+    }
+
+    /** Covers the project picker added in place of the free-text project_name input. */
+    public function test_store_links_a_real_project_and_caches_its_name(): void
+    {
+        $a = $this->makeCompanyWithOwner('Proj');
+        $rf = $this->makeRegionAndFoundation('Proj');
+        $project = Project::create([
+            'company_id' => $a['company']->id,
+            'name' => 'Villa Extension',
+            'status' => 'in_progress',
+            'budget' => 100000,
+        ]);
+
+        $response = $this->actingAs($a['owner'])->post('/app/quick-estimate', [
+            ...$this->basePayload($rf),
+            'project_id' => $project->id,
+        ]);
+
+        $response->assertRedirect();
+        $estimate = QuickEstimate::where('company_id', $a['company']->id)->first();
+        $this->assertSame($project->id, $estimate->project_id);
+        $this->assertSame('Villa Extension', $estimate->project_name);
+    }
+
+    /** Mirrors the cross-tenant regression tests added for the other forms batches — a project id from another company must never attach. */
+    public function test_store_rejects_a_project_id_belonging_to_another_company(): void
+    {
+        $a = $this->makeCompanyWithOwner('ProjTenantA');
+        $b = $this->makeCompanyWithOwner('ProjTenantB');
+        $rf = $this->makeRegionAndFoundation('ProjTenantA');
+        $foreignProject = Project::create([
+            'company_id' => $b['company']->id,
+            'name' => 'Not Yours',
+            'status' => 'in_progress',
+            'budget' => 50000,
+        ]);
+
+        $response = $this->actingAs($a['owner'])->post('/app/quick-estimate', [
+            ...$this->basePayload($rf),
+            'project_id' => $foreignProject->id,
+        ]);
+
+        $response->assertRedirect();
+        $estimate = QuickEstimate::where('company_id', $a['company']->id)->first();
+        $this->assertNull($estimate->project_id);
+        $this->assertNull($estimate->project_name);
+    }
+
+    /** Converting a quick estimate that has no project linked must still work and leave the new estimate's project_id null, exactly as before this feature existed. */
+    public function test_convert_to_estimate_carries_the_linked_project_forward(): void
+    {
+        $a = $this->makeCompanyWithOwner('Convert');
+        $rf = $this->makeRegionAndFoundation('Convert');
+        $project = Project::create([
+            'company_id' => $a['company']->id,
+            'name' => 'Warehouse Fit-out',
+            'status' => 'in_progress',
+            'budget' => 250000,
+        ]);
+
+        $this->actingAs($a['owner'])->post('/app/quick-estimate', [
+            ...$this->basePayload($rf),
+            'project_id' => $project->id,
+        ]);
+        $quickEstimate = QuickEstimate::where('company_id', $a['company']->id)->first();
+
+        $this->actingAs($a['owner'])->post('/app/quick-estimate/' . $quickEstimate->id . '/convert');
+
+        $newEstimate = Estimate::where('company_id', $a['company']->id)->first();
+        $this->assertNotNull($newEstimate);
+        $this->assertSame($project->id, $newEstimate->project_id);
     }
 }

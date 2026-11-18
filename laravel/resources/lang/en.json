@@ -1762,6 +1762,8 @@
     "user.quick_estimate.intro_hint": "Generate an instant, branded quote for a prospect — pick a region, foundation type and add-ons, and get a shareable PDF in seconds.",
     "user.quick_estimate.client_optional": "Client (optional)",
     "user.quick_estimate.no_client_linked": "— No client linked —",
+    "user.quick_estimate.project_optional": "Project (optional)",
+    "user.quick_estimate.no_project_linked": "— No project linked —",
     "user.quick_estimate.my_quick_estimates": "My quick estimates",
     "user.quick_estimate.none_generated": "No quick estimates generated yet.",
     "user.quick_estimate.project_col": "Project",

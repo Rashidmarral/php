@@ -14,6 +14,7 @@
   'addons' => $addons,
   'qualityTiers' => $qualityTiers,
   'clients' => $clients,
+  'projects' => $projects,
   'vatRate' => $vatRate,
   'formAction' => '/app/quick-estimate',
   'submitLabel' => '✉ ' . t('qe.generate'),

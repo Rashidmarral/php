@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\Company;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
+use App\Models\Project;
 use App\Models\QuickEstimate;
 use App\Models\QuickEstimateAddon;
 use App\Models\QuickEstimateFoundation;
@@ -46,6 +47,7 @@ class QuickEstimateController extends Controller
             'addons' => QuickEstimateAddon::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'qualityTiers' => QuickEstimateQualityTier::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'projects' => Project::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
             'quotes' => $quotes,
             'vatRate' => (float) Setting::get('vat_rate', '15'),
         ]);
@@ -89,11 +91,14 @@ class QuickEstimateController extends Controller
 
         $clientId = $request->input('client_id') ?: null;
         $client = $this->ownedClient($clientId, $companyId);
+        $projectId = $request->input('project_id') ?: null;
+        $project = $this->ownedProject($projectId, $companyId);
 
         $estimate = QuickEstimate::create([
             'company_id' => $companyId,
             'client_id' => $client?->id,
-            'project_name' => trim((string) $request->input('project_name')) ?: null,
+            'project_id' => $project?->id,
+            'project_name' => $project->name ?? null,
             'region_id' => $region->id,
             'foundation_id' => $foundation->id,
             'quality_tier_id' => $qualityTier?->id,
@@ -134,6 +139,7 @@ class QuickEstimateController extends Controller
             'addons' => QuickEstimateAddon::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'qualityTiers' => QuickEstimateQualityTier::where('is_active', true)->orderBy('sort_order')->get()->toArray(),
             'clients' => Client::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
+            'projects' => Project::where('company_id', $companyId)->orderBy('name')->get()->toArray(),
             'vatRate' => (float) Setting::get('vat_rate', '15'),
             'selectedAddonIds' => array_column($addons, 'id'),
             'addonQty' => $addonQty,
@@ -180,10 +186,13 @@ class QuickEstimateController extends Controller
 
         $clientId = $request->input('client_id') ?: null;
         $client = $this->ownedClient($clientId, $companyId);
+        $projectId = $request->input('project_id') ?: null;
+        $project = $this->ownedProject($projectId, $companyId);
 
         $estimate->update([
             'client_id' => $client?->id,
-            'project_name' => trim((string) $request->input('project_name')) ?: null,
+            'project_id' => $project?->id,
+            'project_name' => $project->name ?? null,
             'region_id' => $region->id,
             'foundation_id' => $foundation->id,
             'quality_tier_id' => $qualityTier?->id,
@@ -291,7 +300,7 @@ class QuickEstimateController extends Controller
 
         $newEstimate = Estimate::create([
             'company_id' => $companyId,
-            'project_id' => null,
+            'project_id' => $estimate->project_id,
             'client_id' => $estimate->client_id,
             'title' => $estimate->project_name ?: ('Quick Estimate #' . $estimate->id),
             'status' => 'draft',
@@ -405,5 +414,15 @@ class QuickEstimateController extends Controller
         }
         $client = Client::find($id);
         return ($client && $client->company_id === $companyId) ? $client : null;
+    }
+
+    /** Only returns the project if it belongs to $companyId — never let a quick estimate link to another company's project via a tampered id. */
+    private function ownedProject(?int $id, int $companyId): ?Project
+    {
+        if (!$id) {
+            return null;
+        }
+        $project = Project::find($id);
+        return ($project && $project->company_id === $companyId) ? $project : null;
     }
 }
