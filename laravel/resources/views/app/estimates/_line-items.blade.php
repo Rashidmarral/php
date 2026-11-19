@@ -79,6 +79,7 @@
 <div style="display:flex;gap:8px;margin-top:8px;">
   <button type="button" id="add-row" class="btn btn-sm btn-outline">{{ t('user.invoices.add_line_item') }}</button>
   <button type="button" id="open-library-picker" class="btn btn-sm btn-outline">{{ t('user.invoices.pull_from_library') }}</button>
+  <button type="button" id="open-assembly-picker" class="btn btn-sm btn-outline">{{ t('user.invoices.insert_assembly') }}</button>
 </div>
 
 <div class="card" style="margin-top:20px;background:var(--bg);max-width:420px;margin-inline-start:auto;">
@@ -106,6 +107,7 @@
 </div>
 
 @include('app.partials.library-picker')
+@include('app.partials.assembly-picker')
 
 <script>
 (function() {
@@ -218,6 +220,49 @@
     tr.querySelector('[name="item_description[]"]').value = e.detail.description;
     tr.querySelector('[name="item_description_ar[]"]').value = e.detail.descriptionAr || '';
     tr.querySelector('.cost').value = e.detail.unitCost;
+    recalc();
+  });
+
+  // Ensures a <select> (UOM or item type) has an option for `value` before
+  // it's assigned — an assembly item's uom/cost-code can be anything a
+  // company typed, not only what this estimate's own dropdowns list.
+  function ensureOption(select, value) {
+    if (!value) return;
+    const exists = Array.from(select.options).some(o => o.value === String(value));
+    if (!exists) {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = value;
+      select.appendChild(opt);
+    }
+  }
+
+  // Appends one new row built from an already-scaled assembly item (see
+  // app.partials.assembly-picker's `assembly-items-picked` event) by reusing
+  // the same rowTemplate() every other row on this table comes from — the
+  // row is then an ordinary, fully editable/removable line item, no
+  // different from one typed in by hand.
+  function addAssemblyItemRow(item) {
+    const tr = rowTemplate();
+    body.appendChild(tr);
+    tr.querySelector('[name="item_description[]"]').value = item.description;
+    tr.querySelector('[name="item_description_ar[]"]').value = item.descriptionAr || '';
+    const typeSelect = tr.querySelector('[name="item_type[]"]');
+    ensureOption(typeSelect, item.itemType);
+    typeSelect.value = item.itemType;
+    const uomSelect = tr.querySelector('[name="item_uom[]"]');
+    ensureOption(uomSelect, item.uom);
+    uomSelect.value = item.uom;
+    tr.querySelector('.qty').value = item.qty;
+    tr.querySelector('.cost').value = item.unitCost;
+    if (item.costCodeId) {
+      const costCodeSelect = tr.querySelector('.cost-code-select');
+      if (costCodeSelect) costCodeSelect.value = item.costCodeId;
+    }
+  }
+
+  document.addEventListener('assembly-items-picked', (e) => {
+    (e.detail.items || []).forEach(addAssemblyItemRow);
     recalc();
   });
 

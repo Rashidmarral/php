@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assembly;
 use App\Models\AuditLog;
 use App\Models\BuildingType;
 use App\Models\Client;
@@ -373,7 +374,24 @@ class EstimateController extends Controller
             'defaultMarkupPercent' => $markupPercent,
             'defaultTaxRateId' => $taxRateId,
             'costCodeDivisions' => CostCode::selectableFor($companyId)->toArray(),
+            'assemblies' => $this->assembliesWithItemsFor($companyId),
         ]);
+    }
+
+    /**
+     * The company's active assemblies with their items eager-loaded, for the
+     * "Insert Assembly" picker in _line-items.blade.php (see
+     * app.partials.assembly-picker) — everything it needs to expand an
+     * assembly into scaled line items client-side, with zero AJAX.
+     */
+    private function assembliesWithItemsFor(int $companyId): array
+    {
+        return Assembly::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->with('items')
+            ->orderBy('name')
+            ->get()
+            ->toArray();
     }
 
     public function store(Request $request): RedirectResponse
@@ -508,6 +526,7 @@ class EstimateController extends Controller
             'taxRates' => TaxRate::where('company_id', $companyId)->orderBy('sort_order')->orderBy('id')->get()->toArray(),
             'prefillItems' => $this->prefillItemRows($estimate),
             'costCodeDivisions' => CostCode::selectableFor($companyId)->toArray(),
+            'assemblies' => $this->assembliesWithItemsFor($companyId),
         ]);
     }
 

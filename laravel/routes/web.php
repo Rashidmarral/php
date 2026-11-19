@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketCont
 use App\Http\Controllers\Admin\TenderAdminController;
 use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\AccountingExportController;
+use App\Http\Controllers\App\AssemblyController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
 use App\Http\Controllers\App\BankGuaranteeController;
@@ -499,6 +500,13 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/materials/{id}/delete', [MaterialController::class, 'destroy']);
     Route::get('/materials/{id}/stock', [MaterialStockController::class, 'show']);
     Route::post('/materials/{id}/stock/movements', [MaterialStockController::class, 'recordMovement']);
+
+    Route::get('/assemblies', [AssemblyController::class, 'index']);
+    Route::get('/assemblies/create', [AssemblyController::class, 'create']);
+    Route::post('/assemblies', [AssemblyController::class, 'store']);
+    Route::get('/assemblies/{id}/edit', [AssemblyController::class, 'edit']);
+    Route::post('/assemblies/{id}', [AssemblyController::class, 'update']);
+    Route::post('/assemblies/{id}/delete', [AssemblyController::class, 'destroy']);
 
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);

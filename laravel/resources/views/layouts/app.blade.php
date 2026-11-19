@@ -34,6 +34,7 @@
       <a href="{{ url('/app/suppliers') }}" class="{{ request()->is('app/suppliers*') ? 'active' : '' }}">🚚 {{ t('side.suppliers') }}</a>
       <a href="{{ url('/app/rfqs') }}" class="{{ request()->is('app/rfqs*') ? 'active' : '' }}">🧾 {{ t('side.rfqs') }}</a>
       <a href="{{ url('/app/materials') }}" class="{{ request()->is('app/materials*') ? 'active' : '' }}">📦 {{ t('side.materials') }}</a>
+      <a href="{{ url('/app/assemblies') }}" class="{{ request()->is('app/assemblies*') ? 'active' : '' }}">🧱 {{ t('side.assemblies') }}</a>
       <a href="{{ url('/app/documents') }}" class="{{ request()->is('app/documents*') ? 'active' : '' }}">📁 {{ t('side.documents') }}</a>
       <a href="{{ url('/app/equipment') }}" class="{{ request()->is('app/equipment*') ? 'active' : '' }}">🚜 {{ t('side.equipment') }}</a>
 
