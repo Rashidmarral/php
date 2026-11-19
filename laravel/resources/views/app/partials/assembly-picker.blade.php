@@ -32,7 +32,7 @@
                 'unitCost' => (float) $it['unit_cost'],
                 'costCodeId' => $it['cost_code_id'],
             ], $a['items'] ?? []);
-          ?>
+            ?>
           <div class="assembly-picker-item" data-search="<?= e(strtolower($a['name'] . ' ' . ($a['name_ar'] ?? ''))) ?>">
             <button type="button" class="assembly-picker-select" data-name="<?= e(local($a, 'name')) ?>" data-base-uom="<?= e($a['base_uom']) ?>" data-items='<?= e(json_encode($pickerItems)) ?>'
               style="width:100%;text-align:start;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;">
