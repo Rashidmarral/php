@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Plan;
 use App\Models\Takeoff;
 use App\Models\TakeoffMeasurement;
+use App\Models\TakeoffPage;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
@@ -17,6 +18,11 @@ use Tests\TestCase;
  * length plus addMeasurement()'s value/unit_cost, none of which had any type or
  * range check beyond a bare <= 0 comparison before (each was only ever (float)-cast).
  * Mirrors EstimateNumericValidationTest's own shape.
+ *
+ * calibrate()/addMeasurement() are now page-scoped (TakeoffPdfConverterTest /
+ * TakeoffMultiPageTest cover the multi-page takeoff_pages machinery itself), so these
+ * tests create a bare TakeoffPage directly rather than going through store()'s upload
+ * flow, which is exactly what the numeric validation here doesn't depend on.
  */
 class TakeoffNumericValidationTest extends TestCase
 {
@@ -74,39 +80,42 @@ class TakeoffNumericValidationTest extends TestCase
     public function test_calibrate_rejects_non_numeric_pixel_distance(): void
     {
         $a = $this->makeCompanyWithOwner('CalibrateNaN');
-        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
+        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A']);
+        $page = TakeoffPage::create(['takeoff_id' => $takeoff->id, 'page_number' => 1, 'image_path' => '/uploads/takeoffs/x/x.jpg', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
 
-        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/calibrate', [
+        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/pages/' . $page->id . '/calibrate', [
             'pixel_distance' => 'abc',
             'real_length' => 10,
         ]);
 
         $response->assertStatus(422);
-        $takeoff->refresh();
-        $this->assertSame('1.000000', $takeoff->scale_px_per_unit);
+        $page->refresh();
+        $this->assertSame('1.000000', $page->scale_px_per_unit);
     }
 
     public function test_calibrate_accepts_a_valid_payload(): void
     {
         $a = $this->makeCompanyWithOwner('CalibrateHappy');
-        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
+        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A']);
+        $page = TakeoffPage::create(['takeoff_id' => $takeoff->id, 'page_number' => 1, 'image_path' => '/uploads/takeoffs/x/x.jpg', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
 
-        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/calibrate', [
+        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/pages/' . $page->id . '/calibrate', [
             'pixel_distance' => 200,
             'real_length' => 10,
         ]);
 
         $response->assertStatus(200)->assertJson(['ok' => true]);
-        $takeoff->refresh();
-        $this->assertSame('20.000000', $takeoff->scale_px_per_unit);
+        $page->refresh();
+        $this->assertSame('20.000000', $page->scale_px_per_unit);
     }
 
     public function test_add_measurement_rejects_non_numeric_value(): void
     {
         $a = $this->makeCompanyWithOwner('MeasureNaN');
-        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
+        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A']);
+        $page = TakeoffPage::create(['takeoff_id' => $takeoff->id, 'page_number' => 1, 'image_path' => '/uploads/takeoffs/x/x.jpg', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
 
-        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/measurements', [
+        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/pages/' . $page->id . '/measurements', [
             'type' => 'length',
             'value' => 'abc',
             'unit_cost' => 5,
@@ -119,9 +128,10 @@ class TakeoffNumericValidationTest extends TestCase
     public function test_add_measurement_accepts_a_valid_payload(): void
     {
         $a = $this->makeCompanyWithOwner('MeasureHappy');
-        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
+        $takeoff = Takeoff::create(['company_id' => $a['company']->id, 'name' => 'Plan A']);
+        $page = TakeoffPage::create(['takeoff_id' => $takeoff->id, 'page_number' => 1, 'image_path' => '/uploads/takeoffs/x/x.jpg', 'scale_px_per_unit' => 1, 'scale_unit' => 'm']);
 
-        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/measurements', [
+        $response = $this->actingAs($a['owner'])->postJson('/app/takeoffs/' . $takeoff->id . '/pages/' . $page->id . '/measurements', [
             'type' => 'length',
             'value' => 12.5,
             'unit_cost' => 20,
@@ -131,5 +141,6 @@ class TakeoffNumericValidationTest extends TestCase
         $measurement = TakeoffMeasurement::where('takeoff_id', $takeoff->id)->first();
         $this->assertNotNull($measurement);
         $this->assertSame('250.00', $measurement->total_cost);
+        $this->assertSame($page->id, $measurement->takeoff_page_id);
     }
 }

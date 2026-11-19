@@ -5,20 +5,26 @@
   <div>
     <h1><?= e($takeoff['name']) ?></h1>
     <p class="help-text" style="margin-top:4px;" id="scale-status">
-      <?= $takeoff['plan_image_path'] ? t('user.takeoffs.calibrating_scale') : t('user.takeoffs.no_plan_image') ?>
+      <?= $currentPage ? t('user.takeoffs.calibrating_scale') : t('user.takeoffs.no_plan_image') ?>
     </p>
   </div>
   <div style="display:flex;gap:8px;">
     <?php
-      $canAiAnalyze = $aiConfigured && !empty($takeoff['plan_image_path']);
+      $canAiAnalyze = $aiConfigured && $currentPage;
       $aiTooltip = !$aiConfigured
         ? t('user.takeoffs.ai_not_configured')
-        : (empty($takeoff['plan_image_path']) ? t('user.takeoffs.ai_needs_plan_image') : '');
+        : (!$currentPage ? t('user.takeoffs.ai_needs_plan_image') : '');
     ?>
-    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/ai-analyze" id="ai-analyze-form" title="<?= e($aiTooltip) ?>">
+    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/pages/<?= $currentPage['id'] ?? 0 ?>/ai-analyze" id="ai-analyze-form" title="<?= e($aiTooltip) ?>">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-outline" id="ai-analyze-btn" <?= $canAiAnalyze ? '' : 'disabled' ?> title="<?= e($aiTooltip) ?>">✨ <?= t('user.takeoffs.ai_analyze') ?></button>
     </form>
+    <?php if (count($pages) > 1): ?>
+    <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/ai-analyze-all" id="ai-analyze-all-form" title="<?= e($aiConfigured ? '' : t('user.takeoffs.ai_not_configured')) ?>">
+      <?= csrf_field() ?>
+      <button type="submit" class="btn btn-outline" id="ai-analyze-all-btn" <?= $aiConfigured ? '' : 'disabled' ?> title="<?= e($aiConfigured ? '' : t('user.takeoffs.ai_not_configured')) ?>">✨ <?= t('user.takeoffs.ai_analyze_all') ?></button>
+    </form>
+    <?php endif; ?>
     <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/convert" onsubmit="return confirm('<?= t('user.takeoffs.convert_confirm') ?>');">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-outline"><?= t('user.takeoffs.convert_to_estimate') ?></button>
@@ -30,11 +36,32 @@
   </div>
 </div>
 
+<?php if (count($pages) > 1): ?>
+<div class="card" style="margin-bottom:16px;padding:10px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <h3 style="font-size:13px;margin:0;"><?= t('user.takeoffs.pages_heading') ?></h3>
+    <span class="badge badge-gray"><?= t('user.takeoffs.page_count_badge', ['count' => count($pages)]) ?></span>
+  </div>
+  <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+    <?php foreach ($pages as $p): ?>
+      <?php $active = $currentPage && (int) $p['id'] === (int) $currentPage['id']; ?>
+      <a href="/app/takeoffs/<?= $takeoff['id'] ?>?page_id=<?= $p['id'] ?>"
+         style="flex:0 0 auto;width:84px;text-align:center;text-decoration:none;border:2px solid <?= $active ? 'var(--brand)' : 'var(--border)' ?>;border-radius:8px;padding:4px;background:#fff;">
+        <img src="<?= e($p['image_path']) ?>" alt="" style="width:100%;height:56px;object-fit:cover;border-radius:4px;display:block;">
+        <span style="display:block;font-size:11px;margin-top:3px;color:<?= $active ? 'var(--brand)' : 'var(--muted)' ?>;font-weight:600;">
+          <?= t('user.takeoffs.page_label', ['number' => $p['page_number']]) ?>
+        </span>
+      </a>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
+
 <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
   <div class="card" style="padding:12px;overflow:auto;">
-    <?php if ($takeoff['plan_image_path']): ?>
+    <?php if ($currentPage): ?>
       <canvas id="takeoff-canvas" style="max-width:100%;border:1px solid var(--border);cursor:crosshair;"></canvas>
-      <img id="plan-image" src="<?= e($takeoff['plan_image_path']) ?>" style="display:none;">
+      <img id="plan-image" src="<?= e($currentPage['image_path']) ?>" style="display:none;">
     <?php else: ?>
       <div class="empty-state"><div class="icon">🖼️</div><p><?= t('user.takeoffs.no_plan_uploaded') ?></p></div>
     <?php endif; ?>
@@ -95,6 +122,9 @@
         </div>
         <div class="total-row" style="margin-top:12px;"><?= money($totalCost) ?></div>
       <?php endif; ?>
+      <?php if (count($pages) > 1): ?>
+        <p class="help-text" style="margin-top:10px;"><?= t('user.takeoffs.grand_total_label', ['count' => count($pages)]) ?> <strong><?= money($grandTotalCost) ?></strong></p>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -117,6 +147,20 @@
       }
     });
   }
+  const aiAllForm = document.getElementById('ai-analyze-all-form');
+  if (aiAllForm) {
+    aiAllForm.addEventListener('submit', (e) => {
+      if (!confirm(<?= json_encode(t('user.takeoffs.ai_analyze_all_confirm')) ?>)) {
+        e.preventDefault();
+        return;
+      }
+      const btn = document.getElementById('ai-analyze-all-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = <?= json_encode(t('user.takeoffs.ai_analyzing')) ?>;
+      }
+    });
+  }
 })();
 (function() {
   document.addEventListener('library-item-picked', (e) => {
@@ -129,15 +173,16 @@
 (function() {
   const csrfToken = <?= json_encode(csrf_token()) ?>;
   const takeoffId = <?= (int) $takeoff['id'] ?>;
-  let scalePxPerUnit = <?= (float) $takeoff['scale_px_per_unit'] ?>;
-  const scaleUnit = <?= json_encode($takeoff['scale_unit']) ?>;
+  const pageId = <?= $currentPage ? (int) $currentPage['id'] : 'null' ?>;
+  let scalePxPerUnit = <?= $currentPage ? (float) $currentPage['scale_px_per_unit'] : 1 ?>;
+  const scaleUnit = <?= json_encode($currentPage['scale_unit'] ?? 'm') ?>;
   const savedMeasurements = <?= json_encode(array_map(fn($m) => ['type'=>$m['type'],'points'=>json_decode($m['points_json'],true)], $measurements)) ?>;
 
   const canvas = document.getElementById('takeoff-canvas');
   const scaleStatus = document.getElementById('scale-status');
   scaleStatus.textContent = scalePxPerUnit > 1 ? ('Scale set: ' + scalePxPerUnit.toFixed(2) + ' px = 1 ' + scaleUnit) : 'Scale not set yet — use "Calibrate Scale" for accurate measurements.';
 
-  if (!canvas) return;
+  if (!canvas || !pageId) return;
   const ctx = canvas.getContext('2d');
   const img = document.getElementById('plan-image');
 
@@ -277,7 +322,7 @@
     const label = document.getElementById('pending-label').value || pendingType;
     const cost = parseFloat(document.getElementById('pending-cost').value) || 0;
 
-    fetch('/app/takeoffs/' + takeoffId + '/measurements', {
+    fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/measurements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ _token: csrfToken, type: pendingType, label, value: pendingValue, unit_cost: cost, points: JSON.stringify(points) })
@@ -289,7 +334,7 @@
     const px = dist(points[0], points[1]);
     if (realLength <= 0) return;
 
-    fetch('/app/takeoffs/' + takeoffId + '/calibrate', {
+    fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/calibrate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ _token: csrfToken, pixel_distance: px, real_length: realLength })

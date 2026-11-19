@@ -566,10 +566,11 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/takeoffs/create', [TakeoffController::class, 'create']);
     Route::post('/takeoffs', [TakeoffController::class, 'store']);
     Route::get('/takeoffs/{id}', [TakeoffController::class, 'show']);
-    Route::post('/takeoffs/{id}/ai-analyze', [TakeoffController::class, 'aiAnalyze']);
-    Route::post('/takeoffs/{id}/measurements', [TakeoffController::class, 'addMeasurement']);
+    Route::post('/takeoffs/{id}/pages/{pageId}/ai-analyze', [TakeoffController::class, 'aiAnalyze']);
+    Route::post('/takeoffs/{id}/ai-analyze-all', [TakeoffController::class, 'aiAnalyzeAll']);
+    Route::post('/takeoffs/{id}/pages/{pageId}/measurements', [TakeoffController::class, 'addMeasurement']);
     Route::post('/takeoffs/{id}/measurements/{measurementId}/delete', [TakeoffController::class, 'deleteMeasurement']);
-    Route::post('/takeoffs/{id}/calibrate', [TakeoffController::class, 'calibrate']);
+    Route::post('/takeoffs/{id}/pages/{pageId}/calibrate', [TakeoffController::class, 'calibrate']);
     Route::post('/takeoffs/{id}/convert', [TakeoffController::class, 'convertToEstimate']);
     Route::post('/takeoffs/{id}/delete', [TakeoffController::class, 'destroy']);
 });

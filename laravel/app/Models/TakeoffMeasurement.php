@@ -24,4 +24,10 @@ class TakeoffMeasurement extends Model
     {
         return $this->belongsTo(Takeoff::class);
     }
+
+    /** The specific plan sheet this measurement was drawn on. Nullable only for rows backfilled from before TakeoffPage existed that somehow found no page-1 row to attach to. */
+    public function takeoffPage(): BelongsTo
+    {
+        return $this->belongsTo(TakeoffPage::class, 'takeoff_page_id');
+    }
 }

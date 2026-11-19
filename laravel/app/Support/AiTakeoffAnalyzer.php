@@ -22,7 +22,7 @@ class AiTakeoffAnalyzer
     }
 
     /**
-     * @param string $imagePath The takeoff's plan_image_path, public_path()-relative (e.g. "/uploads/takeoffs/3/abc.jpg").
+     * @param string $imagePath A single plan sheet's image path (TakeoffPage::$image_path), public_path()-relative (e.g. "/uploads/takeoffs/3/9/page-1.jpg"). Callers run this once per page (TakeoffController::aiAnalyze()/aiAnalyzeAll()) — this method itself only ever sees one image.
      * @return ?array<int, array{type:string,label:string,value:float,note:string}> Null on failure (see Setting::get('ai_last_error')).
      */
     public static function analyzeTakeoffPlan(string $imagePath): ?array

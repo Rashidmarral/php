@@ -21,8 +21,9 @@
   </div>
   <div class="form-group">
     <label><?= t('user.takeoffs.plan_image') ?></label>
-    <input type="file" name="plan_image" accept="image/png,image/jpeg,image/webp">
+    <input type="file" name="plan_image" accept="image/png,image/jpeg,image/webp,application/pdf">
     <p class="help-text"><?= t('user.takeoffs.plan_image_hint') ?></p>
+    <p class="help-text"><?= t('user.takeoffs.plan_file_hint') ?></p>
   </div>
   <button type="submit" class="btn btn-primary"><?= t('user.takeoffs.create_and_open') ?></button>
 </form>
