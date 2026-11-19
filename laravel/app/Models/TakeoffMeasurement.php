@@ -45,4 +45,10 @@ class TakeoffMeasurement extends Model
     {
         return $this->hasMany(TakeoffMeasurement::class, 'parent_measurement_id')->where('is_cutout', true);
     }
+
+    /** The company's reusable item group this measurement expands into on conversion — see Assembly's docblock and TakeoffController::convertToEstimate(). Only ever set on a non-cutout length/area measurement. */
+    public function assembly(): BelongsTo
+    {
+        return $this->belongsTo(Assembly::class);
+    }
 }

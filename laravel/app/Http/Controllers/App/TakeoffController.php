@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Models\Assembly;
 use App\Models\Estimate;
 use App\Models\EstimateItem;
 use App\Models\Material;
@@ -221,8 +222,32 @@ class TakeoffController extends Controller
             'totalCost' => $totalCost,
             'grandTotalCost' => $grandTotalCost,
             'materials' => $materials,
+            'assemblies' => $this->assembliesForPicker($takeoff->company_id),
             'aiConfigured' => AiTakeoffAnalyzer::isConfigured(),
         ]);
+    }
+
+    /**
+     * The company's active assemblies with their items eager-loaded, for the "link an
+     * assembly" dropdown in the pending-measurement panel (show.blade.php) — the same data
+     * EstimateController::assembliesWithItemsFor() serves the Estimate-side picker, plus
+     * each assembly's computed_unit_cost (sum of qty_per_unit * unit_cost across its items —
+     * cost per 1 unit of base_uom) so the page can auto-fill the unit-cost field without a
+     * round trip.
+     */
+    private function assembliesForPicker(int $companyId): array
+    {
+        return Assembly::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->with('items')
+            ->orderBy('name')
+            ->get()
+            ->map(function (Assembly $a) {
+                $row = $a->toArray();
+                $row['computed_unit_cost'] = round($a->items->sum(fn ($it) => (float) $it->qty_per_unit * (float) $it->unit_cost), 2);
+                return $row;
+            })
+            ->all();
     }
 
     public function calibrate(Request $request, int $id, int $pageId): JsonResponse
@@ -288,6 +313,32 @@ class TakeoffController extends Controller
             }
         }
 
+        // An assembly only makes sense scaled against a continuous measurement (the length
+        // of a wall, the area of a floor) — a point count has no sensible "per-unit" to
+        // scale, and a cutout is never its own line item (see convertToEstimate()), so
+        // neither can carry one.
+        $assembly = null;
+        $assemblyId = (int) $request->input('assembly_id', 0);
+        if ($assemblyId) {
+            if ($isCutout) {
+                return response()->json(['ok' => false, 'error' => 'A cutout cannot have an assembly linked.'], 422);
+            }
+            if ($type !== 'length' && $type !== 'area') {
+                return response()->json(['ok' => false, 'error' => 'An assembly can only be linked to a length or area measurement.'], 422);
+            }
+            $assembly = Assembly::where('id', $assemblyId)->where('company_id', $takeoff->company_id)->with('items')->first();
+            if (!$assembly) {
+                return response()->json(['ok' => false, 'error' => 'Assembly not found.'], 404);
+            }
+        }
+
+        // When an assembly is linked, its items' cost — not whatever was submitted in the
+        // unit_cost field (read-only on the client while an assembly is selected) — is the
+        // authoritative per-unit cost, computed the same way assembliesForPicker() does.
+        if ($assembly) {
+            $unitCost = round((float) $assembly->items->sum(fn ($it) => (float) $it->qty_per_unit * (float) $it->unit_cost), 2);
+        }
+
         $unit = $type === 'length' ? $page->scale_unit : ($type === 'area' ? $page->scale_unit . '²' : 'ea');
 
         $measurement = TakeoffMeasurement::create([
@@ -295,6 +346,7 @@ class TakeoffController extends Controller
             'takeoff_page_id' => $page->id,
             'parent_measurement_id' => $isCutout ? $parent->id : null,
             'is_cutout' => $isCutout,
+            'assembly_id' => $assembly?->id,
             'type' => $type,
             'label' => $label,
             'points_json' => $points,
@@ -521,7 +573,9 @@ class TakeoffController extends Controller
         $takeoff = $this->findOwned($id);
         // Cutouts are never their own line item — their only effect is already baked into
         // their parent's net value/total_cost (see recomputeParentForCutouts()).
-        $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff->id)->where('is_cutout', false)->orderBy('id')->get();
+        $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff->id)->where('is_cutout', false)
+            ->with('assembly.items')
+            ->orderBy('id')->get();
 
         if ($measurements->isEmpty()) {
             return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.measurement_required_for_conversion'));
@@ -539,6 +593,15 @@ class TakeoffController extends Controller
         ]);
 
         foreach ($measurements as $m) {
+            // A measurement with no linked assembly keeps today's exact 1:1 behavior — one
+            // EstimateItem, unchanged — for full backward compatibility with every existing
+            // takeoff. A loosely-coupled assembly_id whose Assembly has since been deleted
+            // falls back to the same 1:1 behavior rather than erroring.
+            if ($m->assembly && $m->assembly->items->isNotEmpty()) {
+                $this->addAssemblyLineItems($estimate->id, $m);
+                continue;
+            }
+
             EstimateItem::create([
                 'estimate_id' => $estimate->id,
                 'description' => $m->label . ' (' . number_format((float) $m->value, 2) . ' ' . $m->unit . ')',
@@ -550,6 +613,36 @@ class TakeoffController extends Controller
 
         $this->flash('success', t('user.takeoffs.converted'));
         return redirect('/app/estimates/' . $estimate->id);
+    }
+
+    /**
+     * Expands $m's linked assembly into one EstimateItem per AssemblyItem, each scaled by
+     * $m's own measured value — qty = round(qty_per_unit * value, 2), the exact same
+     * scaling math app.partials.assembly-picker's client-side JS uses for the Estimate-side
+     * "Insert Assembly" flow (confirmBtn handler: Math.round(it.qtyPerUnit * appliedQty *
+     * 100) / 100), just run server-side here since there's no client-side picker step at
+     * conversion time. Every expanded item is tagged with $m->label as its section_title —
+     * the same column EstimateController::store() uses for the line-items table's "Section
+     * (optional)" headers, carried on every item in the group (not only the first) so
+     * show.blade.php's lastSection-change header logic groups them correctly.
+     */
+    private function addAssemblyLineItems(int $estimateId, TakeoffMeasurement $m): void
+    {
+        foreach ($m->assembly->items as $ai) {
+            $qty = round((float) $ai->qty_per_unit * (float) $m->value, 2);
+            EstimateItem::create([
+                'estimate_id' => $estimateId,
+                'description' => $ai->description,
+                'description_ar' => $ai->description_ar,
+                'section_title' => $m->label,
+                'item_type' => $ai->item_type,
+                'qty' => $qty,
+                'uom' => $ai->uom,
+                'unit_cost' => $ai->unit_cost,
+                'total' => $qty * (float) $ai->unit_cost,
+                'cost_code_id' => $ai->cost_code_id,
+            ]);
+        }
     }
 
     public function destroy(int $id): RedirectResponse

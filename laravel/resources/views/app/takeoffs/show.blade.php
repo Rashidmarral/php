@@ -112,6 +112,20 @@
       <h3 style="font-size:14px;"><?= t('user.takeoffs.save_measurement') ?></h3>
       <p class="help-text"><?= t('user.takeoffs.value_label') ?> <strong id="pending-value"></strong></p>
       <div class="form-group"><label><?= t('user.takeoffs.label_field') ?></label><input type="text" id="pending-label" placeholder="e.g. North wall"></div>
+      <?php if (!empty($assemblies)): ?>
+      <div class="form-group" id="pending-assembly-group">
+        <label><?= t('user.takeoffs.assembly_label') ?></label>
+        <select id="pending-assembly">
+          <option value=""><?= t('user.takeoffs.assembly_none_option') ?></option>
+          <?php foreach ($assemblies as $a): ?>
+            <option value="<?= (int) $a['id'] ?>" data-unit-cost="<?= e($a['computed_unit_cost']) ?>" data-base-uom="<?= e($a['base_uom']) ?>">
+              <?= e(local($a, 'name')) ?> — <?= e($a['base_uom']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <p class="help-text" id="pending-assembly-hint" style="display:none;"><?= t('user.takeoffs.assembly_hint') ?></p>
+      </div>
+      <?php endif; ?>
       <div class="form-group"><label><?= t('user.takeoffs.cost_per_unit') ?></label><input type="number" step="0.01" id="pending-cost" value="0"></div>
       <button type="button" class="btn btn-sm btn-outline" id="open-library-picker" style="margin-bottom:10px;"><?= t('user.takeoffs.pick_cost_library') ?></button>
       <button type="button" class="btn btn-primary btn-sm" id="btn-save-measurement"><?= t('common.save') ?></button>
@@ -369,6 +383,7 @@
     document.getElementById('cutout-parent-panel').style.display = 'none';
     document.getElementById('btn-finish').style.display = m === 'calibrate' ? 'none' : 'inline-block';
     document.getElementById('btn-cancel').style.display = 'inline-block';
+    resetAssemblyPicker();
     const hints = {
       calibrate: 'Click the two ends of a known-length line on the plan.',
       length: 'Click along the path you want to measure, then press Finish.',
@@ -387,8 +402,45 @@
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
     document.getElementById('cutout-parent-panel').style.display = 'none';
+    resetAssemblyPicker();
     draw();
   });
+
+  // Clears the assembly dropdown back to "no assembly" and gives the cost field back to
+  // free typing — called whenever the pending panel starts fresh for a new measurement
+  // (a stale pick from a previous measurement, possibly of a different type, must never
+  // carry over).
+  function resetAssemblyPicker() {
+    const select = document.getElementById('pending-assembly');
+    const costEl = document.getElementById('pending-cost');
+    const hint = document.getElementById('pending-assembly-hint');
+    if (select) select.value = '';
+    if (costEl) costEl.disabled = false;
+    if (hint) hint.style.display = 'none';
+  }
+
+  const pendingAssemblySelect = document.getElementById('pending-assembly');
+  if (pendingAssemblySelect) {
+    pendingAssemblySelect.addEventListener('change', () => {
+      const costEl = document.getElementById('pending-cost');
+      const hint = document.getElementById('pending-assembly-hint');
+      const opt = pendingAssemblySelect.selectedOptions[0];
+      if (pendingAssemblySelect.value && opt) {
+        // Auto-fill from the assembly's own items (qty_per_unit * unit_cost, summed —
+        // computed server-side in TakeoffController::assembliesForPicker()) and lock the
+        // field so it can't drift from what will actually be charged; picking "— No
+        // assembly —" again hands typing back, exactly like before an assembly existed.
+        if (costEl) {
+          costEl.value = opt.dataset.unitCost;
+          costEl.disabled = true;
+        }
+        if (hint) hint.style.display = 'block';
+      } else {
+        if (costEl) costEl.disabled = false;
+        if (hint) hint.style.display = 'none';
+      }
+    });
+  }
 
   document.getElementById('btn-finish').addEventListener('click', () => {
     if (mode === 'length' && points.length >= 2) {
@@ -421,11 +473,23 @@
   function showPending(text) {
     document.getElementById('pending-value').textContent = text;
     document.getElementById('pending-panel').style.display = 'block';
+
+    // An assembly only applies to a non-cutout length/area measurement (see
+    // addMeasurement()'s server-side rejection of the same combinations) — a count has no
+    // sensible "per-unit" to scale, and a cutout is never its own line item.
+    const assemblyGroup = document.getElementById('pending-assembly-group');
+    if (assemblyGroup) {
+      const assemblyApplies = (pendingType === 'length' || pendingType === 'area') && !pendingIsCutout;
+      assemblyGroup.style.display = assemblyApplies ? 'block' : 'none';
+      if (!assemblyApplies) resetAssemblyPicker();
+    }
   }
 
   document.getElementById('btn-save-measurement').addEventListener('click', () => {
     const label = document.getElementById('pending-label').value || pendingType;
     const cost = parseFloat(document.getElementById('pending-cost').value) || 0;
+    const assemblySelect = document.getElementById('pending-assembly');
+    const assemblyId = (assemblySelect && assemblySelect.value) ? assemblySelect.value : '';
 
     fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/measurements', {
       method: 'POST',
@@ -439,6 +503,7 @@
         points: JSON.stringify(points),
         is_cutout: pendingIsCutout ? '1' : '0',
         parent_measurement_id: (pendingIsCutout && cutoutParentId) ? cutoutParentId : '',
+        assembly_id: assemblyId,
       })
     }).then(r => r.json()).then(() => location.reload());
   });
