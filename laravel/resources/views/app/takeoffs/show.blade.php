@@ -73,16 +73,39 @@
       <div class="toolbar" style="margin-bottom:8px;">
         <button type="button" class="btn btn-sm btn-outline" id="tool-calibrate"><?= t('user.takeoffs.calibrate_scale') ?></button>
       </div>
+      <?php
+        $areaParentCandidates = array_values(array_filter($measurements, fn ($m) => $m['type'] === 'area' && !$m['is_cutout']));
+        $hasAreaParentCandidates = count($areaParentCandidates) > 0;
+      ?>
       <div class="toolbar">
         <button type="button" class="btn btn-sm btn-light" data-tool="length"><?= t('user.takeoffs.length_tool') ?></button>
         <button type="button" class="btn btn-sm btn-light" data-tool="area"><?= t('user.takeoffs.area_tool') ?></button>
         <button type="button" class="btn btn-sm btn-light" data-tool="count"><?= t('user.takeoffs.count_tool') ?></button>
+        <?php if ($hasAreaParentCandidates): ?>
+          <button type="button" class="btn btn-sm btn-light" data-tool="cutout" id="tool-cutout"><?= t('user.takeoffs.cutout_tool') ?></button>
+        <?php else: ?>
+          <button type="button" class="btn btn-sm btn-light" disabled title="<?= e(t('user.takeoffs.cutout_needs_area_hint')) ?>"><?= t('user.takeoffs.cutout_tool') ?></button>
+        <?php endif; ?>
       </div>
       <p class="help-text" id="tool-hint"><?= t('user.takeoffs.click_finish_hint') ?></p>
       <div class="toolbar">
         <button type="button" class="btn btn-sm btn-primary" id="btn-finish" style="display:none;"><?= t('user.takeoffs.finish') ?></button>
         <button type="button" class="btn btn-sm btn-light" id="btn-cancel" style="display:none;"><?= t('common.cancel') ?></button>
       </div>
+    </div>
+
+    <div class="card" id="cutout-parent-panel" style="display:none;margin-bottom:16px;">
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.cutout_pick_parent') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.cutout_pick_parent_hint') ?></p>
+      <div class="form-group">
+        <label><?= t('user.takeoffs.cutout_parent_label') ?></label>
+        <select id="cutout-parent-select">
+          <?php foreach ($areaParentCandidates as $m): ?>
+            <option value="<?= (int) $m['id'] ?>"><?= e($m['label']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-start-cutout"><?= t('user.takeoffs.cutout_start_drawing') ?></button>
     </div>
 
     <div class="card" id="pending-panel" style="display:none;margin-bottom:16px;">
@@ -108,10 +131,23 @@
       <?php else: ?>
         <div class="card-list">
           <?php foreach ($measurements as $m): ?>
-            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:6px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding:6px 0;<?= $m['is_cutout'] ? 'padding-left:18px;' : '' ?>">
               <div>
-                <div style="font-size:13px;font-weight:600;"><?= e($m['label']) ?></div>
-                <div class="help-text"><bdi><?= e(number_format((float)$m['value'],2)) ?> <?= e($m['unit']) ?></bdi> · <?= money((float)$m['total_cost']) ?></div>
+                <div style="font-size:13px;font-weight:600;"><?= $m['is_cutout'] ? '↳ ' : '' ?><?= e($m['label']) ?></div>
+                <div class="help-text">
+                  <bdi><?= e(number_format((float)$m['value'],2)) ?> <?= e($m['unit']) ?></bdi>
+                  <?php if (!$m['is_cutout'] && $m['gross_value'] !== null): ?>
+                    &nbsp;<?= e(t('user.takeoffs.cutout_net_note', [
+                      'gross' => number_format((float) $m['gross_value'], 2),
+                      'cut' => number_format((float) $m['cutout_total'], 2),
+                      'unit' => $m['unit'],
+                    ])) ?>
+                  <?php endif; ?>
+                  · <?= money((float)$m['total_cost']) ?>
+                </div>
+                <?php if ($m['is_cutout'] && $m['parent_label']): ?>
+                  <div class="help-text" style="font-style:italic;"><?= e(t('user.takeoffs.cutout_from_label', ['label' => $m['parent_label']])) ?></div>
+                <?php endif; ?>
               </div>
               <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/measurements/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.takeoffs.remove_measurement_confirm') ?>');">
                 <?= csrf_field() ?>
@@ -176,7 +212,14 @@
   const pageId = <?= $currentPage ? (int) $currentPage['id'] : 'null' ?>;
   let scalePxPerUnit = <?= $currentPage ? (float) $currentPage['scale_px_per_unit'] : 1 ?>;
   const scaleUnit = <?= json_encode($currentPage['scale_unit'] ?? 'm') ?>;
-  const savedMeasurements = <?= json_encode(array_map(fn($m) => ['type'=>$m['type'],'points'=>json_decode($m['points_json'],true)], $measurements)) ?>;
+  const savedMeasurements = <?= json_encode(array_map(fn($m) => [
+    'id' => $m['id'],
+    'type' => $m['type'],
+    'points' => json_decode($m['points_json'], true),
+    'isCutout' => (bool) $m['is_cutout'],
+    'label' => $m['label'],
+  ], $measurements)) ?>;
+  const cutoutSuffix = <?= json_encode(' ' . t('user.takeoffs.cutout_suffix_short')) ?>;
 
   const canvas = document.getElementById('takeoff-canvas');
   const scaleStatus = document.getElementById('scale-status');
@@ -186,27 +229,32 @@
   const ctx = canvas.getContext('2d');
   const img = document.getElementById('plan-image');
 
-  let mode = null; // 'calibrate' | 'length' | 'area' | 'count'
+  let mode = null; // 'calibrate' | 'length' | 'area' | 'count' | 'cutout'
   let points = [];
   let pendingValue = null;
   let pendingType = null;
+  let pendingIsCutout = false;
+  let cutoutParentId = null;
 
   function draw() {
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     ctx.drawImage(img, 0, 0);
 
-    savedMeasurements.forEach(m => drawShape(m.type, m.points, '#0f6e5f'));
-    if (points.length) drawShape(mode, points, '#d4a017', true);
+    savedMeasurements.forEach(m => drawShape(m.type, m.points, '#0f6e5f', false, m.isCutout));
+    // While drawing, a cutout is still geometrically an 'area' (polygon-click-to-draw, same
+    // points/polygonArea() code as the Area tool) — only the save request and the rendering
+    // style differ.
+    if (points.length) drawShape(mode === 'cutout' ? 'area' : mode, points, '#d4a017', true, mode === 'cutout');
   }
 
-  function drawShape(type, pts, color, live) {
+  function drawShape(type, pts, color, live, isCutout) {
     if (!pts || !pts.length) return;
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color + '55';
     ctx.lineWidth = 2;
 
     if (type === 'count') {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
       pts.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
@@ -219,13 +267,29 @@
     ctx.moveTo(pts[0].x, pts[0].y);
     pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
     if (type === 'area' && !live) ctx.closePath();
-    if (type === 'area') ctx.fill();
-    ctx.stroke();
 
+    if (type === 'area' && isCutout) {
+      // Draw a cutout as a visually distinct "hole": a dashed red outline over a light,
+      // near-transparent fill, so it reads differently from a regular (solid green) area
+      // measurement at a glance, without changing how regular areas are rendered.
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = '#c0392b';
+      ctx.fillStyle = 'rgba(255,255,255,0.65)';
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color + '55';
+      if (type === 'area') ctx.fill();
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = isCutout ? '#c0392b' : color;
     pts.forEach(p => {
       ctx.beginPath();
       ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = color;
       ctx.fill();
     });
   }
@@ -265,7 +329,36 @@
 
   document.getElementById('tool-calibrate').addEventListener('click', () => startMode('calibrate'));
   document.querySelectorAll('[data-tool]').forEach(btn => {
-    btn.addEventListener('click', () => startMode(btn.dataset.tool));
+    btn.addEventListener('click', () => {
+      // The Cutout tool needs to know which area it's cutting from before any drawing
+      // starts — mirrors startMode()'s own hint-text panel pattern, just one step earlier.
+      if (btn.dataset.tool === 'cutout') {
+        showCutoutParentPicker();
+      } else {
+        startMode(btn.dataset.tool);
+      }
+    });
+  });
+
+  function showCutoutParentPicker() {
+    mode = null;
+    points = [];
+    cutoutParentId = null;
+    document.getElementById('calibrate-panel').style.display = 'none';
+    document.getElementById('pending-panel').style.display = 'none';
+    document.getElementById('btn-finish').style.display = 'none';
+    document.getElementById('btn-cancel').style.display = 'inline-block';
+    document.getElementById('cutout-parent-panel').style.display = 'block';
+    document.getElementById('tool-hint').textContent = <?= json_encode(t('user.takeoffs.cutout_pick_parent_hint')) ?>;
+    draw();
+  }
+
+  document.getElementById('btn-start-cutout').addEventListener('click', () => {
+    const select = document.getElementById('cutout-parent-select');
+    if (!select || !select.value) return;
+    cutoutParentId = parseInt(select.value, 10);
+    document.getElementById('cutout-parent-panel').style.display = 'none';
+    startMode('cutout');
   });
 
   function startMode(m) {
@@ -273,6 +366,7 @@
     points = [];
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
+    document.getElementById('cutout-parent-panel').style.display = 'none';
     document.getElementById('btn-finish').style.display = m === 'calibrate' ? 'none' : 'inline-block';
     document.getElementById('btn-cancel').style.display = 'inline-block';
     const hints = {
@@ -280,17 +374,19 @@
       length: 'Click along the path you want to measure, then press Finish.',
       area: 'Click each corner of the area, then press Finish.',
       count: 'Click each item to count, then press Finish.',
+      cutout: <?= json_encode(t('user.takeoffs.cutout_draw_hint')) ?>,
     };
     document.getElementById('tool-hint').textContent = hints[m] || '';
     draw();
   }
 
   document.getElementById('btn-cancel').addEventListener('click', () => {
-    mode = null; points = [];
+    mode = null; points = []; cutoutParentId = null;
     document.getElementById('btn-finish').style.display = 'none';
     document.getElementById('btn-cancel').style.display = 'none';
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
+    document.getElementById('cutout-parent-panel').style.display = 'none';
     draw();
   });
 
@@ -300,15 +396,24 @@
       for (let i = 1; i < points.length; i++) px += dist(points[i-1], points[i]);
       pendingValue = scalePxPerUnit > 0 ? px / scalePxPerUnit : px;
       pendingType = 'length';
+      pendingIsCutout = false;
       showPending(pendingValue.toFixed(2) + ' ' + scaleUnit);
-    } else if (mode === 'area' && points.length >= 3) {
+    } else if ((mode === 'area' || mode === 'cutout') && points.length >= 3) {
+      // Same polygon-click-to-draw interaction and polygonArea() math as the Area tool —
+      // a cutout only differs in what gets carried through to the save request below.
       const pxArea = polygonArea(points);
       pendingValue = scalePxPerUnit > 0 ? pxArea / (scalePxPerUnit * scalePxPerUnit) : pxArea;
       pendingType = 'area';
-      showPending(pendingValue.toFixed(2) + ' ' + scaleUnit + '²');
+      pendingIsCutout = (mode === 'cutout');
+      let text = pendingValue.toFixed(2) + ' ' + scaleUnit + '²';
+      if (pendingIsCutout) {
+        text += cutoutSuffix;
+      }
+      showPending(text);
     } else if (mode === 'count' && points.length >= 1) {
       pendingValue = points.length;
       pendingType = 'count';
+      pendingIsCutout = false;
       showPending(pendingValue + ' item(s)');
     }
   });
@@ -325,7 +430,16 @@
     fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/measurements', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ _token: csrfToken, type: pendingType, label, value: pendingValue, unit_cost: cost, points: JSON.stringify(points) })
+      body: new URLSearchParams({
+        _token: csrfToken,
+        type: pendingType,
+        label,
+        value: pendingValue,
+        unit_cost: cost,
+        points: JSON.stringify(points),
+        is_cutout: pendingIsCutout ? '1' : '0',
+        parent_measurement_id: (pendingIsCutout && cutoutParentId) ? cutoutParentId : '',
+      })
     }).then(r => r.json()).then(() => location.reload());
   });
 

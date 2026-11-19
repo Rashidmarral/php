@@ -184,11 +184,25 @@ class TakeoffController extends Controller
             $currentPage = $pages->first();
         }
 
-        $measurements = $currentPage
-            ? TakeoffMeasurement::where('takeoff_page_id', $currentPage->id)->orderBy('id')->get()->toArray()
-            : [];
-        $totalCost = array_sum(array_map(fn ($m) => (float) $m['total_cost'], $measurements));
-        $grandTotalCost = (float) TakeoffMeasurement::where('takeoff_id', $takeoff->id)->sum('total_cost');
+        $pageMeasurements = $currentPage
+            ? TakeoffMeasurement::where('takeoff_page_id', $currentPage->id)->orderBy('id')->get()
+            : collect();
+        $labelsById = $pageMeasurements->pluck('label', 'id');
+
+        // A cutout's own value/total_cost only exist to reduce its parent's net value — it is
+        // never its own line item in the page total (see convertToEstimate() for the same
+        // exclusion). The parent row's value/total_cost are already the adjusted net figures,
+        // so they need no special-casing here.
+        $measurements = $pageMeasurements->map(function (TakeoffMeasurement $m) use ($labelsById) {
+            $row = $m->toArray();
+            $row['parent_label'] = $m->is_cutout && $m->parent_measurement_id
+                ? $labelsById->get($m->parent_measurement_id)
+                : null;
+            $row['cutout_total'] = $m->gross_value !== null ? (float) $m->gross_value - (float) $m->value : null;
+            return $row;
+        })->all();
+        $totalCost = array_sum(array_map(fn ($m) => $m['is_cutout'] ? 0.0 : (float) $m['total_cost'], $measurements));
+        $grandTotalCost = (float) TakeoffMeasurement::where('takeoff_id', $takeoff->id)->where('is_cutout', false)->sum('total_cost');
 
         $materials = DB::table('materials as m')
             ->leftJoin('suppliers as s', 's.id', '=', 'm.supplier_id')
@@ -249,9 +263,29 @@ class TakeoffController extends Controller
         $value = $this->validatedNumber($request->input('value', 0), 0.001, 999999999.999);
         $unitCost = $this->validatedNumberOrDefault($request->input('unit_cost', 0), 0, 99999999.99, 0.0);
         $points = (string) $request->input('points', '[]');
+        $isCutout = $request->boolean('is_cutout');
 
         if (!in_array($type, ['length', 'area', 'count'], true) || $value === null || $unitCost === null) {
             return response()->json(['ok' => false, 'error' => 'Invalid measurement.'], 422);
+        }
+
+        $parent = null;
+        if ($isCutout) {
+            if ($type !== 'area') {
+                return response()->json(['ok' => false, 'error' => 'Only an area measurement can be a cutout.'], 422);
+            }
+
+            $parentId = (int) $request->input('parent_measurement_id', 0);
+            $parent = $parentId ? TakeoffMeasurement::find($parentId) : null;
+
+            // Same-company (via the already-owned takeoff) and same-page checks — a cutout
+            // can only reduce an area measurement that lives on this exact page.
+            if (!$parent || $parent->takeoff_id !== $takeoff->id || $parent->takeoff_page_id !== $page->id) {
+                return response()->json(['ok' => false, 'error' => 'Cutout parent measurement not found on this page.'], 404);
+            }
+            if ($parent->type !== 'area' || $parent->is_cutout) {
+                return response()->json(['ok' => false, 'error' => 'A cutout can only be attached to an area measurement.'], 422);
+            }
         }
 
         $unit = $type === 'length' ? $page->scale_unit : ($type === 'area' ? $page->scale_unit . '²' : 'ea');
@@ -259,6 +293,8 @@ class TakeoffController extends Controller
         $measurement = TakeoffMeasurement::create([
             'takeoff_id' => $takeoff->id,
             'takeoff_page_id' => $page->id,
+            'parent_measurement_id' => $isCutout ? $parent->id : null,
+            'is_cutout' => $isCutout,
             'type' => $type,
             'label' => $label,
             'points_json' => $points,
@@ -268,7 +304,33 @@ class TakeoffController extends Controller
             'total_cost' => $value * $unitCost,
         ]);
 
+        if ($isCutout && $parent) {
+            $this->recomputeParentForCutouts($parent);
+        }
+
         return response()->json(['ok' => true, 'id' => $measurement->id]);
+    }
+
+    /**
+     * Recomputes $parent's net value/total_cost from its gross_value (captured the first time
+     * a cutout is attached) minus the sum of all of its remaining cutouts' values. Called
+     * after creating or deleting a cutout. If $parent has no cutouts left, this restores
+     * value/total_cost exactly to gross_value.
+     */
+    private function recomputeParentForCutouts(TakeoffMeasurement $parent): void
+    {
+        if ($parent->gross_value === null) {
+            $parent->gross_value = $parent->value;
+        }
+
+        $cutoutSum = (float) TakeoffMeasurement::where('parent_measurement_id', $parent->id)
+            ->where('is_cutout', true)
+            ->sum('value');
+
+        $net = max(0.0, (float) $parent->gross_value - $cutoutSum);
+        $parent->value = $net;
+        $parent->total_cost = $net * (float) $parent->unit_cost;
+        $parent->save();
     }
 
     /**
@@ -428,7 +490,21 @@ class TakeoffController extends Controller
             if ($measurement->takeoff_page_id) {
                 $redirectUrl .= '?page_id=' . $measurement->takeoff_page_id;
             }
-            $measurement->delete();
+
+            if ($measurement->is_cutout) {
+                $parentId = $measurement->parent_measurement_id;
+                $measurement->delete();
+                $parent = $parentId ? TakeoffMeasurement::find($parentId) : null;
+                if ($parent) {
+                    $this->recomputeParentForCutouts($parent);
+                }
+            } else {
+                // Deleting a measurement that may itself be a cutout's parent: drop its
+                // cutouts too, rather than leaving them pointing at a measurement that no
+                // longer exists.
+                TakeoffMeasurement::where('parent_measurement_id', $measurement->id)->where('is_cutout', true)->delete();
+                $measurement->delete();
+            }
         }
         return redirect($redirectUrl);
     }
@@ -443,7 +519,9 @@ class TakeoffController extends Controller
             return $redirect;
         }
         $takeoff = $this->findOwned($id);
-        $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff->id)->orderBy('id')->get();
+        // Cutouts are never their own line item — their only effect is already baked into
+        // their parent's net value/total_cost (see recomputeParentForCutouts()).
+        $measurements = TakeoffMeasurement::where('takeoff_id', $takeoff->id)->where('is_cutout', false)->orderBy('id')->get();
 
         if ($measurements->isEmpty()) {
             return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.measurement_required_for_conversion'));
