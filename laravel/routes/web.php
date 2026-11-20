@@ -61,6 +61,7 @@ use App\Http\Controllers\App\ReportController;
 use App\Http\Controllers\App\RfiController;
 use App\Http\Controllers\App\RfqController;
 use App\Http\Controllers\App\SafetyIncidentController;
+use App\Http\Controllers\App\SelectionController;
 use App\Http\Controllers\App\SubmittalController;
 use App\Http\Controllers\App\ToolboxTalkController;
 use App\Http\Controllers\App\TakeoffController;
@@ -219,6 +220,13 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/projects/{id}/boq/import', [BoqController::class, 'import']);
     Route::post('/boq/{id}', [BoqController::class, 'update']);
     Route::post('/boq/{id}/delete', [BoqController::class, 'destroy']);
+    Route::get('/projects/{id}/selections', [SelectionController::class, 'index']);
+    Route::get('/projects/{id}/selections/create', [SelectionController::class, 'create']);
+    Route::post('/projects/{id}/selections', [SelectionController::class, 'store']);
+    Route::get('/selections/{id}/edit', [SelectionController::class, 'edit']);
+    Route::post('/selections/{id}', [SelectionController::class, 'update']);
+    Route::post('/selections/{id}/delete', [SelectionController::class, 'destroy']);
+    Route::post('/selections/{id}/status', [SelectionController::class, 'updateStatus']);
     Route::get('/projects/{id}/payment-certificates', [PaymentCertificateController::class, 'index']);
     Route::get('/projects/{id}/payment-certificates/create', [PaymentCertificateController::class, 'create']);
     Route::post('/projects/{id}/payment-certificates', [PaymentCertificateController::class, 'store']);
@@ -797,6 +805,8 @@ Route::prefix('portal')->group(function () {
     Route::middleware('portal.client')->group(function () {
         Route::get('/', [PortalController::class, 'dashboard']);
         Route::get('/projects/{id}', [PortalController::class, 'project']);
+        Route::get('/projects/{id}/selections', [PortalController::class, 'selections']);
+        Route::post('/selections/{selectionId}/options/{optionId}/choose', [PortalController::class, 'chooseOption']);
         Route::get('/estimates/{id}', [PortalController::class, 'estimate']);
         Route::get('/invoices/{id}', [PortalController::class, 'invoice']);
 

@@ -387,6 +387,37 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.selections.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.selections.card_hint') ?></p>
+
+  <?php if (empty($selections)): ?>
+    <p class="help-text"><?= t('user.selections.none_yet') ?></p>
+  <?php else: ?>
+    <table class="data" style="margin-bottom:12px;">
+      <thead><tr><th><?= t('common.category') ?></th><th><?= t('common.name') ?></th><th><?= t('user.selections.allowance') ?></th><th><?= t('user.selections.chosen_price') ?></th><th><?= t('user.selections.variance') ?></th><th><?= t('common.status') ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($selections as $sel): ?>
+        <tr>
+          <td><?= e($sel['category']) ?></td>
+          <td><?= e(local($sel, 'name')) ?></td>
+          <td><?= money((float)$sel['allowance_amount']) ?></td>
+          <td><?= $sel['chosen_option'] ? money((float)$sel['chosen_option']['price']) : '—' ?></td>
+          <td style="color:<?= $sel['variance'] === null ? 'inherit' : ($sel['variance'] > 0 ? 'var(--danger)' : 'var(--success)') ?>;font-weight:600;">
+            <?= $sel['variance'] === null ? '—' : ($sel['variance'] > 0 ? '+' : '') . number_format($sel['variance'], 2) ?>
+          </td>
+          <td><span class="badge badge-<?= ['pending'=>'gray','client_selected'=>'blue','approved'=>'yellow','ordered'=>'blue','installed'=>'green'][$sel['status']] ?? 'gray' ?>"><?= e($selectionStatuses[$sel['status']] ?? ucfirst($sel['status'])) ?></span></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  <?php endif; ?>
+  <a href="/app/projects/<?= $project['id'] ?>/selections" class="btn btn-outline">
+    <?= $selectionCount > 0 ? t('user.selections.view_all', ['count' => $selectionCount]) : t('user.selections.title') ?>
+  </a>
+  <a href="/app/projects/<?= $project['id'] ?>/selections/create" class="btn btn-primary"><?= t('user.selections.new') ?></a>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.payment_certificates.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.payment_certificates.card_hint') ?></p>
 

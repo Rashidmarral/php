@@ -26,6 +26,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\Rfi;
 use App\Models\SafetyIncident;
 use App\Models\ScheduleTask;
+use App\Models\Selection;
 use App\Models\SiteLog;
 use App\Models\Subcontract;
 use App\Models\Submittal;
@@ -368,6 +369,17 @@ class ProjectController extends Controller
             ->limit(5)
             ->get();
         $siteLogCount = SiteLog::where('project_id', $project->id)->count();
+        $selections = Selection::where('project_id', $project->id)
+            ->with('options')
+            ->orderByDesc('created_at')
+            ->limit(5)
+            ->get();
+        $selectionCount = Selection::where('project_id', $project->id)->count();
+        $selectionRows = $selections->map(fn (Selection $s) => [
+            ...$s->toArray(),
+            'chosen_option' => $s->chosenOption()?->toArray(),
+            'variance' => $s->variance(),
+        ])->all();
         $punchListItems = PunchListItem::where('project_id', $project->id)
             ->orderByRaw("CASE status WHEN 'open' THEN 0 WHEN 'in_progress' THEN 1 ELSE 2 END")
             ->orderByRaw('due_date IS NULL')
@@ -464,6 +476,9 @@ class ProjectController extends Controller
             'availableEquipment' => $availableEquipment->toArray(),
             'siteLogs' => $siteLogs->toArray(),
             'siteLogCount' => $siteLogCount,
+            'selections' => $selectionRows,
+            'selectionCount' => $selectionCount,
+            'selectionStatuses' => Selection::STATUSES,
             'punchListItems' => $punchListItems->toArray(),
             'punchListStatuses' => PunchListItem::STATUSES,
             'punchListPriorities' => PunchListItem::PRIORITIES,

@@ -16,6 +16,12 @@
   <div class="card" style="margin-bottom:20px;"><p>{{ $project->description }}</p></div>
 @endif
 
+<div class="card" style="margin-bottom:20px;">
+  <h3>{{ t('portal.selections.title') }}</h3>
+  <p class="help-text" style="margin-top:-6px;">{{ t('portal.selections.card_hint') }}</p>
+  <a href="{{ url('/portal/projects/' . $project->id . '/selections') }}" class="btn btn-outline">{{ t('portal.selections.view_selections') }}</a>
+</div>
+
 <div class="card">
   <h3>Schedule</h3>
   @if ($tasks->isEmpty())
