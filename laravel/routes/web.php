@@ -357,6 +357,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
 
     Route::get('/schedule', [ScheduleController::class, 'index']);
     Route::post('/schedule', [ScheduleController::class, 'store']);
+    Route::post('/schedule/dependencies', [ScheduleController::class, 'storeDependency']);
+    Route::post('/schedule/dependencies/{id}/delete', [ScheduleController::class, 'destroyDependency']);
     Route::post('/schedule/{id}/status', [ScheduleController::class, 'updateStatus']);
     Route::post('/schedule/{id}/delete', [ScheduleController::class, 'destroy']);
 
