@@ -29,6 +29,12 @@ class TakeoffController extends Controller
 
     private const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
+    /** An Autocount reference box smaller than this on either side can't plausibly be a cropped symbol icon. */
+    private const AUTOCOUNT_MIN_BOX_PX = 10;
+
+    /** An Autocount reference box covering more than this fraction of the page's area is a room, not a single repeated symbol — see clampedAutocountBox(). */
+    private const AUTOCOUNT_MAX_BOX_AREA_FRACTION = 0.5;
+
     public function index(): View|RedirectResponse
     {
         if ($redirect = $this->requireFeature('takeoff')) {
@@ -270,6 +276,154 @@ class TakeoffController extends Controller
 
         $page->update(['scale_px_per_unit' => $pixelDistance / $realLength]);
         return response()->json(['ok' => true, 'scale' => $pixelDistance / $realLength]);
+    }
+
+    /**
+     * "Autocount" — mirrors STACK Construction Technologies' own repeated-symbol-detection
+     * feature (see AiTakeoffAnalyzer::findMatchingSymbols()'s own docblock for the full
+     * picture): the client draws a box around ONE instance of a repeated plan symbol (2-click
+     * rectangle, same interaction pattern as calibrate() above), and this crops that box out
+     * of the page's own image file with GD, sends both the crop and the full page to Claude
+     * vision, and hands back a list of candidate match points — never saved as a measurement
+     * here. This is pattern matching, not reliable detection, so the client is the one that
+     * puts every point through a Found/Excluded review before a human decides to save any of
+     * them (via the ordinary addMeasurement() above, type=count) — this endpoint itself never
+     * writes a TakeoffMeasurement.
+     */
+    public function autocount(Request $request, int $id, int $pageId): JsonResponse
+    {
+        if ($this->requireFeature('takeoff')) {
+            return response()->json(['ok' => false, 'error' => 'Not available on your plan.'], 403);
+        }
+        if ($this->requireAbility('write')) {
+            return response()->json(['ok' => false, 'error' => 'Not permitted.'], 403);
+        }
+        $takeoff = $this->findOwned($id);
+        $page = $this->findOwnedPage($takeoff, $pageId);
+
+        // Box validation is deliberately checked before isConfigured() below — it's a cheap,
+        // page-specific, deterministic check with nothing to do with whether AI is set up
+        // platform-wide, so a badly-drawn box is reported as such even when AI isn't
+        // configured yet (the client already disables this tool entirely in that case; this
+        // is defense in depth, not the primary gate).
+        $fullImagePath = public_path($page->image_path);
+        $imageSize = is_file($fullImagePath) ? @getimagesize($fullImagePath) : false;
+        if ($imageSize === false) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.autocount_image_missing')], 422);
+        }
+        [$imgWidth, $imgHeight] = $imageSize;
+
+        $box = $this->clampedAutocountBox($request, $imgWidth, $imgHeight);
+        if ($box === null) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.autocount_box_invalid')], 422);
+        }
+
+        if (!AiTakeoffAnalyzer::isConfigured()) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_not_configured')], 422);
+        }
+
+        $cropPath = $this->cropAutocountReference($fullImagePath, $box, $takeoff->company_id, $takeoff->id);
+        if ($cropPath === null) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.autocount_crop_failed')], 422);
+        }
+
+        try {
+            $matches = AiTakeoffAnalyzer::findMatchingSymbols($page->image_path, $cropPath);
+        } finally {
+            // Transient AI input file, same cleanup discipline as every other temp file this
+            // tool creates for a single AI call — removed whether the call succeeded or not.
+            @unlink($cropPath);
+        }
+
+        if ($matches === null) {
+            $lastError = Setting::get('ai_last_error') ?: 'The AI provider did not return a usable response.';
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_failed', ['reason' => $lastError])], 422);
+        }
+
+        return response()->json(['ok' => true, 'points' => $matches]);
+    }
+
+    /**
+     * Validates the client-drawn Autocount reference box and clamps it into the page image's
+     * actual pixel bounds (an off-canvas click, a box that starts at a negative coordinate,
+     * etc. is clamped rather than rejected outright) — then rejects the clamped result only
+     * if it's too small to plausibly be a cropped symbol icon, or covers too much of the page
+     * to be a single repeated symbol rather than a room. Returns null for either rejection.
+     *
+     * @return ?array{x:int,y:int,width:int,height:int}
+     */
+    private function clampedAutocountBox(Request $request, int $imgWidth, int $imgHeight): ?array
+    {
+        $x = $this->validatedNumber($request->input('x', 0), -999999, 999999);
+        $y = $this->validatedNumber($request->input('y', 0), -999999, 999999);
+        $width = $this->validatedNumber($request->input('width', 0), 0.01, 999999);
+        $height = $this->validatedNumber($request->input('height', 0), 0.01, 999999);
+
+        if ($x === null || $y === null || $width === null || $height === null) {
+            return null;
+        }
+
+        $left = max(0.0, min($x, (float) $imgWidth));
+        $top = max(0.0, min($y, (float) $imgHeight));
+        $right = max(0.0, min($x + $width, (float) $imgWidth));
+        $bottom = max(0.0, min($y + $height, (float) $imgHeight));
+
+        $clampedWidth = $right - $left;
+        $clampedHeight = $bottom - $top;
+
+        if ($clampedWidth < self::AUTOCOUNT_MIN_BOX_PX || $clampedHeight < self::AUTOCOUNT_MIN_BOX_PX) {
+            return null;
+        }
+        if ($clampedWidth * $clampedHeight > $imgWidth * $imgHeight * self::AUTOCOUNT_MAX_BOX_AREA_FRACTION) {
+            return null;
+        }
+
+        return [
+            'x' => (int) round($left),
+            'y' => (int) round($top),
+            'width' => (int) round($clampedWidth),
+            'height' => (int) round($clampedHeight),
+        ];
+    }
+
+    /**
+     * Crops $box out of $fullImagePath with GD and saves the result as a temp JPEG under
+     * this takeoff's own company-scoped uploads directory (uploads/takeoffs/{company}/
+     * {takeoff}/) — the same directory every other file this takeoff tool saves lives under.
+     * The caller MUST delete the returned path once done with it (see autocount()'s finally
+     * block) — this is a transient AI-input file, never a stored page or measurement asset.
+     * Returns null on any GD failure (extension missing, unreadable/corrupt source image,
+     * directory or file write failure) rather than throwing.
+     */
+    private function cropAutocountReference(string $fullImagePath, array $box, int $companyId, int $takeoffId): ?string
+    {
+        if (!function_exists('imagecreatefromstring') || !function_exists('imagecrop')) {
+            return null;
+        }
+
+        $raw = @file_get_contents($fullImagePath);
+        $source = $raw !== false ? @imagecreatefromstring($raw) : false;
+        if ($source === false) {
+            return null;
+        }
+
+        $cropped = @imagecrop($source, $box);
+        imagedestroy($source);
+        if ($cropped === false) {
+            return null;
+        }
+
+        $destDir = public_path("uploads/takeoffs/{$companyId}/{$takeoffId}");
+        if (!is_dir($destDir) && !mkdir($destDir, 0755, true) && !is_dir($destDir)) {
+            imagedestroy($cropped);
+            return null;
+        }
+
+        $cropPath = $destDir . '/autocount-ref-' . uniqid() . '.jpg';
+        $saved = @imagejpeg($cropped, $cropPath, 90);
+        imagedestroy($cropped);
+
+        return $saved ? $cropPath : null;
     }
 
     public function addMeasurement(Request $request, int $id, int $pageId): JsonResponse

@@ -86,6 +86,10 @@
         <?php else: ?>
           <button type="button" class="btn btn-sm btn-light" disabled title="<?= e(t('user.takeoffs.cutout_needs_area_hint')) ?>"><?= t('user.takeoffs.cutout_tool') ?></button>
         <?php endif; ?>
+        <?php
+          $autocountTooltip = $aiConfigured ? '' : t('user.takeoffs.ai_not_configured');
+        ?>
+        <button type="button" class="btn btn-sm btn-light" data-tool="autocount" id="tool-autocount" <?= $aiConfigured ? '' : 'disabled' ?> title="<?= e($autocountTooltip) ?>"><?= t('user.takeoffs.autocount_tool') ?></button>
       </div>
       <p class="help-text" id="tool-hint"><?= t('user.takeoffs.click_finish_hint') ?></p>
       <div class="toolbar">
@@ -136,6 +140,20 @@
       <p class="help-text"><?= t('user.takeoffs.set_scale_hint') ?></p>
       <div class="form-group"><label><?= t('user.takeoffs.real_length') ?></label><input type="number" step="0.01" id="calibrate-length" value="1"></div>
       <button type="button" class="btn btn-primary btn-sm" id="btn-save-calibration"><?= t('user.takeoffs.save_scale') ?></button>
+    </div>
+
+    <div id="autocount-panel" style="display:none;margin-bottom:16px;" class="card">
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.autocount_panel_heading') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.autocount_panel_hint') ?></p>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-run-autocount"><?= t('user.takeoffs.autocount_find_matches') ?></button>
+    </div>
+
+    <div id="autocount-review-panel" style="display:none;margin-bottom:16px;" class="card">
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.autocount_review_heading') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.autocount_review_hint') ?></p>
+      <div id="autocount-list" style="max-height:220px;overflow-y:auto;margin-bottom:10px;"></div>
+      <p class="help-text"><?= t('user.takeoffs.autocount_confirmed_count_label') ?> <strong id="autocount-confirmed-count">0</strong></p>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-save-autocount"><?= t('user.takeoffs.autocount_save') ?></button>
     </div>
 
     <div class="card">
@@ -243,12 +261,16 @@
   const ctx = canvas.getContext('2d');
   const img = document.getElementById('plan-image');
 
-  let mode = null; // 'calibrate' | 'length' | 'area' | 'count' | 'cutout'
+  let mode = null; // 'calibrate' | 'length' | 'area' | 'count' | 'cutout' | 'autocount'
   let points = [];
   let pendingValue = null;
   let pendingType = null;
   let pendingIsCutout = false;
   let cutoutParentId = null;
+  // Autocount's own candidate matches — never a saved measurement on its own; see
+  // renderAutocountReview()/btn-save-autocount below for how a reviewed, confirmed subset
+  // becomes one ordinary 'count' TakeoffMeasurement.
+  let autocountDetections = [];
 
   function draw() {
     canvas.width = img.naturalWidth;
@@ -260,6 +282,24 @@
     // points/polygonArea() code as the Area tool) — only the save request and the rendering
     // style differ.
     if (points.length) drawShape(mode === 'cutout' ? 'area' : mode, points, '#d4a017', true, mode === 'cutout');
+    drawAutocountMarkers();
+  }
+
+  // Autocount's detected points get their own small square marker — deliberately distinct
+  // from the Count tool's solid circle — so a reviewed-but-unsaved detection never looks like
+  // an already-saved measurement. A confirmed marker is filled solid; an excluded one is
+  // drawn faint/hollow, in sync with the toggle list in renderAutocountReview() below.
+  function drawAutocountMarkers() {
+    if (!autocountDetections.length) return;
+    autocountDetections.forEach(d => {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#7b2cbf';
+      ctx.fillStyle = d.confirmed ? '#7b2cbf' : 'rgba(123,44,191,0.2)';
+      ctx.beginPath();
+      ctx.rect(d.x - 7, d.y - 7, 14, 14);
+      ctx.fill();
+      ctx.stroke();
+    });
   }
 
   function drawShape(type, pts, color, live, isCutout) {
@@ -274,6 +314,25 @@
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
         ctx.fill();
       });
+      return;
+    }
+
+    if (type === 'autocount') {
+      // The reference box — a plain rectangle between the two clicked corners (in whichever
+      // order they were clicked), not a polyline/polygon like the other tools.
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = color;
+      if (pts.length >= 2) {
+        const x = Math.min(pts[0].x, pts[1].x);
+        const y = Math.min(pts[0].y, pts[1].y);
+        ctx.strokeRect(x, y, Math.abs(pts[1].x - pts[0].x), Math.abs(pts[1].y - pts[0].y));
+      } else {
+        ctx.beginPath();
+        ctx.arc(pts[0].x, pts[0].y, 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.restore();
       return;
     }
 
@@ -336,6 +395,11 @@
     if (mode === 'calibrate' && points.length === 2) {
       document.getElementById('calibrate-panel').style.display = 'block';
     }
+    // Same 2-click-then-stop interaction as calibrate above — the second click defines the
+    // reference box's opposite corner and immediately surfaces the "find matches" panel.
+    if (mode === 'autocount' && points.length === 2) {
+      document.getElementById('autocount-panel').style.display = 'block';
+    }
     if (mode === 'count') {
       // count mode: each click is immediately part of the running set; Finish saves the count.
     }
@@ -378,10 +442,16 @@
   function startMode(m) {
     mode = m;
     points = [];
+    autocountDetections = [];
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
     document.getElementById('cutout-parent-panel').style.display = 'none';
-    document.getElementById('btn-finish').style.display = m === 'calibrate' ? 'none' : 'inline-block';
+    document.getElementById('autocount-panel').style.display = 'none';
+    document.getElementById('autocount-review-panel').style.display = 'none';
+    // Autocount needs no Finish button — like calibrate, its second click is the trigger
+    // (see the canvas click listener above), surfacing autocount-panel's own "Find matching
+    // symbols" button instead.
+    document.getElementById('btn-finish').style.display = (m === 'calibrate' || m === 'autocount') ? 'none' : 'inline-block';
     document.getElementById('btn-cancel').style.display = 'inline-block';
     resetAssemblyPicker();
     const hints = {
@@ -390,18 +460,21 @@
       area: 'Click each corner of the area, then press Finish.',
       count: 'Click each item to count, then press Finish.',
       cutout: <?= json_encode(t('user.takeoffs.cutout_draw_hint')) ?>,
+      autocount: <?= json_encode(t('user.takeoffs.autocount_draw_hint')) ?>,
     };
     document.getElementById('tool-hint').textContent = hints[m] || '';
     draw();
   }
 
   document.getElementById('btn-cancel').addEventListener('click', () => {
-    mode = null; points = []; cutoutParentId = null;
+    mode = null; points = []; cutoutParentId = null; autocountDetections = [];
     document.getElementById('btn-finish').style.display = 'none';
     document.getElementById('btn-cancel').style.display = 'none';
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
     document.getElementById('cutout-parent-panel').style.display = 'none';
+    document.getElementById('autocount-panel').style.display = 'none';
+    document.getElementById('autocount-review-panel').style.display = 'none';
     resetAssemblyPicker();
     draw();
   });
@@ -517,6 +590,125 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ _token: csrfToken, pixel_distance: px, real_length: realLength })
+    }).then(r => r.json()).then(() => location.reload());
+  });
+
+  // Renders autocountDetections as a toggle list in the review panel — the "Found / Missed /
+  // Wrong-Shape"-style human review STACK's own Autocount requires before anything is
+  // treated as real, just expressed as an include/exclude toggle per candidate here. Always
+  // rebuilt from the array rather than patched in place, so it can never drift out of sync
+  // with what draw() renders on the canvas.
+  function renderAutocountReview() {
+    const list = document.getElementById('autocount-list');
+    const countLabel = document.getElementById('autocount-confirmed-count');
+    if (!list || !countLabel) return;
+
+    list.innerHTML = '';
+    if (autocountDetections.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'help-text';
+      empty.textContent = <?= json_encode(t('user.takeoffs.autocount_no_matches')) ?>;
+      list.appendChild(empty);
+    } else {
+      autocountDetections.forEach((d, i) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '4px 0';
+        row.style.borderBottom = '1px solid var(--border)';
+        row.style.opacity = d.confirmed ? '1' : '0.5';
+
+        const label = document.createElement('span');
+        label.style.fontSize = '12px';
+        label.textContent = <?= json_encode(t('user.takeoffs.autocount_match_label')) ?> + ' #' + (i + 1)
+          + (d.confirmed ? '' : ' — ' + <?= json_encode(t('user.takeoffs.autocount_excluded')) ?>);
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'btn btn-sm btn-light';
+        toggleBtn.textContent = d.confirmed
+          ? <?= json_encode(t('user.takeoffs.autocount_exclude')) ?>
+          : <?= json_encode(t('user.takeoffs.autocount_include')) ?>;
+        toggleBtn.addEventListener('click', () => {
+          d.confirmed = !d.confirmed;
+          renderAutocountReview();
+          draw();
+        });
+
+        row.appendChild(label);
+        row.appendChild(toggleBtn);
+        list.appendChild(row);
+      });
+    }
+
+    countLabel.textContent = autocountDetections.filter(d => d.confirmed).length;
+    document.getElementById('autocount-review-panel').style.display = 'block';
+  }
+
+  document.getElementById('btn-run-autocount').addEventListener('click', () => {
+    if (points.length < 2) return;
+    const x = Math.min(points[0].x, points[1].x);
+    const y = Math.min(points[0].y, points[1].y);
+    const width = Math.abs(points[1].x - points[0].x);
+    const height = Math.abs(points[1].y - points[0].y);
+
+    const btn = document.getElementById('btn-run-autocount');
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = <?= json_encode(t('user.takeoffs.autocount_searching')) ?>;
+
+    fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/autocount', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ _token: csrfToken, x, y, width, height })
+    }).then(r => r.json()).then(data => {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      if (!data.ok) {
+        alert(data.error || <?= json_encode(t('user.takeoffs.autocount_failed')) ?>);
+        return;
+      }
+      // Every detection starts confirmed — the review list is for excluding wrong ones, not
+      // opting in to right ones, since that's the common case for a real match.
+      autocountDetections = (data.points || []).map(p => ({ x: p.x, y: p.y, confirmed: true }));
+      document.getElementById('autocount-panel').style.display = 'none';
+      mode = null;
+      points = [];
+      renderAutocountReview();
+      draw();
+    }).catch(() => {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      alert(<?= json_encode(t('user.takeoffs.autocount_failed')) ?>);
+    });
+  });
+
+  document.getElementById('btn-save-autocount').addEventListener('click', () => {
+    const confirmed = autocountDetections.filter(d => d.confirmed);
+    if (confirmed.length === 0) {
+      alert(<?= json_encode(t('user.takeoffs.autocount_need_one')) ?>);
+      return;
+    }
+
+    // After this save, it is an entirely ordinary 'count' TakeoffMeasurement — the exact
+    // same addMeasurement() endpoint the Count tool itself posts to — so it renders and
+    // edits/deletes identically to any manually-clicked count from here on, with no
+    // "autocount" flag of its own.
+    fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/measurements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        _token: csrfToken,
+        type: 'count',
+        label: <?= json_encode(t('user.takeoffs.autocount_default_label')) ?>,
+        value: confirmed.length,
+        unit_cost: 0,
+        points: JSON.stringify(confirmed.map(d => ({ x: d.x, y: d.y }))),
+        is_cutout: '0',
+        parent_measurement_id: '',
+        assembly_id: '',
+      })
     }).then(r => r.json()).then(() => location.reload());
   });
 })();
