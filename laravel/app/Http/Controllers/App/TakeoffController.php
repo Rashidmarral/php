@@ -180,16 +180,34 @@ class TakeoffController extends Controller
             return $redirect;
         }
         $takeoff = $this->findOwned($id);
-        $pages = TakeoffPage::where('takeoff_id', $takeoff->id)->orderBy('page_number')->get();
+        // The page picker/thumbnail strip only ever lists CURRENT pages — a sheet with a
+        // revision history (see TakeoffPage's own docblock) otherwise shows up twice, once
+        // per version, which would be confusing. A specific OLD (superseded) revision is
+        // still reachable read-only via ?page_id=, just not listed here.
+        $pages = TakeoffPage::where('takeoff_id', $takeoff->id)->where('is_current', true)->orderBy('page_number')->get();
 
         $currentPage = null;
         $requestedPageId = (int) $request->query('page_id', 0);
         if ($requestedPageId) {
-            $currentPage = $pages->firstWhere('id', $requestedPageId);
+            $currentPage = TakeoffPage::where('takeoff_id', $takeoff->id)->where('id', $requestedPageId)->first();
         }
         if (!$currentPage) {
             $currentPage = $pages->first();
         }
+
+        // The chain of every revision of the sheet being viewed (oldest first), and whether
+        // the one actually being viewed is a superseded (read-only, historical) revision —
+        // see show.blade.php for how both drive the "Revision history" panel and the
+        // read-only lockout of the measuring tools on an old revision.
+        $versionChain = $currentPage ? array_map(fn (TakeoffPage $p) => $p->toArray(), $currentPage->versionChain()) : [];
+        $isViewingOldRevision = $currentPage && !$currentPage->is_current;
+        $canCompareRevision = $currentPage && $currentPage->supersedes_id !== null;
+        // The page a freshly-uploaded revision should attach to / the page "Upload Revised
+        // Plan" posts against — always the CURRENT row of this sheet's chain, even while
+        // viewing an old revision (there is never more than one current row per chain).
+        $currentVersionPage = $currentPage
+            ? (collect($versionChain)->firstWhere('is_current', true) ?? $currentPage->toArray())
+            : null;
 
         $pageMeasurements = $currentPage
             ? TakeoffMeasurement::where('takeoff_page_id', $currentPage->id)->orderBy('id')->get()
@@ -230,6 +248,10 @@ class TakeoffController extends Controller
             'materials' => $materials,
             'assemblies' => $this->assembliesForPicker($takeoff->company_id),
             'aiConfigured' => AiTakeoffAnalyzer::isConfigured(),
+            'versionChain' => $versionChain,
+            'isViewingOldRevision' => $isViewingOldRevision,
+            'canCompareRevision' => $canCompareRevision,
+            'currentVersionPage' => $currentVersionPage,
         ]);
     }
 
@@ -256,6 +278,125 @@ class TakeoffController extends Controller
             ->all();
     }
 
+    /**
+     * "Upload Revised Plan" — mirrors DocumentController::uploadVersion()'s exact shape,
+     * just adapted to a takeoff page instead of a document (see TakeoffPage's own docblock
+     * for the identical version/supersedes_id/is_current columns): creates a NEW TakeoffPage
+     * row pointing supersedes_id at $pageId, with version = old version + 1, is_current =
+     * true, and the SAME page_number/takeoff_id as the page being revised; marks the old row
+     * is_current = false. Both writes happen inside one DB::transaction, exactly like the
+     * Document precedent.
+     *
+     * $pageId's own existing measurements are deliberately left exactly where they are —
+     * attached to the OLD, now-superseded row — never migrated or re-projected onto the new
+     * page's coordinate space, since the revised drawing may have shifted things and a
+     * wrong auto-carried-over pin would be actively misleading (see this batch's own
+     * project notes). The new page starts with zero measurements; the user re-measures
+     * against the new drawing with the ordinary tools.
+     */
+    public function reviseUpload(Request $request, int $id, int $pageId): RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('takeoff')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $takeoff = $this->findOwned($id);
+        $old = $this->findOwnedPage($takeoff, $pageId);
+        $redirectUrl = '/app/takeoffs/' . $takeoff->id . '?page_id=' . $old->id;
+
+        $uploaded = $request->file('plan_image');
+        if (!$uploaded || !$uploaded->isValid()) {
+            return $this->redirectWithFlash($redirectUrl, 'error', t('user.takeoffs.revision_image_required'));
+        }
+
+        // Same per-image validation rules as store()'s own image branch (not duplicated
+        // differently) — jpeg/png/webp, MAX_IMAGE_BYTES.
+        $mime = $uploaded->getMimeType();
+        if (!isset(self::ALLOWED_IMAGE_MIMES[$mime])) {
+            return $this->redirectWithFlash($redirectUrl, 'error', t('user.takeoffs.image_type_invalid'));
+        }
+        if ($uploaded->getSize() > self::MAX_IMAGE_BYTES) {
+            return $this->redirectWithFlash($redirectUrl, 'error', t('user.takeoffs.image_max_size'));
+        }
+
+        $companyId = $takeoff->company_id;
+        $destDir = public_path("uploads/takeoffs/{$companyId}/{$takeoff->id}");
+        if (!is_dir($destDir)) {
+            mkdir($destDir, 0755, true);
+        }
+        $ext = self::ALLOWED_IMAGE_MIMES[$mime];
+        $newVersion = (int) $old->version + 1;
+        $filename = 'page-' . $old->page_number . '-v' . $newVersion . '-' . bin2hex(random_bytes(6)) . '.' . $ext;
+        $uploaded->move($destDir, $filename);
+        $imagePath = "/uploads/takeoffs/{$companyId}/{$takeoff->id}/{$filename}";
+
+        $new = null;
+        DB::transaction(function () use (&$new, $old, $takeoff, $imagePath, $newVersion) {
+            $new = TakeoffPage::create([
+                'takeoff_id' => $takeoff->id,
+                'page_number' => $old->page_number,
+                'image_path' => $imagePath,
+                // Carried over from the old page as a sensible starting default — the user
+                // can recalibrate the new sheet with the existing Calibrate Scale tool if
+                // the revised drawing was reprinted at a different scale.
+                'scale_px_per_unit' => $old->scale_px_per_unit,
+                'scale_unit' => $old->scale_unit,
+                'version' => $newVersion,
+                'supersedes_id' => $old->id,
+                'is_current' => true,
+            ]);
+
+            $old->update(['is_current' => false]);
+        });
+
+        $this->flash('success', t('user.takeoffs.revision_uploaded'));
+        return redirect('/app/takeoffs/' . $takeoff->id . '?page_id=' . $new->id);
+    }
+
+    /**
+     * Plan revision comparison — available only when $pageId has something to compare
+     * against (its own supersedes_id, set once a revision has been uploaded via
+     * reviseUpload() above). Sends both the old and new page images to Claude vision in one
+     * call via AiTakeoffAnalyzer::describeRevisionChanges() (see that method's own docblock
+     * for its conservative framing) and hands back its plain-language findings for
+     * show.blade.php to render as a simple, clearly AI-assisted list — never a saved
+     * measurement or any other persisted row.
+     */
+    public function compareRevision(int $id, int $pageId): JsonResponse
+    {
+        if ($this->requireFeature('takeoff')) {
+            return response()->json(['ok' => false, 'error' => 'Not available on your plan.'], 403);
+        }
+        if ($this->requireAbility('write')) {
+            return response()->json(['ok' => false, 'error' => 'Not permitted.'], 403);
+        }
+        $takeoff = $this->findOwned($id);
+        $page = $this->findOwnedPage($takeoff, $pageId);
+
+        if (!$page->supersedes_id) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.compare_no_previous_version')], 422);
+        }
+        $old = TakeoffPage::find($page->supersedes_id);
+        if (!$old || $old->takeoff_id !== $takeoff->id) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.compare_no_previous_version')], 422);
+        }
+
+        if (!AiTakeoffAnalyzer::isConfigured()) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_not_configured')], 422);
+        }
+
+        $findings = AiTakeoffAnalyzer::describeRevisionChanges($old->image_path, $page->image_path);
+
+        if ($findings === null) {
+            $lastError = Setting::get('ai_last_error') ?: 'The AI provider did not return a usable response.';
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_failed', ['reason' => $lastError])], 422);
+        }
+
+        return response()->json(['ok' => true, 'findings' => $findings]);
+    }
+
     public function calibrate(Request $request, int $id, int $pageId): JsonResponse
     {
         if ($this->requireFeature('takeoff')) {
@@ -266,6 +407,13 @@ class TakeoffController extends Controller
         }
         $takeoff = $this->findOwned($id);
         $page = $this->findOwnedPage($takeoff, $pageId);
+
+        // Defense in depth, same posture as autocount()'s own comment below — the UI never
+        // offers this tool on a superseded (historical, read-only) revision, but the server
+        // rejects it too rather than relying solely on the client hiding the button.
+        if (!$page->is_current) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.revision_old_action_blocked')], 422);
+        }
 
         $pixelDistance = $this->validatedNumber($request->input('pixel_distance', 0), 0.01, 999999999);
         $realLength = $this->validatedNumber($request->input('real_length', 0), 0.01, 999999999);
@@ -300,6 +448,13 @@ class TakeoffController extends Controller
         }
         $takeoff = $this->findOwned($id);
         $page = $this->findOwnedPage($takeoff, $pageId);
+
+        // Defense in depth, same posture as calibrate()'s own guard — a superseded
+        // (historical, read-only) revision is never offered this tool in the UI, but the
+        // server rejects it too.
+        if (!$page->is_current) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.revision_old_action_blocked')], 422);
+        }
 
         // Box validation is deliberately checked before isConfigured() below — it's a cheap,
         // page-specific, deterministic check with nothing to do with whether AI is set up
@@ -437,6 +592,13 @@ class TakeoffController extends Controller
         $takeoff = $this->findOwned($id);
         $page = $this->findOwnedPage($takeoff, $pageId);
 
+        // Defense in depth, same posture as calibrate()/autocount()'s own guards — a
+        // superseded (historical, read-only) revision is never offered any measuring tool
+        // in the UI, but the server rejects a direct write to one too.
+        if (!$page->is_current) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.revision_old_action_blocked')], 422);
+        }
+
         $type = (string) $request->input('type');
         $label = mb_substr(trim((string) $request->input('label')) ?: ucfirst($type), 0, 150);
         $value = $this->validatedNumber($request->input('value', 0), 0.001, 999999999.999);
@@ -557,6 +719,13 @@ class TakeoffController extends Controller
         $page = $this->findOwnedPage($takeoff, $pageId);
         $redirectUrl = '/app/takeoffs/' . $takeoff->id . '?page_id=' . $page->id;
 
+        // Defense in depth, same posture as calibrate()/autocount()/addMeasurement()'s own
+        // guards — a superseded (historical, read-only) revision is never offered this
+        // action in the UI, but the server rejects a direct call too.
+        if (!$page->is_current) {
+            return $this->redirectWithFlash($redirectUrl, 'error', t('user.takeoffs.revision_old_action_blocked'));
+        }
+
         if (!AiTakeoffAnalyzer::isConfigured()) {
             return $this->redirectWithFlash($redirectUrl, 'error', t('user.takeoffs.ai_not_configured'));
         }
@@ -592,7 +761,10 @@ class TakeoffController extends Controller
             return $redirect;
         }
         $takeoff = $this->findOwned($id);
-        $pages = TakeoffPage::where('takeoff_id', $takeoff->id)->orderBy('page_number')->get();
+        // Only the CURRENT revision of each sheet — a superseded page is historical
+        // reference only (see TakeoffPage's own docblock) and is never re-analyzed or
+        // written to here, same filtering as the page picker in show().
+        $pages = TakeoffPage::where('takeoff_id', $takeoff->id)->where('is_current', true)->orderBy('page_number')->get();
 
         if ($pages->isEmpty()) {
             return $this->redirectWithFlash('/app/takeoffs/' . $takeoff->id, 'error', t('user.takeoffs.image_required_for_ai'));
@@ -695,6 +867,16 @@ class TakeoffController extends Controller
             // isn't bounced back to page 1 while reviewing a later page's measurements.
             if ($measurement->takeoff_page_id) {
                 $redirectUrl .= '?page_id=' . $measurement->takeoff_page_id;
+            }
+
+            // Defense in depth, same posture as calibrate()/addMeasurement()'s own guards —
+            // a measurement attached to a superseded (historical, read-only) page must
+            // remain exactly as it was; the UI never offers a delete button for one, and
+            // the server rejects a direct call too.
+            $onPage = $measurement->takeoff_page_id ? TakeoffPage::find($measurement->takeoff_page_id) : null;
+            if ($onPage && !$onPage->is_current) {
+                $this->flash('error', t('user.takeoffs.revision_old_action_blocked'));
+                return redirect($redirectUrl);
             }
 
             if ($measurement->is_cutout) {

@@ -572,6 +572,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/takeoffs/{id}/measurements/{measurementId}/delete', [TakeoffController::class, 'deleteMeasurement']);
     Route::post('/takeoffs/{id}/pages/{pageId}/calibrate', [TakeoffController::class, 'calibrate']);
     Route::post('/takeoffs/{id}/pages/{pageId}/autocount', [TakeoffController::class, 'autocount']);
+    Route::post('/takeoffs/{id}/pages/{pageId}/revise', [TakeoffController::class, 'reviseUpload']);
+    Route::post('/takeoffs/{id}/pages/{pageId}/compare-revision', [TakeoffController::class, 'compareRevision']);
     Route::post('/takeoffs/{id}/convert', [TakeoffController::class, 'convertToEstimate']);
     Route::post('/takeoffs/{id}/delete', [TakeoffController::class, 'destroy']);
 });

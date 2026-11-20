@@ -14,6 +14,11 @@ use App\Models\Setting;
  * that method's own docblock for how it mirrors STACK Construction Technologies' own feature
  * of the same name and name's conservative, review-required framing.
  *
+ * Also provides describeRevisionChanges() — plan revision comparison, a third vision call
+ * used by TakeoffController::compareRevision() once a page has been revised (see
+ * TakeoffPage's own docblock for the version-tracking columns this builds on). See that
+ * method's own docblock for its conservative framing.
+ *
  * Reuses the same Anthropic config as AiEstimateGenerator (Admin > Platform Settings > AI
  * Generator) — there is no separate on/off switch for this feature. Unlike the estimate
  * generator, there is no sensible offline fallback for reading a plan image, so when AI
@@ -229,6 +234,139 @@ PROMPT;
         }
 
         return self::parseMatches($text);
+    }
+
+    /**
+     * Plan revision comparison — sends BOTH a page's previous and current plan images to
+     * Claude vision in one call and asks for a short, plain-language list of concrete,
+     * visible differences between them (a new/moved/removed wall, door, window, room, or a
+     * changed printed dimension). Backs TakeoffController::compareRevision(), used once a
+     * page has been revised (TakeoffPage::$supersedes_id set — see reviseUpload()).
+     *
+     * Same conservative, "never guess, only report what you can actually see" philosophy as
+     * analyzeTakeoffPlan() above: this is explicitly told to say "no obvious differences
+     * detected" rather than inventing a change when the two images look the same, and
+     * findings are always presented to the user as AI-assisted and worth double-checking
+     * against the actual drawings, never as an authoritative diff.
+     *
+     * @param string $oldImagePath The superseded page's image path (TakeoffPage::$image_path), public_path()-relative exactly like analyzeTakeoffPlan()'s $imagePath.
+     * @param string $newImagePath The current page's image path, same convention.
+     * @return ?array<int, string> Each entry is one short plain-language finding. Null on failure (see Setting::get('ai_last_error')).
+     */
+    public static function describeRevisionChanges(string $oldImagePath, string $newImagePath): ?array
+    {
+        if (!self::isConfigured()) {
+            return null;
+        }
+
+        $fullOldPath = public_path($oldImagePath);
+        $fullNewPath = public_path($newImagePath);
+        if (!is_file($fullOldPath) || !is_file($fullNewPath)) {
+            Setting::set('ai_last_error', 'Plan image file not found on disk.');
+            return null;
+        }
+
+        $oldData = @file_get_contents($fullOldPath);
+        $newData = @file_get_contents($fullNewPath);
+        if ($oldData === false || $newData === false) {
+            Setting::set('ai_last_error', 'Could not read plan image file.');
+            return null;
+        }
+
+        $apiKey = Setting::get('ai_api_key', '');
+        $model = Setting::get('ai_model', '') ?: 'claude-sonnet-5';
+
+        $systemPrompt = <<<PROMPT
+You are helping a Saudi Arabian contractor compare two versions of the same construction plan
+sheet — an original and a revised version (e.g. after an architect's addendum or a client change
+request). The first image is the OLD (previous) version; the second image is the NEW (current)
+version.
+
+Rules:
+- Only report a difference you can actually see — a concrete, visible change such as a new,
+  moved, or removed wall, door, window, or room, or a printed dimension that reads differently
+  between the two images.
+- If the two images look the same, or any differences are too minor/ambiguous to describe
+  concretely, respond with exactly one finding: "No obvious differences detected." Never invent
+  a change to seem more useful — honestly reporting no differences is the correct, expected
+  result when a sheet genuinely wasn't changed.
+- Keep each finding short and in plain language (one sentence), the kind a contractor could
+  immediately act on, e.g. "A new door opening appears on the north wall" or "The living room
+  width changed from 4.20m to 4.60m".
+
+Respond with ONLY valid JSON (no markdown fences, no commentary): an array of strings, each one
+plain-language finding.
+PROMPT;
+
+        $payload = json_encode([
+            'model' => $model,
+            'max_tokens' => 2048,
+            'system' => $systemPrompt,
+            'messages' => [[
+                'role' => 'user',
+                'content' => [
+                    ['type' => 'text', 'text' => 'OLD (previous) version of this plan sheet:'],
+                    ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => self::mediaTypeFor($fullOldPath), 'data' => base64_encode($oldData)]],
+                    ['type' => 'text', 'text' => 'NEW (current) version of this plan sheet — describe what visibly changed compared to the OLD version above:'],
+                    ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => self::mediaTypeFor($fullNewPath), 'data' => base64_encode($newData)]],
+                ],
+            ]],
+        ]);
+
+        $ch = curl_init('https://api.anthropic.com/v1/messages');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-api-key: ' . $apiKey,
+                'anthropic-version: 2023-06-01',
+            ],
+            CURLOPT_TIMEOUT => 60,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError || $httpCode !== 200 || !$response) {
+            Setting::set('ai_last_error', $curlError ?: "HTTP {$httpCode}: " . substr((string) $response, 0, 300));
+            return null;
+        }
+
+        $body = json_decode($response, true);
+        $text = $body['content'][0]['text'] ?? null;
+        if (!$text) {
+            Setting::set('ai_last_error', 'Unexpected API response shape.');
+            return null;
+        }
+
+        return self::parseFindings($text);
+    }
+
+    /** @return ?array<int, string> */
+    public static function parseFindings(string $text): ?array
+    {
+        $text = trim(preg_replace('/^```(json)?|```$/m', '', $text));
+        $parsed = json_decode($text, true);
+        if (!is_array($parsed)) {
+            Setting::set('ai_last_error', 'Could not parse AI response as JSON.');
+            return null;
+        }
+
+        $findings = [];
+        foreach ($parsed as $f) {
+            if (!is_string($f) && !is_numeric($f)) {
+                continue;
+            }
+            $finding = trim((string) $f);
+            if ($finding !== '') {
+                $findings[] = $finding;
+            }
+        }
+
+        return $findings;
     }
 
     /** @return ?array<int, array{x:float,y:float}> */

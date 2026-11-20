@@ -10,20 +10,41 @@
   </div>
   <div style="display:flex;gap:8px;">
     <?php
-      $canAiAnalyze = $aiConfigured && $currentPage;
+      $canAiAnalyze = $aiConfigured && $currentPage && !$isViewingOldRevision;
       $aiTooltip = !$aiConfigured
         ? t('user.takeoffs.ai_not_configured')
-        : (!$currentPage ? t('user.takeoffs.ai_needs_plan_image') : '');
+        : (!$currentPage ? t('user.takeoffs.ai_needs_plan_image') : ($isViewingOldRevision ? t('user.takeoffs.revision_old_action_blocked') : ''));
     ?>
+    <?php if (!$isViewingOldRevision): ?>
     <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/pages/<?= $currentPage['id'] ?? 0 ?>/ai-analyze" id="ai-analyze-form" title="<?= e($aiTooltip) ?>">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-outline" id="ai-analyze-btn" <?= $canAiAnalyze ? '' : 'disabled' ?> title="<?= e($aiTooltip) ?>">✨ <?= t('user.takeoffs.ai_analyze') ?></button>
     </form>
+    <?php endif; ?>
     <?php if (count($pages) > 1): ?>
     <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/ai-analyze-all" id="ai-analyze-all-form" title="<?= e($aiConfigured ? '' : t('user.takeoffs.ai_not_configured')) ?>">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-outline" id="ai-analyze-all-btn" <?= $aiConfigured ? '' : 'disabled' ?> title="<?= e($aiConfigured ? '' : t('user.takeoffs.ai_not_configured')) ?>">✨ <?= t('user.takeoffs.ai_analyze_all') ?></button>
     </form>
+    <?php endif; ?>
+    <?php if ($currentPage && !$isViewingOldRevision): ?>
+    <details style="display:inline-block;">
+      <summary class="btn btn-outline" style="cursor:pointer;display:inline-block;">📤 <?= t('user.takeoffs.upload_revised_plan') ?></summary>
+      <div class="card" style="position:absolute;z-index:5;margin-top:8px;min-width:280px;">
+        <p class="help-text" style="margin-top:0;"><?= t('user.takeoffs.upload_revised_plan_hint') ?></p>
+        <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/pages/<?= $currentPage['id'] ?>/revise" enctype="multipart/form-data">
+          <?= csrf_field() ?>
+          <div class="form-group" style="margin:0 0 8px;">
+            <label><?= t('common.file') ?></label>
+            <input type="file" name="plan_image" required accept=".jpg,.jpeg,.png,.webp">
+          </div>
+          <button type="submit" class="btn btn-sm btn-primary"><?= t('common.upload') ?></button>
+        </form>
+      </div>
+    </details>
+    <?php endif; ?>
+    <?php if ($canCompareRevision): ?>
+    <button type="button" class="btn btn-outline" id="btn-compare-revision" <?= $aiConfigured ? '' : 'disabled' ?> title="<?= e($aiConfigured ? '' : t('user.takeoffs.ai_not_configured')) ?>">🔍 <?= t('user.takeoffs.compare_revision_button') ?></button>
     <?php endif; ?>
     <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/convert" onsubmit="return confirm('<?= t('user.takeoffs.convert_confirm') ?>');">
       <?= csrf_field() ?>
@@ -35,6 +56,36 @@
     </form>
   </div>
 </div>
+
+<?php if (count($versionChain) > 1): ?>
+<div class="card" style="margin-bottom:16px;padding:10px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+    <div>
+      <h3 style="font-size:13px;margin:0;"><?= t('user.takeoffs.revision_history_heading') ?></h3>
+      <p class="help-text" style="margin:4px 0 0;"><?= t('user.takeoffs.revision_kept_hint') ?></p>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <?php foreach ($versionChain as $v): ?>
+        <?php $isActive = $currentPage && (int) $v['id'] === (int) $currentPage['id']; ?>
+        <a href="/app/takeoffs/<?= $takeoff['id'] ?>?page_id=<?= $v['id'] ?>"
+           class="btn btn-sm <?= $isActive ? 'btn-primary' : 'btn-light' ?>">
+          <?= e(t('user.takeoffs.revision_version_short', ['version' => $v['version']])) ?>
+          <?php if (!$v['is_current']): ?>&nbsp;(<?= t('user.takeoffs.revision_superseded_badge') ?>)<?php endif; ?>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if ($isViewingOldRevision && $currentPage): ?>
+<div class="card" style="margin-bottom:16px;padding:12px;border:1px solid var(--border);background:#fff8e6;">
+  <strong><?= e(t('user.takeoffs.revision_old_banner', ['version' => $currentPage['version']])) ?></strong>
+  <?php if ($currentVersionPage): ?>
+    &nbsp;<a href="/app/takeoffs/<?= $takeoff['id'] ?>?page_id=<?= $currentVersionPage['id'] ?>"><?= t('user.takeoffs.revision_view_current') ?></a>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <?php if (count($pages) > 1): ?>
 <div class="card" style="margin-bottom:16px;padding:10px;">
@@ -68,6 +119,12 @@
   </div>
 
   <div>
+    <?php if ($isViewingOldRevision): ?>
+    <div class="card" style="margin-bottom:16px;">
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.revision_readonly_heading') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.revision_readonly_hint') ?></p>
+    </div>
+    <?php else: ?>
     <div class="card" style="margin-bottom:16px;">
       <h3 style="font-size:14px;"><?= t('user.takeoffs.tools') ?></h3>
       <div class="toolbar" style="margin-bottom:8px;">
@@ -155,6 +212,15 @@
       <p class="help-text"><?= t('user.takeoffs.autocount_confirmed_count_label') ?> <strong id="autocount-confirmed-count">0</strong></p>
       <button type="button" class="btn btn-primary btn-sm" id="btn-save-autocount"><?= t('user.takeoffs.autocount_save') ?></button>
     </div>
+    <?php endif; ?>
+
+    <?php if ($canCompareRevision): ?>
+    <div class="card" id="compare-findings-panel" style="display:none;margin-bottom:16px;">
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.compare_findings_heading') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.compare_findings_hint') ?></p>
+      <ul id="compare-findings-list" style="margin:0;padding-left:18px;font-size:13px;"></ul>
+    </div>
+    <?php endif; ?>
 
     <div class="card">
       <h3 style="font-size:14px;"><?= t('user.takeoffs.measurements') ?></h3>
@@ -181,10 +247,12 @@
                   <div class="help-text" style="font-style:italic;"><?= e(t('user.takeoffs.cutout_from_label', ['label' => $m['parent_label']])) ?></div>
                 <?php endif; ?>
               </div>
+              <?php if (!$isViewingOldRevision): ?>
               <form method="post" action="/app/takeoffs/<?= $takeoff['id'] ?>/measurements/<?= $m['id'] ?>/delete" onsubmit="return confirm('<?= t('user.takeoffs.remove_measurement_confirm') ?>');">
                 <?= csrf_field() ?>
                 <button type="submit" class="btn btn-sm btn-light">✕</button>
               </form>
+              <?php endif; ?>
             </div>
           <?php endforeach; ?>
         </div>
@@ -230,6 +298,53 @@
     });
   }
 })();
+<?php if ($canCompareRevision): ?>
+(function() {
+  const compareBtn = document.getElementById('btn-compare-revision');
+  if (!compareBtn) return;
+
+  const csrfToken = <?= json_encode(csrf_token()) ?>;
+  const takeoffId = <?= (int) $takeoff['id'] ?>;
+  const pageId = <?= (int) $currentPage['id'] ?>;
+  const panel = document.getElementById('compare-findings-panel');
+  const list = document.getElementById('compare-findings-list');
+
+  compareBtn.addEventListener('click', () => {
+    if (!confirm(<?= json_encode(t('user.takeoffs.compare_revision_confirm')) ?>)) {
+      return;
+    }
+    compareBtn.disabled = true;
+    const originalText = compareBtn.textContent;
+    compareBtn.textContent = <?= json_encode(t('user.takeoffs.compare_revision_comparing')) ?>;
+
+    fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/compare-revision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ _token: csrfToken })
+    }).then(r => r.json()).then(data => {
+      compareBtn.disabled = false;
+      compareBtn.textContent = originalText;
+      if (!data.ok) {
+        alert(data.error || <?= json_encode(t('user.takeoffs.compare_revision_failed')) ?>);
+        return;
+      }
+      if (list) {
+        list.innerHTML = '';
+        (data.findings && data.findings.length ? data.findings : [<?= json_encode(t('user.takeoffs.compare_no_differences')) ?>]).forEach(f => {
+          const li = document.createElement('li');
+          li.textContent = f;
+          list.appendChild(li);
+        });
+      }
+      if (panel) panel.style.display = 'block';
+    }).catch(() => {
+      compareBtn.disabled = false;
+      compareBtn.textContent = originalText;
+      alert(<?= json_encode(t('user.takeoffs.compare_revision_failed')) ?>);
+    });
+  });
+})();
+<?php endif; ?>
 (function() {
   document.addEventListener('library-item-picked', (e) => {
     const labelEl = document.getElementById('pending-label');
@@ -242,6 +357,12 @@
   const csrfToken = <?= json_encode(csrf_token()) ?>;
   const takeoffId = <?= (int) $takeoff['id'] ?>;
   const pageId = <?= $currentPage ? (int) $currentPage['id'] : 'null' ?>;
+  // Viewing a superseded (old) revision is historical reference only — the plan image and
+  // its own saved measurements are still drawn below, but every measuring-tool button this
+  // script would otherwise wire up (Calibrate, Length/Area/Count/Cutout/Autocount, Finish,
+  // etc.) isn't rendered into the DOM at all on an old revision (see show() /
+  // $isViewingOldRevision), so none of that wiring runs here either.
+  const isReadOnly = <?= $isViewingOldRevision ? 'true' : 'false' ?>;
   let scalePxPerUnit = <?= $currentPage ? (float) $currentPage['scale_px_per_unit'] : 1 ?>;
   const scaleUnit = <?= json_encode($currentPage['scale_unit'] ?? 'm') ?>;
   const savedMeasurements = <?= json_encode(array_map(fn($m) => [
@@ -368,6 +489,11 @@
   }
 
   if (img.complete) draw(); else img.onload = draw;
+
+  // Nothing below this line applies to a read-only old revision — every element the
+  // following code binds to was deliberately left out of the DOM for one (see isReadOnly
+  // above), so wiring up listeners for them would throw on a null lookup.
+  if (isReadOnly) return;
 
   function canvasPoint(e) {
     const rect = canvas.getBoundingClientRect();
