@@ -5,11 +5,21 @@ namespace App\Support;
 use App\Models\EstimateTemplate;
 use App\Models\EstimateTemplateItem;
 use App\Models\Setting;
+use App\Models\Takeoff;
+use App\Models\TakeoffMeasurement;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Generates estimate line items from a plain-language project description, optionally
- * together with an uploaded photo of the site/room/plan (analyzed with Claude's vision
- * support, the same technique as AiTakeoffAnalyzer — see generateViaAnthropicWithImage()).
+ * together with up to 5 uploaded photos of the site/room/plan (analyzed with Claude's
+ * vision support, the same technique as AiTakeoffAnalyzer — see
+ * generateViaAnthropicWithImages()), grounded in two further, purely additive sources of
+ * real data layered into the same system prompt:
+ *   - the selected project's own real digital-takeoff measurements (buildTakeoffSummary()),
+ *     excluding cutouts, which are never a real-world quantity of their own — see
+ *     TakeoffController::convertToEstimate()'s identical exclusion;
+ *   - this company's own historical average unit costs per cost code, from its past
+ *     estimates (buildHistoricalPricingSummary()), strictly scoped to the calling company.
  *
  * When an Anthropic API key is configured (Admin > Platform Settings > AI Generator),
  * calls the real Claude API for a tailored breakdown. With no key configured, falls
@@ -17,7 +27,9 @@ use App\Models\Setting;
  * the feature still produces something useful with zero setup — the same zero-config
  * fallback pattern used elsewhere in this app (e.g. WhatsApp wa.me links). There is no
  * sensible offline fallback for an uploaded photo, so a photo that couldn't be analyzed
- * is simply dropped and the fallback note says so honestly.
+ * is simply dropped and the fallback note says so honestly. The template fallback also
+ * never uses the takeoff/historical-pricing context — it's a dumb keyword-matcher by
+ * design, see generateViaTemplateFallback()'s own docblock.
  */
 class AiEstimateGenerator
 {
@@ -27,39 +39,148 @@ class AiEstimateGenerator
     }
 
     /**
-     * @param ?string $imagePath Optional uploaded photo/plan image, public_path()-relative
-     *   (e.g. "/uploads/ai-estimate-tmp/3/abc.jpg"), analyzed together with the description
-     *   when AI is configured. There is no offline fallback for reading a photo (same stance
-     *   as AiTakeoffAnalyzer), so when AI isn't configured or the call fails, the photo is
-     *   simply not used — the note says so honestly rather than pretending it was analyzed.
+     * @param string[] $imagePaths Up to 5 optional uploaded photo/plan images, each
+     *   public_path()-relative (e.g. "/uploads/ai-estimate-tmp/3/abc.jpg"), analyzed
+     *   together with the description when AI is configured. There is no offline fallback
+     *   for reading a photo (same stance as AiTakeoffAnalyzer), so when AI isn't configured
+     *   or the call fails, the photos are simply not used — the note says so honestly
+     *   rather than pretending they were analyzed.
+     * @param ?int $projectId Optional selected project — when it has real (non-cutout)
+     *   takeoff measurements, they're summarized and sent as authoritative ground truth
+     *   (see buildTakeoffSummary()). Purely additive: no project, or a project with no
+     *   takeoffs, behaves exactly as before this was added.
+     * @param ?int $companyId The calling user's company — used ONLY to scope the historical
+     *   pricing lookup (see buildHistoricalPricingSummary()) to that company's own past
+     *   estimates. Never omit this for a real request or another company's pricing data
+     *   could leak; null simply skips historical grounding (e.g. for callers that don't
+     *   have a company context).
      * @return array{title:string,items:array,source:string,note:?string}
      */
-    public static function generate(string $description, ?string $imagePath = null): array
+    public static function generate(string $description, array $imagePaths = [], ?int $projectId = null, ?int $companyId = null): array
     {
+        $imagePaths = array_values(array_filter($imagePaths, fn ($p) => is_string($p) && $p !== ''));
+
         if (self::isConfigured()) {
-            $result = $imagePath !== null
-                ? self::generateViaAnthropicWithImage($description, $imagePath)
-                : self::generateViaAnthropic($description);
+            $takeoffSummary = self::buildTakeoffSummary($projectId);
+            $historicalPricing = $companyId !== null ? self::buildHistoricalPricingSummary($companyId) : null;
+
+            $result = !empty($imagePaths)
+                ? self::generateViaAnthropicWithImages($description, $imagePaths, $takeoffSummary, $historicalPricing)
+                : self::generateViaAnthropic($description, $takeoffSummary, $historicalPricing);
             if ($result !== null) {
                 return $result;
             }
             // AI was configured but the call itself failed — say so, don't claim
             // there's no provider configured (the real reason is in ai_last_error).
             $fallback = self::generateViaTemplateFallback($description, true);
-            if ($imagePath !== null) {
+            if (!empty($imagePaths)) {
                 $fallback['note'] = t('user.estimates.ai_note_photo_call_failed', ['reason' => Setting::get('ai_last_error', 'unknown error')]);
             }
             return $fallback;
         }
 
         $fallback = self::generateViaTemplateFallback($description);
-        if ($imagePath !== null) {
+        if (!empty($imagePaths)) {
             $fallback['note'] = t('user.estimates.ai_note_photo_not_configured');
         }
         return $fallback;
     }
 
-    private static function generateViaAnthropic(string $description): ?array
+    /**
+     * $projectId's real takeoff measurements (label, net value, unit, type), one per
+     * semicolon-separated entry, e.g. "Living Room floor: 24.50 m² (area); Door: 3.00 ea
+     * (count)" — sent in the system prompt as authoritative real-world data the AI must
+     * use for any corresponding line item rather than guessing. Cutout measurements are
+     * excluded: they only ever reduce their parent's own net value (TakeoffMeasurement's
+     * `value` column is already net of its cutouts — see the
+     * 2026_11_19_000200_add_cutout_fields_to_takeoff_measurements_table migration) and are
+     * never a real-world quantity of their own, mirroring
+     * TakeoffController::convertToEstimate()'s identical `where('is_cutout', false)`.
+     * Returns null for no project, or a project with no takeoffs/measurements — the caller
+     * must treat that exactly like no grounding data was ever requested.
+     */
+    public static function buildTakeoffSummary(?int $projectId): ?string
+    {
+        if (!$projectId) {
+            return null;
+        }
+
+        $takeoffIds = Takeoff::where('project_id', $projectId)->pluck('id');
+        if ($takeoffIds->isEmpty()) {
+            return null;
+        }
+
+        $measurements = TakeoffMeasurement::whereIn('takeoff_id', $takeoffIds)
+            ->where('is_cutout', false)
+            ->orderBy('id')
+            ->get(['label', 'value', 'unit', 'type']);
+
+        if ($measurements->isEmpty()) {
+            return null;
+        }
+
+        return $measurements
+            ->map(fn ($m) => sprintf('%s: %s %s (%s)', $m->label, number_format((float) $m->value, 2), $m->unit, $m->type))
+            ->implode('; ');
+    }
+
+    /**
+     * This company's own historical average unit cost per cost code, from its past
+     * EstimateItem rows — strictly scoped to $companyId via the owning Estimate's
+     * company_id, since this must never leak another company's pricing data. Only cost
+     * codes used on 2+ past items are included (avoids anchoring the AI on a single
+     * noisy outlier), capped at the 15 most-frequently-used, most-used first. Returns
+     * null for a brand-new company with no usable history — purely additive, never an
+     * error, and the prompt is simply unaffected.
+     */
+    public static function buildHistoricalPricingSummary(int $companyId): ?string
+    {
+        $rows = DB::table('estimate_items as ei')
+            ->join('estimates as e', 'e.id', '=', 'ei.estimate_id')
+            ->join('cost_codes as cc', 'cc.id', '=', 'ei.cost_code_id')
+            ->where('e.company_id', $companyId)
+            ->whereNotNull('ei.cost_code_id')
+            ->groupBy('ei.cost_code_id', 'cc.code', 'cc.description')
+            ->havingRaw('count(*) >= 2')
+            ->orderByDesc('uses')
+            ->limit(15)
+            ->selectRaw('cc.code as code, cc.description as description, count(*) as uses, avg(ei.unit_cost) as avg_cost')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        return $rows
+            ->map(fn ($r) => sprintf('%s %s — %s SAR/unit (avg of %d past jobs)', $r->code, $r->description, number_format((float) $r->avg_cost, 2), $r->uses))
+            ->implode('; ');
+    }
+
+    /**
+     * Appended to either Anthropic system prompt (text-only or with photos) when a
+     * takeoff summary and/or historical pricing context is available. Purely additive —
+     * returns '' when both are null, leaving the existing prompt untouched.
+     */
+    private static function buildContextAddendum(?string $takeoffSummary, ?string $historicalPricing): string
+    {
+        $parts = [];
+        if ($takeoffSummary !== null) {
+            $parts[] = 'AUTHORITATIVE REAL-WORLD MEASUREMENTS — these were taken directly from this '
+                . "project's own digital takeoff survey. For any line item that corresponds to one of "
+                . 'them, use this EXACT quantity rather than guessing from the description or any photo: '
+                . $takeoffSummary;
+        }
+        if ($historicalPricing !== null) {
+            $parts[] = "THIS COMPANY'S OWN HISTORICAL UNIT COSTS — real average unit costs this company "
+                . 'has actually paid on its own past jobs. Prefer these real figures over a generic Saudi '
+                . 'market guess whenever a generated line item corresponds to one of them: '
+                . $historicalPricing;
+        }
+
+        return $parts === [] ? '' : "\n\n" . implode("\n\n", $parts);
+    }
+
+    private static function generateViaAnthropic(string $description, ?string $takeoffSummary = null, ?string $historicalPricing = null): ?array
     {
         $apiKey = Setting::get('ai_api_key', '');
         $model = Setting::get('ai_model', '') ?: 'claude-sonnet-5';
@@ -73,6 +194,7 @@ Respond with ONLY valid JSON (no markdown fences, no commentary) in this exact s
 
 Group items into 2-5 logical sections. Use realistic Saudi market unit costs. Produce 8-20 line items total.
 PROMPT;
+        $systemPrompt .= self::buildContextAddendum($takeoffSummary, $historicalPricing);
 
         $payload = json_encode([
             'model' => $model,
@@ -138,43 +260,52 @@ PROMPT;
     }
 
     /**
-     * Same as generateViaAnthropic() but also sends an uploaded photo of the actual
-     * site/room/plan alongside the text description, using the same image-encoding
-     * technique as AiTakeoffAnalyzer::analyzeTakeoffPlan().
+     * Same as generateViaAnthropic() but also sends up to 5 uploaded photos of the actual
+     * site/room/plan alongside the text description, one {type: image, ...} content block
+     * per photo (all before the final text block, in the same message — Claude's vision
+     * support accepts several images in one message) — same image-encoding technique as
+     * AiTakeoffAnalyzer::analyzeTakeoffPlan(), just looped over N files now.
      */
-    private static function generateViaAnthropicWithImage(string $description, string $imagePath): ?array
+    private static function generateViaAnthropicWithImages(string $description, array $imagePaths, ?string $takeoffSummary = null, ?string $historicalPricing = null): ?array
     {
-        $fullPath = public_path($imagePath);
-        if (!is_file($fullPath)) {
-            Setting::set('ai_last_error', 'Photo file not found on disk.');
-            return null;
-        }
-
         $mediaTypes = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
-        $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
-        $mediaType = $mediaTypes[$ext] ?? 'image/jpeg';
 
-        $imageData = @file_get_contents($fullPath);
-        if ($imageData === false) {
-            Setting::set('ai_last_error', 'Could not read photo file.');
-            return null;
+        $imageBlocks = [];
+        foreach ($imagePaths as $imagePath) {
+            $fullPath = public_path($imagePath);
+            if (!is_file($fullPath)) {
+                Setting::set('ai_last_error', 'Photo file not found on disk.');
+                return null;
+            }
+
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            $mediaType = $mediaTypes[$ext] ?? 'image/jpeg';
+
+            $imageData = @file_get_contents($fullPath);
+            if ($imageData === false) {
+                Setting::set('ai_last_error', 'Could not read photo file.');
+                return null;
+            }
+
+            $imageBlocks[] = ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $mediaType, 'data' => base64_encode($imageData)]];
         }
 
         $apiKey = Setting::get('ai_api_key', '');
         $model = Setting::get('ai_model', '') ?: 'claude-sonnet-5';
 
         $systemPrompt = <<<PROMPT
-You are a construction estimating assistant for a Saudi Arabian contractor. You will receive a
-photo of the actual site, room, or plan alongside a text description. Use what is visible in the
-photo — existing condition, approximate scale/quantities, visible damage, room layout — together
-with the text description to produce a more accurate itemized cost breakdown priced in Saudi
-Riyal (SAR).
+You are a construction estimating assistant for a Saudi Arabian contractor. You will receive one
+or more photos of the actual site, room, or plan alongside a text description. Use what is visible
+in the photos — existing condition, approximate scale/quantities, visible damage, room layout —
+together with the text description to produce a more accurate itemized cost breakdown priced in
+Saudi Riyal (SAR).
 
 Respond with ONLY valid JSON (no markdown fences, no commentary) in this exact shape:
 {"title":"short project title","items":[{"section_title":"e.g. 1.0 Demolition","description":"line item description","type":"material or labor","qty":number,"uom":"sqm|m3|lm|each|lot|hr|ton|point|kg","unit_cost":number}]}
 
 Group items into 2-5 logical sections. Use realistic Saudi market unit costs. Produce 8-20 line items total.
 PROMPT;
+        $systemPrompt .= self::buildContextAddendum($takeoffSummary, $historicalPricing);
 
         $payload = json_encode([
             'model' => $model,
@@ -183,8 +314,8 @@ PROMPT;
             'messages' => [[
                 'role' => 'user',
                 'content' => [
-                    ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => $mediaType, 'data' => base64_encode($imageData)]],
-                    ['type' => 'text', 'text' => $description !== '' ? $description : 'See attached photo.'],
+                    ...$imageBlocks,
+                    ['type' => 'text', 'text' => $description !== '' ? $description : 'See attached photo(s).'],
                 ],
             ]],
         ]);

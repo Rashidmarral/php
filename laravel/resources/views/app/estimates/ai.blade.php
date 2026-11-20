@@ -22,8 +22,20 @@
       <textarea name="description" id="ai-description" rows="5" placeholder="e.g. Remodel a 20m² kitchen. Remove 15 linear meters of upper cabinets and 14 linear meters of damaged base units. Install new quartz countertops and porcelain flooring."></textarea>
     </div>
     <div class="form-group">
+      <label><?= t('user.estimates.ai_project_label') ?></label>
+      <select name="project_id" id="ai-project">
+        <option value=""><?= t('user.estimates.ai_project_none') ?></option>
+        <?php foreach ($projects as $project): ?>
+          <option value="<?= $project->id ?>" data-takeoff-count="<?= (int) ($takeoffCounts[$project->id] ?? 0) ?>">
+            <?= htmlspecialchars($project->name) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <p class="help-text" id="ai-project-hint" style="margin-top:6px;display:none;"></p>
+    </div>
+    <div class="form-group">
       <label><?= t('user.estimates.ai_photo_label') ?></label>
-      <input type="file" name="photo" accept="image/jpeg,image/png,image/webp">
+      <input type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple>
       <p class="help-text" style="margin-top:6px;"><?= t('user.estimates.ai_photo_hint') ?></p>
     </div>
     <button type="submit" class="btn btn-primary"><?= t('common.generate') ?></button>
@@ -60,6 +72,21 @@ document.querySelectorAll('.prompt-chip').forEach(function (btn) {
     document.getElementById('ai-description').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
 });
+
+var aiProjectSelect = document.getElementById('ai-project');
+var aiProjectHint = document.getElementById('ai-project-hint');
+if (aiProjectSelect && aiProjectHint) {
+  aiProjectSelect.addEventListener('change', function () {
+    var option = aiProjectSelect.options[aiProjectSelect.selectedIndex];
+    var count = option ? parseInt(option.dataset.takeoffCount || '0', 10) : 0;
+    if (count > 0) {
+      aiProjectHint.textContent = <?= json_encode(t('user.estimates.ai_project_grounded')) ?>.replace(':count', count);
+      aiProjectHint.style.display = '';
+    } else {
+      aiProjectHint.style.display = 'none';
+    }
+  });
+}
 </script>
 
 @endsection

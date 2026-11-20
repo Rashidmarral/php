@@ -250,8 +250,25 @@ class EstimateController extends Controller
         if ($redirect = $this->requireFeature('ai_estimate_generator')) {
             return $redirect;
         }
+        $companyId = Auth::user()->company_id;
+
+        // Per-project takeoff measurement counts (non-cutout only — see
+        // AiEstimateGenerator::buildTakeoffSummary()'s docblock for the same exclusion),
+        // so the picker can show a "grounded in N real measurements" hint as soon as a
+        // project with takeoffs is selected, with zero extra requests.
+        $takeoffCounts = DB::table('takeoffs as tk')
+            ->join('takeoff_measurements as m', 'm.takeoff_id', '=', 'tk.id')
+            ->where('tk.company_id', $companyId)
+            ->where('m.is_cutout', false)
+            ->whereNotNull('tk.project_id')
+            ->selectRaw('tk.project_id, count(*) as cnt')
+            ->groupBy('tk.project_id')
+            ->pluck('cnt', 'tk.project_id');
+
         return view('app.estimates.ai', [
             'aiConfigured' => AiEstimateGenerator::isConfigured(),
+            'projects' => Project::where('company_id', $companyId)->orderBy('name')->get(),
+            'takeoffCounts' => $takeoffCounts,
         ]);
     }
 
@@ -266,37 +283,49 @@ class EstimateController extends Controller
 
         $description = trim((string) $request->input('description'));
         $companyId = Auth::user()->company_id;
+        $projectId = $this->ownedProject($request->input('project_id') ?: null, $companyId)?->id;
 
-        $imagePath = null;
-        $fullImagePath = null;
-        $photo = $request->file('photo');
-        if ($photo && $photo->isValid()) {
-            $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-            $mime = $photo->getMimeType();
-            if (!isset($allowed[$mime])) {
+        $photos = $request->file('photos', []);
+        if (!is_array($photos)) {
+            $photos = $photos === null ? [] : [$photos];
+        }
+        $photos = array_values(array_filter($photos, fn ($f) => $f !== null && $f->isValid()));
+
+        if (count($photos) > 5) {
+            return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.photos_max_count'));
+        }
+
+        // Validate every photo BEFORE moving any of them, so a single invalid file in the
+        // batch fails cleanly with nothing left behind on disk to clean up.
+        $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        foreach ($photos as $photo) {
+            if (!isset($allowed[$photo->getMimeType()])) {
                 return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.photo_type_invalid'));
             }
             if ($photo->getSize() > 8 * 1024 * 1024) {
                 return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.photo_max_size'));
             }
-            $filename = bin2hex(random_bytes(12)) . '.' . $allowed[$mime];
-            $photo->move(public_path("uploads/ai-estimate-tmp/{$companyId}"), $filename);
-            $imagePath = "/uploads/ai-estimate-tmp/{$companyId}/{$filename}";
-            $fullImagePath = public_path($imagePath);
         }
 
-        if ($description === '' && $imagePath === null) {
+        $imagePaths = [];
+        foreach ($photos as $photo) {
+            $filename = bin2hex(random_bytes(12)) . '.' . $allowed[$photo->getMimeType()];
+            $photo->move(public_path("uploads/ai-estimate-tmp/{$companyId}"), $filename);
+            $imagePaths[] = "/uploads/ai-estimate-tmp/{$companyId}/{$filename}";
+        }
+
+        if ($description === '' && empty($imagePaths)) {
             return $this->redirectWithFlash('/app/estimates/ai', 'error', t('user.estimates.description_or_photo_required'));
         }
 
-        // The uploaded photo is transient, one-shot AI input — there's no Estimate row to
-        // attach it to yet (one isn't created until after generation, below), so it's
+        // Every uploaded photo is transient, one-shot AI input — there's no Estimate row to
+        // attach them to yet (one isn't created until after generation, below), so each is
         // deleted once the AI call has run, whether that call succeeds, fails, or throws.
         try {
-            $result = AiEstimateGenerator::generate($description, $imagePath);
+            $result = AiEstimateGenerator::generate($description, $imagePaths, $projectId, $companyId);
         } finally {
-            if ($fullImagePath) {
-                @unlink($fullImagePath);
+            foreach ($imagePaths as $p) {
+                @unlink(public_path($p));
             }
         }
 
@@ -321,7 +350,7 @@ class EstimateController extends Controller
 
         $estimate = Estimate::create([
             'company_id' => $companyId,
-            'project_id' => null,
+            'project_id' => $projectId,
             'client_id' => null,
             'title' => $result['title'],
             'status' => 'draft',
