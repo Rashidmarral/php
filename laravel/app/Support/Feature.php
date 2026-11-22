@@ -45,6 +45,7 @@ class Feature
         'site_logs' => 'Daily Site Log',
         'punch_list' => 'Punch List / Snag Tracking',
         'quick_estimate' => 'Quick Estimate Tool',
+        'asphalt_estimate' => 'Asphalt / Road Estimate',
         'ai_estimate_generator' => 'AI Estimate Generator',
         'estimate_templates' => 'Estimate Template Library',
         'online_invoice_payments' => 'Client Online Invoice Payments (Moyasar)',

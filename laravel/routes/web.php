@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketCont
 use App\Http\Controllers\Admin\TenderAdminController;
 use App\Http\Controllers\Admin\UsageController;
 use App\Http\Controllers\App\AccountingExportController;
+use App\Http\Controllers\App\AsphaltEstimateController;
 use App\Http\Controllers\App\AssemblyController;
 use App\Http\Controllers\App\BillingController;
 use App\Http\Controllers\App\BusinessSetupController;
@@ -571,6 +572,15 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/quick-estimate/{id}', [QuickEstimateController::class, 'show']);
     Route::post('/quick-estimate/{id}/convert', [QuickEstimateController::class, 'convertToEstimate']);
     Route::post('/quick-estimate/{id}/delete', [QuickEstimateController::class, 'destroy']);
+
+    Route::get('/asphalt-estimates', [AsphaltEstimateController::class, 'index']);
+    Route::get('/asphalt-estimates/create', [AsphaltEstimateController::class, 'create']);
+    Route::post('/asphalt-estimates', [AsphaltEstimateController::class, 'store']);
+    Route::get('/asphalt-estimates/{id}', [AsphaltEstimateController::class, 'show']);
+    Route::get('/asphalt-estimates/{id}/edit', [AsphaltEstimateController::class, 'edit']);
+    Route::post('/asphalt-estimates/{id}/update', [AsphaltEstimateController::class, 'update']);
+    Route::post('/asphalt-estimates/{id}/convert', [AsphaltEstimateController::class, 'convertToEstimate']);
+    Route::post('/asphalt-estimates/{id}/delete', [AsphaltEstimateController::class, 'destroy']);
 
     Route::get('/takeoffs', [TakeoffController::class, 'index']);
     Route::get('/takeoffs/create', [TakeoffController::class, 'create']);

@@ -34,7 +34,15 @@
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.projects.budget_sar') ?></label><input type="number" step="0.01" min="0" max="9999999999.99" inputmode="decimal" name="budget" value="<?= e((string)($project['budget'] ?? '0')) ?>"></div>
-    <div class="form-group"></div>
+    <div class="form-group">
+      <label><?= t('common.city') ?></label>
+      <select name="city" class="city-select" data-placeholder="<?= e(t('user.settings.city_search_placeholder')) ?>" data-no-results="<?= e(t('user.settings.city_no_results')) ?>">
+        <option value=""><?= t('common.select') ?></option>
+        <?php foreach (\App\Support\SaudiCities::withExtra($project['city'] ?? null) as $city): ?>
+          <option value="<?= e($city['en']) ?>" data-ar="<?= e($city['ar']) ?>" <?= ($project['city'] ?? '') === $city['en'] ? 'selected' : '' ?>><?= e($city['ar'] !== '' ? $city['en'] . ' / ' . $city['ar'] : $city['en']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
   </div>
   <div class="form-row">
     <div class="form-group"><label><?= t('user.projects.start_date') ?></label><input type="date" name="start_date" value="<?= e($project['start_date'] ?? '') ?>"></div>

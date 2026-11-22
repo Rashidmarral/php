@@ -287,6 +287,7 @@ class ProjectController extends Controller
         return [[
             'client_id' => $this->ownedClient($request->input('client_id') ?: null, $companyId)?->id,
             'name_ar' => mb_substr(trim((string) $request->input('name_ar', '')), 0, 150),
+            'city' => mb_substr(trim((string) $request->input('city', '')), 0, 100) ?: null,
             'description' => mb_substr((string) $request->input('description', ''), 0, 5000),
             'description_ar' => mb_substr((string) $request->input('description_ar', ''), 0, 5000),
             'budget' => $budget,

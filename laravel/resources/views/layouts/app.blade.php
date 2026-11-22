@@ -21,6 +21,7 @@
       <a href="{{ url('/app') }}" class="{{ request()->is('app') ? 'active' : '' }}">📊 {{ t('side.dashboard') }}</a>
       <a href="{{ url('/app/projects') }}" class="{{ request()->is('app/projects*') ? 'active' : '' }}">🏗️ {{ t('side.projects') }}</a>
       <a href="{{ url('/app/quick-estimate') }}" class="{{ request()->is('app/quick-estimate*') ? 'active' : '' }}">⚡ {{ t('side.quick_estimate') }}</a>
+      <a href="{{ url('/app/asphalt-estimates') }}" class="{{ request()->is('app/asphalt-estimates*') ? 'active' : '' }}">🛣️ {{ t('side.asphalt_estimates') }}</a>
       <a href="{{ url('/app/estimates') }}" class="{{ request()->is('app/estimates*') ? 'active' : '' }}">🧾 {{ t('side.estimates') }}</a>
       <a href="{{ url('/app/invoices') }}" class="{{ request()->is('app/invoices*') ? 'active' : '' }}">💳 {{ t('side.invoices') }}</a>
       <a href="{{ url('/app/recurring-invoices') }}" class="{{ request()->is('app/recurring-invoices*') ? 'active' : '' }}">🔁 {{ t('side.recurring_invoices') }}</a>
