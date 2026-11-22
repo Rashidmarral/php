@@ -310,6 +310,7 @@ class AsphaltEstimateController extends Controller
                 'uom' => 'm3',
                 'unit_cost' => (float) $segment->subbase_unit_cost_per_m3,
                 'total' => (float) $segment->subbase_cost,
+                'item_type' => 'material',
             ]);
             $this->createLayerItem($newEstimate->id, $costCodeId, (float) $segment->base_course_cost, [
                 'description' => "{$segment->name} — " . t('user.asphalt_estimates.layer_base_course') . " ({$segment->base_course_thickness_mm}mm, {$segment->base_course_volume_m3} m³)",
@@ -317,6 +318,7 @@ class AsphaltEstimateController extends Controller
                 'uom' => 'm3',
                 'unit_cost' => (float) $segment->base_course_unit_cost_per_m3,
                 'total' => (float) $segment->base_course_cost,
+                'item_type' => 'material',
             ]);
             $asphaltThickness = (float) $segment->asphalt_binder_thickness_mm + (float) $segment->asphalt_wearing_thickness_mm;
             $this->createLayerItem($newEstimate->id, $costCodeId, (float) $segment->asphalt_cost, [
@@ -325,19 +327,24 @@ class AsphaltEstimateController extends Controller
                 'uom' => 'ton',
                 'unit_cost' => (float) $segment->asphalt_unit_cost_per_ton,
                 'total' => (float) $segment->asphalt_cost,
+                'item_type' => 'material',
             ]);
         }
 
+        // item_type matters beyond display: ReportController's Estimated-vs-Actual cost
+        // report groups EstimateItem rows by item_type, so a rental/labor/fee line left at
+        // the 'material' column default would misreport there — each line below picks the
+        // category (material/labor/equipment/other) that matches what it actually is.
         $workerDays = (float) $estimate->labor_crew_size * (float) $estimate->labor_days;
         $otherLines = [
-            ['total' => (float) $estimate->total_asphalt_tons * (float) $estimate->transport_cost_per_ton, 'description' => t('user.asphalt_estimates.line_transport'), 'qty' => (float) $estimate->total_asphalt_tons, 'uom' => 'ton', 'unit_cost' => (float) $estimate->transport_cost_per_ton],
-            ['total' => (float) $estimate->paver_daily_rate * (float) $estimate->paver_days, 'description' => t('user.asphalt_estimates.line_paver'), 'qty' => (float) $estimate->paver_days, 'uom' => 'day', 'unit_cost' => (float) $estimate->paver_daily_rate],
-            ['total' => (float) $estimate->roller_daily_rate * (float) $estimate->roller_days, 'description' => t('user.asphalt_estimates.line_roller'), 'qty' => (float) $estimate->roller_days, 'uom' => 'day', 'unit_cost' => (float) $estimate->roller_daily_rate],
-            ['total' => $workerDays * (float) $estimate->labor_daily_rate_per_worker, 'description' => t('user.asphalt_estimates.line_labor'), 'qty' => $workerDays, 'uom' => 'worker-day', 'unit_cost' => (float) $estimate->labor_daily_rate_per_worker],
-            ['total' => $workerDays * (float) $estimate->labor_food_daily_rate_per_worker, 'description' => t('user.asphalt_estimates.line_labor_food'), 'qty' => $workerDays, 'uom' => 'worker-day', 'unit_cost' => (float) $estimate->labor_food_daily_rate_per_worker],
-            ['total' => (float) $estimate->surveyor_fee, 'description' => t('user.asphalt_estimates.line_surveyor'), 'qty' => 1, 'uom' => 'each', 'unit_cost' => (float) $estimate->surveyor_fee],
-            ['total' => (float) $estimate->lab_testing_fee, 'description' => t('user.asphalt_estimates.line_lab_testing'), 'qty' => 1, 'uom' => 'each', 'unit_cost' => (float) $estimate->lab_testing_fee],
-            ['total' => (float) $estimate->mobilization_fee, 'description' => t('user.asphalt_estimates.line_mobilization'), 'qty' => 1, 'uom' => 'each', 'unit_cost' => (float) $estimate->mobilization_fee],
+            ['total' => (float) $estimate->total_asphalt_tons * (float) $estimate->transport_cost_per_ton, 'description' => t('user.asphalt_estimates.line_transport'), 'qty' => (float) $estimate->total_asphalt_tons, 'uom' => 'ton', 'unit_cost' => (float) $estimate->transport_cost_per_ton, 'item_type' => 'equipment'],
+            ['total' => (float) $estimate->paver_daily_rate * (float) $estimate->paver_days, 'description' => t('user.asphalt_estimates.line_paver'), 'qty' => (float) $estimate->paver_days, 'uom' => 'day', 'unit_cost' => (float) $estimate->paver_daily_rate, 'item_type' => 'equipment'],
+            ['total' => (float) $estimate->roller_daily_rate * (float) $estimate->roller_days, 'description' => t('user.asphalt_estimates.line_roller'), 'qty' => (float) $estimate->roller_days, 'uom' => 'day', 'unit_cost' => (float) $estimate->roller_daily_rate, 'item_type' => 'equipment'],
+            ['total' => $workerDays * (float) $estimate->labor_daily_rate_per_worker, 'description' => t('user.asphalt_estimates.line_labor'), 'qty' => $workerDays, 'uom' => 'worker-day', 'unit_cost' => (float) $estimate->labor_daily_rate_per_worker, 'item_type' => 'labor'],
+            ['total' => $workerDays * (float) $estimate->labor_food_daily_rate_per_worker, 'description' => t('user.asphalt_estimates.line_labor_food'), 'qty' => $workerDays, 'uom' => 'worker-day', 'unit_cost' => (float) $estimate->labor_food_daily_rate_per_worker, 'item_type' => 'labor'],
+            ['total' => (float) $estimate->surveyor_fee, 'description' => t('user.asphalt_estimates.line_surveyor'), 'qty' => 1, 'uom' => 'each', 'unit_cost' => (float) $estimate->surveyor_fee, 'item_type' => 'other'],
+            ['total' => (float) $estimate->lab_testing_fee, 'description' => t('user.asphalt_estimates.line_lab_testing'), 'qty' => 1, 'uom' => 'each', 'unit_cost' => (float) $estimate->lab_testing_fee, 'item_type' => 'other'],
+            ['total' => (float) $estimate->mobilization_fee, 'description' => t('user.asphalt_estimates.line_mobilization'), 'qty' => 1, 'uom' => 'each', 'unit_cost' => (float) $estimate->mobilization_fee, 'item_type' => 'other'],
         ];
         foreach ($otherLines as $line) {
             $this->createLayerItem($newEstimate->id, $costCodeId, $line['total'], $line);
@@ -360,6 +367,7 @@ class AsphaltEstimateController extends Controller
             'uom' => $line['uom'],
             'unit_cost' => $line['unit_cost'],
             'total' => round($total, 2),
+            'item_type' => $line['item_type'],
             'cost_code_id' => $costCodeId,
         ]);
     }

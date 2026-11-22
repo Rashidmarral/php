@@ -249,6 +249,20 @@ class AsphaltEstimateTest extends TestCase
         foreach ($items as $item) {
             $this->assertSame($pavingCode->id, $item->cost_code_id);
         }
+
+        // item_type must reflect what each line actually is, not the 'material' column
+        // default — ReportController's Estimated-vs-Actual breakdown groups by this column,
+        // so a labor/equipment/fee line left uncategorized would misreport there.
+        $byDescription = $items->keyBy('description');
+        $this->assertSame('labor', $byDescription->first(fn ($i, $d) => str_contains($d, 'Labor') && !str_contains($d, 'Food'))->item_type);
+        $this->assertSame('labor', $byDescription->first(fn ($i, $d) => str_contains($d, 'Food'))->item_type);
+        $this->assertSame('equipment', $byDescription->first(fn ($i, $d) => str_contains($d, 'Transport'))->item_type);
+        $this->assertSame('equipment', $byDescription->first(fn ($i, $d) => str_contains($d, 'Paver'))->item_type);
+        $this->assertSame('equipment', $byDescription->first(fn ($i, $d) => str_contains($d, 'Roller'))->item_type);
+        $this->assertSame('other', $byDescription->first(fn ($i, $d) => str_contains($d, 'Surveyor'))->item_type);
+        $this->assertSame('other', $byDescription->first(fn ($i, $d) => str_contains($d, 'Laboratory'))->item_type);
+        $this->assertSame('other', $byDescription->first(fn ($i, $d) => str_contains($d, 'Mobilization'))->item_type);
+        $this->assertSame('material', $byDescription->first(fn ($i, $d) => str_contains($d, 'Subbase'))->item_type);
     }
 
     /** A user from Company B must never view, edit, delete or convert an asphalt estimate owned by Company A. */
