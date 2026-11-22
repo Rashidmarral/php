@@ -117,15 +117,32 @@ class MaterialController extends Controller
         return redirect('/app/materials');
     }
 
-    /** Browsable, admin-curated shared catalog a company can pull materials from without building its own list from scratch. */
+    /**
+     * Browsable, admin-curated shared catalog a company can pull materials from without
+     * building its own list from scratch. effective_price applies this company's own
+     * city price-book override (if any) on top of each item's flat material_cost — see
+     * MaterialLibraryItem::effectivePriceFor(). labor_cost is never city-adjusted.
+     */
     public function libraryIndex(): View|RedirectResponse
     {
         if ($redirect = $this->requireFeature('materials')) {
             return $redirect;
         }
-        $items = MaterialLibraryItem::where('is_active', true)
-            ->orderBy('category')->orderBy('sort_order')->orderBy('id')
-            ->get()
+        $companyId = Auth::user()->company_id;
+        $companyCity = Company::find($companyId)->city;
+
+        $query = MaterialLibraryItem::where('is_active', true)
+            ->orderBy('category')->orderBy('sort_order')->orderBy('id');
+        if ($companyCity) {
+            $query->with(['cityPrices' => fn ($q) => $q->where('city', $companyCity)]);
+        }
+
+        $items = $query->get()
+            ->map(function (MaterialLibraryItem $item) use ($companyCity) {
+                $row = $item->toArray();
+                $row['effective_price'] = $item->effectivePriceFor($companyCity);
+                return $row;
+            })
             ->toArray();
 
         $categories = [];
@@ -136,6 +153,7 @@ class MaterialController extends Controller
         return view('app.materials.library', [
             'items' => $items,
             'categories' => $categories,
+            'company_city' => $companyCity,
         ]);
     }
 
@@ -149,6 +167,7 @@ class MaterialController extends Controller
             return $redirect;
         }
         $companyId = Auth::user()->company_id;
+        $companyCity = Company::find($companyId)->city;
         $ids = array_filter(array_map('intval', (array) $request->input('item_ids', [])));
         if (empty($ids)) {
             return $this->redirectWithFlash('/app/materials/library', 'error', t('user.materials.select_item_required'));
@@ -158,7 +177,7 @@ class MaterialController extends Controller
         $updated = 0;
         $libraryItems = MaterialLibraryItem::whereIn('id', $ids)->where('is_active', true)->get();
         foreach ($libraryItems as $libraryItem) {
-            $materialCost = (float) $libraryItem->material_cost;
+            $materialCost = $libraryItem->effectivePriceFor($companyCity);
             $laborCost = (float) $libraryItem->labor_cost;
             $isNew = $this->upsertMaterial($companyId, [
                 'name' => $libraryItem->name,

@@ -41,9 +41,14 @@
           <td><?= e(local($it, 'name')) ?><?php if (!empty($it['sku'])): ?><br><span class="help-text"><?= e($it['sku']) ?></span><?php endif; ?></td>
           <td><span class="badge badge-gray"><?= e($it['category']) ?></span></td>
           <td><?= e($it['unit']) ?></td>
-          <td><?= money((float) $it['material_cost']) ?></td>
+          <td>
+            <?= money((float) $it['material_cost']) ?>
+            <?php if (abs((float) $it['effective_price'] - (float) $it['material_cost']) > 0.001): ?>
+              <br><span class="badge badge-blue" style="white-space:nowrap;"><?= e($company_city) ?> <?= t('user.materials.library.city_price_suffix') ?>: <?= money((float) $it['effective_price']) ?></span>
+            <?php endif; ?>
+          </td>
           <td><?= money((float) $it['labor_cost']) ?></td>
-          <td><strong><?= money((float) $it['material_cost'] + (float) $it['labor_cost']) ?></strong>/<?= e($it['unit']) ?></td>
+          <td><strong><?= money((float) $it['effective_price'] + (float) $it['labor_cost']) ?></strong>/<?= e($it['unit']) ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

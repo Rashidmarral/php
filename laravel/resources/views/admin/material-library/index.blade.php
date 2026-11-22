@@ -3,6 +3,7 @@
 @section('content')
 <div class="page-head">
   <h1><?= t('admin.material_library.title') ?></h1>
+  <a href="/admin/material-library/city-prices" class="btn btn-light"><?= t('admin.material_library.city_prices_title') ?></a>
 </div>
 <p class="help-text" style="margin-top:-12px;margin-bottom:20px;"><?= t('admin.material_library.hint') ?></p>
 

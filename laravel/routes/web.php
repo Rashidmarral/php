@@ -658,6 +658,7 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
     Route::get('/estimate-templates/{id}/items', [EstimateTemplateAdminController::class, 'items']);
 
     Route::get('/material-library', [MaterialLibraryAdminController::class, 'index']);
+    Route::get('/material-library/city-prices', [MaterialLibraryAdminController::class, 'cityPrices']);
 
     Route::get('/tenders', [TenderAdminController::class, 'index']);
     Route::get('/tenders/create', [TenderAdminController::class, 'create']);
@@ -742,6 +743,8 @@ Route::prefix('admin')->middleware('admin.panel')->group(function () {
         Route::post('/estimate-templates/{id}/items/{itemId}/delete', [EstimateTemplateAdminController::class, 'destroyItem']);
 
         Route::post('/material-library', [MaterialLibraryAdminController::class, 'store']);
+        Route::post('/material-library/city-prices', [MaterialLibraryAdminController::class, 'updateCityPrices']);
+        Route::post('/material-library/city-prices/import', [MaterialLibraryAdminController::class, 'importCityPricesCsv']);
         Route::post('/material-library/{id}', [MaterialLibraryAdminController::class, 'update']);
         Route::post('/material-library/{id}/delete', [MaterialLibraryAdminController::class, 'destroy']);
 
