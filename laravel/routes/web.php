@@ -553,6 +553,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/reports/tax', [ReportController::class, 'tax']);
     Route::get('/reports/retention', [ReportController::class, 'retention']);
     Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
+    Route::get('/reports/wip', [ReportController::class, 'wip']);
     Route::get('/reports/cost-codes', [ReportController::class, 'costByCode']);
     Route::get('/reports/accounting-export', [AccountingExportController::class, 'index']);
     Route::get('/reports/accounting-export/download', [AccountingExportController::class, 'export']);

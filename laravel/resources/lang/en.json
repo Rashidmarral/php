@@ -4053,5 +4053,17 @@
     "user.asphalt_estimates.download_site_plan": "Download Site Plan (PDF)",
     "user.asphalt_estimates.drawing_no_segments": "Add at least one road segment before generating a site plan drawing.",
     "user.asphalt_estimates.area_tons_reference": "Total area: :area m² · Total asphalt: :tons t",
-    "user.asphalt_estimates.median_note": "median :width m"
+    "user.asphalt_estimates.median_note": "median :width m",
+    "user.reports.tab_wip": "WIP",
+    "user.reports.wip_hint": "Work-in-Progress: physical/cost progress (cost-to-cost method) against each project's contract, compared with what has actually been billed — flags a project that is billed ahead of its progress (overbilled, a liability) or whose progress is ahead of its billing (underbilled, an asset).",
+    "user.reports.wip_portfolio_summary": "Portfolio Summary (projects with an estimate baseline)",
+    "user.reports.wip_percent_complete": "% Complete",
+    "user.reports.wip_earned_revenue": "Earned Revenue",
+    "user.reports.wip_billed_to_date": "Billed to Date",
+    "user.reports.wip_over_under_billed": "Over/(Under) Billed",
+    "user.reports.wip_cost_to_complete": "Cost to Complete",
+    "user.reports.wip_projected_profit": "Projected Profit",
+    "user.reports.wip_alert_badge": "Overbilled",
+    "user.reports.wip_projects_with_alerts": ":count project(s) overbilled or over cost",
+    "user.reports.wip_no_projects_with_alerts": "No projects are currently overbilled or over cost."
 }

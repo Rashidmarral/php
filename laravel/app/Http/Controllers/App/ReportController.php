@@ -108,6 +108,87 @@ class ReportController extends Controller
             return $redirect;
         }
         $companyId = Auth::user()->company_id;
+
+        $rows = [];
+        $totals = ['contractValue' => 0.0, 'estimatedCost' => 0.0, 'actualCost' => 0.0, 'expectedProfit' => 0.0, 'actualProfit' => 0.0];
+        $alertCount = 0;
+
+        foreach ($this->projectFinancialBaselines($companyId) as $b) {
+            $expectedProfit = null;
+            $actualProfit = null;
+            $erosion = null;
+            $alert = false;
+            if ($b['hasBaseline']) {
+                $expectedProfit = $b['contractValue'] - $b['estimatedCostTotal'];
+                $actualProfit = $b['contractValue'] - $b['actualCostTotal'];
+                $erosion = $expectedProfit - $actualProfit;
+                // Flag when actual profit has already gone negative, or has eaten more than the
+                // threshold share of the expected profit — mirrors the worked example: expected
+                // profit reduced from a positive figure to a much smaller (or negative) one.
+                $alert = $actualProfit < 0
+                    || ($expectedProfit > 0 && $erosion > $expectedProfit * self::EROSION_ALERT_THRESHOLD);
+                if ($alert) {
+                    $alertCount++;
+                }
+                $totals['contractValue'] += $b['contractValue'];
+                $totals['estimatedCost'] += $b['estimatedCostTotal'];
+                $totals['actualCost'] += $b['actualCostTotal'];
+                $totals['expectedProfit'] += $expectedProfit;
+                $totals['actualProfit'] += $actualProfit;
+            }
+
+            $rows[] = [
+                'project' => $b['project'],
+                'hasBaseline' => $b['hasBaseline'],
+                'estimatedByCategory' => $b['estimatedByCategory'],
+                'actualByCategory' => $b['actualByCategory'],
+                'estimatedCostTotal' => $b['estimatedCostTotal'],
+                'actualCostTotal' => $b['actualCostTotal'],
+                'contractValue' => $b['contractValue'],
+                'expectedProfit' => $expectedProfit,
+                'actualProfit' => $actualProfit,
+                'erosion' => $erosion,
+                'alert' => $alert,
+                'timesheetHours' => $b['timesheetHours'],
+            ];
+        }
+
+        return view('app.reports.profit', [
+            'rows' => $rows,
+            'categories' => VendorBill::CATEGORIES,
+            'totals' => $totals,
+            'alertCount' => $alertCount,
+            'erosionThresholdPercent' => (int) round(self::EROSION_ALERT_THRESHOLD * 100),
+        ]);
+    }
+
+    /**
+     * The shared per-project financial baseline behind BOTH costVariance() and wip() —
+     * extracted so the two reports can never silently drift apart on what "contract value",
+     * "estimated cost" and "actual cost" mean. This is exactly the gathering/per-project loop
+     * costVariance() used to do inline (same queries, same Task #58 timesheet-labor handling,
+     * same category bucketing); costVariance() now layers its own
+     * expectedProfit/actualProfit/erosion/alert logic on top of what this returns, and wip()
+     * layers its own billing/percent-complete logic on top of the same rows.
+     *
+     * Returns one row per project in $companyId (Project::orderByDesc('created_at') order),
+     * each a plain array with:
+     *  - 'project' (array) the project's own attributes (Project::toArray())
+     *  - 'hasBaseline' (bool) whether the project has at least one accepted estimate
+     *  - 'estimatedByCategory' / 'actualByCategory' (array<string,float>) keyed by
+     *    VendorBill::CATEGORIES — all zeros when there is no baseline
+     *  - 'estimatedCostTotal' / 'actualCostTotal' (float) sums of the above
+     *  - 'contractValue' (float) accepted estimate(s) total (sell price) + approved change orders
+     *  - 'timesheetHours' (float) Task #58 hours logged on the project
+     *
+     * A project with no accepted estimate still gets a row (hasBaseline = false, contractValue/
+     * estimatedCostTotal/actualCostTotal all 0.0) — callers decide for themselves whether to show
+     * it (costVariance() shows it with a "no estimate baseline" badge) or skip it (wip() has
+     * nothing to say about progress/billing without a contract to measure against, so it filters
+     * these out).
+     */
+    private function projectFinancialBaselines(int $companyId): array
+    {
         $categories = array_keys(VendorBill::CATEGORIES);
 
         $projects = Project::where('company_id', $companyId)->orderByDesc('created_at')->get();
@@ -155,9 +236,7 @@ class ReportController extends Controller
             ->groupBy('project_id')
             ->pluck('total', 'project_id');
 
-        $rows = [];
-        $totals = ['contractValue' => 0.0, 'estimatedCost' => 0.0, 'actualCost' => 0.0, 'expectedProfit' => 0.0, 'actualProfit' => 0.0];
-        $alertCount = 0;
+        $baselines = [];
 
         foreach ($projects as $p) {
             $hasBaseline = $acceptedEstimates->contains('project_id', $p->id);
@@ -185,30 +264,7 @@ class ReportController extends Controller
             $actualCostTotal = array_sum($actualByCategory);
             $contractValue = ($contractValueByProject[$p->id] ?? 0.0) + (float) ($approvedCoByProject[$p->id] ?? 0);
 
-            $expectedProfit = null;
-            $actualProfit = null;
-            $erosion = null;
-            $alert = false;
-            if ($hasBaseline) {
-                $expectedProfit = $contractValue - $estimatedCostTotal;
-                $actualProfit = $contractValue - $actualCostTotal;
-                $erosion = $expectedProfit - $actualProfit;
-                // Flag when actual profit has already gone negative, or has eaten more than the
-                // threshold share of the expected profit — mirrors the worked example: expected
-                // profit reduced from a positive figure to a much smaller (or negative) one.
-                $alert = $actualProfit < 0
-                    || ($expectedProfit > 0 && $erosion > $expectedProfit * self::EROSION_ALERT_THRESHOLD);
-                if ($alert) {
-                    $alertCount++;
-                }
-                $totals['contractValue'] += $contractValue;
-                $totals['estimatedCost'] += $estimatedCostTotal;
-                $totals['actualCost'] += $actualCostTotal;
-                $totals['expectedProfit'] += $expectedProfit;
-                $totals['actualProfit'] += $actualProfit;
-            }
-
-            $rows[] = [
+            $baselines[] = [
                 'project' => $p->toArray(),
                 'hasBaseline' => $hasBaseline,
                 'estimatedByCategory' => $estimatedByCategory,
@@ -216,21 +272,11 @@ class ReportController extends Controller
                 'estimatedCostTotal' => $estimatedCostTotal,
                 'actualCostTotal' => $actualCostTotal,
                 'contractValue' => $contractValue,
-                'expectedProfit' => $expectedProfit,
-                'actualProfit' => $actualProfit,
-                'erosion' => $erosion,
-                'alert' => $alert,
                 'timesheetHours' => $timesheetHours,
             ];
         }
 
-        return view('app.reports.profit', [
-            'rows' => $rows,
-            'categories' => VendorBill::CATEGORIES,
-            'totals' => $totals,
-            'alertCount' => $alertCount,
-            'erosionThresholdPercent' => (int) round(self::EROSION_ALERT_THRESHOLD * 100),
-        ]);
+        return $baselines;
     }
 
     public function tax(): View|RedirectResponse
@@ -580,6 +626,152 @@ class ReportController extends Controller
         return view('app.reports.cost-by-code', [
             'tree' => $tree,
             'totals' => $totals,
+        ]);
+    }
+
+    /**
+     * How far overbilled (billedToDate ahead of earnedRevenue) a project must be, as a
+     * fraction of its OWN contract value, before its WIP row is flagged. 5% of contract
+     * value is picked as a cash position large enough to matter on a construction contract —
+     * a little overbilling (a mobilization deposit, a milestone invoice raised slightly ahead
+     * of measured progress) is routine and not itself a risk signal; crossing 5% of the whole
+     * contract is where it becomes more likely the project is being billed ahead of its real
+     * progress rather than simply following its agreed milestone schedule.
+     */
+    private const WIP_OVERBILLING_ALERT_THRESHOLD = 0.05;
+
+    /**
+     * Work-in-Progress (WIP) report — standard construction-accounting over/under-billing
+     * analysis, built on the exact same per-project financial baseline as costVariance()
+     * (see projectFinancialBaselines()): contractValue, estimatedCostTotal and actualCostTotal
+     * mean exactly what they mean there. Only projects WITH an accepted-estimate baseline are
+     * shown — a project with no contract has no progress or billing to measure, so (unlike
+     * costVariance(), which still lists it with a badge) it is skipped entirely here, same
+     * precedent, different presentation.
+     *
+     * percentComplete uses the cost-to-cost method: actualCostTotal / estimatedCostTotal * 100.
+     * Deliberately NOT capped at 100 — a project that has already spent more than its whole
+     * estimated cost before finishing should show e.g. 134%, a real cost-overrun signal, not a
+     * hidden one. 0 when estimatedCostTotal is 0 (nothing to divide by, not an error).
+     *
+     * earnedRevenue = contractValue * (percentComplete / 100) — the share of the contract's
+     * sell price "earned" by work actually done so far.
+     *
+     * billedToDate = SUM(invoices.total for the project) - SUM(issued credit notes' total) +
+     * SUM(issued debit notes' total), each note's project reached via its own invoice_id. This
+     * mirrors Invoice::creditedTotal()/debitedTotal()'s own status = 'issued' filter exactly
+     * (only an issued note has actually corrected what's billed), just computed as a
+     * company-wide aggregate instead of one invoice at a time. Every row in `invoices` is a
+     * real issued invoice — there is no draft/void status (see Invoice's own status docblock)
+     * — so, same convention as costVariance()'s unfiltered VendorBill sum, every invoice on the
+     * project counts with no further status filter.
+     *
+     * overUnderBilled = billedToDate - earnedRevenue. Sign convention (standard WIP /
+     * percentage-of-completion accounting): POSITIVE = overbilled — billed ahead of earned/
+     * measured progress, a liability (cash collected that hasn't yet been "earned" by
+     * completing the matching work). NEGATIVE = underbilled — progress is ahead of billing, an
+     * asset (work done that hasn't been invoiced yet).
+     *
+     * costToComplete = max(0, estimatedCostTotal - actualCostTotal) — never negative; a project
+     * already over its estimated cost has 0 left to spend under the original baseline, not a
+     * negative "cost to complete".
+     *
+     * projectedFinalProfit = contractValue - estimatedCostTotal — exactly costVariance()'s own
+     * expectedProfit figure. Deliberate scope decision, not an oversight: this version does NOT
+     * re-forecast a cost-at-completion (e.g. extrapolating the current cost run-rate against
+     * percent complete, the way a full "estimate at completion" WIP schedule would) — it reuses
+     * the estimate's own original cost baseline, same as costVariance() does for its expected
+     * profit. A genuine EAC re-forecast is a reasonable future iteration, intentionally left
+     * out of this version.
+     *
+     * A project is flagged when it is overbilled by more than WIP_OVERBILLING_ALERT_THRESHOLD
+     * of its own contract value, or when percentComplete has passed 100 (a cost overrun, which
+     * is itself worth a contractor's attention regardless of the billing position).
+     */
+    public function wip(): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('reports')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+
+        $baselines = array_values(array_filter(
+            $this->projectFinancialBaselines($companyId),
+            fn (array $b) => $b['hasBaseline']
+        ));
+        $projectIds = array_map(fn (array $b) => $b['project']['id'], $baselines);
+
+        $billedByProject = Invoice::where('company_id', $companyId)
+            ->whereIn('project_id', $projectIds)
+            ->select('project_id', DB::raw('SUM(total) as total'))
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');
+
+        $creditedByProject = DB::table('credit_notes')
+            ->join('invoices', 'invoices.id', '=', 'credit_notes.invoice_id')
+            ->where('credit_notes.status', 'issued')
+            ->whereIn('invoices.project_id', $projectIds)
+            ->select('invoices.project_id', DB::raw('SUM(credit_notes.total) as total'))
+            ->groupBy('invoices.project_id')
+            ->pluck('total', 'project_id');
+
+        $debitedByProject = DB::table('debit_notes')
+            ->join('invoices', 'invoices.id', '=', 'debit_notes.invoice_id')
+            ->where('debit_notes.status', 'issued')
+            ->whereIn('invoices.project_id', $projectIds)
+            ->select('invoices.project_id', DB::raw('SUM(debit_notes.total) as total'))
+            ->groupBy('invoices.project_id')
+            ->pluck('total', 'project_id');
+
+        $rows = [];
+        $totals = ['contractValue' => 0.0, 'billedToDate' => 0.0, 'earnedRevenue' => 0.0, 'costToComplete' => 0.0, 'overUnderBilled' => 0.0];
+        $alertCount = 0;
+
+        foreach ($baselines as $b) {
+            $projectId = $b['project']['id'];
+            $billed = (float) ($billedByProject[$projectId] ?? 0);
+            $credited = (float) ($creditedByProject[$projectId] ?? 0);
+            $debited = (float) ($debitedByProject[$projectId] ?? 0);
+            $billedToDate = $billed - $credited + $debited;
+
+            $percentComplete = $b['estimatedCostTotal'] > 0
+                ? ($b['actualCostTotal'] / $b['estimatedCostTotal'] * 100)
+                : 0.0;
+            $earnedRevenue = $b['contractValue'] * ($percentComplete / 100);
+            $overUnderBilled = $billedToDate - $earnedRevenue;
+            $costToComplete = max(0.0, $b['estimatedCostTotal'] - $b['actualCostTotal']);
+            $projectedFinalProfit = $b['contractValue'] - $b['estimatedCostTotal'];
+
+            $alert = $percentComplete > 100
+                || ($b['contractValue'] > 0 && $overUnderBilled > $b['contractValue'] * self::WIP_OVERBILLING_ALERT_THRESHOLD);
+            if ($alert) {
+                $alertCount++;
+            }
+
+            $totals['contractValue'] += $b['contractValue'];
+            $totals['billedToDate'] += $billedToDate;
+            $totals['earnedRevenue'] += $earnedRevenue;
+            $totals['costToComplete'] += $costToComplete;
+            $totals['overUnderBilled'] += $overUnderBilled;
+
+            $rows[] = [
+                'project' => $b['project'],
+                'contractValue' => $b['contractValue'],
+                'percentComplete' => $percentComplete,
+                'earnedRevenue' => $earnedRevenue,
+                'billedToDate' => $billedToDate,
+                'overUnderBilled' => $overUnderBilled,
+                'costToComplete' => $costToComplete,
+                'projectedFinalProfit' => $projectedFinalProfit,
+                'alert' => $alert,
+            ];
+        }
+
+        return view('app.reports.wip', [
+            'rows' => $rows,
+            'totals' => $totals,
+            'alertCount' => $alertCount,
+            'overbillingThresholdPercent' => (int) round(self::WIP_OVERBILLING_ALERT_THRESHOLD * 100),
         ]);
     }
 }

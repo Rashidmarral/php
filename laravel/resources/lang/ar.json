@@ -4053,5 +4053,17 @@
     "user.asphalt_estimates.download_site_plan": "تحميل مخطط الموقع (PDF)",
     "user.asphalt_estimates.drawing_no_segments": "أضف قطاع طريق واحدًا على الأقل قبل إنشاء مخطط الموقع.",
     "user.asphalt_estimates.area_tons_reference": "إجمالي المساحة: :area م² · إجمالي الإسفلت: :tons طن",
-    "user.asphalt_estimates.median_note": "جزيرة وسطية :width م"
+    "user.asphalt_estimates.median_note": "جزيرة وسطية :width م",
+    "user.reports.tab_wip": "الأعمال الجارية",
+    "user.reports.wip_hint": "تقرير الأعمال الجارية (WIP): يقارن التقدم الفعلي/التكلفة لكل مشروع (بطريقة التكلفة إلى التكلفة) بعقده، مقابل ما تم فعليًا إصداره من فواتير — ويُظهر تحذيرًا للمشروع الذي يتم فوترته بأكثر من تقدمه الفعلي (فوترة زائدة، وهي التزام) أو الذي يسبق تقدمه فوترته (فوترة ناقصة، وهي أصل).",
+    "user.reports.wip_portfolio_summary": "ملخص المحفظة (المشاريع التي لديها تقدير أساس مقبول)",
+    "user.reports.wip_percent_complete": "نسبة الإنجاز",
+    "user.reports.wip_earned_revenue": "الإيراد المكتسب",
+    "user.reports.wip_billed_to_date": "المفوتر حتى الآن",
+    "user.reports.wip_over_under_billed": "فوترة زائدة/(ناقصة)",
+    "user.reports.wip_cost_to_complete": "التكلفة المتبقية للإنجاز",
+    "user.reports.wip_projected_profit": "الربح المتوقع",
+    "user.reports.wip_alert_badge": "فوترة زائدة",
+    "user.reports.wip_projects_with_alerts": ":count مشروع (مشاريع) بفوترة زائدة أو تكلفة متجاوزة",
+    "user.reports.wip_no_projects_with_alerts": "لا توجد مشاريع بفوترة زائدة أو تكلفة متجاوزة حاليًا."
 }
