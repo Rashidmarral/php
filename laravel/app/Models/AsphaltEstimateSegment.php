@@ -47,6 +47,9 @@ class AsphaltEstimateSegment extends Model
             'base_course_cost' => 'decimal:2',
             'asphalt_cost' => 'decimal:2',
             'segment_total' => 'decimal:2',
+            'is_main_road' => 'boolean',
+            'plot_rows' => 'integer',
+            'plot_cols' => 'integer',
         ];
     }
 

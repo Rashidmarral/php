@@ -577,6 +577,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::get('/asphalt-estimates/create', [AsphaltEstimateController::class, 'create']);
     Route::post('/asphalt-estimates', [AsphaltEstimateController::class, 'store']);
     Route::get('/asphalt-estimates/{id}', [AsphaltEstimateController::class, 'show']);
+    Route::get('/asphalt-estimates/{id}/drawing', [AsphaltEstimateController::class, 'drawing']);
     Route::get('/asphalt-estimates/{id}/edit', [AsphaltEstimateController::class, 'edit']);
     Route::post('/asphalt-estimates/{id}/update', [AsphaltEstimateController::class, 'update']);
     Route::post('/asphalt-estimates/{id}/convert', [AsphaltEstimateController::class, 'convertToEstimate']);

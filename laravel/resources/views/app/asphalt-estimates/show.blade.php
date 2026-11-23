@@ -12,6 +12,7 @@
   </div>
   <div style="display:flex;gap:8px;">
     <a href="/app/asphalt-estimates/<?= $estimate['id'] ?>/edit" class="btn btn-light"><?= t('common.edit') ?></a>
+    <a href="/app/asphalt-estimates/<?= $estimate['id'] ?>/drawing" class="btn btn-outline">📐 <?= t('user.asphalt_estimates.download_site_plan') ?></a>
     <form method="post" action="/app/asphalt-estimates/<?= $estimate['id'] ?>/delete" onsubmit="return confirm('<?= t('user.asphalt_estimates.delete_confirm') ?>');">
       <?= csrf_field() ?>
       <button type="submit" class="btn btn-danger"><?= t('common.delete') ?></button>
@@ -73,5 +74,16 @@
   <?= csrf_field() ?>
   <button type="submit" class="btn btn-outline">🧾 <?= t('user.asphalt_estimates.convert_to_estimate') ?></button>
 </form>
+
+<div class="card" style="margin-top:18px;">
+  <h3>📐 <?= t('user.asphalt_estimates.site_plan_preview') ?></h3>
+  <?php if (! empty($layout['hasLayout'])): ?>
+    <div style="overflow-x:auto;">
+      @include('app.asphalt-estimates._site-plan', ['layout' => $layout, 'estimate' => $estimate])
+    </div>
+  <?php else: ?>
+    <p class="help-text"><?= t('user.asphalt_estimates.site_plan_empty') ?></p>
+  <?php endif; ?>
+</div>
 
 @endsection

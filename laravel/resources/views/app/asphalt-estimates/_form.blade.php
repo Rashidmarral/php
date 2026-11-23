@@ -14,6 +14,7 @@
       'base_course_thickness_mm' => 0, 'base_course_unit_cost_per_m3' => 0,
       'asphalt_binder_thickness_mm' => 0, 'asphalt_wearing_thickness_mm' => 0,
       'asphalt_density_kg_per_m3' => 2400, 'asphalt_unit_cost_per_ton' => 0,
+      'is_main_road' => false, 'plot_rows' => 0, 'plot_cols' => 0,
   ]];
 ?>
 
@@ -62,6 +63,17 @@
       <label><?= t('common.notes') ?></label>
       <textarea name="notes" maxlength="5000"><?= e($estimate['notes'] ?? '') ?></textarea>
     </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label><?= t('user.asphalt_estimates.site_width') ?></label>
+        <input type="number" inputmode="decimal" step="0.01" min="0" name="site_width_m" value="<?= e((string) ($estimate['site_width_m'] ?? '')) ?>">
+      </div>
+      <div class="form-group">
+        <label><?= t('user.asphalt_estimates.site_length') ?></label>
+        <input type="number" inputmode="decimal" step="0.01" min="0" name="site_length_m" value="<?= e((string) ($estimate['site_length_m'] ?? '')) ?>">
+      </div>
+    </div>
+    <p class="help-text" style="margin-top:-4px;"><?= t('user.asphalt_estimates.site_boundary_hint') ?></p>
   </div>
 
   <div class="card" style="margin-bottom:18px;">
@@ -83,6 +95,9 @@
         <th><?= t('user.asphalt_estimates.col_density') ?></th>
         <th><?= t('user.asphalt_estimates.col_asphalt_cost') ?></th>
         <th><?= t('user.asphalt_estimates.col_segment_total') ?></th>
+        <th><?= t('user.asphalt_estimates.col_is_main_road') ?></th>
+        <th><?= t('user.asphalt_estimates.col_plot_rows') ?></th>
+        <th><?= t('user.asphalt_estimates.col_plot_cols') ?></th>
         <th></th>
       </tr></thead>
       <tbody id="segments-body">
@@ -101,6 +116,19 @@
           <td><input type="number" inputmode="decimal" step="0.01" min="0" name="segment_asphalt_density_kg_per_m3[]" value="<?= e((string) ($row['asphalt_density_kg_per_m3'] ?? 2400)) ?>" class="seg-density" style="width:80px;"></td>
           <td><input type="number" inputmode="decimal" step="0.01" min="0" name="segment_asphalt_unit_cost_per_ton[]" value="<?= e((string) ($row['asphalt_unit_cost_per_ton'] ?? 0)) ?>" class="seg-asphalt-c" style="width:90px;"></td>
           <td class="seg-total">0.00</td>
+          <?php /* An unchecked checkbox is simply omitted from the POST body, which would desync
+                   segment_is_main_road[]'s index from every other segment_*[] array (always present,
+                   one entry per row) once any earlier row is left unchecked — same hidden-field-pair
+                   fix EstimateController's item_optional[] uses (see AsphaltEstimateController::
+                   parseSegments()'s docblock). The hidden field is always submitted and the checkbox
+                   only overwrites it via JS, keeping exactly one entry per row in the same order as
+                   the other fields. */ ?>
+          <td style="text-align:center;">
+            <input type="hidden" name="segment_is_main_road[]" value="<?= ! empty($row['is_main_road']) ? '1' : '0' ?>" class="seg-main-road-flag">
+            <input type="checkbox" class="seg-main-road-checkbox" <?= ! empty($row['is_main_road']) ? 'checked' : '' ?> title="<?= e(t('user.asphalt_estimates.is_main_road_hint')) ?>">
+          </td>
+          <td><input type="number" step="1" min="0" name="segment_plot_rows[]" value="<?= e((string) ($row['plot_rows'] ?? 0)) ?>" class="seg-plot-rows" style="width:70px;"></td>
+          <td><input type="number" step="1" min="0" name="segment_plot_cols[]" value="<?= e((string) ($row['plot_cols'] ?? 0)) ?>" class="seg-plot-cols" style="width:70px;"></td>
           <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>
         </tr>
         <?php endforeach; ?>
@@ -195,6 +223,12 @@
       <td><input type="number" inputmode="decimal" step="0.01" min="0" name="segment_asphalt_density_kg_per_m3[]" value="2400" class="seg-density" style="width:80px;"></td>
       <td><input type="number" inputmode="decimal" step="0.01" min="0" name="segment_asphalt_unit_cost_per_ton[]" value="0" class="seg-asphalt-c" style="width:90px;"></td>
       <td class="seg-total">0.00</td>
+      <td style="text-align:center;">
+        <input type="hidden" name="segment_is_main_road[]" value="0" class="seg-main-road-flag">
+        <input type="checkbox" class="seg-main-road-checkbox" title="{{ t('user.asphalt_estimates.is_main_road_hint') }}">
+      </td>
+      <td><input type="number" step="1" min="0" name="segment_plot_rows[]" value="0" class="seg-plot-rows" style="width:70px;"></td>
+      <td><input type="number" step="1" min="0" name="segment_plot_cols[]" value="0" class="seg-plot-cols" style="width:70px;"></td>
       <td><button type="button" class="btn btn-sm btn-light remove-row">✕</button></td>`;
     return tr;
   }
@@ -260,6 +294,14 @@
 
   addBtn.addEventListener('click', () => { body.appendChild(rowTemplate()); recalc(); });
   body.addEventListener('input', recalc);
+  body.addEventListener('change', (e) => {
+    // Mirrors _line-items.blade.php's optional-checkbox/optional-flag pattern:
+    // the checkbox is purely a UI convenience, the always-present hidden
+    // field is what actually gets submitted.
+    if (e.target.classList.contains('seg-main-road-checkbox')) {
+      e.target.closest('tr').querySelector('.seg-main-road-flag').value = e.target.checked ? '1' : '0';
+    }
+  });
   body.addEventListener('click', (e) => {
     if (e.target.classList.contains('remove-row')) {
       if (body.querySelectorAll('tr').length > 1) e.target.closest('tr').remove();

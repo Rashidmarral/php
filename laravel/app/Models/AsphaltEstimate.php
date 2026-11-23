@@ -47,6 +47,8 @@ class AsphaltEstimate extends Model
             'total' => 'decimal:2',
             'total_asphalt_tons' => 'decimal:2',
             'total_area_m2' => 'decimal:2',
+            'site_width_m' => 'decimal:2',
+            'site_length_m' => 'decimal:2',
         ];
     }
 

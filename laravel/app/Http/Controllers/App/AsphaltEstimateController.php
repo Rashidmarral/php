@@ -13,8 +13,11 @@ use App\Models\EstimateItem;
 use App\Models\Project;
 use App\Models\TaxRate;
 use App\Support\AsphaltEstimateCalc;
+use App\Support\AsphaltSitePlanLayout;
+use App\Support\Pdf\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -106,6 +109,10 @@ class AsphaltEstimateController extends Controller
         if ($markupPercent === null) {
             return $this->redirectWithFlash($createUrl, 'error', t('user.asphalt_estimates.markup_invalid'));
         }
+        [$siteWidthM, $siteLengthM, $error] = $this->parseSiteBoundary($request);
+        if ($error) {
+            return $this->redirectWithFlash($createUrl, 'error', $error);
+        }
         $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $companyId);
         $taxPercent = (float) ($taxRate->rate_percent ?? 0);
 
@@ -119,6 +126,8 @@ class AsphaltEstimateController extends Controller
             'city' => trim((string) $request->input('city', '')) ?: null,
             'status' => 'draft',
             'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'site_width_m' => $siteWidthM,
+            'site_length_m' => $siteLengthM,
             ...$otherCosts,
             'markup_percent' => $markupPercent,
             'tax_rate_id' => $taxRate?->id,
@@ -147,12 +156,57 @@ class AsphaltEstimateController extends Controller
         $estimate = $this->findOwned($id);
         $project = $estimate->project_id ? $this->ownedProject($estimate->project_id, $estimate->company_id) : null;
         $client = $estimate->client_id ? $this->ownedClient($estimate->client_id, $estimate->company_id) : null;
+        $segments = $estimate->segments()->get()->toArray();
 
         return view('app.asphalt-estimates.show', [
             'estimate' => $estimate->toArray(),
-            'segments' => $estimate->segments()->get()->toArray(),
+            'segments' => $segments,
             'project' => $project?->toArray(),
             'client' => $client?->toArray(),
+            'layout' => AsphaltSitePlanLayout::compute(
+                $segments,
+                $estimate->site_width_m !== null ? (float) $estimate->site_width_m : null,
+                $estimate->site_length_m !== null ? (float) $estimate->site_length_m : null,
+            ),
+        ]);
+    }
+
+    /**
+     * Downloads the same site-plan drawing show() previews live, as a PDF —
+     * read-only export, so only requireFeature() gates it (no write ability
+     * needed). Renders resources/views/pdf/asphalt-site-plan.blade.php,
+     * which itself just @includes _site-plan.blade.php — the exact same
+     * partial the live preview uses, so there is one rendering source, never
+     * two copies of the drawing markup.
+     */
+    public function drawing(int $id): Response|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('asphalt_estimate')) {
+            return $redirect;
+        }
+        $estimate = $this->findOwned($id);
+        $segments = $estimate->segments()->get()->toArray();
+        $layout = AsphaltSitePlanLayout::compute(
+            $segments,
+            $estimate->site_width_m !== null ? (float) $estimate->site_width_m : null,
+            $estimate->site_length_m !== null ? (float) $estimate->site_length_m : null,
+        );
+
+        if (! $layout['hasLayout']) {
+            return $this->redirectWithFlash('/app/asphalt-estimates/'.$estimate->id, 'error', t('user.asphalt_estimates.drawing_no_segments'));
+        }
+
+        $html = view('pdf.asphalt-site-plan', [
+            'layout' => $layout,
+            'estimate' => $estimate->toArray(),
+        ])->render();
+        $pdf = Pdf::output($html, app()->getLocale(), 'a4');
+
+        $safeName = preg_replace('/[^A-Za-z0-9 \-]/', '', $estimate->name) ?: 'Site-Plan';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$safeName.'-Site-Plan.pdf"',
         ]);
     }
 
@@ -208,6 +262,10 @@ class AsphaltEstimateController extends Controller
         if ($markupPercent === null) {
             return $this->redirectWithFlash($editUrl, 'error', t('user.asphalt_estimates.markup_invalid'));
         }
+        [$siteWidthM, $siteLengthM, $error] = $this->parseSiteBoundary($request);
+        if ($error) {
+            return $this->redirectWithFlash($editUrl, 'error', $error);
+        }
         $taxRate = $this->ownedTaxRate($request->input('tax_rate_id') ?: null, $companyId);
         $taxPercent = (float) ($taxRate->rate_percent ?? 0);
 
@@ -219,6 +277,8 @@ class AsphaltEstimateController extends Controller
             'name' => mb_substr($name, 0, 150),
             'city' => trim((string) $request->input('city', '')) ?: null,
             'notes' => trim((string) $request->input('notes', '')) ?: null,
+            'site_width_m' => $siteWidthM,
+            'site_length_m' => $siteLengthM,
             ...$otherCosts,
             'markup_percent' => $markupPercent,
             'tax_rate_id' => $taxRate?->id,
@@ -382,6 +442,16 @@ class AsphaltEstimateController extends Controller
      * blank/missing, since a zero-thickness layer is a legitimate "this
      * segment has no base course yet" input, not an error.
      *
+     * segment_is_main_road[] follows the same hidden-field-pair convention
+     * as EstimateController's item_optional[] (see _form.blade.php's segment
+     * table JS): one "1"/"0" entry per row, always present, so an unchecked
+     * box never desyncs the array's index from the other segment_*[]
+     * arrays. If
+     * more than one row is submitted as "1", only the FIRST one (by array
+     * index) is honored as the main road and every later one is forced back
+     * to false — never silently allow more than one "main road" per
+     * estimate, since AsphaltSitePlanLayout's drawing only has one spine.
+     *
      * @return array{0: array<int, array<string, mixed>>, 1: array<int, array<string, mixed>>, 2: ?string} [computedSegments, rawSegments, error]
      */
     private function parseSegments(Request $request): array
@@ -398,6 +468,19 @@ class AsphaltEstimateController extends Controller
         $wearingThickness = (array) $request->input('segment_asphalt_wearing_thickness_mm', []);
         $density = (array) $request->input('segment_asphalt_density_kg_per_m3', []);
         $asphaltUnitCost = (array) $request->input('segment_asphalt_unit_cost_per_ton', []);
+        $isMainRoad = (array) $request->input('segment_is_main_road', []);
+        $plotRows = (array) $request->input('segment_plot_rows', []);
+        $plotCols = (array) $request->input('segment_plot_cols', []);
+
+        // Only the first "1" (by raw submitted index, before blank rows are
+        // skipped below) wins — see this method's own docblock.
+        $firstMainRoadIndex = null;
+        foreach ($isMainRoad as $i => $value) {
+            if (!empty($value) && $value !== '0') {
+                $firstMainRoadIndex = $i;
+                break;
+            }
+        }
 
         $computed = [];
         $raw = [];
@@ -440,6 +523,9 @@ class AsphaltEstimateController extends Controller
                 $segment[$field] = $parsed;
             }
 
+            $plotRowsValue = $this->validatedNumberOrDefault($plotRows[$i] ?? 0, 0, 999, 0.0);
+            $plotColsValue = $this->validatedNumberOrDefault($plotCols[$i] ?? 0, 0, 999, 0.0);
+
             $computedSegment = AsphaltEstimateCalc::computeSegment($segment);
             $computed[] = $computedSegment;
             $raw[] = [
@@ -447,6 +533,9 @@ class AsphaltEstimateController extends Controller
                 'sort_order' => $sortOrder++,
                 ...$segment,
                 ...$computedSegment,
+                'is_main_road' => $i === $firstMainRoadIndex,
+                'plot_rows' => (int) ($plotRowsValue ?? 0),
+                'plot_cols' => (int) ($plotColsValue ?? 0),
             ];
         }
 
@@ -495,6 +584,36 @@ class AsphaltEstimateController extends Controller
         }
 
         return [$otherCosts, null];
+    }
+
+    /**
+     * Parses the optional overall site-boundary box (site_width_m/
+     * site_length_m) that AsphaltSitePlanLayout draws purely as cosmetic
+     * context around the spine. Both are nullable — blank/missing means
+     * "don't draw a boundary at all" — but a non-blank value must still be
+     * a valid positive number, or the whole request is rejected (same
+     * validation-redirect convention as every other field here).
+     *
+     * @return array{0: ?float, 1: ?float, 2: ?string} [siteWidthM, siteLengthM, error]
+     */
+    private function parseSiteBoundary(Request $request): array
+    {
+        $siteWidthM = null;
+        if ($request->filled('site_width_m')) {
+            $siteWidthM = $this->validatedNumber($request->input('site_width_m'), 0.01, 99999999.99);
+            if ($siteWidthM === null) {
+                return [null, null, t('user.asphalt_estimates.site_dimension_invalid')];
+            }
+        }
+        $siteLengthM = null;
+        if ($request->filled('site_length_m')) {
+            $siteLengthM = $this->validatedNumber($request->input('site_length_m'), 0.01, 99999999.99);
+            if ($siteLengthM === null) {
+                return [null, null, t('user.asphalt_estimates.site_dimension_invalid')];
+            }
+        }
+
+        return [$siteWidthM, $siteLengthM, null];
     }
 
     /** @param  array<int, array<string, mixed>>  $rawSegments  each entry already carries both its raw inputs and AsphaltEstimateCalc::computeSegment()'s cached outputs, merged by parseSegments(). */
