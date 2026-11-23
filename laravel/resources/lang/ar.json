@@ -4118,6 +4118,7 @@
     "user.reports.wip_projects_with_alerts": ":count مشروع (مشاريع) بفوترة زائدة أو تكلفة متجاوزة",
     "user.reports.wip_no_projects_with_alerts": "لا توجد مشاريع بفوترة زائدة أو تكلفة متجاوزة حاليًا.",
     "feature.supplier_portal": "بوابة الموردين / المقاولين",
+    "feature.asphalt_estimate": "تقدير أعمال الأسفلت / الطرق",
     "side.vendor_bill_submissions": "فواتير مُقدَّمة",
     "user.suppliers.email_required_for_portal": "أضف بريدًا إلكترونيًا لهذا المورد قبل تفعيل الوصول إلى البوابة.",
     "user.suppliers.portal_enabled": "تم تفعيل الوصول إلى البوابة لـ :email. كلمة المرور المؤقتة: :password (يُرجى مشاركتها بأمان).",

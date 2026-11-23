@@ -4118,6 +4118,7 @@
     "user.reports.wip_projects_with_alerts": ":count project(s) overbilled or over cost",
     "user.reports.wip_no_projects_with_alerts": "No projects are currently overbilled or over cost.",
     "feature.supplier_portal": "Supplier / Vendor Portal",
+    "feature.asphalt_estimate": "Asphalt / Road Estimate",
     "side.vendor_bill_submissions": "Bill Submissions",
     "user.suppliers.email_required_for_portal": "Add an email address for this supplier before enabling portal access.",
     "user.suppliers.portal_enabled": "Portal access enabled for :email. Temporary password: :password (share this securely).",
