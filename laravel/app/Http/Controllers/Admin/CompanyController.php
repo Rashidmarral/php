@@ -52,6 +52,11 @@ class CompanyController extends Controller
         $projectCount = Project::where('company_id', $company->id)->count();
         $plans = Plan::orderBy('sort_order')->get();
         $domains = $company->domains()->orderByDesc('created_at')->get();
+        // What this company's OWN plan grants by default for each feature — shown next to
+        // every override control so "Default" has a visible, concrete meaning instead of
+        // being a mystery value the admin has to go check the plan editor to understand.
+        $plan = $company->plan_id ? Plan::find($company->plan_id) : null;
+        $planFeatureFlags = $plan ? (json_decode((string) $plan->feature_flags, true) ?: []) : [];
 
         return view('admin.companies.show', [
             'company' => $company,
@@ -61,6 +66,7 @@ class CompanyController extends Controller
             'projectCount' => $projectCount,
             'plans' => $plans,
             'domains' => $domains,
+            'planFeatureFlags' => $planFeatureFlags,
         ]);
     }
 

@@ -148,29 +148,123 @@
   </form>
 </div>
 
-<div class="card" style="margin-bottom:24px;max-width:760px;">
-  <h3><?= t('admin.company.feature_overrides') ?></h3>
-  <p class="help-text"><?= t('admin.company.feature_overrides_hint') ?></p>
-  <form method="post" action="/admin/companies/<?= $company['id'] ?>/features">
-    <?= csrf_field() ?>
-    <div class="grid grid-2" style="gap:8px;">
-      <?php foreach (\App\Support\Feature::ALL as $key => $label):
-        $current = $company['feature_overrides'][$key] ?? null;
-        $selected = $current === true ? 'allow' : ($current === false ? 'deny' : 'default');
-      ?>
-        <div class="form-group" style="margin-bottom:8px;">
-          <label><?= e($label) ?></label>
-          <select name="overrides[<?= $key ?>]" style="width:auto;display:inline-block;padding:4px 8px;font-size:12.5px;">
-            <option value="default" <?= $selected === 'default' ? 'selected' : '' ?>><?= t('common.default') ?></option>
-            <option value="allow" <?= $selected === 'allow' ? 'selected' : '' ?>><?= t('admin.company.feature_enable') ?></option>
-            <option value="deny" <?= $selected === 'deny' ? 'selected' : '' ?>><?= t('admin.company.feature_disable') ?></option>
-          </select>
-        </div>
-      <?php endforeach; ?>
+<?php
+  // Purely presentational grouping of Feature::ALL for this page only — never changes what a
+  // key means or how it's stored, just how it's organized on screen. A key that's ever added
+  // to Feature::ALL and forgotten here still renders, in a catch-all "Other" group below.
+  $featureCategories = [
+    'admin.company.feature_group_estimating' => ['takeoff', 'quick_estimate', 'asphalt_estimate', 'ai_estimate_generator', 'estimate_templates', 'materials'],
+    'admin.company.feature_group_financial' => ['recurring_invoices', 'online_invoice_payments', 'zatca_phase2', 'cash_flow_forecasting', 'multi_currency', 'bank_guarantees'],
+    'admin.company.feature_group_procurement' => ['suppliers', 'purchase_orders', 'rfq_quotes', 'subcontractors', 'supplier_portal'],
+    'admin.company.feature_group_field_ops' => ['equipment_management', 'safety_tracking', 'timesheets', 'project_photos', 'site_logs', 'punch_list', 'rfi', 'submittals', 'change_orders', 'ld_eot_tracking', 'payment_certificates'],
+    'admin.company.feature_group_client' => ['client_portal', 'leads'],
+    'admin.company.feature_group_compliance' => ['compliance', 'zakat', 'reports', 'activity_log'],
+    'admin.company.feature_group_platform' => ['documents', 'integrations', 'approval_workflow', 'priority_support', 'granular_permissions'],
+  ];
+  $groupedKeys = array_merge(...array_values($featureCategories));
+  $ungrouped = array_diff(array_keys(\App\Support\Feature::ALL), $groupedKeys);
+  if (!empty($ungrouped)) {
+    $featureCategories['admin.company.feature_group_other'] = array_values($ungrouped);
+  }
+  $overrideCount = count($company['feature_overrides'] ?? []);
+?>
+<div class="card" style="margin-bottom:24px;max-width:900px;">
+  <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h3 style="margin-bottom:2px;"><?= t('admin.company.feature_overrides') ?></h3>
+      <p class="help-text" style="margin-top:0;"><?= t('admin.company.feature_overrides_hint') ?></p>
     </div>
-    <button type="submit" class="btn btn-primary" style="margin-top:8px;"><?= t('admin.company.save_feature_overrides') ?></button>
+    <span class="badge <?= $overrideCount > 0 ? 'badge-blue' : 'badge-gray' ?>" id="feature-override-count" style="white-space:nowrap;">
+      <?= e(t('admin.company.feature_override_count', ['count' => $overrideCount])) ?>
+    </span>
+  </div>
+
+  <div style="display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap;">
+    <input type="text" id="feature-search" placeholder="<?= e(t('admin.company.feature_search_placeholder')) ?>" style="flex:1;min-width:220px;max-width:340px;">
+    <button type="button" class="btn btn-sm btn-light" id="feature-reset-defaults"><?= t('admin.company.feature_reset_all') ?></button>
+  </div>
+
+  <form method="post" action="/admin/companies/<?= $company['id'] ?>/features" id="feature-overrides-form">
+    <?= csrf_field() ?>
+    <?php foreach ($featureCategories as $groupLabelKey => $keys): ?>
+      <div class="feature-group" style="margin-bottom:6px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <div class="feature-group-head" style="padding:9px 14px;background:#f7f9f8;font-weight:600;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+          <span><?= t($groupLabelKey) ?></span>
+          <span class="feature-group-arrow" style="font-size:11px;color:var(--muted);">&#9660;</span>
+        </div>
+        <div class="feature-group-body">
+          <?php foreach ($keys as $key):
+            if (!array_key_exists($key, \App\Support\Feature::ALL)) continue;
+            $label = \App\Support\Feature::ALL[$key];
+            $current = $company['feature_overrides'][$key] ?? null;
+            $selected = $current === true ? 'allow' : ($current === false ? 'deny' : 'default');
+            $inPlan = !empty($planFeatureFlags[$key]);
+          ?>
+            <div class="feature-row" data-search="<?= e(strtolower($label)) ?>" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid var(--border);flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:8px;min-width:220px;">
+                <span style="font-size:13px;"><?= e($label) ?></span>
+                <span class="badge <?= $inPlan ? 'badge-green' : 'badge-gray' ?>" style="font-size:10.5px;">
+                  <?= $inPlan ? t('admin.company.feature_in_plan') : t('admin.company.feature_not_in_plan') ?>
+                </span>
+              </div>
+              <div class="seg-toggle" role="radiogroup" aria-label="<?= e($label) ?>">
+                <input type="radio" name="overrides[<?= $key ?>]" value="default" id="f-<?= $key ?>-default" <?= $selected === 'default' ? 'checked' : '' ?>>
+                <label for="f-<?= $key ?>-default"><?= t('common.default') ?></label>
+                <input type="radio" name="overrides[<?= $key ?>]" value="allow" id="f-<?= $key ?>-allow" <?= $selected === 'allow' ? 'checked' : '' ?>>
+                <label for="f-<?= $key ?>-allow" class="seg-allow"><?= t('admin.company.feature_enable') ?></label>
+                <input type="radio" name="overrides[<?= $key ?>]" value="deny" id="f-<?= $key ?>-deny" <?= $selected === 'deny' ? 'checked' : '' ?>>
+                <label for="f-<?= $key ?>-deny" class="seg-deny"><?= t('admin.company.feature_disable') ?></label>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+    <button type="submit" class="btn btn-primary" style="margin-top:14px;"><?= t('admin.company.save_feature_overrides') ?></button>
   </form>
 </div>
+
+<style>
+  .seg-toggle { display:inline-flex; position:relative; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+  /* Visually hidden but still natively clickable via its <label for>, and still reachable by
+     keyboard/screen readers — unlike opacity:0, this never overlaps a sibling label's own
+     hit-test area, since the input occupies no visual box at all. */
+  .seg-toggle input[type="radio"] { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  .seg-toggle label { padding:5px 12px; font-size:12px; font-weight:600; cursor:pointer; color:var(--muted); background:#fff; user-select:none; border-right:1px solid var(--border); }
+  .seg-toggle label:last-of-type { border-right:none; }
+  .seg-toggle input[value="default"]:checked + label { background:#eef1f0; color:var(--text); }
+  .seg-toggle input[value="allow"]:checked + label.seg-allow { background:#e7f6ee; color:var(--success); }
+  .seg-toggle input[value="deny"]:checked + label.seg-deny { background:#fdecea; color:var(--danger); }
+  .feature-group.collapsed .feature-group-body { display:none; }
+  .feature-group.collapsed .feature-group-arrow { transform:rotate(-90deg); }
+</style>
+<script>
+(function() {
+  const search = document.getElementById('feature-search');
+  const rows = document.querySelectorAll('.feature-row[data-search]');
+  const groups = document.querySelectorAll('.feature-group');
+
+  search.addEventListener('input', () => {
+    const q = search.value.toLowerCase();
+    rows.forEach(row => { row.style.display = row.dataset.search.includes(q) ? '' : 'none'; });
+    groups.forEach(group => {
+      const anyVisible = Array.from(group.querySelectorAll('.feature-row')).some(r => r.style.display !== 'none');
+      group.style.display = (q === '' || anyVisible) ? '' : 'none';
+      group.classList.toggle('collapsed', q !== '' ? false : group.classList.contains('collapsed'));
+    });
+  });
+
+  groups.forEach(group => {
+    group.querySelector('.feature-group-head').addEventListener('click', () => {
+      group.classList.toggle('collapsed');
+    });
+  });
+
+  document.getElementById('feature-reset-defaults').addEventListener('click', () => {
+    document.querySelectorAll('#feature-overrides-form input[type="radio"][value="default"]').forEach(r => { r.checked = true; });
+  });
+})();
+</script>
 
 <div class="card" style="margin-bottom:24px;max-width:720px;">
   <h3><?= t('admin.company.custom_domain') ?></h3>
