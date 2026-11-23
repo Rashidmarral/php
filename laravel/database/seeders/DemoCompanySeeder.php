@@ -80,6 +80,7 @@ class DemoCompanySeeder extends Seeder
         $existingCompany = Company::where('email', 'demo@buildxact-saudi.local')->first();
         if ($existingCompany) {
             $this->backfillExtendedDemoData($existingCompany);
+            $this->seedSecondDemoCompany();
 
             return;
         }
@@ -512,6 +513,8 @@ class DemoCompanySeeder extends Seeder
             '  Email:    sales@sbmc.sa',
             '  Password: Demo@12345',
         ]));
+
+        $this->seedSecondDemoCompany();
     }
 
     /**
@@ -1000,10 +1003,514 @@ class DemoCompanySeeder extends Seeder
         Notification::create(['company_id' => $company->id, 'type' => 'change_order_approved', 'title' => 'Change order approved', 'message' => 'Client approved "Upgrade kitchen countertops to marble" (+12,500 SAR).', 'link' => '/app/projects/'.$project->id, 'read_at' => null]);
         Notification::create(['company_id' => $company->id, 'type' => 'rfq_quote_received', 'title' => 'New RFQ quote received', 'message' => 'Riyadh Ready-Mix & Rebar Trading submitted a quote for "Rebar & Ready-Mix Concrete Supply".', 'link' => '/app/rfqs/'.$rfq->id, 'read_at' => null]);
 
+        // ==================================================================
+        // Additional volume: 2 more clients/projects, more estimates/invoices,
+        // a 2nd asphalt estimate, a 2nd RFQ, more POs/subcontracts/vendor bills,
+        // a 3rd payment certificate, more RFIs/submittals/equipment/safety, more
+        // timesheets, another recurring invoice + credit/debit note pair, a
+        // selection, an assembly, and leads — so lists aren't sparse with just
+        // one or two of everything.
+        // ==================================================================
+
+        // ---------------- 2 more clients & projects ----------------
+        $client4 = Client::create([
+            'company_id' => $company->id, 'name' => 'Al Faisaliah Commercial Developers', 'name_ar' => 'الفيصلية للتطوير التجاري',
+            'email' => 'projects@alfaisaliah-dev.sa', 'phone' => '+966 11 234 9900', 'address' => 'Al Olaya, Riyadh',
+        ]);
+        $client5 = Client::create([
+            'company_id' => $company->id, 'name' => 'Mansour Al Dosari', 'name_ar' => 'منصور الدوسري',
+            'email' => 'mansour.dosari@example.com', 'phone' => '+966 58 765 4321', 'address' => 'Al Yasmin District, Riyadh',
+        ]);
+
+        $project4 = Project::create([
+            'company_id' => $company->id, 'client_id' => $client4->id,
+            'name' => 'Al Faisaliah Office Fit-Out', 'name_ar' => 'تجهيز مكاتب الفيصلية',
+            'description' => 'Category-A office fit-out for a 1,200 sqm floor, including partitions, ceilings and MEP.',
+            'description_ar' => 'تجهيز مكاتب من الفئة أ لطابق مساحته 1200 متر مربع يشمل الحواجز والأسقف والأعمال الكهروميكانيكية.',
+            'status' => 'completed', 'budget' => 480000,
+            'start_date' => now()->subDays(140), 'end_date' => now()->subDays(20),
+        ]);
+        $project5 = Project::create([
+            'company_id' => $company->id, 'client_id' => $client5->id,
+            'name' => 'Al Dosari Apartment Building', 'name_ar' => 'عمارة الدوسري السكنية',
+            'description' => 'An 8-unit, 4-story apartment building with ground-floor parking.',
+            'description_ar' => 'عمارة سكنية من 8 وحدات على 4 طوابق مع موقف سيارات بالدور الأرضي.',
+            'status' => 'on_hold', 'budget' => 1450000,
+            'start_date' => now()->subDays(60), 'end_date' => now()->addDays(240),
+        ]);
+
+        // ---------------- More estimates ----------------
+        $estimate3 = Estimate::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'client_id' => $client4->id,
+            'title' => 'Al Faisaliah Office Fit-Out — Revised Estimate', 'title_ar' => 'تجهيز مكاتب الفيصلية — تسعيرة منقحة',
+            'status' => 'declined', 'total' => 520000, 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        EstimateItem::create(['estimate_id' => $estimate3->id, 'description' => 'Partitions, ceilings & flooring', 'description_ar' => 'الحواجز والأسقف والأرضيات', 'qty' => 1, 'unit_cost' => 320000, 'total' => 320000]);
+        EstimateItem::create(['estimate_id' => $estimate3->id, 'description' => 'MEP & lighting upgrade', 'description_ar' => 'ترقية الأعمال الكهروميكانيكية والإنارة', 'qty' => 1, 'unit_cost' => 200000, 'total' => 200000]);
+
+        $estimate4 = Estimate::create([
+            'company_id' => $company->id, 'project_id' => $project5->id, 'client_id' => $client5->id,
+            'title' => 'Al Dosari Apartment Building — Draft Estimate', 'title_ar' => 'عمارة الدوسري — تسعيرة أولية',
+            'status' => 'draft', 'total' => 1450000, 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        EstimateItem::create(['estimate_id' => $estimate4->id, 'description' => 'Structural shell, 4 floors', 'description_ar' => 'الهيكل الإنشائي، 4 طوابق', 'qty' => 1, 'unit_cost' => 820000, 'total' => 820000]);
+        EstimateItem::create(['estimate_id' => $estimate4->id, 'description' => 'MEP, finishes & external works', 'description_ar' => 'الأعمال الكهروميكانيكية والتشطيبات والأعمال الخارجية', 'qty' => 1, 'unit_cost' => 630000, 'total' => 630000]);
+
+        $estimate5 = Estimate::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'client_id' => $client3->id,
+            'title' => 'Road Signage & Line Marking Estimate', 'title_ar' => 'تسعيرة اللافتات وعلامات الطرق',
+            'status' => 'accepted', 'total' => 95000, 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        EstimateItem::create(['estimate_id' => $estimate5->id, 'description' => 'Thermoplastic lane markings', 'description_ar' => 'علامات الحارات الثرموبلاستيك', 'qty' => 1, 'unit_cost' => 55000, 'total' => 55000]);
+        EstimateItem::create(['estimate_id' => $estimate5->id, 'description' => 'Traffic & directional signage', 'description_ar' => 'لافتات المرور والإرشاد', 'qty' => 1, 'unit_cost' => 40000, 'total' => 40000]);
+
+        // ---------------- More invoices ----------------
+        $invoice3 = Invoice::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'client_id' => $client4->id,
+            'invoice_number' => 'INV-1003', 'status' => 'draft', 'total' => 48000, 'vat_rate' => 15, 'vat_amount' => 6260.87,
+            'due_date' => now()->addDays(21), 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        InvoiceItem::create(['invoice_id' => $invoice3->id, 'description' => 'Final account — fit-out works', 'description_ar' => 'الحساب الختامي - أعمال التجهيز', 'qty' => 1, 'unit_price' => 41739.13, 'total' => 41739.13]);
+
+        $invoice4 = Invoice::create([
+            'company_id' => $company->id, 'project_id' => $project5->id, 'client_id' => $client5->id,
+            'invoice_number' => 'INV-1004', 'status' => 'overdue', 'total' => 72500, 'vat_rate' => 15, 'vat_amount' => 9456.52,
+            'due_date' => now()->subDays(18), 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        InvoiceItem::create(['invoice_id' => $invoice4->id, 'description' => 'Structural shell — progress payment', 'description_ar' => 'الهيكل الإنشائي - دفعة تقدم الأعمال', 'qty' => 1, 'unit_price' => 63043.48, 'total' => 63043.48]);
+
+        $invoice5 = Invoice::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'client_id' => $client3->id,
+            'invoice_number' => 'INV-1005', 'status' => 'paid', 'total' => 850000, 'vat_rate' => 15, 'vat_amount' => 110869.57,
+            'due_date' => now()->subDays(8), 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        InvoiceItem::create(['invoice_id' => $invoice5->id, 'description' => 'Road works — milestone 1 payment', 'description_ar' => 'أعمال الطريق - دفعة المرحلة الأولى', 'qty' => 1, 'unit_price' => 739130.43, 'total' => 739130.43]);
+
+        // ---------------- 2nd Asphalt Estimate: apartment parking apron ----------------
+        $segment2Inputs = [[
+            'name' => 'Ground-Floor Parking Apron', 'sort_order' => 0, 'is_main_road' => true, 'plot_rows' => 3, 'plot_cols' => 8,
+            'length_m' => 40, 'width_m' => 22, 'median_width_m' => 0,
+            'subbase_thickness_mm' => 150, 'subbase_unit_cost_per_m3' => 42,
+            'base_course_thickness_mm' => 100, 'base_course_unit_cost_per_m3' => 55,
+            'asphalt_binder_thickness_mm' => 40, 'asphalt_wearing_thickness_mm' => 30,
+            'asphalt_density_kg_per_m3' => 2400, 'asphalt_unit_cost_per_ton' => 320,
+        ]];
+        $otherCosts2 = [
+            'transport_cost_per_ton' => 18,
+            'paver_daily_rate' => 3500, 'paver_days' => 2,
+            'roller_daily_rate' => 1800, 'roller_days' => 2,
+            'labor_crew_size' => 6, 'labor_days' => 3,
+            'labor_daily_rate_per_worker' => 120, 'labor_food_daily_rate_per_worker' => 25,
+            'surveyor_fee' => 2500, 'lab_testing_fee' => 1800, 'mobilization_fee' => 4000,
+        ];
+        $computedSegments2 = array_map(fn (array $s) => AsphaltEstimateCalc::computeSegment($s), $segment2Inputs);
+        $asphaltTotals2 = AsphaltEstimateCalc::computeTotals($computedSegments2, $otherCosts2, 15, 15);
+        $asphaltCachedTotals2 = array_intersect_key($asphaltTotals2, array_flip([
+            'segments_subtotal', 'other_costs_subtotal', 'subtotal', 'total_asphalt_tons', 'total_area_m2',
+            'markup_amount', 'tax_amount', 'total',
+        ]));
+        $asphaltEstimate2 = AsphaltEstimate::create(array_merge($otherCosts2, [
+            'company_id' => $company->id, 'project_id' => $project5->id, 'client_id' => $client5->id,
+            'name' => 'Al Dosari Apartment Building — Parking Apron', 'city' => 'Riyadh',
+            'status' => 'draft', 'site_width_m' => 22, 'site_length_m' => 40,
+            'notes' => 'Ground-floor parking apron paving, to follow structural shell completion.',
+            'markup_percent' => 15, 'tax_percent' => 15,
+        ], $asphaltCachedTotals2));
+        foreach ($segment2Inputs as $i => $input) {
+            AsphaltEstimateSegment::create(array_merge($input, $computedSegments2[$i], ['asphalt_estimate_id' => $asphaltEstimate2->id]));
+        }
+
+        // ---------------- A 4th supplier & a 2nd RFQ bid leveling ----------------
+        $supplier4 = Supplier::create([
+            'company_id' => $company->id, 'name' => 'Gulf HVAC Systems', 'name_ar' => 'أنظمة التكييف الخليجية',
+            'contact_name' => 'Yasser Al Qurashi', 'email' => 'sales@gulfhvac.sa', 'phone' => '+966 12 678 9012',
+            'address' => 'Jeddah Industrial City', 'category' => 'HVAC & MEP',
+        ]);
+
+        $rfq2 = Rfq::create([
+            'company_id' => $company->id, 'project_id' => $project4->id,
+            'title' => 'HVAC Split Units & Ductwork — Al Faisaliah Office Fit-Out',
+            'status' => 'quoted', 'due_date' => now()->subDays(100)->format('Y-m-d'),
+            'created_by' => $owner->id, 'notes' => 'Office floor HVAC package — please quote itemized, installed.',
+        ]);
+        $rfq2ItemInputs = [
+            ['description' => 'Ducted split AC unit 24,000 BTU', 'qty' => 10, 'unit' => 'each'],
+            ['description' => 'Galvanized ductwork', 'qty' => 180, 'unit' => 'lm'],
+            ['description' => 'Diffusers & grilles', 'qty' => 40, 'unit' => 'each'],
+        ];
+        $rfq2Items = [];
+        foreach ($rfq2ItemInputs as $it) {
+            $rfq2Items[] = RfqItem::create(array_merge($it, ['rfq_id' => $rfq2->id]));
+        }
+        $rfq2Quote1 = RfqQuote::create(['rfq_id' => $rfq2->id, 'supplier_id' => $supplier4->id, 'total_amount' => 68400, 'lead_time_days' => 14, 'notes' => 'Includes commissioning.', 'is_awarded' => true, 'submitted_at' => now()->subDays(105)->format('Y-m-d')]);
+        $rfq2Quote1Prices = [5200.00, 95.00, 110.00];
+        foreach ($rfq2Items as $i => $item) {
+            RfqQuoteItem::create(['rfq_quote_id' => $rfq2Quote1->id, 'rfq_item_id' => $item->id, 'unit_price' => $rfq2Quote1Prices[$i], 'total' => round($item->qty * $rfq2Quote1Prices[$i], 2)]);
+        }
+        $rfq2Quote2 = RfqQuote::create(['rfq_id' => $rfq2->id, 'supplier_id' => $supplier2->id, 'total_amount' => 74200, 'lead_time_days' => 10, 'notes' => 'Faster lead time, premium brand units.', 'is_awarded' => false, 'submitted_at' => now()->subDays(104)->format('Y-m-d')]);
+        $rfq2Quote2Prices = [5650.00, 102.00, 125.00];
+        foreach ($rfq2Items as $i => $item) {
+            RfqQuoteItem::create(['rfq_quote_id' => $rfq2Quote2->id, 'rfq_item_id' => $item->id, 'unit_price' => $rfq2Quote2Prices[$i], 'total' => round($item->qty * $rfq2Quote2Prices[$i], 2)]);
+        }
+
+        // ---------------- More purchase orders ----------------
+        $po4 = PurchaseOrder::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'supplier_id' => $supplier4->id,
+            'po_number' => 'PO-1004', 'status' => 'issued', 'issue_date' => now()->subDays(110)->format('Y-m-d'),
+            'expected_delivery_date' => now()->subDays(95)->format('Y-m-d'),
+            'notes' => 'HVAC package per awarded RFQ quote.',
+            'subtotal' => 68400, 'vat_amount' => 10260, 'total' => 78660,
+            'currency' => 'SAR', 'exchange_rate_to_sar' => 1.0, 'acknowledged_at' => now()->subDays(108),
+        ]);
+        PurchaseOrderItem::create(['purchase_order_id' => $po4->id, 'description' => 'Ducted split AC unit 24,000 BTU', 'qty' => 10, 'unit_price' => 5200.00, 'total' => 52000]);
+
+        $po5 = PurchaseOrder::create([
+            'company_id' => $company->id, 'project_id' => $project5->id, 'supplier_id' => $supplier1->id,
+            'po_number' => 'PO-1005', 'status' => 'draft',
+            'notes' => 'Structural materials for shell — pending site mobilization.',
+            'subtotal' => 42000, 'vat_amount' => 6300, 'total' => 48300,
+            'currency' => 'SAR', 'exchange_rate_to_sar' => 1.0,
+        ]);
+        PurchaseOrderItem::create(['purchase_order_id' => $po5->id, 'description' => 'Ready-mix concrete C30', 'qty' => 120, 'unit_price' => 290.00, 'total' => 34800]);
+        PurchaseOrderItem::create(['purchase_order_id' => $po5->id, 'description' => 'Rebar 16mm deformed bar (ton)', 'qty' => 2.5, 'unit_price' => 2880.00, 'total' => 7200]);
+
+        // ---------------- A 3rd subcontract ----------------
+        Subcontract::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'supplier_id' => $supplier4->id,
+            'title' => 'HVAC Supply & Install Subcontract',
+            'description' => 'Supply, installation and commissioning of the office floor HVAC package.',
+            'contract_value' => 78660, 'retention_percent' => 5, 'status' => 'completed',
+            'start_date' => now()->subDays(108)->format('Y-m-d'), 'end_date' => now()->subDays(25)->format('Y-m-d'),
+            'currency' => 'SAR', 'exchange_rate_to_sar' => 1.0,
+        ]);
+
+        // ---------------- More vendor bills & another pending submission ----------------
+        VendorBill::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'supplier_id' => $supplier4->id,
+            'purchase_order_id' => $po4->id, 'category' => 'material', 'description' => 'HVAC package delivery & install — PO-1004',
+            'amount' => 78660, 'bill_date' => now()->subDays(100)->format('Y-m-d'), 'reference' => 'GHS-INV-2201', 'status' => 'paid',
+        ]);
+        VendorBill::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'category' => 'equipment',
+            'description' => 'Roller & paver rental — weeks 1-2', 'amount' => 22000,
+            'bill_date' => now()->subDays(15)->format('Y-m-d'), 'reference' => 'EQ-RENT-0091', 'status' => 'paid',
+        ]);
+        VendorBillSubmission::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'supplier_id' => $supplier3->id,
+            'category' => 'material', 'description' => 'Ready-mix concrete delivery — road base works', 'amount' => 48500,
+            'bill_date' => now()->subDay()->format('Y-m-d'), 'reference' => 'RRM-INV-3390', 'status' => 'pending',
+        ]);
+
+        // ---------------- A 3rd payment certificate (road project) ----------------
+        $boq3Inputs = [
+            ['item_number' => '1.1', 'section_title' => 'Earthworks & Paving', 'section_title_ar' => 'الأعمال الترابية والرصف', 'description' => 'Sub-base & base course placement', 'description_ar' => 'طبقات الأساس والقاعدة', 'uom' => 'm2', 'qty' => 16800, 'unit_price' => 55],
+            ['item_number' => '1.2', 'section_title' => 'Earthworks & Paving', 'section_title_ar' => 'الأعمال الترابية والرصف', 'description' => 'Asphalt wearing course', 'description_ar' => 'طبقة الأسفلت السطحية', 'uom' => 'm2', 'qty' => 16800, 'unit_price' => 48],
+        ];
+        $boq3Items = [];
+        foreach ($boq3Inputs as $i => $b) {
+            $boq3Items[] = BoqItem::create(array_merge($b, ['company_id' => $company->id, 'project_id' => $project3->id, 'total' => $b['qty'] * $b['unit_price'], 'sort_order' => $i]));
+        }
+        $boq3Total = array_sum(array_map(fn ($b) => $b->total, $boq3Items));
+        $cert3Fraction = 0.4;
+        $cert3Gross = round($boq3Total * $cert3Fraction, 2);
+        $cert3Retention = round($cert3Gross * 0.10, 2);
+        $certificate3 = PaymentCertificate::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'certificate_number' => 1,
+            'certificate_date' => now()->subDays(10)->format('Y-m-d'),
+            'period_from' => now()->subDays(25)->format('Y-m-d'), 'period_to' => now()->subDays(10)->format('Y-m-d'),
+            'status' => 'certified', 'retention_percent' => 10, 'retention_amount' => $cert3Retention,
+            'gross_amount' => $cert3Gross, 'net_payable' => $cert3Gross - $cert3Retention, 'cumulative_certified' => $cert3Gross,
+            'created_by' => $owner->id, 'certified_by' => $owner->id, 'certified_at' => now()->subDays(9),
+        ]);
+        foreach ($boq3Items as $boqItem) {
+            PaymentCertificateLine::create([
+                'payment_certificate_id' => $certificate3->id, 'boq_item_id' => $boqItem->id,
+                'description' => $boqItem->description, 'description_ar' => $boqItem->description_ar, 'uom' => $boqItem->uom,
+                'contract_qty' => $boqItem->qty, 'contract_unit_price' => $boqItem->unit_price, 'contract_total' => $boqItem->total,
+                'previous_cumulative_qty' => 0, 'cumulative_qty' => round($boqItem->qty * $cert3Fraction, 2),
+                'this_period_qty' => round($boqItem->qty * $cert3Fraction, 2), 'this_period_value' => round($boqItem->total * $cert3Fraction, 2),
+            ]);
+        }
+
+        // ---------------- More RFIs & submittals ----------------
+        Rfi::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'rfi_number' => 1,
+            'subject' => 'Ceiling grid layout near structural beam',
+            'question' => 'Structural beam conflicts with the proposed suspended ceiling grid — please confirm bulkhead treatment.',
+            'raised_by' => $estimator->id, 'assigned_to' => $owner->id, 'status' => 'closed',
+            'due_date' => now()->subDays(130)->format('Y-m-d'),
+        ]);
+        Rfi::create([
+            'company_id' => $company->id, 'project_id' => $project5->id, 'rfi_number' => 1,
+            'subject' => 'Parking apron drainage slope',
+            'question' => 'Please confirm the required cross-fall for the parking apron given the adjacent municipal storm drain level.',
+            'raised_by' => $owner->id, 'status' => 'open', 'due_date' => now()->addDays(20)->format('Y-m-d'),
+        ]);
+        Rfi::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'rfi_number' => 2,
+            'subject' => 'Cross-street signal timing coordination',
+            'question' => 'Requesting confirmation from the municipality traffic department on signal timing during the cross-street tie-in works.',
+            'raised_by' => $owner->id, 'status' => 'answered', 'due_date' => now()->subDays(6)->format('Y-m-d'),
+        ]);
+
+        Submittal::create([
+            'company_id' => $company->id, 'project_id' => $project4->id, 'submittal_number' => 1,
+            'title' => 'Suspended ceiling tile & grid sample', 'spec_section' => '09 51 00', 'status' => 'approved',
+            'submitted_by' => $estimator->id, 'reviewed_by' => $owner->id, 'reviewed_at' => now()->subDays(125),
+            'due_date' => now()->subDays(130)->format('Y-m-d'),
+        ]);
+        Submittal::create([
+            'company_id' => $company->id, 'project_id' => $project5->id, 'submittal_number' => 1,
+            'title' => 'Structural rebar shop drawings', 'spec_section' => '03 21 00', 'status' => 'under_review',
+            'submitted_by' => $owner->id, 'due_date' => now()->addDays(10)->format('Y-m-d'),
+        ]);
+        Submittal::create([
+            'company_id' => $company->id, 'project_id' => $project3->id, 'submittal_number' => 2,
+            'title' => 'Traffic signage specification sheet', 'spec_section' => '10 14 00', 'status' => 'approved',
+            'submitted_by' => $owner->id, 'reviewed_by' => $owner->id, 'reviewed_at' => now()->subDays(5),
+            'due_date' => now()->subDays(8)->format('Y-m-d'),
+        ]);
+
+        // ---------------- More equipment ----------------
+        $equip4 = Equipment::create(['company_id' => $company->id, 'name' => 'Tower Crane — Potain MDT 178', 'name_ar' => 'رافعة برجية - بوتان MDT 178', 'asset_number' => 'EQ-1004', 'category' => 'Crane', 'ownership_type' => 'rented', 'rental_cost_per_day' => 2200, 'status' => 'in_use']);
+        $equip5 = Equipment::create(['company_id' => $company->id, 'name' => 'Backhoe Loader — JCB 3CX', 'name_ar' => 'حفارة جرافة - جي سي بي 3CX', 'asset_number' => 'EQ-1005', 'category' => 'Backhoe Loader', 'ownership_type' => 'owned', 'purchase_date' => now()->subYears(3)->format('Y-m-d'), 'purchase_cost' => 310000, 'status' => 'available']);
+        Equipment::create(['company_id' => $company->id, 'name' => 'Scaffolding Set (500 sqm)', 'name_ar' => 'طقم سقالات (500 م2)', 'asset_number' => 'EQ-1006', 'category' => 'Scaffolding', 'ownership_type' => 'rented', 'rental_cost_per_day' => 450, 'status' => 'in_use']);
+
+        EquipmentAssignment::create(['company_id' => $company->id, 'equipment_id' => $equip4->id, 'project_id' => $project5->id, 'assigned_date' => now()->subDays(55)->format('Y-m-d'), 'notes' => 'Structural shell erection, floors 1-4.']);
+        EquipmentAssignment::create(['company_id' => $company->id, 'equipment_id' => $equip5->id, 'project_id' => $project4->id, 'assigned_date' => now()->subDays(135)->format('Y-m-d'), 'returned_date' => now()->subDays(120)->format('Y-m-d'), 'notes' => 'Site clearance before fit-out mobilization.']);
+
+        // ---------------- More safety (HSE) ----------------
+        SafetyIncident::create(['company_id' => $company->id, 'project_id' => $project5->id, 'incident_number' => 1, 'incident_date' => now()->subDays(30)->format('Y-m-d'), 'incident_type' => 'Near Miss', 'severity' => 'medium', 'description' => 'Tower crane load swung near the site boundary wall in high wind; works paused until wind speed dropped.', 'location' => 'Site perimeter, east side', 'reported_by' => $owner->id, 'corrective_action' => 'Introduced a wind-speed cutoff procedure for crane lifts above 40 km/h.', 'status' => 'closed']);
+        ToolboxTalk::create(['company_id' => $company->id, 'project_id' => $project5->id, 'talk_date' => now()->subDays(50)->format('Y-m-d'), 'topic' => 'Crane lift planning & exclusion zones', 'conducted_by' => $owner->id, 'attendee_count' => 10, 'notes' => 'Reviewed tower crane exclusion zone marking and banksman signaling.']);
+
+        // ---------------- More timesheets ----------------
+        foreach (range(1, 5) as $dayOffset) {
+            TimesheetEntry::create(['company_id' => $company->id, 'project_id' => $project3->id, 'user_id' => $owner->id, 'work_date' => now()->subDays($dayOffset + 5)->format('Y-m-d'), 'hours' => 8, 'hourly_rate_snapshot' => $owner->hourly_rate, 'cost' => 8 * $owner->hourly_rate, 'logged_by' => $owner->id]);
+            TimesheetEntry::create(['company_id' => $company->id, 'project_id' => $project3->id, 'user_id' => $accountant->id, 'work_date' => now()->subDays($dayOffset + 5)->format('Y-m-d'), 'hours' => 4, 'hourly_rate_snapshot' => $accountant->hourly_rate, 'cost' => 4 * $accountant->hourly_rate, 'logged_by' => $accountant->id]);
+        }
+
+        // ---------------- Another recurring invoice ----------------
+        $recurringInvoice2 = RecurringInvoice::create([
+            'company_id' => $company->id, 'client_id' => $client4->id,
+            'title' => 'Quarterly Office HVAC Maintenance Contract', 'frequency' => 'quarterly',
+            'next_run_date' => now()->addDays(40)->format('Y-m-d'), 'last_generated_at' => now()->subDays(50),
+            'is_active' => true, 'apply_vat' => true, 'retention_percent' => 0, 'due_days' => 30,
+        ]);
+        RecurringInvoiceItem::create(['recurring_invoice_id' => $recurringInvoice2->id, 'description' => 'Quarterly HVAC preventive maintenance', 'description_ar' => 'صيانة وقائية ربع سنوية لأنظمة التكييف', 'qty' => 1, 'unit_price' => 6500]);
+
+        // ---------------- Another credit/debit note pair ----------------
+        $creditNote2 = CreditNote::create([
+            'company_id' => $company->id, 'invoice_id' => $invoice4->id, 'client_id' => $client5->id,
+            'note_number' => 'CN-1002', 'issue_date' => now()->subDays(5)->format('Y-m-d'),
+            'reason' => 'Billing correction after re-measurement of completed shell works.',
+            'status' => 'issued', 'subtotal' => 4200, 'vat_rate' => 15, 'vat_amount' => 630, 'total' => 4830,
+        ]);
+        CreditNoteItem::create(['credit_note_id' => $creditNote2->id, 'description' => 'Structural works — re-measurement correction', 'description_ar' => 'الأعمال الإنشائية - تصحيح بعد إعادة القياس', 'qty' => 1, 'unit_price' => 4200, 'total' => 4200]);
+
+        $debitNote2 = DebitNote::create([
+            'company_id' => $company->id, 'invoice_id' => $invoice3->id, 'client_id' => $client4->id,
+            'note_number' => 'DN-1002', 'issue_date' => now()->subDays(3)->format('Y-m-d'),
+            'reason' => 'Additional after-hours work requested by the client.',
+            'status' => 'issued', 'subtotal' => 2500, 'vat_rate' => 15, 'vat_amount' => 375, 'total' => 2875,
+        ]);
+        DebitNoteItem::create(['debit_note_id' => $debitNote2->id, 'description' => 'After-hours labor surcharge', 'description_ar' => 'رسوم إضافية للعمل خارج أوقات الدوام', 'qty' => 1, 'unit_price' => 2500, 'total' => 2500]);
+
+        // ---------------- A 3rd selection ----------------
+        $selection3 = Selection::create([
+            'company_id' => $company->id, 'project_id' => $project5->id, 'category' => 'Exterior',
+            'name' => 'Facade Cladding', 'name_ar' => 'كسوة الواجهة',
+            'description' => 'Allowance for the main facade cladding finish.', 'description_ar' => 'مخصص لتشطيب كسوة الواجهة الرئيسية.',
+            'allowance_amount' => 18000, 'status' => 'pending', 'due_date' => now()->addDays(60)->format('Y-m-d'),
+        ]);
+        SelectionOption::create(['selection_id' => $selection3->id, 'name' => 'Painted Render Finish', 'name_ar' => 'تشطيب لياسة مدهونة', 'price' => 15000, 'sort_order' => 0, 'is_chosen' => false]);
+        SelectionOption::create(['selection_id' => $selection3->id, 'name' => 'Aluminum Composite Panel Cladding', 'name_ar' => 'كسوة ألواح ألمنيوم مركبة', 'price' => 24000, 'sort_order' => 1, 'is_chosen' => false]);
+
+        // ---------------- A 3rd assembly ----------------
+        $assembly3 = Assembly::create(['company_id' => $company->id, 'name' => 'Suspended Gypsum Ceiling (Painted)', 'name_ar' => 'سقف جبسي معلق (مدهون)', 'base_uom' => 'sqm', 'description' => 'Suspended gypsum board ceiling with skim coat and paint finish.', 'is_active' => true]);
+        AssemblyItem::create(['assembly_id' => $assembly3->id, 'description' => 'Gypsum board ceiling system', 'description_ar' => 'نظام سقف ألواح جبسية', 'item_type' => 'material', 'uom' => 'sqm', 'qty_per_unit' => 1, 'unit_cost' => 38.00, 'sort_order' => 0]);
+        AssemblyItem::create(['assembly_id' => $assembly3->id, 'description' => 'Skim coat & paint, two coats', 'description_ar' => 'معجون وطلاء طبقتين', 'item_type' => 'material', 'uom' => 'sqm', 'qty_per_unit' => 1, 'unit_cost' => 9.00, 'sort_order' => 1]);
+        AssemblyItem::create(['assembly_id' => $assembly3->id, 'description' => 'Ceiling installer labor', 'description_ar' => 'عامل تركيب الأسقف', 'item_type' => 'labor', 'uom' => 'sqm', 'qty_per_unit' => 1, 'unit_cost' => 22.00, 'sort_order' => 2]);
+
+        // ---------------- More leads ----------------
+        Lead::create([
+            'company_id' => $company->id, 'name' => 'Lama Al Harbi', 'company_name' => null, 'company_name_ar' => null,
+            'email' => 'lama.harbi@example.com', 'phone' => '+966 59 333 4444',
+            'source' => 'website', 'status' => 'new', 'estimated_value' => 160000,
+            'notes' => 'Interested in a majlis & garden landscaping extension.',
+        ]);
+        Lead::create([
+            'company_id' => $company->id, 'name' => 'Saeed Al Shehri', 'company_name' => 'Al Shehri Real Estate',
+            'company_name_ar' => 'الشهري العقارية', 'email' => 'saeed@alshehri-re.sa', 'phone' => '+966 56 777 8888',
+            'source' => 'referral', 'status' => 'qualified', 'estimated_value' => 950000,
+            'notes' => 'Potential multi-unit residential compound in Jeddah — awaiting land survey.',
+        ]);
+
         // ---------------- Enable client & supplier portal logins ----------------
         // Client model casts `password` as 'hashed' — assigning a plain string here is
         // auto-hashed on save, same as Client/SupplierController::enablePortal() in the app.
         $client->update(['portal_enabled' => true, 'password' => 'Demo@12345']);
         $supplier1->update(['portal_enabled' => true, 'password' => 'Demo@12345']);
+    }
+
+    /**
+     * A second, smaller demo company on a different plan tier (Enterprise, vs the first
+     * company's Professional) — a southern-region earthworks/infrastructure specialist —
+     * so the demo shows multi-tenancy and plan variety. Mirrors the first company's
+     * create-or-backfill idempotency pattern exactly: guarded on its own email, and on
+     * AsphaltEstimate existence for the "exists but incomplete" backfill case.
+     */
+    private function seedSecondDemoCompany(): void
+    {
+        $company2 = Company::where('email', 'demo2@buildxact-saudi.local')->first();
+        if ($company2 && AsphaltEstimate::where('company_id', $company2->id)->exists()) {
+            $this->command?->info('Second demo company already fully seeded.');
+
+            return;
+        }
+
+        $enterprisePlan = Plan::where('slug', 'enterprise')->firstOrFail();
+
+        if (! $company2) {
+            $company2 = Company::create([
+                'name' => 'Jazan Earthworks & Infrastructure Co.', 'name_ar' => 'جازان للأعمال الترابية والبنية التحتية',
+                'email' => 'demo2@buildxact-saudi.local', 'phone' => '+966 17 321 6540', 'city' => 'Jizan',
+                'status' => 'active', 'plan_id' => $enterprisePlan->id, 'trial_ends_at' => now()->addDays(14),
+                'cr_number' => '5910087654', 'vat_number' => '300098765400003',
+                'address' => 'Industrial Road, Jizan 82723', 'default_markup_percent' => 12, 'default_retention_percent' => 10,
+            ]);
+
+            $owner2 = User::create([
+                'company_id' => $company2->id, 'name' => 'Hassan Al Maliki', 'email' => 'owner@jazan-earthworks-demo.local',
+                'password' => 'Demo@12345', 'role' => 'owner', 'status' => 'active', 'hourly_rate' => 130,
+            ]);
+
+            Subscription::create(['company_id' => $company2->id, 'plan_id' => $enterprisePlan->id, 'billing_cycle' => 'yearly', 'status' => 'active', 'current_period_end' => now()->addDays(300)]);
+            Payment::create(['company_id' => $company2->id, 'amount' => 8990, 'currency' => 'SAR', 'method' => 'bank_transfer', 'reference' => 'PMT-2001', 'status' => 'paid']);
+        } else {
+            $owner2 = User::where('company_id', $company2->id)->where('role', 'owner')->firstOrFail();
+        }
+
+        $client2a = Client::create([
+            'company_id' => $company2->id, 'name' => 'Jizan Municipality — Roads Department', 'name_ar' => 'أمانة منطقة جازان — إدارة الطرق',
+            'email' => 'roads@jizan-municipality-demo.sa', 'phone' => '+966 17 222 3344', 'address' => 'Jizan City Center',
+        ]);
+        $client2b = Client::create([
+            'company_id' => $company2->id, 'name' => 'Farasan Logistics Co.', 'name_ar' => 'فرسان للخدمات اللوجستية',
+            'email' => 'contracts@farasan-logistics-demo.sa', 'phone' => '+966 17 555 1122', 'address' => 'Jizan Port Area',
+        ]);
+
+        $project2a = Project::create([
+            'company_id' => $company2->id, 'client_id' => $client2a->id,
+            'name' => 'Jizan Industrial Road Rehabilitation', 'name_ar' => 'إعادة تأهيل طريق جازان الصناعي',
+            'city' => 'Jizan',
+            'description' => 'Full-depth rehabilitation of a 2.5km industrial access road, including drainage upgrades.',
+            'description_ar' => 'إعادة تأهيل كامل لطريق صناعي بطول 2.5 كم يشمل تحسين الصرف.',
+            'status' => 'in_progress', 'budget' => 4200000,
+            'start_date' => now()->subDays(40), 'end_date' => now()->addDays(150),
+        ]);
+        $project2b = Project::create([
+            'company_id' => $company2->id, 'client_id' => $client2b->id,
+            'name' => 'Farasan Logistics Yard Earthworks', 'name_ar' => 'الأعمال الترابية لساحة فرسان اللوجستية',
+            'city' => 'Jizan',
+            'description' => 'Grading, compaction and drainage for a new 8,000 sqm logistics storage yard.',
+            'description_ar' => 'تسوية ودمك وصرف لساحة تخزين لوجستية جديدة بمساحة 8000 متر مربع.',
+            'status' => 'planning', 'budget' => 980000,
+            'start_date' => now()->addDays(15), 'end_date' => now()->addDays(120),
+        ]);
+
+        $supplier2a = Supplier::create([
+            'company_id' => $company2->id, 'name' => 'Southern Region Aggregates Co.', 'name_ar' => 'شركة ركام المنطقة الجنوبية',
+            'contact_name' => 'Nawaf Al Amri', 'email' => 'sales@sra-aggregates-demo.sa', 'phone' => '+966 17 445 6677',
+            'address' => 'Jizan Industrial City', 'category' => 'Aggregates',
+        ]);
+        $supplier2b = Supplier::create([
+            'company_id' => $company2->id, 'name' => 'Red Sea Asphalt Plant', 'name_ar' => 'مصنع أسفلت البحر الأحمر',
+            'contact_name' => 'Ibrahim Al Zahrani', 'email' => 'plant@redseaasphalt-demo.sa', 'phone' => '+966 17 889 0011',
+            'address' => 'Jizan Port Road', 'category' => 'Asphalt',
+        ]);
+
+        // A small representative slice of the shared material library (see
+        // the first company's material-seeding block above for the full pattern).
+        $libraryBySku2 = collect(require database_path('data/material_library_items.php'))->keyBy('sku');
+        foreach (['AGG-CRUSH20' => $supplier2a->id, 'SAND-FINE' => $supplier2a->id, 'RMX-C25' => $supplier2b->id] as $sku => $supplierId) {
+            $li = $libraryBySku2[$sku] ?? null;
+            if (! $li) {
+                continue;
+            }
+            $materialCost = (float) $li['material_cost'];
+            $laborCost = (float) ($li['labor_cost'] ?? 0);
+            Material::create([
+                'company_id' => $company2->id, 'supplier_id' => $supplierId, 'sku' => $li['sku'],
+                'name' => $li['name'], 'name_ar' => $li['name_ar'] ?? null, 'category' => $li['category'], 'unit' => $li['unit'],
+                'unit_cost' => $materialCost + $laborCost, 'material_cost' => $materialCost, 'labor_cost' => $laborCost,
+            ]);
+        }
+
+        $estimate2a = Estimate::create([
+            'company_id' => $company2->id, 'project_id' => $project2b->id, 'client_id' => $client2b->id,
+            'title' => 'Farasan Logistics Yard — Earthworks Estimate', 'title_ar' => 'ساحة فرسان اللوجستية — تسعيرة الأعمال الترابية',
+            'status' => 'sent', 'total' => 980000, 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        EstimateItem::create(['estimate_id' => $estimate2a->id, 'description' => 'Site grading & compaction', 'description_ar' => 'تسوية ودمك الموقع', 'qty' => 1, 'unit_cost' => 620000, 'total' => 620000]);
+        EstimateItem::create(['estimate_id' => $estimate2a->id, 'description' => 'Drainage & stormwater works', 'description_ar' => 'أعمال الصرف ومياه الأمطار', 'qty' => 1, 'unit_cost' => 360000, 'total' => 360000]);
+
+        $invoice2a = Invoice::create([
+            'company_id' => $company2->id, 'project_id' => $project2a->id, 'client_id' => $client2a->id,
+            'invoice_number' => 'JZ-INV-2001', 'status' => 'paid', 'total' => 1200000, 'vat_rate' => 15, 'vat_amount' => 156521.74,
+            'due_date' => now()->subDays(12), 'share_token' => bin2hex(random_bytes(20)),
+        ]);
+        InvoiceItem::create(['invoice_id' => $invoice2a->id, 'description' => 'Mobilization & early works payment', 'description_ar' => 'دفعة التعبئة والأعمال المبكرة', 'qty' => 1, 'unit_price' => 1043478.26, 'total' => 1043478.26]);
+
+        // ---------------- Asphalt estimate ----------------
+        $jzSegmentInputs = [[
+            'name' => 'Industrial Access Road', 'sort_order' => 0, 'is_main_road' => true, 'plot_rows' => 0, 'plot_cols' => 0,
+            'length_m' => 2500, 'width_m' => 12, 'median_width_m' => 0,
+            'subbase_thickness_mm' => 200, 'subbase_unit_cost_per_m3' => 40,
+            'base_course_thickness_mm' => 150, 'base_course_unit_cost_per_m3' => 55,
+            'asphalt_binder_thickness_mm' => 60, 'asphalt_wearing_thickness_mm' => 40,
+            'asphalt_density_kg_per_m3' => 2400, 'asphalt_unit_cost_per_ton' => 300,
+        ]];
+        $jzOtherCosts = [
+            'transport_cost_per_ton' => 15,
+            'paver_daily_rate' => 3200, 'paver_days' => 20,
+            'roller_daily_rate' => 1700, 'roller_days' => 20,
+            'labor_crew_size' => 12, 'labor_days' => 25,
+            'labor_daily_rate_per_worker' => 110, 'labor_food_daily_rate_per_worker' => 25,
+            'surveyor_fee' => 10000, 'lab_testing_fee' => 8500, 'mobilization_fee' => 20000,
+        ];
+        $jzComputedSegments = array_map(fn (array $s) => AsphaltEstimateCalc::computeSegment($s), $jzSegmentInputs);
+        $jzTotals = AsphaltEstimateCalc::computeTotals($jzComputedSegments, $jzOtherCosts, 12, 15);
+        $jzCachedTotals = array_intersect_key($jzTotals, array_flip([
+            'segments_subtotal', 'other_costs_subtotal', 'subtotal', 'total_asphalt_tons', 'total_area_m2',
+            'markup_amount', 'tax_amount', 'total',
+        ]));
+        $jzAsphaltEstimate = AsphaltEstimate::create(array_merge($jzOtherCosts, [
+            'company_id' => $company2->id, 'project_id' => $project2a->id, 'client_id' => $client2a->id,
+            'name' => 'Jizan Industrial Road Rehabilitation — Road Works', 'city' => 'Jizan',
+            'status' => 'approved', 'site_width_m' => 12, 'site_length_m' => 2500,
+            'notes' => 'Full-depth rehabilitation with drainage tie-ins at 4 culvert crossings.',
+            'markup_percent' => 12, 'tax_percent' => 15,
+        ], $jzCachedTotals));
+        foreach ($jzSegmentInputs as $i => $input) {
+            AsphaltEstimateSegment::create(array_merge($input, $jzComputedSegments[$i], ['asphalt_estimate_id' => $jzAsphaltEstimate->id]));
+        }
+
+        // ---------------- Enable portal logins ----------------
+        $client2a->update(['portal_enabled' => true, 'password' => 'Demo@12345']);
+        $supplier2a->update(['portal_enabled' => true, 'password' => 'Demo@12345']);
+
+        $this->command?->info(implode("\n", [
+            '',
+            'Second demo company seeded: Jazan Earthworks & Infrastructure Co. (Enterprise plan).',
+            '  Owner: owner@jazan-earthworks-demo.local / Demo@12345',
+            '',
+            'Client portal login (/portal/login):',
+            '  Email:    roads@jizan-municipality-demo.sa',
+            '  Password: Demo@12345',
+            '',
+            'Supplier/vendor portal login (/supplier-portal/login):',
+            '  Email:    sales@sra-aggregates-demo.sa',
+            '  Password: Demo@12345',
+        ]));
     }
 }

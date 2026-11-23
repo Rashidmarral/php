@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             QuickEstimateSeeder::class,
             EstimateTemplateSeeder::class,
             MaterialLibrarySeeder::class,
+            MaterialLibraryCityPriceSeeder::class,
             CostCodeSeeder::class,
             TenderSeeder::class,
             AdminUserSeeder::class,
