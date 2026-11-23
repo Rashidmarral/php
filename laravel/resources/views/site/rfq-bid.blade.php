@@ -60,12 +60,12 @@
         <h3>{{ t('site.share.rfq_bid_form_heading') }}</h3>
         <p class="help-text">{{ t('site.share.rfq_bid_form_hint') }}</p>
 
-        <form method="post" action="{{ url('/rfq-bid/' . $token . '/submit') }}">
+        <form method="post" action="{{ url('/rfq-bid/' . $token . '/submit') }}" class="quote-itemize-form">
           @csrf
           <div class="form-row">
             <div class="form-group">
               <label>{{ t('site.share.rfq_bid_total_label') }}</label>
-              <input type="number" step="0.01" min="0.01" name="total_amount" required>
+              <input type="number" step="0.01" min="0.01" name="total_amount" class="total-amount-input" required>
             </div>
             <div class="form-group">
               <label>{{ t('site.share.rfq_bid_lead_time_label') }}</label>
@@ -76,8 +76,72 @@
             <label>{{ t('site.share.rfq_bid_notes_label') }}</label>
             <textarea name="notes" rows="3"></textarea>
           </div>
-          <button type="submit" class="btn btn-primary">{{ t('site.share.rfq_bid_submit_btn') }}</button>
+
+          @if(count($items))
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-sm btn-outline itemize-toggle">{{ t('user.rfqs.itemize_toggle') }}</button>
+            <div class="itemize-panel" style="display:none;margin-top:10px;">
+              <p class="help-text" style="margin-top:0;">{{ t('user.rfqs.itemize_hint') }}</p>
+              <table class="data">
+                <thead><tr><th>{{ t('common.description') }}</th><th>{{ t('common.qty') }}</th><th>{{ t('user.rfqs.unit_price') }}</th><th>{{ t('user.rfqs.line_total') }}</th></tr></thead>
+                <tbody>
+                  @foreach ($items as $it)
+                  <tr>
+                    <td>{{ $it['description'] }}</td>
+                    <td>{{ $it['qty'] }}</td>
+                    <td><input type="number" step="0.01" min="0" name="item_unit_price[{{ $it['id'] }}]" class="item-unit-price" data-qty="{{ $it['qty'] }}"></td>
+                    <td class="item-line-total">0.00</td>
+                  </tr>
+                  @endforeach
+                </tbody>
+              </table>
+              <p class="help-text itemize-sum" style="margin-bottom:0;">{{ t('user.rfqs.itemize_sum_label') }}: <strong class="itemize-sum-value">0.00</strong></p>
+            </div>
+          </div>
+          @endif
+
+          <button type="submit" class="btn btn-primary" style="margin-top:10px;">{{ t('site.share.rfq_bid_submit_btn') }}</button>
         </form>
+
+        <script>
+        (function() {
+          const form = document.querySelector('.quote-itemize-form');
+          if (!form) return;
+          const toggleBtn = form.querySelector('.itemize-toggle');
+          const panel = form.querySelector('.itemize-panel');
+          if (!toggleBtn || !panel) return;
+          const totalInput = form.querySelector('.total-amount-input');
+          const sumValue = form.querySelector('.itemize-sum-value');
+
+          toggleBtn.addEventListener('click', () => {
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+          });
+
+          function recalc() {
+            let sum = 0;
+            let anyEntered = false;
+            form.querySelectorAll('.item-unit-price').forEach((input) => {
+              const qty = parseFloat(input.dataset.qty) || 0;
+              const price = parseFloat(input.value) || 0;
+              const lineTotal = qty * price;
+              input.closest('tr').querySelector('.item-line-total').textContent = lineTotal.toFixed(2);
+              if (input.value !== '' && price > 0) {
+                anyEntered = true;
+                sum += lineTotal;
+              }
+            });
+            sumValue.textContent = sum.toFixed(2);
+            totalInput.disabled = anyEntered;
+            totalInput.required = !anyEntered;
+            if (anyEntered) {
+              totalInput.value = sum.toFixed(2);
+            }
+          }
+
+          panel.addEventListener('input', recalc);
+          recalc();
+        })();
+        </script>
       </div>
     @endif
   </div>

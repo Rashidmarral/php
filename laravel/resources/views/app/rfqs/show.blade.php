@@ -81,12 +81,22 @@
 </div>
 
 <div class="card">
-  <h3 style="font-size:14px;"><?= t('user.rfqs.quotes_title') ?></h3>
-  <p class="help-text" style="margin-top:-8px;"><?= t('user.rfqs.quotes_hint') ?></p>
+  <?php $submittedQuoteCount = count(array_filter($quotes, fn ($q) => $q['submitted_at'] !== null)); ?>
+  <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px;">
+    <div>
+      <h3 style="font-size:14px;margin-bottom:0;"><?= t('user.rfqs.quotes_title') ?></h3>
+      <p class="help-text" style="margin-top:-8px;"><?= t('user.rfqs.quotes_hint') ?></p>
+    </div>
+    <?php if ($submittedQuoteCount >= 2): ?>
+      <a href="/app/rfqs/<?= $rfq['id'] ?>/leveling" class="btn btn-sm btn-outline"><?= t('user.rfqs.leveling_link') ?></a>
+    <?php else: ?>
+      <span class="help-text" title="<?= e(t('user.rfqs.leveling_needs_two')) ?>"><?= t('user.rfqs.leveling_link') ?></span>
+    <?php endif; ?>
+  </div>
 
   <?php if ($isEditable && auth()->user()->can('write')): ?>
   <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:20px;">
-    <form method="post" action="/app/rfqs/<?= $rfq['id'] ?>/quotes" style="flex:2;min-width:320px;">
+    <form method="post" action="/app/rfqs/<?= $rfq['id'] ?>/quotes" style="flex:2;min-width:320px;" class="quote-itemize-form">
       <?= csrf_field() ?>
       <h4 style="margin-top:0;font-size:13px;"><?= t('user.rfqs.record_quote_heading') ?></h4>
       <div class="form-row">
@@ -97,12 +107,36 @@
             <?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>"><?= e($s['name']) ?></option><?php endforeach; ?>
           </select>
         </div>
-        <div class="form-group"><label><?= t('user.rfqs.total_amount') ?> (SAR)</label><input type="number" step="0.01" name="total_amount" required></div>
+        <div class="form-group"><label><?= t('user.rfqs.total_amount') ?> (SAR)</label><input type="number" step="0.01" name="total_amount" class="total-amount-input" required></div>
         <div class="form-group"><label><?= t('user.rfqs.lead_time_days') ?></label><input type="number" step="1" name="lead_time_days"></div>
         <div class="form-group"><label><?= t('common.date') ?></label><input type="date" name="submitted_at" value="<?= date('Y-m-d') ?>"></div>
       </div>
       <div class="form-group"><label><?= t('common.notes') ?></label><input type="text" name="notes"></div>
-      <button type="submit" class="btn btn-primary"><?= t('user.rfqs.record_quote_btn') ?></button>
+
+      <?php if (!empty($items)): ?>
+      <div style="margin-top:10px;">
+        <button type="button" class="btn btn-sm btn-outline itemize-toggle"><?= t('user.rfqs.itemize_toggle') ?></button>
+        <div class="itemize-panel" style="display:none;margin-top:10px;">
+          <p class="help-text" style="margin-top:0;"><?= t('user.rfqs.itemize_hint') ?></p>
+          <table class="data">
+            <thead><tr><th><?= t('common.description') ?></th><th><?= t('common.qty') ?></th><th><?= t('user.rfqs.unit_price') ?></th><th><?= t('user.rfqs.line_total') ?></th></tr></thead>
+            <tbody>
+              <?php foreach ($items as $i): ?>
+              <tr>
+                <td><?= e($i['description']) ?></td>
+                <td><?= e((string) $i['qty']) ?></td>
+                <td><input type="number" step="0.01" min="0" name="item_unit_price[<?= $i['id'] ?>]" class="item-unit-price" data-qty="<?= e((string) $i['qty']) ?>"></td>
+                <td class="item-line-total">0.00</td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+          <p class="help-text itemize-sum" style="margin-bottom:0;"><?= t('user.rfqs.itemize_sum_label') ?>: <strong class="itemize-sum-value">0.00</strong></p>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <button type="submit" class="btn btn-primary" style="margin-top:10px;"><?= t('user.rfqs.record_quote_btn') ?></button>
     </form>
 
     <form method="post" action="/app/rfqs/<?= $rfq['id'] ?>/invite" style="flex:1;min-width:260px;">
@@ -173,5 +207,48 @@
     </table>
   <?php endif; ?>
 </div>
+
+<?php if (!empty($items) && $isEditable): ?>
+<script>
+(function() {
+  const form = document.querySelector('.quote-itemize-form');
+  if (!form) return;
+  const toggleBtn = form.querySelector('.itemize-toggle');
+  const panel = form.querySelector('.itemize-panel');
+  const totalInput = form.querySelector('.total-amount-input');
+  const sumValue = form.querySelector('.itemize-sum-value');
+
+  toggleBtn.addEventListener('click', () => {
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+  });
+
+  function recalc() {
+    let sum = 0;
+    let anyEntered = false;
+    form.querySelectorAll('.item-unit-price').forEach((input) => {
+      const qty = parseFloat(input.dataset.qty) || 0;
+      const price = parseFloat(input.value) || 0;
+      const lineTotal = qty * price;
+      input.closest('tr').querySelector('.item-line-total').textContent = lineTotal.toFixed(2);
+      if (input.value !== '' && price > 0) {
+        anyEntered = true;
+        sum += lineTotal;
+      }
+    });
+    sumValue.textContent = sum.toFixed(2);
+    // Itemized pricing takes precedence server-side — disabling the lump field
+    // once any line is itemized makes that precedence rule visible, not just true.
+    totalInput.disabled = anyEntered;
+    totalInput.required = !anyEntered;
+    if (anyEntered) {
+      totalInput.value = sum.toFixed(2);
+    }
+  }
+
+  panel.addEventListener('input', recalc);
+  recalc();
+})();
+</script>
+<?php endif; ?>
 
 @endsection

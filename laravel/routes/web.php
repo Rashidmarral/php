@@ -483,6 +483,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/rfqs/{id}/quotes', [RfqController::class, 'recordQuote']);
     Route::post('/rfqs/{id}/quotes/{quoteId}/award', [RfqController::class, 'award']);
     Route::post('/rfqs/{id}/invite', [RfqController::class, 'invite']);
+    Route::get('/rfqs/{id}/leveling', [RfqController::class, 'leveling']);
     Route::get('/rfqs/{id}', [RfqController::class, 'show']);
 
     Route::get('/equipment', [EquipmentController::class, 'index']);

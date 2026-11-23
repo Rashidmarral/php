@@ -19,6 +19,7 @@ use App\Models\Project;
 use App\Models\Rfq;
 use App\Models\RfqItem;
 use App\Models\RfqQuote;
+use App\Models\RfqQuoteItem;
 use App\Models\Setting;
 use App\Support\Moyasar;
 use App\Support\Notifications;
@@ -365,9 +366,20 @@ class ShareController extends Controller
             return redirect('/rfq-bid/' . $token);
         }
 
-        $totalAmount = (float) $request->input('total_amount');
-        if ($totalAmount <= 0) {
-            return $this->redirectWithFlash('/rfq-bid/' . $token, 'error', t('site.share.rfq_bid_amount_required'));
+        // Optional per-line breakdown (item_unit_price[{rfq_item_id}]), same
+        // optional-itemization/precedence rule as RfqController::recordQuote(): one or
+        // more itemized lines makes total_amount the sum of those lines, ignoring
+        // whatever lump number was typed, and only when nothing was itemized is the
+        // plain lump total_amount validated and used — the supplier's one-and-only
+        // submission either way, since submitted_at === null is already blocked above.
+        $itemRows = $this->parseItemizedRfqBid($request, $rfq->id);
+        if ($itemRows) {
+            $totalAmount = round(array_sum(array_column($itemRows, 'total')), 2);
+        } else {
+            $totalAmount = (float) $request->input('total_amount');
+            if ($totalAmount <= 0) {
+                return $this->redirectWithFlash('/rfq-bid/' . $token, 'error', t('site.share.rfq_bid_amount_required'));
+            }
         }
 
         $quote->update([
@@ -376,6 +388,14 @@ class ShareController extends Controller
             'notes' => trim((string) $request->input('notes', '')) ?: null,
             'submitted_at' => now()->format('Y-m-d'),
         ]);
+        foreach ($itemRows as $row) {
+            RfqQuoteItem::create([
+                'rfq_quote_id' => $quote->id,
+                'rfq_item_id' => $row['rfq_item_id'],
+                'unit_price' => $row['unit_price'],
+                'total' => $row['total'],
+            ]);
+        }
 
         // Receiving a self-submitted quote moves a still-draft/sent RFQ into
         // "comparing", exactly like RfqController::recordQuote()'s own manual path.
@@ -542,6 +562,42 @@ class ShareController extends Controller
         }
 
         return $this->redirectWithFlash('/i/' . $token, 'success', t('site.share.payment_received'));
+    }
+
+    /**
+     * Mirrors RfqController::parseItemizedQuote()'s shape for the public bid portal:
+     * keeps only item_unit_price[{rfq_item_id}] entries that name a real item on this
+     * RFQ and carry a non-empty, numeric, strictly-positive price. [] means the
+     * supplier didn't itemize — callers fall back to the plain lump total_amount.
+     *
+     * @return array<int, array{rfq_item_id: int, unit_price: float, total: float}>
+     */
+    private function parseItemizedRfqBid(Request $request, int $rfqId): array
+    {
+        $prices = $request->input('item_unit_price', []);
+        if (!is_array($prices) || !$prices) {
+            return [];
+        }
+        $items = RfqItem::where('rfq_id', $rfqId)->get()->keyBy('id');
+
+        $rows = [];
+        foreach ($prices as $itemId => $price) {
+            $item = $items->get((int) $itemId);
+            if (!$item || $price === null || $price === '' || !is_numeric($price)) {
+                continue;
+            }
+            $unitPrice = (float) $price;
+            if ($unitPrice <= 0) {
+                continue;
+            }
+            $rows[] = [
+                'rfq_item_id' => $item->id,
+                'unit_price' => $unitPrice,
+                'total' => round((float) $item->qty * $unitPrice, 2),
+            ];
+        }
+
+        return $rows;
     }
 
     private function zatcaQrDataUri(Invoice $invoice, ?Company $company): ?string

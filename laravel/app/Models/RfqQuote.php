@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** One supplier's bid against an Rfq's line items — compared side by side with the RFQ's other quotes. */
 class RfqQuote extends Model
@@ -29,5 +30,11 @@ class RfqQuote extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    /** This quote's optional per-line breakdown — empty for a plain lump-sum quote. */
+    public function quoteItems(): HasMany
+    {
+        return $this->hasMany(RfqQuoteItem::class, 'rfq_quote_id');
     }
 }

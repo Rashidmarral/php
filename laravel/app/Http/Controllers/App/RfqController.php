@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Rfq;
 use App\Models\RfqItem;
 use App\Models\RfqQuote;
+use App\Models\RfqQuoteItem;
 use App\Models\Supplier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -260,9 +261,20 @@ class RfqController extends Controller
             return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.quote_supplier_required'));
         }
 
-        $totalAmount = $this->validatedNumber($request->input('total_amount'), 0.01, 9999999999.99);
-        if ($totalAmount === null) {
-            return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.quote_amount_required'));
+        // Optional per-line breakdown (item_unit_price[{rfq_item_id}]) — when one or
+        // more lines are itemized, the lump total_amount field is ignored entirely and
+        // total_amount is computed as the sum of the itemized lines instead, rather
+        // than trusting two independently-typed numbers to agree. Only when nothing
+        // was itemized does the plain lump total_amount get validated and used,
+        // exactly as before this feature existed.
+        $itemRows = $this->parseItemizedQuote($request, $rfq->id);
+        if ($itemRows) {
+            $totalAmount = round(array_sum(array_column($itemRows, 'total')), 2);
+        } else {
+            $totalAmount = $this->validatedNumber($request->input('total_amount'), 0.01, 9999999999.99);
+            if ($totalAmount === null) {
+                return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.quote_amount_required'));
+            }
         }
         $leadTimeDays = null;
         if ($request->filled('lead_time_days')) {
@@ -276,7 +288,7 @@ class RfqController extends Controller
             return $this->redirectWithFlash('/app/rfqs/' . $rfq->id, 'error', t('user.rfqs.submitted_at_invalid'));
         }
 
-        RfqQuote::create([
+        $quote = RfqQuote::create([
             'rfq_id' => $rfq->id,
             'supplier_id' => $supplier->id,
             'total_amount' => $totalAmount,
@@ -285,6 +297,7 @@ class RfqController extends Controller
             'is_awarded' => false,
             'submitted_at' => $submittedAt !== '' ? $submittedAt : now()->format('Y-m-d'),
         ]);
+        $this->createQuoteItems($quote->id, $itemRows);
 
         // Receiving the first quote moves a still-draft/sent RFQ into "comparing" —
         // bids are now actually coming in, so the RFQ is no longer just a plan.
@@ -358,6 +371,77 @@ class RfqController extends Controller
         return redirect('/app/rfqs/' . $rfq->id);
     }
 
+    /**
+     * Bid-leveling matrix: every RFQ item as a row, every submitted quote as a column,
+     * so a contractor can see who's cheapest on which specific line, not just overall.
+     * A cell is null ("not broken down") for any supplier who didn't itemize that line
+     * — itemization is optional per supplier, so a mix of itemized and lump-only quotes
+     * on the same RFQ is expected, not an error. Read-only: nothing here is persisted.
+     */
+    public function leveling(int $id): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('rfq_quotes')) {
+            return $redirect;
+        }
+        $rfq = $this->findOwned($id);
+
+        $items = RfqItem::where('rfq_id', $rfq->id)->orderBy('id')->get();
+        // An invite that hasn't been answered yet has nothing to level — its
+        // placeholder total_amount of 0 and empty item breakdown would only
+        // muddy the comparison.
+        $quotes = RfqQuote::where('rfq_id', $rfq->id)->whereNotNull('submitted_at')->orderBy('id')->get();
+        $suppliers = Supplier::whereIn('id', $quotes->pluck('supplier_id')->unique())->get()->keyBy('id');
+        $quoteItemsByQuote = RfqQuoteItem::whereIn('rfq_quote_id', $quotes->pluck('id'))
+            ->get()
+            ->groupBy('rfq_quote_id');
+
+        $quoteColumns = $quotes->map(fn (RfqQuote $q) => [
+            'id' => $q->id,
+            'supplier_name' => $suppliers->get($q->supplier_id)->name ?? '—',
+            'total_amount' => (float) $q->total_amount,
+            'items' => ($quoteItemsByQuote->get($q->id) ?? collect())->keyBy('rfq_item_id'),
+        ])->all();
+
+        $bestCombinedTotal = 0.0;
+        $rows = $items->map(function (RfqItem $item) use ($quoteColumns, &$bestCombinedTotal) {
+            $cheapestQuoteId = null;
+            $cheapestTotal = null;
+            $cells = [];
+            foreach ($quoteColumns as $col) {
+                $quoteItem = $col['items']->get($item->id);
+                $total = $quoteItem ? (float) $quoteItem->total : null;
+                $cells[$col['id']] = [
+                    'unit_price' => $quoteItem ? (float) $quoteItem->unit_price : null,
+                    'total' => $total,
+                ];
+                // First one found wins a tie — ties are rare (independent suppliers
+                // rarely land on the exact same line price) and there's no further
+                // signal here (speed, notes) to break one, so "first found" is simplest.
+                if ($total !== null && ($cheapestTotal === null || $total < $cheapestTotal)) {
+                    $cheapestTotal = $total;
+                    $cheapestQuoteId = $col['id'];
+                }
+            }
+            if ($cheapestTotal !== null) {
+                $bestCombinedTotal += $cheapestTotal;
+            }
+
+            return [
+                'item' => $item->toArray(),
+                'cells' => $cells,
+                'cheapest_quote_id' => $cheapestQuoteId,
+            ];
+        })->all();
+
+        return view('app.rfqs.leveling', [
+            'rfq' => $rfq->toArray(),
+            'rows' => $rows,
+            'quoteColumns' => $quoteColumns,
+            'bestCombinedTotal' => $bestCombinedTotal,
+            'anyLineItemized' => collect($rows)->contains(fn ($r) => collect($r['cells'])->contains(fn ($c) => $c['total'] !== null)),
+        ]);
+    }
+
     public function destroy(int $id): RedirectResponse
     {
         if ($redirect = $this->requireFeature('rfq_quotes')) {
@@ -410,6 +494,59 @@ class RfqController extends Controller
         }
 
         return [$items, null];
+    }
+
+    /**
+     * Parses the optional item_unit_price[{rfq_item_id}] array against this RFQ's own
+     * items, keeping only entries that name a real item on this RFQ and carry a
+     * non-empty, numeric, strictly-positive price — anything else (blank, zero,
+     * non-numeric, or an item id not on this RFQ) is silently skipped rather than
+     * rejected, since itemization is entirely optional and a partial breakdown is a
+     * normal, valid submission. Returns [] when nothing was itemized, which callers
+     * treat as "fall back to the plain lump total_amount", unchanged from before this
+     * table existed.
+     *
+     * @return array<int, array{rfq_item_id: int, unit_price: float, total: float}>
+     */
+    private function parseItemizedQuote(Request $request, int $rfqId): array
+    {
+        $prices = $request->input('item_unit_price', []);
+        if (!is_array($prices) || !$prices) {
+            return [];
+        }
+        $items = RfqItem::where('rfq_id', $rfqId)->get()->keyBy('id');
+
+        $rows = [];
+        foreach ($prices as $itemId => $price) {
+            $item = $items->get((int) $itemId);
+            if (!$item || $price === null || $price === '' || !is_numeric($price)) {
+                continue;
+            }
+            $unitPrice = (float) $price;
+            if ($unitPrice <= 0) {
+                continue;
+            }
+            $rows[] = [
+                'rfq_item_id' => $item->id,
+                'unit_price' => $unitPrice,
+                'total' => round((float) $item->qty * $unitPrice, 2),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /** Creates one RfqQuoteItem per parsed row — a no-op when $rows is empty (a plain lump-sum quote). */
+    private function createQuoteItems(int $quoteId, array $rows): void
+    {
+        foreach ($rows as $row) {
+            RfqQuoteItem::create([
+                'rfq_quote_id' => $quoteId,
+                'rfq_item_id' => $row['rfq_item_id'],
+                'unit_price' => $row['unit_price'],
+                'total' => $row['total'],
+            ]);
+        }
     }
 
     /** Rejects a non-numeric or out-of-range value — see EstimateController::validatedNumber() for the shared shape this mirrors. */
