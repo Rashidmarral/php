@@ -51,7 +51,16 @@ $dimensionCaption = function (array $seg): string {
   @if($spine['medianX'] !== null)
     <div style="position:absolute;left:{{ $spine['medianX'] }}px;top:{{ $spine['y'] }}px;width:{{ $spine['medianWidth'] }}px;height:{{ $spine['height'] }}px;background:#8bc34a;"></div>
   @endif
-  <div style="position:absolute;left:{{ $spine['x'] + $spine['width'] + 8 }}px;top:{{ $spine['y'] + $spine['height'] / 2 - 10 }}px;width:260px;font-size:11px;white-space:nowrap;">{!! $dimensionCaption($spine) !!}</div>
+  {{--
+    Positioned just below the spine's top edge rather than at its vertical center: a cross
+    segment's center always falls at some fraction i/(N+1) of the spine's length for N>=1,
+    and the smallest such fraction (the first cross segment, i=0) is 1/(N+1) — which equals
+    1/2 exactly when N=1, the single most common real layout (one main road, one cross
+    street). A center-positioned caption collides with that cross segment's bar every time;
+    a near-top caption sits inside the gap before ANY cross segment, which always exists
+    for every N>=1 since 1/(N+1) > 0.
+  --}}
+  <div style="position:absolute;left:{{ $spine['x'] + $spine['width'] + 8 }}px;top:{{ $spine['y'] + 10 }}px;width:260px;font-size:11px;white-space:nowrap;">{!! $dimensionCaption($spine) !!}</div>
 
   {{-- Cross segments. --}}
   @foreach($layout['crossSegments'] as $cross)
