@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.panel' => \App\Http\Middleware\EnsureAdminPanelAccess::class,
             'admin.super' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'portal.client' => \App\Http\Middleware\EnsurePortalClient::class,
+            'portal.supplier' => \App\Http\Middleware\EnsurePortalSupplier::class,
         ]);
 
         $middleware->web(append: [

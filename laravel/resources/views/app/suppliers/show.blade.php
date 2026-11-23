@@ -26,6 +26,30 @@
   </div>
 </div>
 
+<div class="card" style="margin-bottom:20px;">
+  <h3 style="font-size:14px;"><?= t('user.suppliers.portal_title') ?></h3>
+  <p class="help-text" style="margin-top:-8px;"><?= t('user.suppliers.portal_hint') ?></p>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <?php if (!empty($supplier['portal_enabled'])): ?>
+      <span class="badge badge-green"><?= t('common.enabled') ?></span>
+      <?php if (auth()->user()->can('write')): ?>
+        <form method="post" action="/app/suppliers/<?= $supplier['id'] ?>/disable-portal">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-sm btn-light"><?= t('user.suppliers.disable_portal') ?></button>
+        </form>
+      <?php endif; ?>
+    <?php else: ?>
+      <span class="badge badge-gray"><?= t('common.disabled') ?></span>
+      <?php if (auth()->user()->can('write')): ?>
+        <form method="post" action="/app/suppliers/<?= $supplier['id'] ?>/enable-portal">
+          <?= csrf_field() ?>
+          <button type="submit" class="btn btn-sm btn-outline"><?= t('user.suppliers.enable_portal') ?></button>
+        </form>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="kpi-grid" style="margin-bottom:20px;">
   <div class="kpi"><div class="label"><?= t('user.suppliers.classification_grade_col') ?></div><div class="value" style="font-size:18px;"><?= $supplier['classification_grade'] ? t('user.settings.classification_grade_option', ['n' => $supplier['classification_grade']]) : t('user.settings.not_classified') ?></div></div>
   <div class="kpi"><div class="label"><?= t('user.suppliers.rating_col') ?></div><div class="value" style="font-size:18px;"><?= $averageRating !== null ? str_repeat('★', (int) round($averageRating)) . str_repeat('☆', 5 - (int) round($averageRating)) . ' (' . $averageRating . ')' : t('user.suppliers.no_ratings_yet') ?></div></div>

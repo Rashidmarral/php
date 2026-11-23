@@ -16,6 +16,7 @@ use App\Support\ZatcaAddressValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class SupplierController extends Controller
@@ -191,6 +192,39 @@ class SupplierController extends Controller
         $supplier->update(['is_approved_vendor' => !$supplier->is_approved_vendor]);
         $this->flash('success', $supplier->is_approved_vendor ? t('user.suppliers.marked_approved') : t('user.suppliers.marked_unapproved'));
         return redirect('/app/suppliers/' . $supplier->id);
+    }
+
+    /** Mirrors ClientController::enablePortal() exactly — see its docblock for the one-time-flash reasoning. */
+    public function enablePortal(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireFeature('supplier_portal')) {
+            return $redirect;
+        }
+        $supplier = $this->findOwned($id);
+
+        if (empty($supplier->email)) {
+            return $this->redirectWithFlash('/app/suppliers/' . $id, 'error', t('user.suppliers.email_required_for_portal'));
+        }
+
+        $tempPassword = bin2hex(random_bytes(4));
+        $supplier->update([
+            'portal_enabled' => true,
+            'password' => Hash::make($tempPassword),
+        ]);
+
+        return $this->redirectWithFlash('/app/suppliers/' . $id, 'success', t('user.suppliers.portal_enabled', ['email' => $supplier->email, 'password' => $tempPassword]));
+    }
+
+    public function disablePortal(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        $this->findOwned($id)->update(['portal_enabled' => false]);
+        return $this->redirectWithFlash('/app/suppliers/' . $id, 'success', t('user.suppliers.portal_disabled'));
     }
 
     public function storeDocument(Request $request, int $id): RedirectResponse

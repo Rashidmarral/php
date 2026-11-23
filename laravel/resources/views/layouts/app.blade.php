@@ -33,6 +33,16 @@
 
       <div class="nav-section">{{ t('side.section_resources') }}</div>
       <a href="{{ url('/app/suppliers') }}" class="{{ request()->is('app/suppliers*') ? 'active' : '' }}">🚚 {{ t('side.suppliers') }}</a>
+      @php
+        // Same cheap-recompute-on-page-load convention as $unreadNotificationsCount above —
+        // no JS polling/real-time here either.
+        $pendingVendorBillSubmissionsCount = \App\Models\VendorBillSubmission::where('company_id', auth()->user()->company_id)->where('status', 'pending')->count();
+      @endphp
+      <a href="{{ url('/app/vendor-bill-submissions') }}" class="{{ request()->is('app/vendor-bill-submissions*') ? 'active' : '' }}" style="position:relative;">📥 {{ t('side.vendor_bill_submissions') }}
+        @if($pendingVendorBillSubmissionsCount > 0)
+          <span class="badge badge-blue" style="border-radius:50%;background:var(--danger);color:#fff;font-size:10px;line-height:1;padding:2px 5px;min-width:16px;text-align:center;display:inline-block;">{{ $pendingVendorBillSubmissionsCount > 99 ? '99+' : $pendingVendorBillSubmissionsCount }}</span>
+        @endif
+      </a>
       <a href="{{ url('/app/rfqs') }}" class="{{ request()->is('app/rfqs*') ? 'active' : '' }}">🧾 {{ t('side.rfqs') }}</a>
       <a href="{{ url('/app/materials') }}" class="{{ request()->is('app/materials*') ? 'active' : '' }}">📦 {{ t('side.materials') }}</a>
       <a href="{{ url('/app/assemblies') }}" class="{{ request()->is('app/assemblies*') ? 'active' : '' }}">🧱 {{ t('side.assemblies') }}</a>

@@ -15,6 +15,7 @@ use App\Models\RfqQuote;
 use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Models\VendorBillSubmission;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -152,6 +153,35 @@ class Notifications
             $owner->name,
             "New quote submitted for \"{$rfq->title}\"",
             "Hi {$owner->name},\n\n{$supplierName} just submitted their own quote for \"{$rfq->title}\" (" . number_format((float) $quote->total_amount, 2) . " SAR).\n\nCompare it: " . rtrim((string) config('app.url'), '/') . "/app/rfqs/{$rfq->id}"
+        );
+    }
+
+    /**
+     * Fired when a supplier submits their own bill through the supplier portal
+     * (SupplierPortal\SupplierPortalController::storeBillSubmission()) rather than a staff
+     * member recording a VendorBill directly via VendorBillController::store() — the self-
+     * service path's analog of rfqQuoteSubmitted() above. The submission is only a review-
+     * queue row at this point (see VendorBillSubmission's docblock), so this is staff's one
+     * and only cue to go review it — it never shows up on the normal vendor-bills list until
+     * approved.
+     */
+    public static function vendorBillSubmitted(int $submissionId): void
+    {
+        $submission = VendorBillSubmission::find($submissionId);
+        if (!$submission) {
+            return;
+        }
+        $supplierName = Supplier::find($submission->supplier_id)->name ?? 'A supplier';
+        self::record($submission->company_id, 'vendor_bill_submitted', "New bill submitted by {$supplierName}", "{$supplierName} submitted a bill for review: " . number_format((float) $submission->amount, 2) . ' SAR.', '/app/vendor-bill-submissions');
+        $owner = self::companyOwner($submission->company_id);
+        if (!$owner) {
+            return;
+        }
+        Mailer::send(
+            $owner->email,
+            $owner->name,
+            "New bill submitted by {$supplierName}",
+            "Hi {$owner->name},\n\n{$supplierName} just submitted a bill for review (" . number_format((float) $submission->amount, 2) . " SAR).\n\nReview it: " . rtrim((string) config('app.url'), '/') . '/app/vendor-bill-submissions'
         );
     }
 

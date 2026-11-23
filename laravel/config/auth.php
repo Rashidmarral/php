@@ -48,6 +48,13 @@ return [
             'driver' => 'session',
             'provider' => 'clients',
         ],
+
+        // The supplier/vendor portal is likewise a fully separate identity from company
+        // staff (the `suppliers` table), mirroring the client guard above exactly.
+        'supplier' => [
+            'driver' => 'session',
+            'provider' => 'suppliers',
+        ],
     ],
 
     /*
@@ -76,6 +83,11 @@ return [
         'clients' => [
             'driver' => 'eloquent',
             'model' => App\Models\Client::class,
+        ],
+
+        'suppliers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Supplier::class,
         ],
     ],
 

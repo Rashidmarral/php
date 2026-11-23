@@ -22,6 +22,7 @@ class Feature
         'documents' => 'Documents',
         'reports' => 'Business Reports',
         'client_portal' => 'Client Portal',
+        'supplier_portal' => 'Supplier / Vendor Portal',
         'integrations' => 'Integrations',
         'zatca_phase2' => 'ZATCA Phase 2 e-invoicing',
         'leads' => 'Leads & CRM',

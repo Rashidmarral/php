@@ -7,9 +7,11 @@ use App\Models\CostCode;
 use App\Models\Project;
 use App\Models\PurchaseOrder;
 use App\Models\VendorBill;
+use App\Models\VendorBillSubmission;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class VendorBillController extends Controller
 {
@@ -82,6 +84,101 @@ class VendorBillController extends Controller
         }
         $bill->delete();
         return $this->redirectWithFlash('/app/projects/' . $projectId, 'success', t('user.vendor_bills.removed'));
+    }
+
+    /**
+     * The supplier portal's review queue (see VendorBillSubmission's own docblock) — every
+     * pending submission across this company, newest first, with Approve/Reject actions.
+     */
+    public function pendingSubmissions(): View|RedirectResponse
+    {
+        if ($redirect = $this->requireFeature('supplier_portal')) {
+            return $redirect;
+        }
+        $companyId = Auth::user()->company_id;
+        $submissions = VendorBillSubmission::where('company_id', $companyId)->where('status', 'pending')->orderByDesc('created_at')->get();
+
+        return view('app.vendor-bills.submissions', [
+            'submissions' => $submissions->map(fn (VendorBillSubmission $s) => [
+                ...$s->toArray(),
+                'supplier_name' => $s->supplier?->name ?? '—',
+                'project_name' => $s->project?->name ?? '—',
+            ])->all(),
+        ]);
+    }
+
+    /**
+     * Turns a pending submission into a real VendorBill — fields copied 1:1 from the
+     * submission, status defaulting to 'unpaid' exactly like a normal manually-entered bill
+     * (VendorBillController::store() above never sets anything else on creation either).
+     * This is the ONLY path that may ever turn a supplier's self-submitted row into a real
+     * cost — see VendorBillSubmission's docblock for why that gate matters.
+     */
+    public function approveSubmission(int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireFeature('supplier_portal')) {
+            return $redirect;
+        }
+        $submission = $this->findOwnedSubmission($id);
+        if (!$submission->isPending()) {
+            return $this->redirectWithFlash('/app/vendor-bill-submissions', 'error', t('user.vendor_bills.submission_already_reviewed'));
+        }
+
+        $bill = VendorBill::create([
+            'company_id' => $submission->company_id,
+            'project_id' => $submission->project_id,
+            'supplier_id' => $submission->supplier_id,
+            'purchase_order_id' => $submission->purchase_order_id,
+            'category' => $submission->category,
+            'description' => $submission->description,
+            'amount' => $submission->amount,
+            'bill_date' => $submission->bill_date,
+            'reference' => $submission->reference,
+            'file_path' => $submission->file_path,
+            'status' => 'unpaid',
+        ]);
+
+        $submission->update([
+            'status' => 'approved',
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+            'vendor_bill_id' => $bill->id,
+        ]);
+
+        return $this->redirectWithFlash('/app/vendor-bill-submissions', 'success', t('user.vendor_bills.submission_approved'));
+    }
+
+    public function rejectSubmission(Request $request, int $id): RedirectResponse
+    {
+        if ($redirect = $this->requireAbility('write')) {
+            return $redirect;
+        }
+        if ($redirect = $this->requireFeature('supplier_portal')) {
+            return $redirect;
+        }
+        $submission = $this->findOwnedSubmission($id);
+        if (!$submission->isPending()) {
+            return $this->redirectWithFlash('/app/vendor-bill-submissions', 'error', t('user.vendor_bills.submission_already_reviewed'));
+        }
+
+        $submission->update([
+            'status' => 'rejected',
+            'rejection_reason' => trim((string) $request->input('rejection_reason', '')) ?: null,
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+        ]);
+
+        return $this->redirectWithFlash('/app/vendor-bill-submissions', 'success', t('user.vendor_bills.submission_rejected'));
+    }
+
+    private function findOwnedSubmission(int $id): VendorBillSubmission
+    {
+        $submission = VendorBillSubmission::find($id);
+        abort_if(!$submission || $submission->company_id !== Auth::user()->company_id, 404, 'Vendor bill submission not found.');
+        return $submission;
     }
 
     private function findOwned(int $id): VendorBill

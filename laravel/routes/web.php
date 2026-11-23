@@ -91,6 +91,8 @@ use App\Http\Controllers\App\ZakatController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Portal\PortalAuthController;
 use App\Http\Controllers\Portal\PortalController;
+use App\Http\Controllers\SupplierPortal\SupplierPortalAuthController;
+use App\Http\Controllers\SupplierPortal\SupplierPortalController;
 use App\Http\Controllers\Portal\SupportTicketController as PortalSupportTicketController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\PageController;
@@ -202,6 +204,9 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/change-orders/{id}/delete', [ChangeOrderController::class, 'destroy']);
     Route::post('/projects/{id}/vendor-bills', [VendorBillController::class, 'store']);
     Route::post('/vendor-bills/{id}/delete', [VendorBillController::class, 'destroy']);
+    Route::get('/vendor-bill-submissions', [VendorBillController::class, 'pendingSubmissions']);
+    Route::post('/vendor-bill-submissions/{id}/approve', [VendorBillController::class, 'approveSubmission']);
+    Route::post('/vendor-bill-submissions/{id}/reject', [VendorBillController::class, 'rejectSubmission']);
     Route::get('/projects/{id}/purchase-orders/create', [PurchaseOrderController::class, 'create']);
     Route::post('/projects/{id}/purchase-orders', [PurchaseOrderController::class, 'store']);
     Route::post('/purchase-orders/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
@@ -466,6 +471,8 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/suppliers/{id}', [SupplierController::class, 'update']);
     Route::post('/suppliers/{id}/delete', [SupplierController::class, 'destroy']);
     Route::post('/suppliers/{id}/toggle-approved', [SupplierController::class, 'toggleApprovedVendor']);
+    Route::post('/suppliers/{id}/enable-portal', [SupplierController::class, 'enablePortal']);
+    Route::post('/suppliers/{id}/disable-portal', [SupplierController::class, 'disablePortal']);
     Route::post('/suppliers/{id}/documents', [SupplierController::class, 'storeDocument']);
     Route::post('/suppliers/{id}/documents/{docId}', [SupplierController::class, 'updateDocument']);
     Route::post('/suppliers/{id}/documents/{docId}/delete', [SupplierController::class, 'destroyDocument']);
@@ -831,5 +838,25 @@ Route::prefix('portal')->group(function () {
         Route::post('/support', [PortalSupportTicketController::class, 'store']);
         Route::get('/support/{id}', [PortalSupportTicketController::class, 'show']);
         Route::post('/support/{id}/reply', [PortalSupportTicketController::class, 'reply']);
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Supplier/vendor portal (/supplier-portal) — separate `suppliers` auth guard
+|--------------------------------------------------------------------------
+*/
+Route::prefix('supplier-portal')->group(function () {
+    Route::get('/login', [SupplierPortalAuthController::class, 'showLogin'])->name('supplier_portal.login');
+    Route::post('/login', [SupplierPortalAuthController::class, 'login'])->middleware('throttle:5,1,supplier-portal-login');
+    Route::post('/logout', [SupplierPortalAuthController::class, 'logout']);
+
+    Route::middleware('portal.supplier')->group(function () {
+        Route::get('/', [SupplierPortalController::class, 'dashboard']);
+        Route::get('/purchase-orders/{id}', [SupplierPortalController::class, 'purchaseOrder']);
+        Route::post('/purchase-orders/{id}/acknowledge', [SupplierPortalController::class, 'acknowledge']);
+        Route::get('/subcontracts/{id}', [SupplierPortalController::class, 'subcontract']);
+        Route::get('/bills/create', [SupplierPortalController::class, 'createBillSubmission']);
+        Route::post('/bills', [SupplierPortalController::class, 'storeBillSubmission']);
     });
 });

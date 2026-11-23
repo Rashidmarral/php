@@ -28,6 +28,7 @@ class PurchaseOrder extends Model
             'exchange_rate_to_sar' => 'decimal:4',
             'issue_date' => 'date:Y-m-d',
             'expected_delivery_date' => 'date:Y-m-d',
+            'acknowledged_at' => 'datetime',
         ];
     }
 
@@ -67,5 +68,13 @@ class PurchaseOrder extends Model
     public function isEditable(): bool
     {
         return $this->status === 'draft';
+    }
+
+    /** Sets acknowledged_at if not already set — idempotent, see SupplierPortalController::acknowledge(). */
+    public function acknowledge(): void
+    {
+        if ($this->acknowledged_at === null) {
+            $this->update(['acknowledged_at' => now()]);
+        }
     }
 }

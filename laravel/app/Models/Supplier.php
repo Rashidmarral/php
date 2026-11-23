@@ -2,15 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Authenticatable as AuthenticatableTrait;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Supplier extends Model
+/**
+ * Also a second, independent authenticatable identity (the supplier/vendor portal) via the
+ * `supplier` guard — mirrors Client's own dual role exactly. Client extends Laravel's stock
+ * Illuminate\Foundation\Auth\User instead, but Supplier needs to stay on this app's own
+ * Model base (for its serializeDate() override, already relied on elsewhere), so it
+ * implements the Authenticatable contract directly via the trait instead — the same
+ * composition Illuminate\Foundation\Auth\User itself uses internally.
+ */
+class Supplier extends Model implements AuthenticatableContract
 {
+    use AuthenticatableTrait;
+
     public $timestamps = true;
     const UPDATED_AT = null;
 
     protected $guarded = ['id'];
+    protected $hidden = ['password'];
 
     protected function casts(): array
     {
@@ -18,6 +31,8 @@ class Supplier extends Model
             'is_approved_vendor' => 'boolean',
             'rating' => 'decimal:2',
             'exchange_rate_to_sar' => 'decimal:4',
+            'portal_enabled' => 'boolean',
+            'password' => 'hashed',
         ];
     }
 
