@@ -20,6 +20,7 @@ use App\Models\Invoice;
 use App\Models\PaymentCertificate;
 use App\Models\Project;
 use App\Models\ProjectPhoto;
+use App\Models\ProjectUpdate;
 use App\Models\PunchListItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -370,6 +371,7 @@ class ProjectController extends Controller
             ->limit(5)
             ->get();
         $siteLogCount = SiteLog::where('project_id', $project->id)->count();
+        $projectUpdateCount = ProjectUpdate::where('project_id', $project->id)->count();
         $selections = Selection::where('project_id', $project->id)
             ->with('options')
             ->orderByDesc('created_at')
@@ -477,6 +479,7 @@ class ProjectController extends Controller
             'availableEquipment' => $availableEquipment->toArray(),
             'siteLogs' => $siteLogs->toArray(),
             'siteLogCount' => $siteLogCount,
+            'projectUpdateCount' => $projectUpdateCount,
             'selections' => $selectionRows,
             'selectionCount' => $selectionCount,
             'selectionStatuses' => Selection::STATUSES,

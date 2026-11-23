@@ -22,6 +22,21 @@
   <a href="{{ url('/portal/projects/' . $project->id . '/selections') }}" class="btn btn-outline">{{ t('portal.selections.view_selections') }}</a>
 </div>
 
+@if ($updates->isNotEmpty())
+<div class="card" style="margin-bottom:20px;">
+  <h3>{{ t('portal.project_updates.title') }}</h3>
+  @foreach ($updates as $update)
+    <div style="padding:12px 0;border-top:1px solid var(--border);">
+      @if ($update->title)
+        <strong>{{ $update->title }}</strong>
+      @endif
+      <p style="white-space:pre-line;margin:6px 0 4px;">{{ $update->body }}</p>
+      <p class="help-text" style="margin:0;">{{ t('portal.project_updates.posted_on') }} {{ $update->published_at->format('Y-m-d') }}</p>
+    </div>
+  @endforeach
+</div>
+@endif
+
 <div class="card">
   <h3>Schedule</h3>
   @if ($tasks->isEmpty())

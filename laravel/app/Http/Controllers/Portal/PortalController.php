@@ -9,6 +9,7 @@ use App\Models\EstimateItem;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Project;
+use App\Models\ProjectUpdate;
 use App\Models\ScheduleTask;
 use App\Models\Selection;
 use App\Models\SelectionOption;
@@ -46,6 +47,10 @@ class PortalController extends Controller
             'client' => $client,
             'project' => $project,
             'tasks' => ScheduleTask::where('project_id', $project->id)->orderBy('start_date')->get(),
+            'updates' => ProjectUpdate::where('project_id', $project->id)
+                ->whereNotNull('published_at')
+                ->orderByDesc('published_at')
+                ->get(),
         ]);
     }
 

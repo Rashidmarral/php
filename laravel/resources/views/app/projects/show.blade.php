@@ -387,6 +387,14 @@
 </div>
 
 <div class="card" style="margin-top:24px;">
+  <h3><?= t('user.project_updates.title') ?></h3>
+  <p class="help-text" style="margin-top:-6px;"><?= t('user.project_updates.card_hint') ?></p>
+  <a href="/app/projects/<?= $project['id'] ?>/updates" class="btn btn-outline">
+    <?= $projectUpdateCount > 0 ? t('user.project_updates.view_all', ['count' => $projectUpdateCount]) : t('user.project_updates.new_title') ?>
+  </a>
+</div>
+
+<div class="card" style="margin-top:24px;">
   <h3><?= t('user.selections.title') ?></h3>
   <p class="help-text" style="margin-top:-6px;"><?= t('user.selections.card_hint') ?></p>
 
