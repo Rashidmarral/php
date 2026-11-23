@@ -428,6 +428,61 @@ class TakeoffController extends Controller
     }
 
     /**
+     * "Detect Scale (AI)" — mirrors STACK's/PlanSwift's own "Auto Scale" feature (see
+     * AiTakeoffAnalyzer::detectScale()'s own docblock for the full picture): reads the
+     * page's printed graphic scale bar or a labeled dimension line and reports back its two
+     * end points plus the real-world length/unit it represents. This endpoint NEVER writes
+     * scale_px_per_unit itself — it only ever hands the client a suggestion to pre-fill the
+     * existing calibrate() flow's own two-click-and-type-a-number UI; the user still reviews
+     * the drawn line and the pre-filled number and clicks the existing "Save scale" button
+     * (calibrate() above) themselves, completely unchanged.
+     */
+    public function detectScale(int $id, int $pageId): JsonResponse
+    {
+        if ($this->requireFeature('takeoff')) {
+            return response()->json(['ok' => false, 'error' => 'Not available on your plan.'], 403);
+        }
+        if ($this->requireAbility('write')) {
+            return response()->json(['ok' => false, 'error' => 'Not permitted.'], 403);
+        }
+        $takeoff = $this->findOwned($id);
+        $page = $this->findOwnedPage($takeoff, $pageId);
+
+        // Same defense-in-depth posture as calibrate()/autocount()'s own guards — a
+        // superseded (historical, read-only) revision is never offered this tool in the UI,
+        // but the server rejects a direct call too.
+        if (!$page->is_current) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.revision_old_action_blocked')], 422);
+        }
+
+        if (!AiTakeoffAnalyzer::isConfigured()) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_not_configured')], 422);
+        }
+
+        $result = AiTakeoffAnalyzer::detectScale($page->image_path);
+
+        if ($result === null) {
+            $lastError = Setting::get('ai_last_error') ?: 'The AI provider did not return a usable response.';
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_failed', ['reason' => $lastError])], 422);
+        }
+
+        if (empty($result['found'])) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.scale_detection_not_found')], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'x1' => $result['x1'],
+            'y1' => $result['y1'],
+            'x2' => $result['x2'],
+            'y2' => $result['y2'],
+            'real_length' => $result['real_length'],
+            'unit' => $result['unit'],
+            'source_note' => $result['source_note'],
+        ]);
+    }
+
+    /**
      * "Autocount" — mirrors STACK Construction Technologies' own repeated-symbol-detection
      * feature (see AiTakeoffAnalyzer::findMatchingSymbols()'s own docblock for the full
      * picture): the client draws a box around ONE instance of a repeated plan symbol (2-click

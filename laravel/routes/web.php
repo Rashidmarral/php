@@ -601,6 +601,7 @@ Route::prefix('app')->middleware('company.user')->group(function () {
     Route::post('/takeoffs/{id}/pages/{pageId}/measurements', [TakeoffController::class, 'addMeasurement']);
     Route::post('/takeoffs/{id}/measurements/{measurementId}/delete', [TakeoffController::class, 'deleteMeasurement']);
     Route::post('/takeoffs/{id}/pages/{pageId}/calibrate', [TakeoffController::class, 'calibrate']);
+    Route::post('/takeoffs/{id}/pages/{pageId}/detect-scale', [TakeoffController::class, 'detectScale']);
     Route::post('/takeoffs/{id}/pages/{pageId}/autocount', [TakeoffController::class, 'autocount']);
     Route::post('/takeoffs/{id}/pages/{pageId}/autocount-all-pages', [TakeoffController::class, 'autocountAllPages']);
     Route::post('/takeoffs/{id}/autocount-all-pages/save', [TakeoffController::class, 'saveAllPagesAutocount']);

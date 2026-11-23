@@ -127,8 +127,10 @@
     <?php else: ?>
     <div class="card" style="margin-bottom:16px;">
       <h3 style="font-size:14px;"><?= t('user.takeoffs.tools') ?></h3>
+      <?php $detectScaleTooltip = $aiConfigured ? '' : t('user.takeoffs.ai_not_configured'); ?>
       <div class="toolbar" style="margin-bottom:8px;">
         <button type="button" class="btn btn-sm btn-outline" id="tool-calibrate"><?= t('user.takeoffs.calibrate_scale') ?></button>
+        <button type="button" class="btn btn-sm btn-outline" id="btn-detect-scale" <?= $aiConfigured ? '' : 'disabled' ?> title="<?= e($detectScaleTooltip) ?>"><?= t('user.takeoffs.detect_scale_button') ?></button>
       </div>
       <?php
         $areaParentCandidates = array_values(array_filter($measurements, fn ($m) => $m['type'] === 'area' && !$m['is_cutout']));
@@ -207,6 +209,7 @@
     <div id="calibrate-panel" style="display:none;margin-bottom:16px;" class="card">
       <h3 style="font-size:14px;"><?= t('user.takeoffs.set_scale') ?></h3>
       <p class="help-text"><?= t('user.takeoffs.set_scale_hint') ?></p>
+      <p class="help-text" id="detect-scale-note" style="display:none;font-style:italic;"></p>
       <div class="form-group"><label><?= t('user.takeoffs.real_length') ?></label><input type="number" step="0.01" id="calibrate-length" value="1"></div>
       <button type="button" class="btn btn-primary btn-sm" id="btn-save-calibration"><?= t('user.takeoffs.save_scale') ?></button>
     </div>
@@ -580,6 +583,57 @@
   });
 
   document.getElementById('tool-calibrate').addEventListener('click', () => startMode('calibrate'));
+
+  // "Detect Scale (AI)" — never a replacement for Calibrate above: it only PRE-FILLS that
+  // exact same manual flow (the two canvas points + the real-length input) with an AI-read
+  // suggestion from the sheet's own printed scale bar or a labeled dimension. The user still
+  // reviews the drawn line and the suggested length and clicks the existing "Save scale"
+  // button themselves — this handler never posts to /calibrate on its own.
+  const detectScaleBtn = document.getElementById('btn-detect-scale');
+  if (detectScaleBtn) {
+    detectScaleBtn.addEventListener('click', () => {
+      detectScaleBtn.disabled = true;
+      const originalText = detectScaleBtn.textContent;
+      detectScaleBtn.textContent = <?= json_encode(t('user.takeoffs.detect_scale_detecting')) ?>;
+
+      fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/detect-scale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ _token: csrfToken })
+      }).then(r => r.json()).then(data => {
+        detectScaleBtn.disabled = false;
+        detectScaleBtn.textContent = originalText;
+        if (!data.ok) {
+          // A "not found" result is an expected, non-alarming outcome (no legible scale
+          // reference on this sheet) — surfaced the same plain way Autocount's own
+          // no-matches result is (a plain alert, not a scary error banner).
+          alert(data.error || <?= json_encode(t('user.takeoffs.detect_scale_failed')) ?>);
+          return;
+        }
+
+        // Pre-fill the exact same manual calibrate UI startMode('calibrate') itself sets up
+        // — same mode, same points array (the two canvas clicks a human would have made),
+        // same draw()/calibrate-panel — so the two-click calibrate click handler above and
+        // btn-save-calibration below need no changes at all to work with this.
+        startMode('calibrate');
+        points = [{ x: data.x1, y: data.y1 }, { x: data.x2, y: data.y2 }];
+        draw();
+
+        document.getElementById('calibrate-length').value = data.real_length;
+        const note = document.getElementById('detect-scale-note');
+        if (note) {
+          note.textContent = <?= json_encode(t('user.takeoffs.scale_detection_hint')) ?>.replace(':note', data.source_note || '');
+          note.style.display = 'block';
+        }
+        document.getElementById('calibrate-panel').style.display = 'block';
+      }).catch(() => {
+        detectScaleBtn.disabled = false;
+        detectScaleBtn.textContent = originalText;
+        alert(<?= json_encode(t('user.takeoffs.detect_scale_failed')) ?>);
+      });
+    });
+  }
+
   document.querySelectorAll('[data-tool]').forEach(btn => {
     btn.addEventListener('click', () => {
       // The Cutout tool needs to know which area it's cutting from before any drawing
@@ -629,6 +683,10 @@
     points = [];
     autocountDetections = [];
     resetAutocountAllPagesState();
+    // A fresh manual Calibrate (or any other tool) never carries over a stale "AI found: …"
+    // note from a previous Detect Scale run.
+    const detectScaleNote = document.getElementById('detect-scale-note');
+    if (detectScaleNote) detectScaleNote.style.display = 'none';
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
     document.getElementById('cutout-parent-panel').style.display = 'none';

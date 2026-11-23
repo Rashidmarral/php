@@ -19,6 +19,13 @@ use App\Models\Setting;
  * TakeoffPage's own docblock for the version-tracking columns this builds on). See that
  * method's own docblock for its conservative framing.
  *
+ * Also provides detectScale() — "Detect Scale", a fourth vision call used by
+ * TakeoffController::detectScale() to read a plan's own printed graphic scale bar or a
+ * labeled dimension line and propose a calibration, mirroring STACK's/PlanSwift's own "Auto
+ * Scale" feature (confirmed market research, not guessed). See that method's own docblock
+ * for its conservative framing and for why it only ever pre-fills the existing manual
+ * calibrate() flow rather than replacing it.
+ *
  * Reuses the same Anthropic config as AiEstimateGenerator (Admin > Platform Settings > AI
  * Generator) — there is no separate on/off switch for this feature. Unlike the estimate
  * generator, there is no sensible offline fallback for reading a plan image, so when AI
@@ -40,6 +47,15 @@ class AiTakeoffAnalyzer
      * @var ?\Closure(string, string): ?array<int, array{x:float,y:float}>
      */
     public static ?\Closure $findMatchingSymbolsFake = null;
+
+    /**
+     * Test-only seam for detectScale() below, same shape/purpose/reset discipline as
+     * $findMatchingSymbolsFake just above — set only by TakeoffScaleDetectionTest, always
+     * null in production.
+     *
+     * @var ?\Closure(string): ?array{found:bool,x1?:float,y1?:float,x2?:float,y2?:float,real_length?:float,unit?:string,source_note?:string}
+     */
+    public static ?\Closure $detectScaleFake = null;
 
     public static function isConfigured(): bool
     {
@@ -256,6 +272,124 @@ PROMPT;
     }
 
     /**
+     * "Detect Scale" — mirrors STACK/PlanSwift's own "Auto Scale" feature (confirmed market
+     * research, not guessed): instead of the user manually clicking two points on a known-
+     * length line and typing its real length (TakeoffController::calibrate()'s own manual
+     * flow, which this NEVER bypasses — see that method's own docblock), this reads the
+     * plan sheet itself for something that already states its own real-world length: either
+     * a printed graphic/bar scale (a short ruled line with tick marks and a label like
+     * "0 ... 5.00 m"), or, failing that, a clearly labeled dimension line elsewhere on the
+     * sheet (e.g. a wall printed as "4.20 m" with its own dimension line/arrows). Reports
+     * back the pixel coordinates of that reference's two end points, in the full image's own
+     * pixel space — the exact same coordinate convention findMatchingSymbols() above already
+     * uses successfully for match points — plus the real-world length and unit it represents.
+     *
+     * Same conservative "never guess what you can't actually see" philosophy as every other
+     * method in this file: explicitly told to report {"found":false} rather than inventing a
+     * scale reference when the sheet genuinely has none legible. The caller
+     * (TakeoffController::detectScale()) only ever uses a successful result to PRE-FILL the
+     * existing manual calibration UI (the two canvas points + the real-length input) — it
+     * never saves a calibration itself, and the user still reviews the drawn line and the
+     * pre-filled number and clicks the existing "Save scale" button themselves.
+     *
+     * @param string $imagePath A single plan sheet's image path (TakeoffPage::$image_path), public_path()-relative, same convention as analyzeTakeoffPlan()'s $imagePath.
+     * @return ?array{found:bool,x1?:float,y1?:float,x2?:float,y2?:float,real_length?:float,unit?:string,source_note?:string} {"found":false} is a legitimate, non-error result when no legible scale bar or labeled dimension exists on the sheet. Null on failure (see Setting::get('ai_last_error')).
+     */
+    public static function detectScale(string $imagePath): ?array
+    {
+        if (self::$detectScaleFake !== null) {
+            return (self::$detectScaleFake)($imagePath);
+        }
+
+        if (!self::isConfigured()) {
+            return null;
+        }
+
+        $fullPath = public_path($imagePath);
+        if (!is_file($fullPath)) {
+            Setting::set('ai_last_error', 'Plan image file not found on disk.');
+            return null;
+        }
+
+        $imageData = @file_get_contents($fullPath);
+        if ($imageData === false) {
+            Setting::set('ai_last_error', 'Could not read plan image file.');
+            return null;
+        }
+
+        $apiKey = Setting::get('ai_api_key', '');
+        $model = Setting::get('ai_model', '') ?: 'claude-sonnet-5';
+
+        $systemPrompt = <<<PROMPT
+You are helping a Saudi Arabian contractor set up the scale on a construction plan sheet
+image, the same idea as STACK Construction Technologies' and PlanSwift's own "Auto Scale"
+features. Look for ONE of the following, whichever is more clearly legible on this sheet:
+1. A printed graphic/bar scale — a short ruled line with tick marks and a labeled
+   real-world length (e.g. a line reading "0 ... 5.00 m" or "0 ... 10m").
+2. A clearly labeled dimension line elsewhere on the sheet — a printed measurement with its
+   own dimension line and arrows (e.g. a wall printed as "4.20 m").
+
+Rules:
+- Only report a scale reference you can actually see printed on the sheet, with a real
+  legible label. Never invent or estimate a scale reference, or a length for one, that isn't
+  clearly printed — honestly reporting that none was found is the correct, expected result
+  for a sheet with no legible scale bar or labeled dimension.
+- Report the two end points of whichever reference you found as pixel coordinates within
+  this image, exactly as it is sized.
+- The real-world length is whatever number is printed next to the reference (e.g. 5.00 for
+  "5.00 m"), and the unit is whatever is printed with it (e.g. "m", "ft").
+
+Respond with ONLY valid JSON (no markdown fences, no commentary), shaped exactly like one of:
+{"found":true,"x1":number,"y1":number,"x2":number,"y2":number,"real_length":number,"unit":"m","source_note":"short description of what was found, e.g. 'graphic scale bar at bottom of sheet, labeled 5.00 m'"}
+{"found":false}
+PROMPT;
+
+        $payload = json_encode([
+            'model' => $model,
+            'max_tokens' => 1024,
+            'system' => $systemPrompt,
+            'messages' => [[
+                'role' => 'user',
+                'content' => [
+                    ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => self::mediaTypeFor($fullPath), 'data' => base64_encode($imageData)]],
+                    ['type' => 'text', 'text' => 'Find this plan sheet\'s printed scale reference, following the rules in your instructions.'],
+                ],
+            ]],
+        ]);
+
+        $ch = curl_init('https://api.anthropic.com/v1/messages');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'x-api-key: ' . $apiKey,
+                'anthropic-version: 2023-06-01',
+            ],
+            CURLOPT_TIMEOUT => 60,
+        ]);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError || $httpCode !== 200 || !$response) {
+            Setting::set('ai_last_error', $curlError ?: "HTTP {$httpCode}: " . substr((string) $response, 0, 300));
+            return null;
+        }
+
+        $body = json_decode($response, true);
+        $text = $body['content'][0]['text'] ?? null;
+        if (!$text) {
+            Setting::set('ai_last_error', 'Unexpected API response shape.');
+            return null;
+        }
+
+        return self::parseScaleDetection($text);
+    }
+
+    /**
      * Plan revision comparison — sends BOTH a page's previous and current plan images to
      * Claude vision in one call and asks for a short, plain-language list of concrete,
      * visible differences between them (a new/moved/removed wall, door, window, room, or a
@@ -407,6 +541,42 @@ PROMPT;
         }
 
         return $points;
+    }
+
+    /** @return ?array{found:bool,x1?:float,y1?:float,x2?:float,y2?:float,real_length?:float,unit?:string,source_note?:string} */
+    public static function parseScaleDetection(string $text): ?array
+    {
+        $text = trim(preg_replace('/^```(json)?|```$/m', '', $text));
+        $parsed = json_decode($text, true);
+        if (!is_array($parsed)) {
+            Setting::set('ai_last_error', 'Could not parse AI response as JSON.');
+            return null;
+        }
+
+        if (empty($parsed['found'])) {
+            return ['found' => false];
+        }
+
+        $coords = ['x1', 'y1', 'x2', 'y2', 'real_length'];
+        foreach ($coords as $key) {
+            if (!is_numeric($parsed[$key] ?? null)) {
+                return ['found' => false];
+            }
+        }
+        if ((float) $parsed['real_length'] <= 0) {
+            return ['found' => false];
+        }
+
+        return [
+            'found' => true,
+            'x1' => (float) $parsed['x1'],
+            'y1' => (float) $parsed['y1'],
+            'x2' => (float) $parsed['x2'],
+            'y2' => (float) $parsed['y2'],
+            'real_length' => (float) $parsed['real_length'],
+            'unit' => trim((string) ($parsed['unit'] ?? '')) ?: 'm',
+            'source_note' => trim((string) ($parsed['source_note'] ?? '')),
+        ];
     }
 
     /** Same jpg/jpeg/png/webp → media-type mapping analyzeTakeoffPlan() uses inline, shared here since findMatchingSymbols() needs it for two files instead of one. */
