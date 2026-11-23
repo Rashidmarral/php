@@ -25,8 +25,12 @@ return new class extends Migration
             $table->unsignedBigInteger('updated_by')->nullable();
             $table->timestamps();
 
-            $table->unique(['material_library_item_id', 'city']);
-            $table->foreign('material_library_item_id')->references('id')->on('material_library_items')->onDelete('cascade');
+            // Explicit short names: the auto-generated ones (table name + both column
+            // names + suffix) are 70/66 characters, over MySQL's 64-character identifier
+            // limit — SQLite (this project's dev/test DB) doesn't enforce that limit, so
+            // this only surfaces against a real MySQL database.
+            $table->unique(['material_library_item_id', 'city'], 'mli_city_prices_item_city_unique');
+            $table->foreign('material_library_item_id', 'mli_city_prices_item_foreign')->references('id')->on('material_library_items')->onDelete('cascade');
         });
     }
 
