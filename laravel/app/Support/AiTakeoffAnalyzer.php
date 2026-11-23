@@ -26,6 +26,21 @@ use App\Models\Setting;
  */
 class AiTakeoffAnalyzer
 {
+    /**
+     * Test-only seam: when set, findMatchingSymbols() calls this closure instead of making a
+     * real Claude API call, and skips isConfigured()/file-existence checks entirely — there is
+     * no existing pattern anywhere in this codebase for mocking the raw curl_init() Anthropic
+     * call this class makes (see TakeoffAutocountTest/TakeoffRevisionTest/
+     * AiEstimateGeneratorTest's own docblocks), so TakeoffCrossSheetAutocountTest sets this to
+     * exercise autocountAllPages()'s per-page success/failure handling without a live network
+     * call or configuring AI settings at all. Always null in production — nothing outside a
+     * test ever sets it — so this has zero effect on real behavior. Tests reset it to null in
+     * their own tearDown() so it never leaks across test files.
+     *
+     * @var ?\Closure(string, string): ?array<int, array{x:float,y:float}>
+     */
+    public static ?\Closure $findMatchingSymbolsFake = null;
+
     public static function isConfigured(): bool
     {
         return AiEstimateGenerator::isConfigured();
@@ -144,6 +159,10 @@ PROMPT;
      */
     public static function findMatchingSymbols(string $pageImagePath, string $cropImagePath): ?array
     {
+        if (self::$findMatchingSymbolsFake !== null) {
+            return (self::$findMatchingSymbolsFake)($pageImagePath, $cropImagePath);
+        }
+
         if (!self::isConfigured()) {
             return null;
         }

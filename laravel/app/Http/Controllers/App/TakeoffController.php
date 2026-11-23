@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class TakeoffController extends Controller
 {
@@ -581,6 +582,150 @@ class TakeoffController extends Controller
         return $saved ? $cropPath : null;
     }
 
+    /**
+     * "Autocount — search all pages" — mirrors Togal.AI's own "Togal Search" (confirmed market
+     * research, not guessed): the same one-box-one-symbol reference crop autocount() above
+     * builds is searched for across EVERY current page of this takeoff, not just the page it
+     * was drawn on, so the user gets one unified cross-sheet result instead of running ordinary
+     * single-page Autocount separately on their own page too (the source page is included in
+     * the per-page search below for exactly that reason). Shares autocount()'s own
+     * guard/validate/crop pipeline exactly (feature/ability/is_current/box-validation/
+     * crop-and-AI-configured — copied in the same order, for the same reasons, see autocount()
+     * itself for why each check is placed where it is).
+     *
+     * One AiTakeoffAnalyzer::findMatchingSymbols() call per page, with each page's own failure
+     * isolated from the others — the same per-page $failures-isolation shape aiAnalyzeAll()
+     * already uses, just reporting EVERY page's outcome back to the client (even zero matches
+     * or a failed call) rather than silently skipping it, so the review UI can show "0 found on
+     * page 3" / "search failed on page 5" transparently instead of hiding what happened — the
+     * same conservative, never-invent-a-result posture findMatchingSymbols() itself documents.
+     */
+    public function autocountAllPages(Request $request, int $id, int $pageId): JsonResponse
+    {
+        if ($this->requireFeature('takeoff')) {
+            return response()->json(['ok' => false, 'error' => 'Not available on your plan.'], 403);
+        }
+        if ($this->requireAbility('write')) {
+            return response()->json(['ok' => false, 'error' => 'Not permitted.'], 403);
+        }
+        $takeoff = $this->findOwned($id);
+        $page = $this->findOwnedPage($takeoff, $pageId);
+
+        // Same defense-in-depth posture as autocount()'s own guard.
+        if (!$page->is_current) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.revision_old_action_blocked')], 422);
+        }
+
+        $fullImagePath = public_path($page->image_path);
+        $imageSize = is_file($fullImagePath) ? @getimagesize($fullImagePath) : false;
+        if ($imageSize === false) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.autocount_image_missing')], 422);
+        }
+        [$imgWidth, $imgHeight] = $imageSize;
+
+        $box = $this->clampedAutocountBox($request, $imgWidth, $imgHeight);
+        if ($box === null) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.autocount_box_invalid')], 422);
+        }
+
+        if (!AiTakeoffAnalyzer::isConfigured()) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.ai_not_configured')], 422);
+        }
+
+        $cropPath = $this->cropAutocountReference($fullImagePath, $box, $takeoff->company_id, $takeoff->id);
+        if ($cropPath === null) {
+            return response()->json(['ok' => false, 'error' => t('user.takeoffs.autocount_crop_failed')], 422);
+        }
+
+        // Same current-pages-only query aiAnalyzeAll() already uses — a superseded
+        // (historical) page is never searched or returned here.
+        $pages = TakeoffPage::where('takeoff_id', $takeoff->id)->where('is_current', true)->orderBy('page_number')->get();
+
+        $results = [];
+        try {
+            foreach ($pages as $searchPage) {
+                $matches = AiTakeoffAnalyzer::findMatchingSymbols($searchPage->image_path, $cropPath);
+                $results[] = [
+                    'page_id' => $searchPage->id,
+                    'page_number' => $searchPage->page_number,
+                    'points' => $matches ?? [],
+                    'failed' => $matches === null,
+                ];
+            }
+        } finally {
+            // One shared reference crop reused for every page's call — cleaned up once the
+            // whole set has been searched, not once per page (same file every time), same
+            // cleanup discipline as autocount()'s own finally block.
+            @unlink($cropPath);
+        }
+
+        return response()->json(['ok' => true, 'pages' => $results]);
+    }
+
+    /**
+     * Saves the confirmed matches from an "Autocount — search all pages" run
+     * (autocountAllPages() above): one ordinary 'count' TakeoffMeasurement per page entry with
+     * at least one confirmed point, via the same createCountMeasurement() helper
+     * addMeasurement() itself now uses — so a cross-sheet Autocount save renders and
+     * edits/deletes identically to any manually-clicked count from here on, exactly like the
+     * single-page Autocount save already does.
+     *
+     * @param Request $request Shaped like { label: string, pages: [{page_id:int, points:[{x,y},...]}, ...] } — only pages the user confirmed at least one match on are expected, but a zero-point entry is skipped rather than erroring (defense in depth, the frontend already only sends pages with >=1 confirmed point).
+     */
+    public function saveAllPagesAutocount(Request $request, int $id): JsonResponse
+    {
+        if ($this->requireFeature('takeoff')) {
+            return response()->json(['ok' => false, 'error' => 'Not available on your plan.'], 403);
+        }
+        if ($this->requireAbility('write')) {
+            return response()->json(['ok' => false, 'error' => 'Not permitted.'], 403);
+        }
+        $takeoff = $this->findOwned($id);
+
+        $label = mb_substr(trim((string) $request->input('label')) ?: t('user.takeoffs.autocount_default_label'), 0, 150);
+        // Same convention addMeasurement()'s own 'points' field already uses — a JSON-encoded
+        // string in an ordinary form POST body, decoded here, rather than relying on PHP's
+        // array[]-bracket form-field notation the client never sends.
+        $pagesInput = json_decode((string) $request->input('pages', '[]'), true);
+        if (!is_array($pagesInput)) {
+            $pagesInput = [];
+        }
+
+        $created = 0;
+        foreach ($pagesInput as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $pointsInput = is_array($entry['points'] ?? null) ? $entry['points'] : [];
+            $points = [];
+            foreach ($pointsInput as $p) {
+                if (is_array($p) && is_numeric($p['x'] ?? null) && is_numeric($p['y'] ?? null)) {
+                    $points[] = ['x' => (float) $p['x'], 'y' => (float) $p['y']];
+                }
+            }
+            if (empty($points)) {
+                continue;
+            }
+
+            // Ownership-scoped via the controller's existing findOwnedPage() helper — a
+            // page_id that doesn't belong to THIS (already company-owned) takeoff, whether
+            // tampered to point at another company's page entirely or just a stray id, is
+            // skipped rather than ever creating a measurement on data this company doesn't
+            // own; one bad entry never aborts the rest of the batch.
+            try {
+                $page = $this->findOwnedPage($takeoff, (int) ($entry['page_id'] ?? 0));
+            } catch (NotFoundHttpException $e) {
+                continue;
+            }
+
+            $this->createCountMeasurement($page, $label, $points);
+            $created++;
+        }
+
+        return response()->json(['ok' => true, 'created' => $created]);
+    }
+
     public function addMeasurement(Request $request, int $id, int $pageId): JsonResponse
     {
         if ($this->requireFeature('takeoff')) {
@@ -655,7 +800,20 @@ class TakeoffController extends Controller
             $unitCost = round((float) $assembly->items->sum(fn ($it) => (float) $it->qty_per_unit * (float) $it->unit_cost), 2);
         }
 
-        $unit = $type === 'length' ? $page->scale_unit : ($type === 'area' ? $page->scale_unit . '²' : 'ea');
+        // A count measurement can never be a cutout or carry an assembly (both are rejected
+        // above before this point is ever reached), so its creation is exactly
+        // createCountMeasurement()'s own shape — $value is passed through explicitly rather
+        // than left to default to count($points) so this endpoint's own pre-existing
+        // contract (the submitted 'value' field is authoritative, independent of whatever is
+        // in 'points') is preserved bit-for-bit.
+        if ($type === 'count') {
+            $decodedPoints = json_decode($points, true);
+            $measurement = $this->createCountMeasurement($page, $label, is_array($decodedPoints) ? $decodedPoints : [], $unitCost, $value);
+
+            return response()->json(['ok' => true, 'id' => $measurement->id]);
+        }
+
+        $unit = $type === 'length' ? $page->scale_unit : $page->scale_unit . '²';
 
         $measurement = TakeoffMeasurement::create([
             'takeoff_id' => $takeoff->id,
@@ -677,6 +835,41 @@ class TakeoffController extends Controller
         }
 
         return response()->json(['ok' => true, 'id' => $measurement->id]);
+    }
+
+    /**
+     * Creates one ordinary 'count' TakeoffMeasurement — the exact field list addMeasurement()
+     * itself uses for type==='count' (never a cutout, never linked to an assembly — both are
+     * rejected for a count type before this is ever reached), factored out here so it has
+     * exactly one implementation shared by addMeasurement() (the manual Count tool and the
+     * existing single-page Autocount save, both refactored to call this) and
+     * saveAllPagesAutocount() below (the new cross-sheet Autocount save).
+     *
+     * $value defaults to count($points) — correct for every caller except addMeasurement()
+     * itself, which takes an explicit 'value' field from the request independent of whatever
+     * 'points' holds and passes it through here so its own pre-existing behavior is preserved
+     * exactly.
+     *
+     * @param array<int, array{x:float,y:float}> $points
+     */
+    private function createCountMeasurement(TakeoffPage $page, string $label, array $points, float $unitCost = 0.0, ?float $value = null): TakeoffMeasurement
+    {
+        $value ??= (float) count($points);
+
+        return TakeoffMeasurement::create([
+            'takeoff_id' => $page->takeoff_id,
+            'takeoff_page_id' => $page->id,
+            'parent_measurement_id' => null,
+            'is_cutout' => false,
+            'assembly_id' => null,
+            'type' => 'count',
+            'label' => $label,
+            'points_json' => json_encode($points),
+            'value' => $value,
+            'unit' => 'ea',
+            'unit_cost' => $unitCost,
+            'total_cost' => $value * $unitCost,
+        ]);
     }
 
     /**

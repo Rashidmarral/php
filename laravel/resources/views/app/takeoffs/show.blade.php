@@ -147,6 +147,18 @@
           $autocountTooltip = $aiConfigured ? '' : t('user.takeoffs.ai_not_configured');
         ?>
         <button type="button" class="btn btn-sm btn-light" data-tool="autocount" id="tool-autocount" <?= $aiConfigured ? '' : 'disabled' ?> title="<?= e($autocountTooltip) ?>"><?= t('user.takeoffs.autocount_tool') ?></button>
+        <?php if (count($pages) > 1): ?>
+        <!-- "Search all pages" is a checkbox next to the Autocount tool, not a second tool
+             button — mirrors the exact same box-drawing step (draw one reference box, same
+             2-click interaction, same clampedAutocountBox()/cropAutocountReference()
+             pipeline), it only changes what happens once that box is confirmed: a single-page
+             search (unchecked, today's exact existing behavior) or a cross-sheet search
+             (checked). See btn-run-autocount's own click handler below for where this is read. -->
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-left:4px;" title="<?= e($autocountTooltip) ?>">
+          <input type="checkbox" id="autocount-all-pages-toggle" <?= $aiConfigured ? '' : 'disabled' ?>>
+          <?= t('user.takeoffs.autocount_all_pages_checkbox_label') ?>
+        </label>
+        <?php endif; ?>
       </div>
       <p class="help-text" id="tool-hint"><?= t('user.takeoffs.click_finish_hint') ?></p>
       <div class="toolbar">
@@ -206,12 +218,33 @@
     </div>
 
     <div id="autocount-review-panel" style="display:none;margin-bottom:16px;" class="card">
-      <h3 style="font-size:14px;"><?= t('user.takeoffs.autocount_review_heading') ?></h3>
+      <h3 style="font-size:14px;" id="autocount-review-heading"><?= t('user.takeoffs.autocount_review_heading') ?></h3>
       <p class="help-text"><?= t('user.takeoffs.autocount_review_hint') ?></p>
       <div id="autocount-list" style="max-height:220px;overflow-y:auto;margin-bottom:10px;"></div>
       <p class="help-text"><?= t('user.takeoffs.autocount_confirmed_count_label') ?> <strong id="autocount-confirmed-count">0</strong></p>
       <button type="button" class="btn btn-primary btn-sm" id="btn-save-autocount"><?= t('user.takeoffs.autocount_save') ?></button>
     </div>
+
+    <?php if (count($pages) > 1): ?>
+    <!--
+      Cross-sheet ("Search all pages") review. The CURRENT page's own results reuse the
+      canvas-marker-based review above (autocount-review-panel/autocount-list/
+      drawAutocountMarkers()) completely unchanged — see renderAutocountReview() in the script
+      below. Every OTHER page's results render here instead: a collapsible <details> per page
+      with a plain Include all / Exclude all pair rather than a per-match toggle list, since a
+      match drawn on a page that isn't on screen can't be visually cross-checked against the
+      plan anyway — bulk include/exclude plus the match count is the honest amount of control
+      to offer for a page you aren't looking at, and keeps this list usable on a 10+ page set.
+      A page the search genuinely failed on shows that plainly rather than a silent "0".
+    -->
+    <div id="autocount-other-pages-panel" style="display:none;margin-bottom:16px;" class="card">
+      <h3 style="font-size:14px;"><?= t('user.takeoffs.autocount_all_pages_review_heading') ?></h3>
+      <p class="help-text"><?= t('user.takeoffs.autocount_all_pages_review_hint') ?></p>
+      <p class="help-text" style="font-weight:600;"><?= t('user.takeoffs.autocount_other_pages_heading') ?></p>
+      <div id="autocount-other-pages-list"></div>
+      <button type="button" class="btn btn-primary btn-sm" id="btn-save-autocount-all-pages" style="margin-top:10px;"><?= t('user.takeoffs.autocount_save_all_pages') ?></button>
+    </div>
+    <?php endif; ?>
     <?php endif; ?>
 
     <?php if ($canCompareRevision): ?>
@@ -392,6 +425,14 @@
   // renderAutocountReview()/btn-save-autocount below for how a reviewed, confirmed subset
   // becomes one ordinary 'count' TakeoffMeasurement.
   let autocountDetections = [];
+  // "Search all pages" state — autocountDetections above still holds THIS page's own
+  // candidates (so the existing canvas markers/toggle list keep working unchanged);
+  // otherPagesResults holds every OTHER current page's own candidates + failed flag, each
+  // with its own confirmed flag per point for the include-all/exclude-all list below.
+  // autocountAllPagesMode is read by renderAutocountReview() to hide its own single-page
+  // Save button in favor of the one combined "Save all confirmed matches" button.
+  let autocountAllPagesMode = false;
+  let otherPagesResults = [];
 
   function draw() {
     canvas.width = img.naturalWidth;
@@ -525,6 +566,13 @@
     // reference box's opposite corner and immediately surfaces the "find matches" panel.
     if (mode === 'autocount' && points.length === 2) {
       document.getElementById('autocount-panel').style.display = 'block';
+      const runBtn = document.getElementById('btn-run-autocount');
+      const allPagesToggle = document.getElementById('autocount-all-pages-toggle');
+      if (runBtn) {
+        runBtn.textContent = (allPagesToggle && allPagesToggle.checked)
+          ? <?= json_encode(t('user.takeoffs.autocount_find_matches_all_pages')) ?>
+          : <?= json_encode(t('user.takeoffs.autocount_find_matches')) ?>;
+      }
     }
     if (mode === 'count') {
       // count mode: each click is immediately part of the running set; Finish saves the count.
@@ -565,10 +613,22 @@
     startMode('cutout');
   });
 
+  // The "other pages" panel only exists in the DOM when count($pages) > 1 (see the blade
+  // template above) — guarded here so every reset path below can call this unconditionally.
+  function resetAutocountAllPagesState() {
+    autocountAllPagesMode = false;
+    otherPagesResults = [];
+    const panel = document.getElementById('autocount-other-pages-panel');
+    if (panel) panel.style.display = 'none';
+    const list = document.getElementById('autocount-other-pages-list');
+    if (list) list.innerHTML = '';
+  }
+
   function startMode(m) {
     mode = m;
     points = [];
     autocountDetections = [];
+    resetAutocountAllPagesState();
     document.getElementById('calibrate-panel').style.display = 'none';
     document.getElementById('pending-panel').style.display = 'none';
     document.getElementById('cutout-parent-panel').style.display = 'none';
@@ -594,6 +654,7 @@
 
   document.getElementById('btn-cancel').addEventListener('click', () => {
     mode = null; points = []; cutoutParentId = null; autocountDetections = [];
+    resetAutocountAllPagesState();
     document.getElementById('btn-finish').style.display = 'none';
     document.getElementById('btn-cancel').style.display = 'none';
     document.getElementById('calibrate-panel').style.display = 'none';
@@ -770,6 +831,87 @@
 
     countLabel.textContent = autocountDetections.filter(d => d.confirmed).length;
     document.getElementById('autocount-review-panel').style.display = 'block';
+
+    // In "search all pages" mode, this list/canvas-marker review (unchanged above) still
+    // covers only THIS page's own candidates — saving happens once, for every page together,
+    // via the one combined "Save all confirmed matches" button below instead of this panel's
+    // own single-page Save button.
+    const heading = document.getElementById('autocount-review-heading');
+    const saveBtn = document.getElementById('btn-save-autocount');
+    if (heading) {
+      heading.textContent = autocountAllPagesMode
+        ? <?= json_encode(t('user.takeoffs.autocount_current_page_heading')) ?>.replace(':count', autocountDetections.filter(d => d.confirmed).length)
+        : <?= json_encode(t('user.takeoffs.autocount_review_heading')) ?>;
+    }
+    if (saveBtn) saveBtn.style.display = autocountAllPagesMode ? 'none' : 'inline-block';
+  }
+
+  // Renders otherPagesResults (every OTHER current page's own candidates) as one collapsible
+  // section per page — Include all / Exclude all rather than a per-match toggle (see the
+  // blade template's own comment above autocount-other-pages-panel for why), plus a plain
+  // "search failed" note for a page whose AiTakeoffAnalyzer call itself returned null.
+  function renderOtherPagesReview() {
+    const list = document.getElementById('autocount-other-pages-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    otherPagesResults.forEach(p => {
+      const details = document.createElement('details');
+      details.style.borderBottom = '1px solid var(--border)';
+      details.style.padding = '4px 0';
+
+      const summary = document.createElement('summary');
+      summary.style.cursor = 'pointer';
+      summary.style.fontSize = '13px';
+      if (p.failed) {
+        summary.textContent = <?= json_encode(t('user.takeoffs.page_label')) ?>.replace(':number', p.page_number)
+          + ' — ' + <?= json_encode(t('user.takeoffs.autocount_other_page_failed')) ?>;
+      } else {
+        summary.textContent = <?= json_encode(t('user.takeoffs.autocount_other_page_heading')) ?>
+          .replace(':number', p.page_number)
+          .replace(':count', p.points.filter(d => d.confirmed).length);
+      }
+      details.appendChild(summary);
+
+      if (!p.failed && p.points.length > 0) {
+        const body = document.createElement('div');
+        body.style.margin = '6px 0 0 16px';
+
+        const includeAllBtn = document.createElement('button');
+        includeAllBtn.type = 'button';
+        includeAllBtn.className = 'btn btn-sm btn-light';
+        includeAllBtn.style.marginRight = '6px';
+        includeAllBtn.textContent = <?= json_encode(t('user.takeoffs.autocount_include_all')) ?>;
+        includeAllBtn.addEventListener('click', () => {
+          p.points.forEach(d => d.confirmed = true);
+          renderOtherPagesReview();
+        });
+
+        const excludeAllBtn = document.createElement('button');
+        excludeAllBtn.type = 'button';
+        excludeAllBtn.className = 'btn btn-sm btn-light';
+        excludeAllBtn.textContent = <?= json_encode(t('user.takeoffs.autocount_exclude_all')) ?>;
+        excludeAllBtn.addEventListener('click', () => {
+          p.points.forEach(d => d.confirmed = false);
+          renderOtherPagesReview();
+        });
+
+        body.appendChild(includeAllBtn);
+        body.appendChild(excludeAllBtn);
+        details.appendChild(body);
+      } else if (!p.failed) {
+        const empty = document.createElement('p');
+        empty.className = 'help-text';
+        empty.style.margin = '6px 0 0 16px';
+        empty.textContent = <?= json_encode(t('user.takeoffs.autocount_other_page_none')) ?>;
+        details.appendChild(empty);
+      }
+
+      list.appendChild(details);
+    });
+
+    const panel = document.getElementById('autocount-other-pages-panel');
+    if (panel) panel.style.display = 'block';
   }
 
   document.getElementById('btn-run-autocount').addEventListener('click', () => {
@@ -779,12 +921,19 @@
     const width = Math.abs(points[1].x - points[0].x);
     const height = Math.abs(points[1].y - points[0].y);
 
+    const allPagesToggle = document.getElementById('autocount-all-pages-toggle');
+    const searchAllPages = !!(allPagesToggle && allPagesToggle.checked);
+
     const btn = document.getElementById('btn-run-autocount');
     btn.disabled = true;
     const originalText = btn.textContent;
-    btn.textContent = <?= json_encode(t('user.takeoffs.autocount_searching')) ?>;
+    btn.textContent = searchAllPages
+      ? <?= json_encode(t('user.takeoffs.autocount_all_pages_searching')) ?>
+      : <?= json_encode(t('user.takeoffs.autocount_searching')) ?>;
 
-    fetch('/app/takeoffs/' + takeoffId + '/pages/' + pageId + '/autocount', {
+    const url = '/app/takeoffs/' + takeoffId + '/pages/' + pageId + (searchAllPages ? '/autocount-all-pages' : '/autocount');
+
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ _token: csrfToken, x, y, width, height })
@@ -792,21 +941,42 @@
       btn.disabled = false;
       btn.textContent = originalText;
       if (!data.ok) {
-        alert(data.error || <?= json_encode(t('user.takeoffs.autocount_failed')) ?>);
+        alert(data.error || (searchAllPages
+          ? <?= json_encode(t('user.takeoffs.autocount_all_pages_failed')) ?>
+          : <?= json_encode(t('user.takeoffs.autocount_failed')) ?>));
         return;
       }
-      // Every detection starts confirmed — the review list is for excluding wrong ones, not
-      // opting in to right ones, since that's the common case for a real match.
-      autocountDetections = (data.points || []).map(p => ({ x: p.x, y: p.y, confirmed: true }));
+
       document.getElementById('autocount-panel').style.display = 'none';
       mode = null;
       points = [];
-      renderAutocountReview();
+
+      if (searchAllPages) {
+        autocountAllPagesMode = true;
+        const pagesResult = data.pages || [];
+        const currentEntry = pagesResult.find(p => p.page_id === pageId);
+        // Every detection starts confirmed — same "review to exclude wrong ones, not opt in
+        // to right ones" posture as the single-page flow, applied per page here.
+        autocountDetections = ((currentEntry && currentEntry.points) || []).map(p => ({ x: p.x, y: p.y, confirmed: true }));
+        otherPagesResults = pagesResult.filter(p => p.page_id !== pageId).map(p => ({
+          page_id: p.page_id,
+          page_number: p.page_number,
+          failed: p.failed,
+          points: (p.points || []).map(pt => ({ x: pt.x, y: pt.y, confirmed: true })),
+        }));
+        renderAutocountReview();
+        renderOtherPagesReview();
+      } else {
+        autocountDetections = (data.points || []).map(p => ({ x: p.x, y: p.y, confirmed: true }));
+        renderAutocountReview();
+      }
       draw();
     }).catch(() => {
       btn.disabled = false;
       btn.textContent = originalText;
-      alert(<?= json_encode(t('user.takeoffs.autocount_failed')) ?>);
+      alert(searchAllPages
+        ? <?= json_encode(t('user.takeoffs.autocount_all_pages_failed')) ?>
+        : <?= json_encode(t('user.takeoffs.autocount_failed')) ?>);
     });
   });
 
@@ -837,6 +1007,44 @@
       })
     }).then(r => r.json()).then(() => location.reload());
   });
+
+  const btnSaveAutocountAllPages = document.getElementById('btn-save-autocount-all-pages');
+  if (btnSaveAutocountAllPages) {
+    btnSaveAutocountAllPages.addEventListener('click', () => {
+      // Builds the { label, pages: [{page_id, points}, ...] } payload
+      // saveAllPagesAutocount() expects — this page's own confirmed points (from
+      // autocountDetections, the same array the canvas markers/toggle list above use) plus
+      // every other page with at least one confirmed point; a page with zero confirmed
+      // points (nothing confirmed, or the search failed on it) is simply left out.
+      const pages = [];
+      const confirmedHere = autocountDetections.filter(d => d.confirmed).map(d => ({ x: d.x, y: d.y }));
+      if (confirmedHere.length > 0) {
+        pages.push({ page_id: pageId, points: confirmedHere });
+      }
+      otherPagesResults.forEach(p => {
+        if (p.failed) return;
+        const confirmed = p.points.filter(d => d.confirmed).map(d => ({ x: d.x, y: d.y }));
+        if (confirmed.length > 0) {
+          pages.push({ page_id: p.page_id, points: confirmed });
+        }
+      });
+
+      if (pages.length === 0) {
+        alert(<?= json_encode(t('user.takeoffs.autocount_all_pages_need_one')) ?>);
+        return;
+      }
+
+      fetch('/app/takeoffs/' + takeoffId + '/autocount-all-pages/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          _token: csrfToken,
+          label: <?= json_encode(t('user.takeoffs.autocount_default_label')) ?>,
+          pages: JSON.stringify(pages),
+        })
+      }).then(r => r.json()).then(() => location.reload());
+    });
+  }
 })();
 </script>
 
