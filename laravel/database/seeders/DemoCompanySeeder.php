@@ -77,8 +77,9 @@ class DemoCompanySeeder extends Seeder
 {
     public function run(): void
     {
-        if (Company::where('email', 'demo@buildxact-saudi.local')->exists()) {
-            $this->command?->info('Demo company already exists.');
+        $existingCompany = Company::where('email', 'demo@buildxact-saudi.local')->first();
+        if ($existingCompany) {
+            $this->backfillExtendedDemoData($existingCompany);
 
             return;
         }
@@ -502,6 +503,51 @@ class DemoCompanySeeder extends Seeder
             '  Owner:      owner@buildxact-saudi.local / Demo@12345',
             '  Estimator:  estimator@buildxact-saudi.local / Demo@12345',
             '  Accountant: accountant@buildxact-saudi.local / Demo@12345',
+            '',
+            'Client portal login (/portal/login):',
+            '  Email:    contact@jeddahheights.sa',
+            '  Password: Demo@12345',
+            '',
+            'Supplier/vendor portal login (/supplier-portal/login):',
+            '  Email:    sales@sbmc.sa',
+            '  Password: Demo@12345',
+        ]));
+    }
+
+    /**
+     * Runs when the demo company already exists (e.g. it was seeded before the extended
+     * demo data below was added to this seeder). Looks up the fixed rows the base seeding
+     * above always creates with the same known emails/names, then runs the exact same
+     * extended-data method a fresh install would get — so re-running `db:seed` on an
+     * already-seeded install backfills the new data instead of silently no-op'ing.
+     * Guarded on AsphaltEstimate existence so it only backfills once.
+     */
+    private function backfillExtendedDemoData(Company $company): void
+    {
+        if (AsphaltEstimate::where('company_id', $company->id)->exists()) {
+            $this->command?->info('Demo company already fully seeded (including extended data).');
+
+            return;
+        }
+
+        $owner = User::where('company_id', $company->id)->where('role', 'owner')->firstOrFail();
+        $estimator = User::where('company_id', $company->id)->where('role', 'estimator')->firstOrFail();
+        $accountant = User::where('company_id', $company->id)->where('role', 'accountant')->firstOrFail();
+        $client = Client::where('company_id', $company->id)->where('email', 'contact@jeddahheights.sa')->firstOrFail();
+        $project = Project::where('company_id', $company->id)->where('name', 'Villa Renovation - Al Nakheel')->firstOrFail();
+        $project2 = Project::where('company_id', $company->id)->where('name', 'New Build - Al Malqa Residence')->firstOrFail();
+        $invoice = Invoice::where('company_id', $company->id)->where('invoice_number', 'INV-1001')->firstOrFail();
+        $invoice2 = Invoice::where('company_id', $company->id)->where('invoice_number', 'INV-1002')->firstOrFail();
+        $supplier1 = Supplier::where('company_id', $company->id)->where('email', 'sales@sbmc.sa')->firstOrFail();
+        $supplier2 = Supplier::where('company_id', $company->id)->where('email', 'info@gulfceramics.sa')->firstOrFail();
+
+        $this->seedExtendedDemoData($company, $owner, $estimator, $accountant, $client, $project, $project2, $invoice, $invoice2, $supplier1, $supplier2);
+
+        $this->command?->info(implode("\n", [
+            'Backfilled extended demo data (asphalt estimate, RFQ bid leveling, purchase orders,',
+            'subcontracts, vendor bills, payment certificates, RFI/submittals, equipment, safety,',
+            'timesheets, recurring invoice, credit/debit notes, zakat, selections, assemblies,',
+            'extra takeoff page, project updates, notifications) into the existing demo company.',
             '',
             'Client portal login (/portal/login):',
             '  Email:    contact@jeddahheights.sa',
